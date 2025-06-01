@@ -1,0 +1,52 @@
+FILES TO UPLOAD TO GITHUB
+=============================
+
+ROOT CONFIGURATION FILES:
+- package.json
+- package-lock.json
+- tsconfig.json
+- vite.config.ts
+- tailwind.config.ts
+- drizzle.config.ts
+- components.json
+- postcss.config.js
+- .gitignore
+- README.md
+- DEPLOYMENT_GUIDE.md
+
+CLIENT DIRECTORY (Frontend):
+- client/index.html
+- client/src/App.tsx
+- client/src/main.tsx
+- client/src/index.css
+- client/src/components/admin-dashboard.tsx
+- client/src/components/lead-capture-form.tsx
+- client/src/components/style-selector.tsx
+- client/src/components/ui/ (all 40+ UI component files)
+- client/src/hooks/ (all hook files)
+- client/src/lib/ (api.ts, queryClient.ts, utils.ts)
+- client/src/pages/ (admin.tsx, home.tsx, not-found.tsx)
+
+SERVER DIRECTORY (Backend):
+- server/db.ts
+- server/index.ts
+- server/openai.ts
+- server/routes.ts
+- server/storage.ts
+- server/vite.ts
+
+SHARED DIRECTORY:
+- shared/schema.ts
+
+ASSETS DIRECTORY:
+- attached_assets/ (all screenshot files)
+
+TOTAL: ~80+ files across all directories
+
+DO NOT UPLOAD:
+- node_modules/ (excluded by .gitignore)
+- .cache/ (system files)
+- .local/ (system files)
+- .git/ (will be recreated)
+- .upm/ (package manager files)
+- .replit (Replit config)
