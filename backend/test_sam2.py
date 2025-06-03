@@ -39,7 +39,7 @@ def test_sam2_segmentation():
                 'Content-Type': 'application/json'
             },
             json={
-                "version": "cd9c45fbc0f7bfbab66fc50fb985bd47a00b47683ccee5e8b26c4ba66d8f618fd",
+                "version": "fe97b453a6455861e3bac769b441ca1f1086110da7466dbb65cf1eecfd60dc83",
                 "input": {
                     "image": data_url,
                     "points_per_side": 32,

@@ -34,7 +34,7 @@ app.mount("/uploads", StaticFiles(directory="public/uploads"), name="uploads")
 replicate_client = replicate
 
 # SAM-2 model version from your Replicate account
-SAM2_VERSION = "cd9c45fbc0f7bfbab66fc50fb985bd47a00b47683ccee5e8b26c4ba66d8f618fd"
+SAM2_VERSION = "fe97b453a6455861e3bac769b441ca1f1086110da7466dbb65cf1eecfd60dc83"
 
 class SegmentationResponse(BaseModel):
     prediction_id: str
