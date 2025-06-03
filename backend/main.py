@@ -25,7 +25,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files
+# Mount static files - create directory if it doesn't exist
+import os
+os.makedirs("public/uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="public/uploads"), name="uploads")
 
 # Initialize Replicate client
