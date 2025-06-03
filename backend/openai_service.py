@@ -65,8 +65,7 @@ async def generate_landscape_prompt(selected_styles: Dict[str, Any]) -> str:
 async def edit_image_with_mask(
     image_url: str,
     mask_data: str,
-    prompt: str,
-    size: str = "1024x1024"
+    prompt: str
 ) -> Dict[str, Any]:
     """Edit an image using OpenAI's image editing API with a mask."""
     try:
@@ -86,7 +85,7 @@ async def edit_image_with_mask(
         
         # Ensure both images are the same size and in RGBA format
         if original_image.size != mask_image.size:
-            mask_image = mask_image.resize(original_image.size, Image.LANCZOS)
+            mask_image = mask_image.resize(original_image.size, Image.Resampling.LANCZOS)
         
         # Convert to RGBA
         if original_image.mode != 'RGBA':
@@ -109,15 +108,18 @@ async def edit_image_with_mask(
             mask=mask_bytes,
             prompt=prompt,
             n=1,
-            size=size,
+            size="1024x1024",
             response_format="url"
         )
         
-        return {
-            "status": "completed",
-            "edited_image_url": edit_response.data[0].url,
-            "original_prompt": prompt
-        }
+        if edit_response.data and len(edit_response.data) > 0:
+            return {
+                "status": "completed",
+                "edited_image_url": edit_response.data[0].url,
+                "original_prompt": prompt
+            }
+        else:
+            raise Exception("No edited image returned from OpenAI")
         
     except Exception as e:
         print(f"OpenAI image edit error: {e}")

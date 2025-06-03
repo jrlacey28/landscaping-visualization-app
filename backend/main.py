@@ -53,20 +53,32 @@ async def run_sam2_predict(image_data: bytes) -> Dict[str, Any]:
         base64_image = base64.b64encode(image_data).decode('utf-8')
         data_url = f"data:image/png;base64,{base64_image}"
         
-        # Create prediction using Replicate client
-        prediction = await asyncio.to_thread(
-            replicate_client.predictions.create,
-            version=SAM2_VERSION,
-            input={
-                "image": data_url,
-                "points_per_side": 32,
-                "pred_iou_thresh": 0.88,
-                "stability_score_thresh": 0.95,
-                "use_m2m": True
+        # Use direct API call to Replicate
+        response = await asyncio.to_thread(
+            requests.post,
+            'https://api.replicate.com/v1/predictions',
+            headers={
+                'Authorization': f'Token {os.getenv("REPLICATE_API_TOKEN")}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                "version": SAM2_VERSION,
+                "input": {
+                    "image": data_url,
+                    "points_per_side": 32,
+                    "pred_iou_thresh": 0.88,
+                    "stability_score_thresh": 0.95,
+                    "use_m2m": True
+                }
             }
         )
         
-        return prediction
+        if not response.ok:
+            error_text = response.text
+            print(f'SAM-2 API error: {error_text}')
+            raise HTTPException(status_code=500, detail="SAM-2 processing failed")
+        
+        return response.json()
     except Exception as e:
         print(f"SAM-2 prediction error: {e}")
         raise HTTPException(status_code=500, detail=f"SAM-2 processing failed: {str(e)}")
@@ -98,10 +110,10 @@ async def segment_image(image: UploadFile = File(...)) -> SegmentationResponse:
         prediction = await run_sam2_predict(image_data)
         
         return SegmentationResponse(
-            prediction_id=prediction.id,
-            status=prediction.status,
-            output=prediction.output,
-            urls=prediction.urls
+            prediction_id=prediction.get("id", ""),
+            status=prediction.get("status", "starting"),
+            output=prediction.get("output"),
+            urls=prediction.get("urls")
         )
         
     except HTTPException:
@@ -160,12 +172,17 @@ async def upload_image(image: UploadFile = File(...)):
 async def apply_style_edit(request: StyleEditRequest):
     """Apply style-based edits using OpenAI image editing."""
     try:
-        # This endpoint will integrate with OpenAI's image editing API
-        # For now, return a placeholder response
-        return {
-            "status": "processing",
-            "message": "Style edit functionality will be integrated with OpenAI API"
-        }
+        # Generate enhanced prompt based on selected styles
+        enhanced_prompt = await generate_landscape_prompt(request.selected_styles)
+        
+        # Apply the style edit using OpenAI
+        result = await edit_image_with_mask(
+            image_url=request.image_url,
+            mask_data=request.mask_data,
+            prompt=enhanced_prompt
+        )
+        
+        return result
         
     except Exception as e:
         print(f"Style edit error: {e}")
