@@ -90,8 +90,13 @@ npm install
 3. Set up environment variables:
 ```bash
 cp .env.example .env
-# Add your API keys and database URL
+# Edit .env and add your actual API keys:
+# OPENAI_API_KEY=your_openai_api_key
+# REPLICATE_API_TOKEN=your_replicate_token
+# DATABASE_URL=your_database_url
 ```
+
+**Important**: Never commit your actual API keys to version control. Use environment variables or Replit Secrets for production deployments.
 
 4. Run database migrations:
 ```bash

@@ -35,11 +35,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { slug } = req.params;
       const tenant = await storage.getTenantBySlug(slug);
-      
+
       if (!tenant) {
         return res.status(404).json({ error: "Tenant not found" });
       }
-      
+
       res.json(tenant);
     } catch (error) {
       console.error("Error fetching tenant:", error);
@@ -140,13 +140,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           landscape: selectedLandscape || "",
           patio: selectedPatio || ""
         };
-        
+
         prompt = await generateLandscapePrompt(selectedStyles);
       } catch (error) {
         console.error("OpenAI prompt generation failed, using fallback:", error);
         // Fallback to basic prompt if OpenAI fails
         prompt = "Transform this residential property photo with professional landscaping improvements. ";
-        
+
         if (selectedCurbing) {
           prompt += `Add ${selectedCurbing} curbing around landscape areas. `;
         }
@@ -156,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (selectedPatio) {
           prompt += `Add a ${selectedPatio} patio or hardscape area. `;
         }
-        
+
         prompt += "Maintain the original house structure and perspective. Create a realistic, professional result that shows clear improvements while preserving the home's architecture.";
       }
 
@@ -184,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const openaiResult = await openaiResponse.json();
-        
+
         // Create a prediction object compatible with existing flow
         const prediction = {
           id: `openai_${Date.now()}`,
@@ -233,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const visualization = await storage.getVisualization(parseInt(id));
-      
+
       if (!visualization) {
         return res.status(404).json({ error: "Visualization not found" });
       }
@@ -242,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (visualization.status === "processing" && visualization.replicateId) {
         try {
           const prediction = await replicate.predictions.get(visualization.replicateId);
-          
+
           if (prediction.status === "succeeded") {
             // Update with generated image
             const updatedVisualization = await storage.updateVisualization(visualization.id, {
@@ -276,10 +276,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const leadData = insertLeadSchema.parse(req.body);
       const lead = await storage.createLead(leadData);
-      
+
       // Here you could add email notifications, webhook calls, etc.
       // based on the tenant's configuration
-      
+
       res.json(lead);
     } catch (error) {
       console.error("Error creating lead:", error);
@@ -351,7 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const prediction = await response.json();
-      
+
       // Return prediction ID for polling or direct result if available
       res.json({ 
         prediction_id: prediction.id,
@@ -370,7 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/segment/:predictionId", async (req, res) => {
     try {
       const { predictionId } = req.params;
-      
+
       const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
         headers: {
           'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`
@@ -451,7 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create visualization record
       const originalImageBuffer = req.file.buffer;
       const base64Image = `data:image/png;base64,${originalImageBuffer.toString('base64')}`;
-      
+
       const visualization = await storage.createVisualization({
         tenantId: parseInt(tenantId),
         originalImageUrl: base64Image,
@@ -483,7 +483,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/fast-edit/:segmentationId", async (req, res) => {
     try {
       const { segmentationId } = req.params;
-      
+
       const response = await fetch(`https://api.replicate.com/v1/predictions/${segmentationId}`, {
         headers: {
           'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`
@@ -495,7 +495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const prediction = await response.json();
-      
+
       if (prediction.status === 'succeeded' && prediction.output?.masks?.length > 0) {
         res.json({
           status: 'ready_for_edit',
