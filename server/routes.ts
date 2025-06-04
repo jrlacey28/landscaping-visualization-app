@@ -10,9 +10,9 @@ import { storage } from "./storage";
 import { insertLeadSchema, insertVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { z } from "zod";
 import { generateLandscapePrompt } from "./openai";
-import { runSAM2, runStyleBasedInpainting } from "./sam";
+// Removed inpainting imports - using SAM-2 + OpenAI only
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
-import { createTargetedEdit } from "./sam2-workflow";
+import { processFastSAM2, applyOpenAIEdit } from "./fast-sam2-openai";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -454,26 +454,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // New SAM-2 + OpenAI targeted editing endpoint (replaces inpainting)
-  app.post("/api/sam2-targeted-edit", upload.single('image'), async (req, res) => {
+  // Fast SAM-2 + OpenAI workflow (no inpainting)
+  app.post("/api/fast-edit", upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "Image file is required" });
       }
 
-      // Parse selected styles from request
+      const { tenantId, selectedCurbing, selectedLandscape, selectedPatio } = req.body;
+
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant ID is required" });
+      }
+
+      // Parse selected styles
       const selectedStyles = {
         curbing: { 
-          enabled: req.body.selectedCurbing ? true : false, 
-          type: req.body.selectedCurbing || '' 
+          enabled: selectedCurbing ? true : false, 
+          type: selectedCurbing || '' 
         },
         landscape: { 
-          enabled: req.body.selectedLandscape ? true : false, 
-          type: req.body.selectedLandscape || '' 
+          enabled: selectedLandscape ? true : false, 
+          type: selectedLandscape || '' 
         },
         patio: { 
-          enabled: req.body.selectedPatio ? true : false, 
-          type: req.body.selectedPatio || '' 
+          enabled: selectedPatio ? true : false, 
+          type: selectedPatio || '' 
         }
       };
 
@@ -483,47 +489,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No landscaping features selected" });
       }
 
-      // Step 1: Run SAM-2 segmentation
-      const imageBuffer = req.file.buffer;
-      const base64Image = `data:image/png;base64,${imageBuffer.toString('base64')}`;
-
-      const sam2Response = await fetch('https://api.replicate.com/v1/predictions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          version: "fe97b453a6455861e3bac769b441ca1f1086110da7466dbb65cf1eecfd60dc83",
-          input: {
-            image: base64Image,
-            points_per_side: 32,
-            pred_iou_thresh: 0.88,
-            stability_score_thresh: 0.95,
-            use_m2m: true
-          }
-        })
+      // Create visualization record
+      const originalImageBuffer = req.file.buffer;
+      const base64Image = `data:image/png;base64,${originalImageBuffer.toString('base64')}`;
+      
+      const visualization = await storage.createVisualization({
+        tenantId: parseInt(tenantId),
+        originalImageUrl: base64Image,
+        selectedCurbing: selectedCurbing || null,
+        selectedLandscape: selectedLandscape || null,
+        selectedPatio: selectedPatio || null,
+        status: "processing",
       });
 
-      if (!sam2Response.ok) {
-        const errorText = await sam2Response.text();
-        console.error('SAM-2 API error:', errorText);
-        return res.status(500).json({ error: "Region detection failed" });
-      }
-
-      const sam2Prediction = await sam2Response.json();
+      // Step 1: Fast SAM-2 segmentation
+      const sam2Prediction = await processFastSAM2(originalImageBuffer, selectedStyles);
 
       // Return prediction ID for client to poll status
       res.json({
         success: true,
+        visualizationId: visualization.id,
         segmentationId: sam2Prediction.id,
         status: sam2Prediction.status,
         selectedStyles: selectedStyles
       });
 
     } catch (error) {
-      console.error("SAM-2 targeted edit error:", error);
-      res.status(500).json({ error: "Failed to process image with region detection" });
+      console.error("Fast edit error:", error);
+      res.status(500).json({ error: "Failed to process image" });
+    }
+  });
+
+  // Check SAM-2 status and apply OpenAI edits
+  app.get("/api/fast-edit/:segmentationId", async (req, res) => {
+    try {
+      const { segmentationId } = req.params;
+      
+      const response = await fetch(`https://api.replicate.com/v1/predictions/${segmentationId}`, {
+        headers: {
+          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`
+        }
+      });
+
+      if (!response.ok) {
+        return res.status(500).json({ error: "Failed to check segmentation status" });
+      }
+
+      const prediction = await response.json();
+      
+      if (prediction.status === 'succeeded' && prediction.output?.masks?.length > 0) {
+        res.json({
+          status: 'ready_for_edit',
+          masks: prediction.output.masks,
+          message: 'SAM-2 completed. Ready for OpenAI editing.'
+        });
+      } else if (prediction.status === 'failed') {
+        res.json({
+          status: 'failed',
+          error: prediction.error || 'Region detection failed'
+        });
+      } else {
+        res.json({
+          status: prediction.status,
+          message: 'Processing regions...'
+        });
+      }
+
+    } catch (error) {
+      console.error("Status check error:", error);
+      res.status(500).json({ error: "Failed to check status" });
     }
   });
 

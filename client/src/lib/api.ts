@@ -3,9 +3,10 @@ import { apiRequest } from "./queryClient";
 export { apiRequest };
 
 // Additional API utilities can be added here
-export const uploadImageWithSAM2 = async (file: File, selectedStyles: any) => {
+export const uploadImageWithFastSAM2 = async (file: File, tenantId: number, selectedStyles: any) => {
   const formData = new FormData();
   formData.append('image', file);
+  formData.append('tenantId', tenantId.toString());
   
   // Format the selected styles to match backend expectations
   const curbingValue = selectedStyles.curbing.enabled && selectedStyles.curbing.type ? selectedStyles.curbing.type : '';
@@ -16,7 +17,7 @@ export const uploadImageWithSAM2 = async (file: File, selectedStyles: any) => {
   formData.append('selectedLandscape', landscapeValue);
   formData.append('selectedPatio', patioValue);
 
-  const response = await fetch('/api/sam2-targeted-edit', {
+  const response = await fetch('/api/fast-edit', {
     method: 'POST',
     body: formData,
     credentials: 'include',
@@ -24,7 +25,21 @@ export const uploadImageWithSAM2 = async (file: File, selectedStyles: any) => {
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(error || 'SAM-2 region detection failed');
+    throw new Error(error || 'Fast region detection failed');
+  }
+
+  return response.json();
+};
+
+export const checkFastEditStatus = async (segmentationId: string) => {
+  const response = await fetch(`/api/fast-edit/${segmentationId}`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || 'Failed to check edit status');
   }
 
   return response.json();
