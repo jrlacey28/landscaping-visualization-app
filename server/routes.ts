@@ -5,14 +5,14 @@ import multer from "multer";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
-// Removed Replicate import - using OpenAI only
+import Replicate from "replicate";
 import { storage } from "./storage";
 import { insertLeadSchema, insertVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { z } from "zod";
 import { generateLandscapePrompt } from "./openai";
 // Removed inpainting imports - using SAM-2 + OpenAI only
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
-// Removed Replicate imports - using OpenAI only
+import { processImageWithSAM2AndGPT4o, waitForSAM2Completion, generateImageWithGPT4o } from "./clean-sam2-gpt4o";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -22,7 +22,9 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Removed Replicate initialization - using OpenAI only
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_TOKEN || "",
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve static files from uploads directory
@@ -226,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Check visualization status (OpenAI only - no Replicate)
+  // Check visualization status
   app.get("/api/visualizations/:id/status", async (req, res) => {
     try {
       const { id } = req.params;
@@ -236,9 +238,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Visualization not found" });
       }
 
-      // For OpenAI-generated predictions, they complete immediately
-      // No need to poll external APIs since OpenAI returns results synchronously
-      res.json(visualization);
+      // If processing, check Replicate status
+      if (visualization.status === "processing" && visualization.replicateId) {
+        try {
+          const prediction = await replicate.predictions.get(visualization.replicateId);
+          
+          if (prediction.status === "succeeded") {
+            // Update with generated image
+            const updatedVisualization = await storage.updateVisualization(visualization.id, {
+              generatedImageUrl: prediction.output?.[0] || null,
+              status: "completed",
+            });
+            res.json(updatedVisualization);
+          } else if (prediction.status === "failed") {
+            await storage.updateVisualization(visualization.id, {
+              status: "failed",
+            });
+            res.json({ ...visualization, status: "failed" });
+          } else {
+            res.json(visualization);
+          }
+        } catch (replicateError) {
+          console.error("Error checking Replicate status:", replicateError);
+          res.json(visualization);
+        }
+      } else {
+        res.json(visualization);
+      }
     } catch (error) {
       console.error("Error checking visualization status:", error);
       res.status(500).json({ error: "Failed to check status" });
@@ -288,7 +314,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // REMOVED: SAM-2 segmentation endpoint - using OpenAI only
+  // SAM-2 segmentation endpoint
+  app.post("/api/segment", upload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Image file is required" });
+      }
+
+      // Convert image to base64 with proper prefix
+      const imageBuffer = req.file.buffer;
+      const base64Image = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+
+      // Call Replicate's SAM-2 API
+      const response = await fetch('https://api.replicate.com/v1/predictions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          version: "fe97b453a6455861e3bac769b441ca1f1086110da7466dbb65cf1eecfd60dc83",
+          input: {
+            image: base64Image,
+            points_per_side: 32,
+            pred_iou_thresh: 0.88,
+            stability_score_thresh: 0.95,
+            use_m2m: true
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('SAM-2 API error:', errorText);
+        return res.status(500).json({ error: "SAM-2 processing failed" });
+      }
+
+      const prediction = await response.json();
+      
+      // Return prediction ID for polling or direct result if available
+      res.json({ 
+        prediction_id: prediction.id,
+        status: prediction.status,
+        output: prediction.output,
+        urls: prediction.urls
+      });
+
+    } catch (error) {
+      console.error("SAM-2 processing error:", error);
+      res.status(500).json({ error: "Failed to process image with SAM-2" });
+    }
+  });
 
   // Check SAM-2 prediction status
   app.get("/api/segment/:predictionId", async (req, res) => {
@@ -385,70 +461,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      // Direct OpenAI image generation (no SAM-2 or Replicate)
-      // selectedStyles already defined above
+      // Step 1: Fast SAM-2 segmentation
+      const sam2Prediction = await processImageWithSAM2AndGPT4o(originalImageBuffer, selectedStyles);
 
-      // Generate enhanced prompt
-      let prompt: string;
-      try {
-        const promptStyles = {
-          curbing: selectedCurbing || "",
-          landscape: selectedLandscape || "",
-          patio: selectedPatio || ""
-        };
-        prompt = await generateLandscapePrompt(promptStyles);
-      } catch (error) {
-        console.error("OpenAI prompt generation failed, using fallback:", error);
-        prompt = "Transform this residential property photo with professional landscaping improvements. ";
-        
-        if (selectedCurbing) {
-          prompt += `Add ${selectedCurbing} curbing around landscape areas. `;
-        }
-        if (selectedLandscape) {
-          prompt += `Replace existing landscaping with ${selectedLandscape}. `;
-        }
-        if (selectedPatio) {
-          prompt += `Add a ${selectedPatio} patio or hardscape area. `;
-        }
-        
-        prompt += "Maintain the original house structure and perspective. Create a realistic, professional result that shows clear improvements while preserving the home's architecture.";
-      }
-
-      // Use OpenAI DALL-E 3 for direct image generation
-      const openaiResponse = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "dall-e-3",
-          prompt: prompt,
-          n: 1,
-          size: "1024x1024",
-          quality: "standard"
-        }),
-      });
-
-      if (!openaiResponse.ok) {
-        const errorText = await openaiResponse.text();
-        throw new Error(`OpenAI API error: ${errorText}`);
-      }
-
-      const openaiResult = await openaiResponse.json();
-
-      // Update visualization with completed result
-      const updatedVisualization = await storage.updateVisualization(visualization.id, {
-        generatedImageUrl: openaiResult.data[0].url,
-        status: "completed",
-        replicateId: `openai_${Date.now()}`,
-      });
-
+      // Return prediction ID for client to poll status
       res.json({
         success: true,
         visualizationId: visualization.id,
-        status: "completed",
-        generatedImageUrl: openaiResult.data[0].url
+        segmentationId: sam2Prediction.id,
+        status: sam2Prediction.status,
+        selectedStyles: selectedStyles
       });
 
     } catch (error) {
