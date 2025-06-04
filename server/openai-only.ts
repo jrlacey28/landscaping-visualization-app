@@ -37,19 +37,34 @@ export async function processWithOpenAIOnly(
         .png()
         .toBuffer();
 
-      const response = await openai.images.edit({
-        image: processedImage,
-        mask: processedMask,
-        prompt: prompt,
-        n: 1,
-        size: "1024x1024"
+      // Use fetch API directly with FormData for proper Buffer handling
+      const formData = new FormData();
+      formData.append('image', new Blob([processedImage], { type: 'image/png' }), 'image.png');
+      formData.append('mask', new Blob([processedMask], { type: 'image/png' }), 'mask.png');
+      formData.append('prompt', prompt);
+      formData.append('n', '1');
+      formData.append('size', '1024x1024');
+
+      const response = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: formData,
       });
 
-      if (!response.data?.[0]?.url) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenAI API error: ${errorText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.data?.[0]?.url) {
         throw new Error('OpenAI did not return edited image');
       }
 
-      return response.data[0].url;
+      return result.data[0].url;
     } else {
       // Use OpenAI image generation
       const response = await openai.images.generate({
