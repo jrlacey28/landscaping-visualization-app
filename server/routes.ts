@@ -12,7 +12,6 @@ import { z } from "zod";
 import { generateLandscapePrompt } from "./openai";
 import { runSAM2, runStyleBasedInpainting } from "./sam";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
-import { processFeatureRequest, analyzeRegionsForFeature, applyTargetedEdit } from "./targeted-editing";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -476,57 +475,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Style-based inpainting error:", error);
       res.status(500).json({ error: "Failed to process style-based inpainting" });
-    }
-  });
-
-  // Targeted feature editing endpoint
-  app.post("/api/targeted-edit", upload.single('image'), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "Image file is required" });
-      }
-
-      const { feature, specificStyle } = req.body;
-      
-      if (!feature || !['curbing', 'mulch', 'patio'].includes(feature)) {
-        return res.status(400).json({ error: "Valid feature required: curbing, mulch, or patio" });
-      }
-
-      // Save uploaded image temporarily
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-      const filename = `temp_${Date.now()}.jpg`;
-      const imagePath = path.join(uploadsDir, filename);
-      
-      await sharp(req.file.buffer)
-        .jpeg({ quality: 95 })
-        .toFile(imagePath);
-      
-      const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
-
-      // Process the feature request using SAM-2 + GPT-4o
-      const result = await processFeatureRequest(imageUrl, feature, specificStyle);
-      
-      if (!result.success) {
-        return res.status(400).json({ 
-          error: result.error,
-          fallbackToManual: true 
-        });
-      }
-
-      res.json({
-        success: true,
-        originalImageUrl: imageUrl,
-        editedImageUrl: result.editedImageUrl,
-        feature,
-        specificStyle
-      });
-
-    } catch (error) {
-      console.error("Targeted edit error:", error);
-      res.status(500).json({ 
-        error: "Targeted editing failed", 
-        fallbackToManual: true 
-      });
     }
   });
 

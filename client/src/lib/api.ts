@@ -148,30 +148,3 @@ export const runStyleBasedInpainting = async (
 
   return response.json();
 };
-
-export const runTargetedEdit = async (
-  file: File,
-  feature: 'curbing' | 'mulch' | 'patio',
-  specificStyle?: string
-) => {
-  const formData = new FormData();
-  formData.append('image', file);
-  formData.append('feature', feature);
-  
-  if (specificStyle) {
-    formData.append('specificStyle', specificStyle);
-  }
-
-  const response = await fetch('/api/targeted-edit', {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || 'Targeted editing failed');
-  }
-
-  return response.json();
-};

@@ -9,7 +9,7 @@ import InpaintingCanvas from "@/components/ui/inpainting-canvas";
 import StyleSelector from "@/components/style-selector";
 import LeadCaptureForm from "@/components/lead-capture-form";
 import { useTenant } from "@/hooks/use-tenant";
-import { uploadImage, checkVisualizationStatus, runStyleBasedInpainting, runTargetedEdit } from "@/lib/api";
+import { uploadImage, checkVisualizationStatus, runStyleBasedInpainting } from "@/lib/api";
 
 export default function Home() {
   const { tenant, isLoading: tenantLoading } = useTenant();
@@ -26,50 +26,6 @@ export default function Home() {
   const [maskData, setMaskData] = useState<string | null>(null);
   const [showInpainting, setShowInpainting] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
-
-  const handleTargetedEdit = async () => {
-    if (!originalFile) return;
-    
-    setIsGenerating(true);
-    try {
-      // Determine which feature to apply based on selected styles
-      let feature: 'curbing' | 'mulch' | 'patio' | null = null;
-      let specificStyle = '';
-
-      if (selectedStyles.curbing.enabled) {
-        feature = 'curbing';
-        specificStyle = selectedStyles.curbing.type;
-      } else if (selectedStyles.landscape.enabled) {
-        feature = 'mulch';
-        specificStyle = selectedStyles.landscape.type;
-      } else if (selectedStyles.patio.enabled) {
-        feature = 'patio';
-        specificStyle = selectedStyles.patio.type;
-      }
-
-      if (!feature) {
-        throw new Error('Please select at least one feature (curbing, landscape, or patio) to apply.');
-      }
-
-      const result = await runTargetedEdit(originalFile, feature, specificStyle);
-      
-      if (result.success) {
-        setGeneratedImage(result.editedImageUrl);
-      } else if (result.fallbackToManual) {
-        // If auto-detection fails, fall back to manual mode
-        setShowInpainting(true);
-        console.log('Auto-detection failed, switching to manual mode:', result.error);
-      } else {
-        throw new Error(result.error || 'Targeted editing failed');
-      }
-    } catch (error) {
-      console.error('Targeted edit error:', error);
-      // Fall back to manual inpainting mode
-      setShowInpainting(true);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   const handleAutoInpaint = async (imageUrl: string, maskData: string) => {
     setIsGenerating(true);
@@ -365,46 +321,9 @@ export default function Home() {
                     }}
                   />
 
-                  <div className="space-y-4">
-                    <Button
-                      size="lg"
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={isGenerating || !(
-                        selectedStyles.curbing.enabled ||
-                        selectedStyles.landscape.enabled ||
-                        selectedStyles.patio.enabled
-                      )}
-                      onClick={handleTargetedEdit}
-                    >
-                      {isGenerating ? (
-                        <>
-                          <Sparkles className="h-5 w-5 mr-2 animate-spin" />
-                          Applying AI Edits...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-5 w-5 mr-2" />
-                          Apply Smart Edits
-                        </>
-                      )}
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="w-full border-stone-400 text-stone-600 hover:bg-stone-100"
-                      disabled={isGenerating}
-                      onClick={() => setShowInpainting(true)}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Manual Editing Mode
-                    </Button>
-                  </div>
-
-                  {/* Legacy generate button for fallback */}
                   <Button
                     size="lg"
-                    className="w-full bg-gradient-to-r from-amber-600 to-green-600 hover:from-amber-700 hover:to-green-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hidden"
+                    className="w-full bg-gradient-to-r from-amber-600 to-green-600 hover:from-amber-700 hover:to-green-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={isGenerating || !(
                       (selectedStyles.curbing.enabled && selectedStyles.curbing.type) ||
                       (selectedStyles.landscape.enabled && selectedStyles.landscape.type) ||
