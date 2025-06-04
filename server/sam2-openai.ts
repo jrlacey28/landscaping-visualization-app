@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 import sharp from "sharp";
-import fetch from "node-fetch";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -16,7 +15,7 @@ export async function processImageWithSAM2AndOpenAI(
     // Step 1: Run SAM-2 segmentation
     const base64Image = `data:image/png;base64,${imageBuffer.toString('base64')}`;
     
-    const sam2Response = await fetch('https://api.replicate.com/v1/predictions', {
+    const sam2Response = await globalThis.fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
         'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,

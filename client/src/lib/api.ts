@@ -3,6 +3,34 @@ import { apiRequest } from "./queryClient";
 export { apiRequest };
 
 // Additional API utilities can be added here
+export const uploadImageWithSAM2 = async (file: File, selectedStyles: any) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  
+  // Format the selected styles to match backend expectations
+  const curbingValue = selectedStyles.curbing.enabled && selectedStyles.curbing.type ? selectedStyles.curbing.type : '';
+  const landscapeValue = selectedStyles.landscape.enabled && selectedStyles.landscape.type ? selectedStyles.landscape.type : '';
+  const patioValue = selectedStyles.patio.enabled && selectedStyles.patio.type ? selectedStyles.patio.type : '';
+  
+  formData.append('selectedCurbing', curbingValue);
+  formData.append('selectedLandscape', landscapeValue);
+  formData.append('selectedPatio', patioValue);
+
+  const response = await fetch('/api/sam2-targeted-edit', {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || 'SAM-2 region detection failed');
+  }
+
+  return response.json();
+};
+
+// Keep legacy upload for backward compatibility
 export const uploadImage = async (file: File, tenantId: number, selectedStyles: any, maskData?: string) => {
   const formData = new FormData();
   formData.append('image', file);

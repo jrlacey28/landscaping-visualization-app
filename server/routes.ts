@@ -12,7 +12,7 @@ import { z } from "zod";
 import { generateLandscapePrompt } from "./openai";
 import { runSAM2, runStyleBasedInpainting } from "./sam";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
-import { processImageWithSAM2AndOpenAI } from "./sam2-openai";
+import { createTargetedEdit } from "./sam2-workflow";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -454,28 +454,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Style-based inpainting endpoint
-  app.post("/api/inpaint", async (req, res) => {
+  // New SAM-2 + OpenAI targeted editing endpoint (replaces inpainting)
+  app.post("/api/sam2-targeted-edit", upload.single('image'), async (req, res) => {
     try {
-      const { imageUrl, maskUrl, regionType, preferredStyleId } = req.body;
-      
-      if (!imageUrl || !maskUrl || !regionType) {
-        return res.status(400).json({ 
-          error: "Image URL, mask URL, and region type are required" 
-        });
+      if (!req.file) {
+        return res.status(400).json({ error: "Image file is required" });
       }
 
-      const result = await runStyleBasedInpainting(
-        imageUrl, 
-        maskUrl, 
-        regionType, 
-        preferredStyleId
-      );
-      
-      res.json(result);
+      // Parse selected styles from request
+      const selectedStyles = {
+        curbing: { 
+          enabled: req.body.selectedCurbing ? true : false, 
+          type: req.body.selectedCurbing || '' 
+        },
+        landscape: { 
+          enabled: req.body.selectedLandscape ? true : false, 
+          type: req.body.selectedLandscape || '' 
+        },
+        patio: { 
+          enabled: req.body.selectedPatio ? true : false, 
+          type: req.body.selectedPatio || '' 
+        }
+      };
+
+      // Check if any styles are selected
+      const hasEnabledStyles = Object.values(selectedStyles).some(style => style.enabled);
+      if (!hasEnabledStyles) {
+        return res.status(400).json({ error: "No landscaping features selected" });
+      }
+
+      // Step 1: Run SAM-2 segmentation
+      const imageBuffer = req.file.buffer;
+      const base64Image = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+
+      const sam2Response = await fetch('https://api.replicate.com/v1/predictions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          version: "fe97b453a6455861e3bac769b441ca1f1086110da7466dbb65cf1eecfd60dc83",
+          input: {
+            image: base64Image,
+            points_per_side: 32,
+            pred_iou_thresh: 0.88,
+            stability_score_thresh: 0.95,
+            use_m2m: true
+          }
+        })
+      });
+
+      if (!sam2Response.ok) {
+        const errorText = await sam2Response.text();
+        console.error('SAM-2 API error:', errorText);
+        return res.status(500).json({ error: "Region detection failed" });
+      }
+
+      const sam2Prediction = await sam2Response.json();
+
+      // Return prediction ID for client to poll status
+      res.json({
+        success: true,
+        segmentationId: sam2Prediction.id,
+        status: sam2Prediction.status,
+        selectedStyles: selectedStyles
+      });
+
     } catch (error) {
-      console.error("Style-based inpainting error:", error);
-      res.status(500).json({ error: "Failed to process style-based inpainting" });
+      console.error("SAM-2 targeted edit error:", error);
+      res.status(500).json({ error: "Failed to process image with region detection" });
     }
   });
 
