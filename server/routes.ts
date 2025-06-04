@@ -385,16 +385,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      // Step 1: Fast SAM-2 segmentation
-      const sam2Prediction = await processImageWithSAM2AndGPT4o(originalImageBuffer, selectedStyles);
+      // Direct OpenAI image generation (no SAM-2 or Replicate)
+      // selectedStyles already defined above
 
-      // Return prediction ID for client to poll status
+      // Generate enhanced prompt
+      let prompt: string;
+      try {
+        const promptStyles = {
+          curbing: selectedStyles.curbing.type,
+          landscape: selectedStyles.landscape.type,
+          patio: selectedStyles.patio.type
+        };
+        prompt = await generateLandscapePrompt(promptStyles);
+      } catch (error) {
+        console.error("OpenAI prompt generation failed, using fallback:", error);
+        prompt = "Transform this residential property photo with professional landscaping improvements. ";
+        
+        if (selectedCurbing) {
+          prompt += `Add ${selectedCurbing} curbing around landscape areas. `;
+        }
+        if (selectedLandscape) {
+          prompt += `Replace existing landscaping with ${selectedLandscape}. `;
+        }
+        if (selectedPatio) {
+          prompt += `Add a ${selectedPatio} patio or hardscape area. `;
+        }
+        
+        prompt += "Maintain the original house structure and perspective. Create a realistic, professional result that shows clear improvements while preserving the home's architecture.";
+      }
+
+      // Use OpenAI DALL-E 3 for direct image generation
+      const openaiResponse = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: prompt,
+          n: 1,
+          size: "1024x1024",
+          quality: "standard"
+        }),
+      });
+
+      if (!openaiResponse.ok) {
+        const errorText = await openaiResponse.text();
+        throw new Error(`OpenAI API error: ${errorText}`);
+      }
+
+      const openaiResult = await openaiResponse.json();
+
+      // Update visualization with completed result
+      const updatedVisualization = await storage.updateVisualization(visualization.id, {
+        generatedImageUrl: openaiResult.data[0].url,
+        status: "completed",
+        replicateId: `openai_${Date.now()}`,
+      });
+
       res.json({
         success: true,
         visualizationId: visualization.id,
-        segmentationId: sam2Prediction.id,
-        status: sam2Prediction.status,
-        selectedStyles: selectedStyles
+        status: "completed",
+        generatedImageUrl: openaiResult.data[0].url
       });
 
     } catch (error) {
