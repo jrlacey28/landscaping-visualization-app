@@ -128,11 +128,11 @@ export async function generateImageWithGPT4o(
 
     const result = await response.json();
 
-    if (!response.data?.[0]?.url) {
+    if (!result.data?.[0]?.url) {
       throw new Error('OpenAI did not return edited image');
     }
 
-    return response.data[0].url;
+    return result.data[0].url;
 
   } catch (error: any) {
     console.error('GPT-4o image generation error:', error);

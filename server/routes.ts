@@ -160,71 +160,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         prompt += "Maintain the original house structure and perspective. Create a realistic, professional result that shows clear improvements while preserving the home's architecture.";
       }
 
-      // Call OpenAI API for AI image generation
+      // Use OpenAI GPT-4o for direct image generation (no masks)
       try {
-        // Use OpenAI DALL-E for image editing
-        let openaiResult;
-        
-        if (maskData) {
-          // Use DALL-E image editing with mask
-          const formData = new FormData();
-          
-          // Convert base64 image to buffer and create blob
-          const imageBuffer = Buffer.from(base64Image.split(',')[1], 'base64');
-          const imageBlob = new Blob([imageBuffer], { type: 'image/png' });
-          formData.append('image', imageBlob, 'image.png');
-          
-          // Convert mask to buffer and create blob
-          const maskBuffer = Buffer.from(maskData.split(',')[1], 'base64');
-          const maskBlob = new Blob([maskBuffer], { type: 'image/png' });
-          formData.append('mask', maskBlob, 'mask.png');
-          
-          formData.append('prompt', prompt);
-          formData.append('n', '1');
-          formData.append('size', '1024x1024');
-          
-          const openaiResponse = await fetch('https://api.openai.com/v1/images/edits', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            },
-            body: formData,
-          });
+        const openaiResponse = await fetch('https://api.openai.com/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: "dall-e-3",
+            prompt: prompt,
+            n: 1,
+            size: "1024x1024",
+            quality: "standard"
+          }),
+        });
 
-          if (!openaiResponse.ok) {
-            const errorText = await openaiResponse.text();
-            console.error('OpenAI API error:', errorText);
-            throw new Error(`OpenAI API error: ${errorText}`);
-          }
-
-          openaiResult = await openaiResponse.json();
-        } else {
-          // Use DALL-E image variation without mask
-          const formData = new FormData();
-          
-          const imageBuffer = Buffer.from(base64Image.split(',')[1], 'base64');
-          const imageBlob = new Blob([imageBuffer], { type: 'image/png' });
-          formData.append('image', imageBlob, 'image.png');
-          
-          formData.append('n', '1');
-          formData.append('size', '1024x1024');
-          
-          const openaiResponse = await fetch('https://api.openai.com/v1/images/variations', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            },
-            body: formData,
-          });
-
-          if (!openaiResponse.ok) {
-            const errorText = await openaiResponse.text();
-            console.error('OpenAI API error:', errorText);
-            throw new Error(`OpenAI API error: ${errorText}`);
-          }
-
-          openaiResult = await openaiResponse.json();
+        if (!openaiResponse.ok) {
+          const errorText = await openaiResponse.text();
+          console.error('OpenAI API error:', errorText);
+          throw new Error(`OpenAI API error: ${errorText}`);
         }
+
+        const openaiResult = await openaiResponse.json();
         
         // Create a prediction object compatible with existing flow
         const prediction = {

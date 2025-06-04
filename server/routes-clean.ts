@@ -210,9 +210,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = app.listen(5000, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:5000`);
-  });
-
-  return httpServer;
+  // Server will be started by index.ts - don't start here
+  return Promise.resolve({} as Server);
 }
