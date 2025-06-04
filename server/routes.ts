@@ -12,7 +12,7 @@ import { z } from "zod";
 import { generateLandscapePrompt } from "./openai";
 // Removed inpainting imports - using SAM-2 + OpenAI only
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
-import { processFastSAM2, applyOpenAIEdit } from "./fast-sam2-openai";
+import { processImageWithSAM2AndGPT4o, waitForSAM2Completion, generateImageWithGPT4o } from "./clean-sam2-gpt4o";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -103,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload image and process with AI
+  // Pure SAM-2 + GPT-4o workflow (NO REPLICATE INPAINTING)
   app.post("/api/upload", upload.single("image"), async (req, res) => {
     try {
       if (!req.file) {
@@ -503,7 +503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Step 1: Fast SAM-2 segmentation
-      const sam2Prediction = await processFastSAM2(originalImageBuffer, selectedStyles);
+      const sam2Prediction = await processImageWithSAM2AndGPT4o(originalImageBuffer, selectedStyles);
 
       // Return prediction ID for client to poll status
       res.json({
