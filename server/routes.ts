@@ -5,14 +5,14 @@ import multer from "multer";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
-import Replicate from "replicate";
+// Removed Replicate import - using OpenAI only
 import { storage } from "./storage";
 import { insertLeadSchema, insertVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { z } from "zod";
 import { generateLandscapePrompt } from "./openai";
 // Removed inpainting imports - using SAM-2 + OpenAI only
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
-import { processImageWithSAM2AndGPT4o, waitForSAM2Completion, generateImageWithGPT4o } from "./clean-sam2-gpt4o";
+// Removed Replicate imports - using OpenAI only
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -22,9 +22,7 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_TOKEN || "",
-});
+// Removed Replicate initialization - using OpenAI only
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve static files from uploads directory
@@ -228,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Check visualization status
+  // Check visualization status (OpenAI only - no Replicate)
   app.get("/api/visualizations/:id/status", async (req, res) => {
     try {
       const { id } = req.params;
@@ -238,33 +236,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Visualization not found" });
       }
 
-      // If processing, check Replicate status
-      if (visualization.status === "processing" && visualization.replicateId) {
-        try {
-          const prediction = await replicate.predictions.get(visualization.replicateId);
-          
-          if (prediction.status === "succeeded") {
-            // Update with generated image
-            const updatedVisualization = await storage.updateVisualization(visualization.id, {
-              generatedImageUrl: prediction.output?.[0] || null,
-              status: "completed",
-            });
-            res.json(updatedVisualization);
-          } else if (prediction.status === "failed") {
-            await storage.updateVisualization(visualization.id, {
-              status: "failed",
-            });
-            res.json({ ...visualization, status: "failed" });
-          } else {
-            res.json(visualization);
-          }
-        } catch (replicateError) {
-          console.error("Error checking Replicate status:", replicateError);
-          res.json(visualization);
-        }
-      } else {
-        res.json(visualization);
-      }
+      // For OpenAI-generated predictions, they complete immediately
+      // No need to poll external APIs since OpenAI returns results synchronously
+      res.json(visualization);
     } catch (error) {
       console.error("Error checking visualization status:", error);
       res.status(500).json({ error: "Failed to check status" });
@@ -314,57 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // SAM-2 segmentation endpoint
-  app.post("/api/segment", upload.single('image'), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "Image file is required" });
-      }
-
-      // Convert image to base64 with proper prefix
-      const imageBuffer = req.file.buffer;
-      const base64Image = `data:image/png;base64,${imageBuffer.toString('base64')}`;
-
-      // Call Replicate's SAM-2 API
-      const response = await fetch('https://api.replicate.com/v1/predictions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          version: "fe97b453a6455861e3bac769b441ca1f1086110da7466dbb65cf1eecfd60dc83",
-          input: {
-            image: base64Image,
-            points_per_side: 32,
-            pred_iou_thresh: 0.88,
-            stability_score_thresh: 0.95,
-            use_m2m: true
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('SAM-2 API error:', errorText);
-        return res.status(500).json({ error: "SAM-2 processing failed" });
-      }
-
-      const prediction = await response.json();
-      
-      // Return prediction ID for polling or direct result if available
-      res.json({ 
-        prediction_id: prediction.id,
-        status: prediction.status,
-        output: prediction.output,
-        urls: prediction.urls
-      });
-
-    } catch (error) {
-      console.error("SAM-2 processing error:", error);
-      res.status(500).json({ error: "Failed to process image with SAM-2" });
-    }
-  });
+  // REMOVED: SAM-2 segmentation endpoint - using OpenAI only
 
   // Check SAM-2 prediction status
   app.get("/api/segment/:predictionId", async (req, res) => {
