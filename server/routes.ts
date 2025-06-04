@@ -392,9 +392,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let prompt: string;
       try {
         const promptStyles = {
-          curbing: selectedStyles.curbing.type,
-          landscape: selectedStyles.landscape.type,
-          patio: selectedStyles.patio.type
+          curbing: selectedCurbing || "",
+          landscape: selectedLandscape || "",
+          patio: selectedPatio || ""
         };
         prompt = await generateLandscapePrompt(promptStyles);
       } catch (error) {
