@@ -12,6 +12,7 @@ import { z } from "zod";
 import { generateLandscapePrompt } from "./openai";
 import { runSAM2, runStyleBasedInpainting } from "./sam";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
+import { processImageWithSAM2AndOpenAI } from "./sam2-openai";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
