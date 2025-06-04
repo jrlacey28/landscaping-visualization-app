@@ -228,14 +228,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Fast edit endpoint with pure OpenAI processing
-  app.post("/api/fast-edit", upload.single("image"), async (req, res) => {
+  // SAM-2 segmentation endpoint
+  app.post("/api/segment", upload.single("image"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      const { tenantId, selectedCurbing, selectedLandscape, selectedPatio } = req.body;
+      const imageBuffer = req.file.buffer;
+      const base64Image = imageBuffer.toString('base64');
+
+      // Call Replicate SAM-2 for segmentation
+      const response = await fetch('https://api.replicate.com/v1/predictions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          version: "fe97b453a6455861e3bac769b441ca1f1086110da7466dbb65cf1eecfd60dc83",
+          input: {
+            image: `data:image/jpeg;base64,${base64Image}`,
+            point_coords: "[[1024,1024]]",
+            point_labels: "[1]",
+            multimask_output: false,
+            return_logits: false,
+            normalize_coords: true,
+            box: null,
+            mask_input: null
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('SAM-2 API error:', errorText);
+        return res.status(500).json({ error: 'SAM-2 segmentation failed' });
+      }
+
+      const prediction = await response.json();
+      res.json(prediction);
+
+    } catch (error) {
+      console.error("SAM-2 segmentation error:", error);
+      res.status(500).json({ error: "Failed to run SAM-2 segmentation" });
+    }
+  });
+
+  // Check SAM-2 segmentation status
+  app.get("/api/segment/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const response = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
+        headers: {
+          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+        },
+      });
+
+      if (!response.ok) {
+        return res.status(500).json({ error: 'Failed to check SAM-2 status' });
+      }
+
+      const prediction = await response.json();
+      res.json(prediction);
+
+    } catch (error) {
+      console.error("Error checking SAM-2 status:", error);
+      res.status(500).json({ error: "Failed to check segmentation status" });
+    }
+  });
+
+  // Hybrid workflow: SAM-2 for segmentation + OpenAI for generation
+  app.post("/api/process-with-segmentation", upload.single("image"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const { tenantId, selectedCurbing, selectedLandscape, selectedPatio, maskData } = req.body;
 
       if (!tenantId) {
         return res.status(400).json({ error: "Tenant ID is required" });
@@ -254,16 +325,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      // Process with pure OpenAI GPT-4o (no Replicate)
+      // If mask data provided, use it with OpenAI directly
+      if (maskData) {
+        const selectedStyles = {
+          curbing: selectedCurbing || "",
+          landscape: selectedLandscape || "",
+          patio: selectedPatio || ""
+        };
+
+        const generatedImageUrl = await processWithOpenAIOnly(originalImageBuffer, selectedStyles, maskData);
+
+        await storage.updateVisualization(visualization.id, {
+          generatedImageUrl: generatedImageUrl,
+          status: "completed",
+        });
+
+        res.json({
+          success: true,
+          visualizationId: visualization.id,
+          generatedImageUrl: generatedImageUrl,
+          originalImageUrl: base64Image,
+          status: "completed"
+        });
+      } else {
+        // Return processing status for client to continue with segmentation
+        res.json({
+          success: true,
+          visualizationId: visualization.id,
+          originalImageUrl: base64Image,
+          status: "awaiting_segmentation"
+        });
+      }
+
+    } catch (error) {
+      console.error("Processing error:", error);
+      res.status(500).json({ error: "Failed to process image" });
+    }
+  });
+
+  // Apply OpenAI edit with mask from segmentation
+  app.post("/api/apply-edit", async (req, res) => {
+    try {
+      const { visualizationId, maskData, selectedCurbing, selectedLandscape, selectedPatio } = req.body;
+
+      if (!visualizationId || !maskData) {
+        return res.status(400).json({ error: "Visualization ID and mask data required" });
+      }
+
+      const visualization = await storage.getVisualization(parseInt(visualizationId));
+      if (!visualization) {
+        return res.status(404).json({ error: "Visualization not found" });
+      }
+
+      // Convert original image from base64 to buffer
+      const imageBuffer = Buffer.from(visualization.originalImageUrl.split(',')[1], 'base64');
+
       const selectedStyles = {
         curbing: selectedCurbing || "",
         landscape: selectedLandscape || "",
         patio: selectedPatio || ""
       };
 
-      const generatedImageUrl = await processWithOpenAIOnly(originalImageBuffer, selectedStyles);
+      const generatedImageUrl = await processWithOpenAIOnly(imageBuffer, selectedStyles, maskData);
 
-      // Update visualization with result
       await storage.updateVisualization(visualization.id, {
         generatedImageUrl: generatedImageUrl,
         status: "completed",
@@ -273,13 +397,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         visualizationId: visualization.id,
         generatedImageUrl: generatedImageUrl,
-        originalImageUrl: base64Image,
         status: "completed"
       });
 
     } catch (error) {
-      console.error("Fast edit error:", error);
-      res.status(500).json({ error: "Failed to process image" });
+      console.error("Apply edit error:", error);
+      res.status(500).json({ error: "Failed to apply edit" });
     }
   });
 
