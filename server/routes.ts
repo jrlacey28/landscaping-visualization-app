@@ -5,14 +5,14 @@ import multer from "multer";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
-import Replicate from "replicate";
+// Removed Replicate - using only OpenAI GPT-4o
 import { storage } from "./storage";
 import { insertLeadSchema, insertVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { z } from "zod";
 import { generateLandscapePrompt } from "./openai";
 // Removed inpainting imports - using SAM-2 + OpenAI only
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
-import { processFastSAM2, applyOpenAIEdit } from "./fast-sam2-openai";
+import { processWithOpenAIOnly } from "./openai-only";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -22,9 +22,7 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_TOKEN || "",
-});
+// Removed Replicate initialization - using only OpenAI GPT-4o
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve static files from uploads directory
@@ -103,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload image and process with AI
+  // Pure OpenAI GPT-4o image processing (replaces old Replicate workflow)
   app.post("/api/upload", upload.single("image"), async (req, res) => {
     try {
       if (!req.file) {
