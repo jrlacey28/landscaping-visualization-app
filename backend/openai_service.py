@@ -42,7 +42,7 @@ async def generate_landscape_prompt(selected_styles: Dict[str, Any]) -> str:
         prompt = f"Create a detailed, professional landscape design prompt featuring: {', '.join(style_descriptions)}. Make it suitable for AI image generation."
         
         response = client.chat.completions.create(
-            model="gpt-4o",  # the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+            model="o3-mini",  # the newest OpenAI model is "o3-mini" which was released December 2024. do not change this unless explicitly requested by the user
             messages=[
                 {
                     "role": "system",
@@ -129,7 +129,7 @@ async def analyze_image_content(image_url: str) -> str:
     """Analyze image content using OpenAI's vision capabilities."""
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",  # the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+            model="o3-mini",  # the newest OpenAI model is "o3-mini" which was released December 2024. do not change this unless explicitly requested by the user
             messages=[
                 {
                     "role": "user",

@@ -53,7 +53,7 @@ export async function generateLandscapePrompt(
           content: prompt,
         },
       ],
-      max_completion_tokens: 500,
+      max_tokens: 500,
     });
 
     return response.choices[0].message.content || "Professional landscape design with selected features";

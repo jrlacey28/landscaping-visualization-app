@@ -413,6 +413,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Style-based inpainting endpoint
+  app.post("/api/inpaint", async (req, res) => {
+    try {
+      const { imageUrl, maskUrl, regionType, preferredStyleId } = req.body;
+
+      if (!imageUrl || !maskUrl || !regionType) {
+        return res.status(400).json({ 
+          error: "Missing required parameters: imageUrl, maskUrl, and regionType are required" 
+        });
+      }
+
+      // Import the function from sam.ts
+      const { runStyleBasedInpainting } = await import("./sam");
+      
+      const result = await runStyleBasedInpainting(
+        imageUrl,
+        maskUrl,
+        regionType as 'edge' | 'central' | 'hardscape' | 'lawn',
+        preferredStyleId
+      );
+
+      res.json({
+        success: true,
+        prediction: result.prediction,
+        appliedStyle: result.appliedStyle,
+        predictionId: result.prediction.id
+      });
+
+    } catch (error) {
+      console.error("Inpainting error:", error);
+      res.status(500).json({ 
+        error: "Style-based inpainting failed",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Fast SAM-2 + OpenAI workflow (no inpainting)
   app.post("/api/fast-edit", upload.single('image'), async (req, res) => {
     try {
