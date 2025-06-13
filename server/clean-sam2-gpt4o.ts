@@ -159,7 +159,7 @@ async function generatePromptWithGPT4o(selectedStyles: any): Promise<string> {
     const styleDescription = modifications.join(', ');
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "o3-mini",
       messages: [
         {
           role: "system",

@@ -30,19 +30,34 @@ export async function runStyleBasedInpainting(
   try {
     const style = getStyleForRegion(regionType, preferredStyleId);
     
-    const prediction = await replicate.predictions.create({
-      model: "stability-ai/stable-diffusion-xl-inpainting",
-      input: {
-        image: imageUrl,
-        mask: maskUrl,
-        prompt: style.prompt,
-        reference_image: style.referenceImageUrl,
-        negative_prompt: "blurry, low quality, distorted, unrealistic, artificial",
-        num_inference_steps: 30,
-        guidance_scale: 7.5,
-        strength: 0.8
-      }
+    // Use direct API call to match working patterns in codebase
+    const response = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        version: "95b7223104132402a9ae91cc677285bc5eb997834bd2349fa486f53910fd68b3",
+        input: {
+          image: imageUrl,
+          mask: maskUrl,
+          prompt: style.prompt,
+          negative_prompt: "blurry, low quality, distorted, unrealistic, artificial",
+          num_inference_steps: 30,
+          guidance_scale: 7.5,
+          strength: 0.8
+        }
+      })
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Inpainting API error:', errorText);
+      throw new Error(`Inpainting API error: ${errorText}`);
+    }
+
+    const prediction = await response.json();
 
     return {
       prediction,
