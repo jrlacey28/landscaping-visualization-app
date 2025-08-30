@@ -213,14 +213,13 @@ export default function Home() {
           ) : (
             <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
               <CardContent className="p-8">
-                {/* Center Image with Inpainting */}
+                {/* Just show the uploaded image at the top */}
                 <div className="text-center mb-8">
                   <div className="max-w-4xl mx-auto">
-                    <InpaintingCanvas
-                      imageUrl={uploadedImage}
-                      originalFile={originalFile}
-                      onMaskChange={setMaskData}
-                      onAutoInpaint={handleAutoInpaint}
+                    <img
+                      src={uploadedImage}
+                      alt="Uploaded landscape photo"
+                      className="w-full aspect-video object-cover rounded-xl shadow-lg"
                     />
                     <div className="flex justify-center gap-2 mt-4">
                       <Button
@@ -240,11 +239,6 @@ export default function Home() {
                         Choose Different Photo
                       </Button>
                     </div>
-                    {maskData && (
-                      <Badge variant="secondary" className="mt-2">
-                        Areas selected for modification ✓
-                      </Badge>
-                    )}
                   </div>
                 </div>
 
@@ -292,35 +286,48 @@ export default function Home() {
                         const result = await uploadImage(originalFile, tenant.id, selectedStyles, maskData || undefined);
 
                         if (result.visualizationId) {
-                          // Poll for completion
-                          const pollInterval = setInterval(async () => {
-                            try {
-                              const status = await checkVisualizationStatus(result.visualizationId);
-                              if (status.status === "completed" && status.generatedImageUrl) {
-                                setGeneratedImage(status.generatedImageUrl);
+                          // Check status immediately since Gemini processes instantly
+                          const status = await checkVisualizationStatus(result.visualizationId);
+                          
+                          if (status.status === "completed" && status.generatedImageUrl) {
+                            // Gemini workflow completed immediately
+                            setGeneratedImage(status.generatedImageUrl);
+                            setIsGenerating(false);
+                          } else if (status.status === "failed") {
+                            console.error("AI generation failed");
+                            setIsGenerating(false);
+                            alert("AI generation failed. Please try again or contact support if the issue persists.");
+                          } else {
+                            // Fall back to polling for any edge cases
+                            const pollInterval = setInterval(async () => {
+                              try {
+                                const polledStatus = await checkVisualizationStatus(result.visualizationId);
+                                if (polledStatus.status === "completed" && polledStatus.generatedImageUrl) {
+                                  setGeneratedImage(polledStatus.generatedImageUrl);
+                                  setIsGenerating(false);
+                                  clearInterval(pollInterval);
+                                } else if (polledStatus.status === "failed") {
+                                  console.error("AI generation failed");
+                                  setIsGenerating(false);
+                                  clearInterval(pollInterval);
+                                  alert("AI generation failed. Please try again or contact support if the issue persists.");
+                                }
+                              } catch (error) {
+                                console.error("Error checking status:", error);
                                 setIsGenerating(false);
                                 clearInterval(pollInterval);
-                              } else if (status.status === "failed") {
-                                console.error("AI generation failed");
-                                setIsGenerating(false);
-                                clearInterval(pollInterval);
-                                alert("AI generation failed. Please try again or contact support if the issue persists.");
                               }
-                            } catch (error) {
-                              console.error("Error checking status:", error);
-                              setIsGenerating(false);
-                              clearInterval(pollInterval);
-                            }
-                          }, 2000);
+                            }, 2000);
 
-                          // Timeout after 2 minutes
-                          setTimeout(() => {
-                            clearInterval(pollInterval);
-                            if (isGenerating) {
-                              setIsGenerating(false);
-                              setGeneratedImage("https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600");
-                            }
-                          }, 120000);
+                            // Timeout after 1 minute (reduced since Gemini is fast)
+                            setTimeout(() => {
+                              clearInterval(pollInterval);
+                              if (isGenerating) {
+                                setIsGenerating(false);
+                                alert("Processing timed out. Please try again.");
+                              }
+                            }, 60000);
+                          }
                         }
                       } catch (error) {
                         console.error("Error generating visualization:", error);

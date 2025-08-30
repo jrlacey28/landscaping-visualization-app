@@ -127,7 +127,7 @@ CRITICAL REQUIREMENTS:
     // Step 4: Generate edited image using Gemini
     const base64Image = processedImage.buffer.toString('base64');
     
-    await ai.models.generateContent({
+    const response = await ai.models.generateContent({
       model: "gemini-2.0-flash-preview-image-generation",
       contents: [
         { 
@@ -148,15 +148,29 @@ CRITICAL REQUIREMENTS:
       },
     });
 
-    // For now, return the processed input image until Gemini image editing is available
-    // This will be updated when the full Gemini image editing capability is released
+    // Extract the generated image from Gemini response
+    let generatedImageBuffer = processedImage.buffer; // fallback to original
     
+    if (response.candidates && response.candidates.length > 0) {
+      const content = response.candidates[0].content;
+      if (content && content.parts) {
+        for (const part of content.parts) {
+          if (part.inlineData && part.inlineData.data) {
+            // Convert base64 to buffer for the generated image
+            generatedImageBuffer = Buffer.from(part.inlineData.data, 'base64');
+            console.log("✓ Gemini generated new landscape image successfully");
+            break;
+          }
+        }
+      }
+    }
+
     const appliedStyles = Object.entries(selectedStyles)
       .filter(([_, value]) => value)
       .map(([key, value]) => `${key}: ${value}`);
 
     return {
-      editedImageBuffer: processedImage.buffer,
+      editedImageBuffer: generatedImageBuffer,
       prompt: editPrompt,
       appliedStyles
     };
