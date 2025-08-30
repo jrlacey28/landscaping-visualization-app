@@ -8,6 +8,16 @@ This is a white-label SaaS platform that enables landscaping companies to provid
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+**August 30, 2025**: Fixed critical prompting issue
+- Problem: Gemini was changing entire yards instead of only selected features
+- Solution: Completely rewrote prompting system with precise, targeted instructions
+- For natural stone curbing: Only adds curbing around existing beds, preserves all lawn/plants
+- For landscape materials: Only replaces mulch in existing beds, keeps bed shapes
+- For patios: Only adds patio in appropriate area, preserves existing landscaping
+- Added detailed preservation rules to maintain house, lawn, trees, and overall layout
+
 ## System Architecture
 
 ### Frontend Architecture

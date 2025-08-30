@@ -56,51 +56,86 @@ async function processImageSize(imageBuffer: Buffer): Promise<ProcessedImage> {
 }
 
 /**
- * Generates a tailored landscape design prompt based on selected styles
+ * Generates a targeted landscape design prompt that only modifies selected features
  */
 async function generateLandscapePrompt(selectedStyles: any): Promise<string> {
-  const styleDescriptions = [];
+  const modifications = [];
   
+  // Build very specific modification instructions
   if (selectedStyles.curbing) {
-    styleDescriptions.push(`decorative curbing with ${selectedStyles.curbing.replace(/[_-]/g, ' ')}`);
+    let curbingDetails = '';
+    switch (selectedStyles.curbing) {
+      case 'natural_stone':
+      case 'natural_stone_curbing':
+        curbingDetails = 'Add natural stone curbing ONLY around existing flower beds and lawn edges. Use grey/beige limestone or flagstone blocks, 4-6 inches high, creating clean defined borders. Do NOT change the lawn, plants, or yard layout.';
+        break;
+      case 'brick_curbing':
+        curbingDetails = 'Add red brick curbing ONLY around existing flower beds and lawn edges. Use traditional red clay bricks, 4-6 inches high, creating neat borders. Do NOT change the lawn, plants, or yard layout.';
+        break;
+      case 'concrete_curbing':
+        curbingDetails = 'Add poured concrete curbing ONLY around existing flower beds and lawn edges. Use smooth grey concrete, 4-6 inches high, creating clean modern borders. Do NOT change the lawn, plants, or yard layout.';
+        break;
+      default:
+        curbingDetails = 'Add decorative curbing ONLY around existing flower beds and lawn edges. Do NOT change the lawn, plants, or yard layout.';
+    }
+    modifications.push(curbingDetails);
   }
   
   if (selectedStyles.landscape) {
-    styleDescriptions.push(`landscape features with ${selectedStyles.landscape.replace(/[_-]/g, ' ')}`);
+    let landscapeDetails = '';
+    switch (selectedStyles.landscape) {
+      case 'brown_mulch':
+        landscapeDetails = 'Replace ONLY the mulch in existing flower beds with fresh brown wood mulch. Keep all existing plants, flowers, and bed shapes exactly the same. Do NOT change the lawn or add new beds.';
+        break;
+      case 'red_mulch':
+        landscapeDetails = 'Replace ONLY the mulch in existing flower beds with red cedar mulch. Keep all existing plants, flowers, and bed shapes exactly the same. Do NOT change the lawn or add new beds.';
+        break;
+      case 'decorative_stone':
+        landscapeDetails = 'Replace ONLY the mulch in existing flower beds with decorative river rocks or landscape stones. Keep all existing plants, flowers, and bed shapes exactly the same. Do NOT change the lawn or add new beds.';
+        break;
+      default:
+        landscapeDetails = 'Improve ONLY the existing flower bed materials while keeping all plants and bed shapes the same. Do NOT change the lawn or add new beds.';
+    }
+    modifications.push(landscapeDetails);
   }
   
   if (selectedStyles.patio) {
-    styleDescriptions.push(`patio area with ${selectedStyles.patio.replace(/[_-]/g, ' ')}`);
+    let patioDetails = '';
+    switch (selectedStyles.patio) {
+      case 'concrete_patio':
+        patioDetails = 'Add a concrete patio ONLY in an appropriate yard area, typically near the house or in a back corner. Do NOT change existing lawn, beds, or landscaping.';
+        break;
+      case 'stone_patio':
+        patioDetails = 'Add a natural stone patio ONLY in an appropriate yard area, typically near the house or in a back corner. Do NOT change existing lawn, beds, or landscaping.';
+        break;
+      case 'brick_patio':
+        patioDetails = 'Add a brick patio ONLY in an appropriate yard area, typically near the house or in a back corner. Do NOT change existing lawn, beds, or landscaping.';
+        break;
+      default:
+        patioDetails = 'Add a patio ONLY in an appropriate yard area. Do NOT change existing lawn, beds, or landscaping.';
+    }
+    modifications.push(patioDetails);
   }
 
-  const promptRequest = `
-    Create a detailed professional landscape design editing prompt for AI image generation.
-    The design should transform the provided image to include: ${styleDescriptions.join(', ')}.
-    
-    Requirements:
-    - Keep the image dimensions exactly at 1920x1080 pixels
-    - Maintain the original house structure and perspective
-    - Add realistic, high-quality landscape improvements
-    - Use professional landscaping terminology
-    - Specify realistic materials, textures, and colors
-    - Ensure visual harmony and proper proportions
-    - Create photorealistic results that look natural
-    
-    Return only the detailed image editing prompt, no additional text.
-  `;
+  // Create precise prompt that emphasizes preservation
+  const specificPrompt = `
+PRECISE LANDSCAPE EDITING INSTRUCTIONS:
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
-      contents: promptRequest,
-    });
+${modifications.join('\n\n')}
 
-    return response.text || `Professional landscape design featuring ${styleDescriptions.join(', ')}, maintain 1920x1080 dimensions, photorealistic quality`;
-  } catch (error) {
-    console.error("Gemini prompt generation error:", error);
-    // Fallback prompt
-    return `Transform this residential property with professional landscaping: ${styleDescriptions.join(', ')}. Maintain original house structure, 1920x1080 dimensions, photorealistic quality with natural lighting and realistic textures.`;
-  }
+CRITICAL PRESERVATION RULES:
+- Keep the house, driveway, sidewalks, and all hardscaping exactly the same
+- Preserve all existing trees, shrubs, and mature plants
+- Maintain the exact lawn areas and grass coverage  
+- Keep the same yard layout, bed shapes, and overall design
+- Only modify the specific features listed above
+- Maintain original lighting, shadows, and perspective
+- Keep image dimensions at 1920x1080 pixels
+- Result must look natural and professionally installed
+
+Make ONLY the specified changes above. Do not redesign or dramatically alter the yard.`;
+
+  return specificPrompt;
 }
 
 /**
@@ -114,18 +149,16 @@ export async function processLandscapeWithGemini({ imageBuffer, selectedStyles }
     // Step 2: Generate tailored prompt
     const editPrompt = await generateLandscapePrompt(selectedStyles);
     
-    // Step 3: Create final prompt with size constraints
-    const finalPrompt = `${editPrompt}
-
-CRITICAL REQUIREMENTS:
-- Output image must be exactly 1920x1080 pixels
-- Maintain photorealistic quality
-- Preserve original house architecture
-- Apply landscape changes seamlessly
-- Use natural lighting and realistic materials`;
+    // Step 3: Use the specific prompt directly (it already includes all requirements)
+    const finalPrompt = editPrompt;
 
     // Step 4: Generate edited image using Gemini
     const base64Image = processedImage.buffer.toString('base64');
+    
+    console.log("🎯 GEMINI PROMPT BEING SENT:");
+    console.log("=====================================");
+    console.log(finalPrompt);
+    console.log("=====================================");
     
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash-preview-image-generation",
