@@ -164,29 +164,19 @@ export const getStylesByCategory = async (category: string) => {
   return response.json();
 };
 
-export const runStyleBasedInpainting = async (
-  imageUrl: string,
-  maskUrl: string,
-  regionType: 'edge' | 'central' | 'hardscape' | 'lawn',
-  preferredStyleId?: string
-) => {
-  const response = await fetch('/api/inpaint', {
+export const analyzeLandscapeImage = async (file: File) => {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const response = await fetch('/api/analyze', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ 
-      imageUrl, 
-      maskUrl, 
-      regionType, 
-      preferredStyleId 
-    }),
+    body: formData,
     credentials: 'include',
   });
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(error || 'Style-based inpainting failed');
+    throw new Error(error || 'Image analysis failed');
   }
 
   return response.json();

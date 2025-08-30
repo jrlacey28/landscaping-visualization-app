@@ -9,7 +9,7 @@ import InpaintingCanvas from "@/components/ui/inpainting-canvas";
 import StyleSelector from "@/components/style-selector";
 import LeadCaptureForm from "@/components/lead-capture-form";
 import { useTenant } from "@/hooks/use-tenant";
-import { uploadImage, checkVisualizationStatus, runStyleBasedInpainting } from "@/lib/api";
+import { uploadImage, checkVisualizationStatus, analyzeLandscapeImage } from "@/lib/api";
 
 export default function Home() {
   const { tenant, isLoading: tenantLoading } = useTenant();
@@ -28,60 +28,9 @@ export default function Home() {
   const [showingOriginal, setShowingOriginal] = useState(false);
 
   const handleAutoInpaint = async (imageUrl: string, maskData: string) => {
-    setIsGenerating(true);
-    try {
-      // Determine region type and style based on selected options
-      let regionType: 'edge' | 'central' | 'hardscape' | 'lawn' = 'edge';
-      let styleId = '';
-
-      // Priority order: curbing -> landscaping -> patio
-      if (selectedStyles.curbing.enabled) {
-        regionType = 'edge';
-        styleId = selectedStyles.curbing.type || 'natural_stone_curbing';
-      } else if (selectedStyles.landscape.enabled) {
-        regionType = 'central';
-        styleId = selectedStyles.landscape.type || 'brown_mulch';
-      } else if (selectedStyles.patio.enabled) {
-        regionType = 'hardscape';
-        styleId = selectedStyles.patio.type || 'concrete_patio';
-      } else {
-        // Default to natural stone curbing for auto-detection
-        regionType = 'edge';
-        styleId = 'natural_stone_curbing';
-      }
-
-      const result = await runStyleBasedInpainting(
-        imageUrl,
-        maskData,
-        regionType,
-        styleId
-      );
-
-      if (result.prediction && result.prediction.id) {
-        // Poll for completion
-        const pollInterval = setInterval(async () => {
-          try {
-            const status = await checkVisualizationStatus(result.prediction.id);
-            if (status.status === "completed" && status.generatedImageUrl) {
-              setGeneratedImage(status.generatedImageUrl);
-              setIsGenerating(false);
-              clearInterval(pollInterval);
-            } else if (status.status === "failed") {
-              console.error("AI generation failed");
-              setIsGenerating(false);
-              clearInterval(pollInterval);
-              alert("AI generation failed. Please try again or contact support if the issue persists.");
-            }
-          } catch (error) {
-            console.error("Error checking status:", error);
-          }
-        }, 2000);
-      }
-    } catch (error) {
-      console.error("Auto-inpainting failed:", error);
-      setIsGenerating(false);
-      alert("Auto-inpainting failed. Please try manual selection or check your connection.");
-    }
+    // For the simplified Gemini workflow, direct users to use the main upload process
+    alert("Please use the 'Generate Visualization' button with your selected styles for the new streamlined AI processing.");
+    setIsGenerating(false);
   };
 
   if (tenantLoading) {
