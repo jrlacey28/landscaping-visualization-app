@@ -26,6 +26,8 @@ export default function Home() {
   const [maskData, setMaskData] = useState<string | null>(null);
   const [showInpainting, setShowInpainting] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
+  const [visualizationResult, setVisualizationResult] = useState<any>(null); // Added to store visualization results
+  const [isLoading, setIsLoading] = useState(false); // Added loading state for submission
 
   const handleAutoInpaint = async (imageUrl: string, maskData: string) => {
     // For the simplified Gemini workflow, direct users to use the main upload process
@@ -274,6 +276,7 @@ export default function Home() {
                     )}
                     onClick={async () => {
                       setIsGenerating(true);
+                      setVisualizationResult(null); // Clear previous results
                       try {
                         // Use original file to preserve maximum quality
                         if (!originalFile) {
@@ -288,10 +291,11 @@ export default function Home() {
                         if (result.visualizationId) {
                           // Check status immediately since Gemini processes instantly
                           const status = await checkVisualizationStatus(result.visualizationId);
-                          
+                          setVisualizationResult(status); // Store status and URL
+
                           if (status.status === "completed" && status.generatedImageUrl) {
                             // Gemini workflow completed immediately
-                            setGeneratedImage(status.generatedImageUrl);
+                            setGeneratedImage(status.generatedImageUrl); // Set generatedImage for the other view
                             setIsGenerating(false);
                           } else if (status.status === "failed") {
                             console.error("AI generation failed");
@@ -302,8 +306,9 @@ export default function Home() {
                             const pollInterval = setInterval(async () => {
                               try {
                                 const polledStatus = await checkVisualizationStatus(result.visualizationId);
+                                setVisualizationResult(polledStatus); // Update visualizationResult during polling
                                 if (polledStatus.status === "completed" && polledStatus.generatedImageUrl) {
-                                  setGeneratedImage(polledStatus.generatedImageUrl);
+                                  setGeneratedImage(polledStatus.generatedImageUrl); // Set generatedImage for the other view
                                   setIsGenerating(false);
                                   clearInterval(pollInterval);
                                 } else if (polledStatus.status === "failed") {
@@ -360,6 +365,81 @@ export default function Home() {
               </CardContent>
             </Card>
           )}
+
+          {/* Render visualization results */}
+          {visualizationResult && (
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold mb-4 text-center text-stone-700">Your Landscape Design</h3>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="text-sm font-medium mb-2 text-stone-600">Original</h4>
+                      <img src={uploadedImage} alt="Original" className="w-full h-auto rounded-lg shadow-md" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium mb-2 text-stone-600">Enhanced Design</h4>
+                      {visualizationResult.status === "completed" && visualizationResult.generatedImageUrl ? (
+                        <img 
+                          src={visualizationResult.generatedImageUrl} 
+                          alt="Enhanced landscape design" 
+                          className="w-full h-auto rounded-lg shadow-md"
+                          onError={(e) => {
+                            console.error('Image failed to load:', visualizationResult.generatedImageUrl);
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling!.style.display = 'flex';
+                          }}
+                        />
+                      ) : visualizationResult.status === "failed" ? (
+                        <div className="w-full h-64 bg-red-50 border-2 border-red-200 rounded-lg flex items-center justify-center">
+                          <p className="text-red-600">Generation failed. Please try again.</p>
+                        </div>
+                      ) : (
+                        <div className="w-full h-64 bg-stone-100 rounded-lg flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2"></div>
+                            <p className="text-stone-600">Generating your landscape design...</p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="w-full h-64 bg-yellow-50 border-2 border-yellow-200 rounded-lg flex-col items-center justify-center text-center p-4" style={{display: 'none'}}>
+                        <p className="text-yellow-700 mb-2">Image failed to display</p>
+                        <p className="text-xs text-yellow-600">URL: {visualizationResult.generatedImageUrl}</p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={() => window.open(visualizationResult.generatedImageUrl, '_blank')}
+                        >
+                          Open in New Tab
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {visualizationResult.status === "completed" && (
+                    <div className="text-center mt-6">
+                      <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-blue-700">
+                          Applied styles: {visualizationResult.appliedStyles?.join(', ') || 'No styles applied'}
+                        </p>
+                        {visualizationResult.prompt && (
+                          <details className="mt-2">
+                            <summary className="text-xs text-blue-600 cursor-pointer">View Prompt Details</summary>
+                            <p className="text-xs text-blue-600 mt-1 whitespace-pre-wrap">{visualizationResult.prompt}</p>
+                          </details>
+                        )}
+                      </div>
+                      <Button 
+                        size="lg" 
+                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-4 px-8 shadow-lg hover:shadow-xl transition-all"
+                        onClick={() => setShowLeadForm(true)}
+                      >
+                        <Phone className="h-5 w-5 mr-2" />
+                        Get Free Quote for This Design
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
         </div>
       </main>
 

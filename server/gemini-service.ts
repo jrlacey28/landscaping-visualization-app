@@ -33,9 +33,9 @@ interface LandscapeEditResult {
 async function processImageSize(imageBuffer: Buffer): Promise<ProcessedImage> {
   const image = sharp(imageBuffer);
   const metadata = await image.metadata();
-  
+
   let processedImage = image;
-  
+
   // Check if resizing is needed
   if (metadata.width && metadata.height && (metadata.width > 1920 || metadata.height > 1080)) {
     processedImage = image.resize(1920, 1080, {
@@ -43,10 +43,10 @@ async function processImageSize(imageBuffer: Buffer): Promise<ProcessedImage> {
       withoutEnlargement: false
     });
   }
-  
+
   const result = await processedImage.jpeg({ quality: 90 }).toBuffer();
   const finalMetadata = await sharp(result).metadata();
-  
+
   return {
     buffer: result,
     width: finalMetadata.width || 1920,
@@ -60,7 +60,7 @@ async function processImageSize(imageBuffer: Buffer): Promise<ProcessedImage> {
  */
 async function generateLandscapePrompt(selectedStyles: any): Promise<string> {
   const modifications = [];
-  
+
   // Build very specific modification instructions
   if (selectedStyles.curbing) {
     let curbingDetails = '';
@@ -80,7 +80,7 @@ async function generateLandscapePrompt(selectedStyles: any): Promise<string> {
     }
     modifications.push(curbingDetails);
   }
-  
+
   if (selectedStyles.landscape) {
     let landscapeDetails = '';
     switch (selectedStyles.landscape) {
@@ -98,7 +98,7 @@ async function generateLandscapePrompt(selectedStyles: any): Promise<string> {
     }
     modifications.push(landscapeDetails);
   }
-  
+
   if (selectedStyles.patio) {
     let patioDetails = '';
     switch (selectedStyles.patio) {
@@ -141,25 +141,99 @@ Make ONLY the specified changes above. Do not redesign or dramatically alter the
 /**
  * Processes landscape image with Gemini AI for complete editing workflow
  */
-export async function processLandscapeWithGemini({ imageBuffer, selectedStyles }: LandscapeEditRequest): Promise<LandscapeEditResult> {
+export async function processLandscapeWithGemini({
+  imageBuffer,
+  selectedStyles
+}: {
+  imageBuffer: Buffer;
+  selectedStyles: {
+    curbing?: string;
+    landscape?: string;
+    patio?: string;
+  };
+}): Promise<{
+  editedImageBuffer: Buffer;
+  appliedStyles: string[];
+  prompt: string;
+}> {
   try {
     // Step 1: Process and resize image
     const processedImage = await processImageSize(imageBuffer);
-    
-    // Step 2: Generate tailored prompt
-    const editPrompt = await generateLandscapePrompt(selectedStyles);
-    
+
+    // Step 2: Generate tailored prompt using style config
+    // Import style config to get proper prompts
+    const { STYLE_CONFIG } = await import('./style-config');
+
+    // Build prompt based on selected styles using actual style config
+    const modifications = [];
+    const appliedStyles = [];
+
+    console.log('🔍 PROCESSING STYLES:', selectedStyles);
+
+    if (selectedStyles.curbing && STYLE_CONFIG[selectedStyles.curbing]) {
+      const styleConfig = STYLE_CONFIG[selectedStyles.curbing];
+      console.log(`✓ Found curbing style: ${styleConfig.name}`);
+      modifications.push(styleConfig.prompt);
+      appliedStyles.push(selectedStyles.curbing);
+    } else if (selectedStyles.curbing) {
+      console.log(`❌ Curbing style not found: ${selectedStyles.curbing}`);
+    }
+
+    if (selectedStyles.landscape && STYLE_CONFIG[selectedStyles.landscape]) {
+      const styleConfig = STYLE_CONFIG[selectedStyles.landscape];
+      console.log(`✓ Found landscape style: ${styleConfig.name}`);
+      modifications.push(styleConfig.prompt);
+      appliedStyles.push(selectedStyles.landscape);
+    } else if (selectedStyles.landscape) {
+      console.log(`❌ Landscape style not found: ${selectedStyles.landscape}`);
+    }
+
+    if (selectedStyles.patio && STYLE_CONFIG[selectedStyles.patio]) {
+      const styleConfig = STYLE_CONFIG[selectedStyles.patio];
+      console.log(`✓ Found patio style: ${styleConfig.name}`);
+      modifications.push(styleConfig.prompt);
+      appliedStyles.push(selectedStyles.patio);
+    } else if (selectedStyles.patio) {
+      console.log(`❌ Patio style not found: ${selectedStyles.patio}`);
+    }
+
+    if (modifications.length === 0) {
+      console.log('❌ No valid modifications found');
+      throw new Error('No valid modifications selected');
+    }
+
+    console.log(`✓ Using ${modifications.length} style prompts`);
+
+    // Combine all the style-specific prompts
+    const prompt = `
+PRECISE LANDSCAPE EDITING INSTRUCTIONS:
+
+${modifications.join('\n\n')}
+
+CRITICAL PRESERVATION RULES:
+- Keep the house, driveway, sidewalks, and all hardscaping exactly the same
+- Preserve all existing trees, shrubs, and mature plants  
+- Maintain the exact lawn areas and grass coverage
+- Keep the same yard layout, bed shapes, and overall design
+- Only modify the specific features listed above
+- Maintain original lighting, shadows, and perspective
+- Keep image dimensions at 1920x1080 pixels
+- Result must look natural and professionally installed
+
+Make ONLY the specified changes above. Do not redesign or dramatically alter the yard.
+`;
+
     // Step 3: Use the specific prompt directly (it already includes all requirements)
-    const finalPrompt = editPrompt;
+    const finalPrompt = prompt;
 
     // Step 4: Generate edited image using Gemini
     const base64Image = processedImage.buffer.toString('base64');
-    
+
     console.log("🎯 GEMINI PROMPT BEING SENT:");
     console.log("=====================================");
     console.log(finalPrompt);
     console.log("=====================================");
-    
+
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash-preview-image-generation",
       contents: [
@@ -183,7 +257,7 @@ export async function processLandscapeWithGemini({ imageBuffer, selectedStyles }
 
     // Extract the generated image from Gemini response
     let generatedImageBuffer = processedImage.buffer; // fallback to original
-    
+
     if (response.candidates && response.candidates.length > 0) {
       const content = response.candidates[0].content;
       if (content && content.parts) {
@@ -197,10 +271,6 @@ export async function processLandscapeWithGemini({ imageBuffer, selectedStyles }
         }
       }
     }
-
-    const appliedStyles = Object.entries(selectedStyles)
-      .filter(([_, value]) => value)
-      .map(([key, value]) => `${key}: ${value}`);
 
     return {
       editedImageBuffer: generatedImageBuffer,
