@@ -76,7 +76,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
     name: "Fresh Sod",
     prompt:
       "what would my yard look like with hyoerrealistic natural looking grass as an established yard.",
-    referenceImageUrl: "https://mycdn.com/fresh-sod.jpg",
+    referenceImageUrl: "/uploads/fresh-sod-reference.jpg",
     category: "grass",
     regionType: "lawn",
   },
