@@ -274,7 +274,7 @@ Make ONLY the specified changes above. Do not redesign or dramatically alter the
 
     return {
       editedImageBuffer: generatedImageBuffer,
-      prompt: editPrompt,
+      prompt: finalPrompt,
       appliedStyles
     };
 
