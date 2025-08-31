@@ -88,20 +88,28 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
     category: 'patio',
     regionType: 'hardscape'
   },
-  flagstone: {
-    id: 'flagstone',
-    name: 'Flagstone',
-    prompt: 'Install natural flagstone patio with irregular stone pieces. Natural stone in earth tones with mortared joints and professional installation.',
-    referenceImageUrl: 'https://mycdn.com/flagstone.jpg',
+  river_rock_curbing: {
+    id: 'river_rock_curbing',
+    name: 'River Rock Curbing',
+    prompt: 'Install river rock landscape edging using smooth natural stones. Mixed-size river rocks in earth tones creating an organic, flowing border design.',
+    referenceImageUrl: 'https://mycdn.com/river-rock-curbing.jpg',
+    category: 'curbing',
+    regionType: 'edge'
+  },
+  concrete: {
+    id: 'concrete',
+    name: 'Concrete',
+    prompt: 'Install a clean, modern concrete patio with a smooth or lightly textured finish. Use light gray concrete with subtle expansion joints for a professional appearance. The patio should be appropriately sized for the space, include proper drainage slopes, and blend naturally with the existing landscape. Preserve all surrounding vegetation and landscape elements exactly as shown.',
+    referenceImageUrl: 'https://mycdn.com/concrete-patio.jpg',
     category: 'patio',
     regionType: 'hardscape'
   }
 };
 
 export const REGION_STYLE_MAPPING = {
-  edge: ['natural_stone_curbing', 'brick_curbing'] as const,
+  edge: ['natural_stone_curbing', 'river_rock_curbing', 'brick_curbing'] as const,
   central: ['brown_mulch', 'red_mulch', 'river_rock', 'premium_mulch'] as const,
-  hardscape: ['concrete_patio', 'stamped_concrete', 'designer_pavers', 'flagstone'] as const,
+  hardscape: ['concrete', 'stamped_concrete', 'designer_pavers'] as const,
   lawn: ['fresh_sod'] as const
 };
 

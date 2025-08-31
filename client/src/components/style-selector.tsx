@@ -11,21 +11,21 @@ interface StyleSelectorProps {
 }
 
 const curbingOptions = [
-  { value: "natural-stone", label: "Natural Stone" },
-  { value: "river-rock", label: "River Rock" },
-  { value: "flagstone", label: "Flagstone" },
+  { value: "natural_stone_curbing", label: "Natural Stone" },
+  { value: "river_rock_curbing", label: "River Rock" },
+  { value: "brick_curbing", label: "Brick Curbing" },
 ];
 
 const landscapeOptions = [
-  { value: "river-rock", label: "River Rock" },
-  { value: "mulch", label: "Premium Mulch" },
-  { value: "sod", label: "Fresh Sod" },
+  { value: "river_rock", label: "River Rock" },
+  { value: "premium_mulch", label: "Premium Mulch" },
+  { value: "fresh_sod", label: "Fresh Sod" },
 ];
 
 const patioOptions = [
-  { value: "stamped-concrete", label: "Stamped Concrete" },
-  { value: "pavers", label: "Designer Pavers" },
-  { value: "natural-stone", label: "Natural Stone" },
+  { value: "stamped_concrete", label: "Stamped Concrete" },
+  { value: "designer_pavers", label: "Designer Pavers" },
+  { value: "concrete", label: "Concrete" },
 ];
 
 export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSelectorProps) {
