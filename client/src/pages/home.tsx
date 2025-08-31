@@ -369,14 +369,14 @@ export default function Home() {
           {/* Render visualization results */}
           {visualizationResult && (
                 <div className="mt-8">
-                  <h3 className="text-lg font-semibold mb-4 text-center text-stone-700">Your Landscape Design</h3>
+                  <h3 className="text-lg font-semibold mb-4 text-center text-white">Your Landscape Design</h3>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <h4 className="text-sm font-medium mb-2 text-stone-600">Original</h4>
+                      <h4 className="text-sm font-medium mb-2 text-white">Original</h4>
                       <img src={uploadedImage} alt="Original" className="w-full h-auto rounded-lg shadow-md" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium mb-2 text-stone-600">Enhanced Design</h4>
+                      <h4 className="text-sm font-medium mb-2 text-white">Enhanced Design</h4>
                       {visualizationResult.status === "completed" && visualizationResult.generatedImageUrl ? (
                         <img 
                           src={visualizationResult.generatedImageUrl} 
@@ -419,7 +419,19 @@ export default function Home() {
                     <div className="text-center mt-6">
                       <div className="mb-4 p-4 bg-blue-50 rounded-lg">
                         <p className="text-sm text-blue-700">
-                          Applied styles: {visualizationResult.appliedStyles?.join(', ') || 'No styles applied'}
+                          Applied styles: {(() => {
+                            const appliedStyles = [];
+                            if (selectedStyles.curbing.enabled && selectedStyles.curbing.type) {
+                              appliedStyles.push(selectedStyles.curbing.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+                            }
+                            if (selectedStyles.landscape.enabled && selectedStyles.landscape.type) {
+                              appliedStyles.push(selectedStyles.landscape.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+                            }
+                            if (selectedStyles.patio.enabled && selectedStyles.patio.type) {
+                              appliedStyles.push(selectedStyles.patio.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+                            }
+                            return appliedStyles.length > 0 ? appliedStyles.join(', ') : 'No styles applied';
+                          })()}
                         </p>
                         {visualizationResult.prompt && (
                           <details className="mt-2">
