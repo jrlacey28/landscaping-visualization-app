@@ -295,8 +295,25 @@ Generate a realistic, professionally edited landscape image that implements only
         for (const part of content.parts) {
           if (part.inlineData && part.inlineData.data) {
             // Convert base64 to buffer for the generated image
-            generatedImageBuffer = Buffer.from(part.inlineData.data, 'base64');
-            console.log("✓ Gemini generated new landscape image successfully");
+            const rawGeneratedBuffer = Buffer.from(part.inlineData.data, 'base64');
+            
+            // Force the generated image to match original dimensions
+            const originalMetadata = await sharp(processedImage.buffer).metadata();
+            const targetWidth = originalMetadata.width || 1920;
+            const targetHeight = originalMetadata.height || 1080;
+            
+            console.log(`📐 Resizing Gemini output to match original: ${targetWidth}x${targetHeight}`);
+            
+            // Resize generated image to match original dimensions exactly
+            generatedImageBuffer = await sharp(rawGeneratedBuffer)
+              .resize(targetWidth, targetHeight, {
+                fit: 'fill', // Force exact dimensions
+                background: { r: 255, g: 255, b: 255, alpha: 1 } // White background if needed
+              })
+              .jpeg({ quality: 90 })
+              .toBuffer();
+              
+            console.log("✓ Gemini generated and resized landscape image successfully");
             break;
           }
         }
