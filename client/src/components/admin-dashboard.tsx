@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,11 @@ export default function AdminDashboard() {
     },
   });
 
+  // Load current tenant data
+  const { data: currentTenant } = useQuery({
+    queryKey: [`/api/tenant/demo`],
+  });
+
   const [tenantSettings, setTenantSettings] = useState({
     companyName: "AI Landscape Visualizer",
     primaryColor: "#2563EB",
@@ -72,6 +77,23 @@ export default function AdminDashboard() {
     showPricing: true,
     requirePhone: false,
   });
+
+  // Update settings when tenant data loads
+  React.useEffect(() => {
+    if (currentTenant) {
+      setTenantSettings({
+        companyName: currentTenant.companyName || "AI Landscape Visualizer",
+        primaryColor: currentTenant.primaryColor || "#2563EB",
+        secondaryColor: currentTenant.secondaryColor || "#059669",
+        phone: currentTenant.phone || "(555) 123-4567",
+        email: currentTenant.email || "info@greenvalley.com",
+        address: currentTenant.address || "123 Landscape Drive\nRiverside, CA 92501",
+        description: currentTenant.description || "Professional landscaping and concrete services",
+        showPricing: currentTenant.showPricing ?? true,
+        requirePhone: currentTenant.requirePhone ?? false,
+      });
+    }
+  }, [currentTenant]);
 
   const handleSaveSettings = () => {
     updateTenantMutation.mutate(tenantSettings);
