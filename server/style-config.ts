@@ -15,7 +15,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
     prompt:
       "Add natural stone curbing Single-layer, poured concrete garden curbing, with a sloping, rounded top edge, hand-carved block divisions, in a dark gray or charcoal color along the existing lawn edges and walkways with uniqueness to each part in earth tones (gray, tan, brown).Keep all existing plants, trees, bushes, rock bed, mulch and landscape features exactly where they are and how they are. The stone styled concrete curbing should follow the natural contours of the landscape and appear professionally installed with clean, defined edges.",
     referenceImageUrl: "https://mycdn.com/natural-stone-curbing.jpg",
-    referenceImages: ["/uploads/hand-carved-concrete-curbing.jpg","/uploads/hand-carved-concrete-curbing-2.jpg"]
+    referenceImages: ["/uploads/hand-carved-concrete-curbing.jpg","/uploads/hand-carved-concrete-curbing-2.jpg"],
     category: "curbing",
     regionType: "edge",
   },
