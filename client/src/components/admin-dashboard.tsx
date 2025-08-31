@@ -8,7 +8,16 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Settings, Users, BarChart3, Plus, Edit, Mail, Phone, MapPin } from "lucide-react";
+import {
+  Settings,
+  Users,
+  BarChart3,
+  Plus,
+  Edit,
+  Mail,
+  Phone,
+  MapPin,
+} from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import type { Tenant, Lead } from "@shared/schema";
@@ -26,10 +35,11 @@ export default function AdminDashboard() {
     enabled: !!mockTenantId,
   });
 
-  const { data: visualizations = [], isLoading: visualizationsLoading } = useQuery({
-    queryKey: [`/api/tenants/${mockTenantId}/visualizations`],
-    enabled: !!mockTenantId,
-  });
+  const { data: visualizations = [], isLoading: visualizationsLoading } =
+    useQuery({
+      queryKey: [`/api/tenants/${mockTenantId}/visualizations`],
+      enabled: !!mockTenantId,
+    });
 
   const updateTenantMutation = useMutation({
     mutationFn: async (data: Partial<Tenant>) => {
@@ -52,7 +62,7 @@ export default function AdminDashboard() {
   });
 
   const [tenantSettings, setTenantSettings] = useState({
-    companyName: "Green Valley Landscapes",
+    companyName: "AI Landscape Visualizer",
     primaryColor: "#2563EB",
     secondaryColor: "#059669",
     phone: "(555) 123-4567",
@@ -77,9 +87,14 @@ export default function AdminDashboard() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Settings className="h-4 w-4 text-white" />
               </div>
-              <h1 className="text-xl font-bold">YardVision Pro - Admin Dashboard</h1>
+              <h1 className="text-xl font-bold">
+                YardVision Pro - Admin Dashboard
+              </h1>
             </div>
-            <Button variant="outline" onClick={() => window.location.href = "/"}>
+            <Button
+              variant="outline"
+              onClick={() => (window.location.href = "/")}
+            >
               Back to Site
             </Button>
           </div>
@@ -89,7 +104,10 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview" className="flex items-center space-x-2">
+            <TabsTrigger
+              value="overview"
+              className="flex items-center space-x-2"
+            >
               <BarChart3 className="h-4 w-4" />
               <span>Overview</span>
             </TabsTrigger>
@@ -97,11 +115,17 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4" />
               <span>Leads</span>
             </TabsTrigger>
-            <TabsTrigger value="branding" className="flex items-center space-x-2">
+            <TabsTrigger
+              value="branding"
+              className="flex items-center space-x-2"
+            >
               <Edit className="h-4 w-4" />
               <span>Branding</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center space-x-2">
+            <TabsTrigger
+              value="settings"
+              className="flex items-center space-x-2"
+            >
               <Settings className="h-4 w-4" />
               <span>Settings</span>
             </TabsTrigger>
@@ -112,7 +136,9 @@ export default function AdminDashboard() {
             <div className="grid md:grid-cols-3 gap-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Total Leads
+                  </CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -122,23 +148,29 @@ export default function AdminDashboard() {
                   </p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Visualizations</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Visualizations
+                  </CardTitle>
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{visualizations.length}</div>
+                  <div className="text-2xl font-bold">
+                    {visualizations.length}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     +8% from last month
                   </p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Conversion Rate
+                  </CardTitle>
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -157,10 +189,17 @@ export default function AdminDashboard() {
               <CardContent>
                 <div className="space-y-3">
                   {leads.slice(0, 5).map((lead: Lead, index) => (
-                    <div key={lead.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div
+                      key={lead.id}
+                      className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                    >
                       <div>
-                        <p className="font-medium">{lead.firstName} {lead.lastName}</p>
-                        <p className="text-sm text-muted-foreground">{lead.email}</p>
+                        <p className="font-medium">
+                          {lead.firstName} {lead.lastName}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {lead.email}
+                        </p>
                       </div>
                       <Badge variant="secondary">
                         {new Date(lead.createdAt!).toLocaleDateString()}
@@ -177,7 +216,9 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Lead Management</CardTitle>
-                <p className="text-muted-foreground">Manage and track your customer leads</p>
+                <p className="text-muted-foreground">
+                  Manage and track your customer leads
+                </p>
               </CardHeader>
               <CardContent>
                 {leadsLoading ? (
@@ -186,7 +227,9 @@ export default function AdminDashboard() {
                   </div>
                 ) : leads.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground">No leads yet. Start promoting your visualization tool!</p>
+                    <p className="text-muted-foreground">
+                      No leads yet. Start promoting your visualization tool!
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -195,7 +238,9 @@ export default function AdminDashboard() {
                         <CardContent className="p-4">
                           <div className="flex justify-between items-start">
                             <div className="space-y-2">
-                              <h4 className="font-semibold">{lead.firstName} {lead.lastName}</h4>
+                              <h4 className="font-semibold">
+                                {lead.firstName} {lead.lastName}
+                              </h4>
                               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                                 <div className="flex items-center">
                                   <Mail className="h-4 w-4 mr-1" />
@@ -241,7 +286,9 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Company Branding</CardTitle>
-                <p className="text-muted-foreground">Customize your company's appearance</p>
+                <p className="text-muted-foreground">
+                  Customize your company's appearance
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
@@ -250,7 +297,12 @@ export default function AdminDashboard() {
                     <Input
                       id="companyName"
                       value={tenantSettings.companyName}
-                      onChange={(e) => setTenantSettings(prev => ({ ...prev, companyName: e.target.value }))}
+                      onChange={(e) =>
+                        setTenantSettings((prev) => ({
+                          ...prev,
+                          companyName: e.target.value,
+                        }))
+                      }
                     />
                   </div>
                   <div>
@@ -258,11 +310,16 @@ export default function AdminDashboard() {
                     <Input
                       id="phone"
                       value={tenantSettings.phone}
-                      onChange={(e) => setTenantSettings(prev => ({ ...prev, phone: e.target.value }))}
+                      onChange={(e) =>
+                        setTenantSettings((prev) => ({
+                          ...prev,
+                          phone: e.target.value,
+                        }))
+                      }
                     />
                   </div>
                 </div>
-                
+
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="email">Email Address</Label>
@@ -270,7 +327,12 @@ export default function AdminDashboard() {
                       id="email"
                       type="email"
                       value={tenantSettings.email}
-                      onChange={(e) => setTenantSettings(prev => ({ ...prev, email: e.target.value }))}
+                      onChange={(e) =>
+                        setTenantSettings((prev) => ({
+                          ...prev,
+                          email: e.target.value,
+                        }))
+                      }
                     />
                   </div>
                   <div>
@@ -280,40 +342,65 @@ export default function AdminDashboard() {
                         id="primaryColor"
                         type="color"
                         value={tenantSettings.primaryColor}
-                        onChange={(e) => setTenantSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
+                        onChange={(e) =>
+                          setTenantSettings((prev) => ({
+                            ...prev,
+                            primaryColor: e.target.value,
+                          }))
+                        }
                         className="w-16"
                       />
                       <Input
                         value={tenantSettings.primaryColor}
-                        onChange={(e) => setTenantSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
+                        onChange={(e) =>
+                          setTenantSettings((prev) => ({
+                            ...prev,
+                            primaryColor: e.target.value,
+                          }))
+                        }
                         className="flex-1"
                       />
                     </div>
                   </div>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="address">Business Address</Label>
                   <Textarea
                     id="address"
                     value={tenantSettings.address}
-                    onChange={(e) => setTenantSettings(prev => ({ ...prev, address: e.target.value }))}
+                    onChange={(e) =>
+                      setTenantSettings((prev) => ({
+                        ...prev,
+                        address: e.target.value,
+                      }))
+                    }
                     rows={3}
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="description">Company Description</Label>
                   <Textarea
                     id="description"
                     value={tenantSettings.description}
-                    onChange={(e) => setTenantSettings(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) =>
+                      setTenantSettings((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
                     rows={3}
                   />
                 </div>
 
-                <Button onClick={handleSaveSettings} disabled={updateTenantMutation.isPending}>
-                  {updateTenantMutation.isPending ? "Saving..." : "Save Branding"}
+                <Button
+                  onClick={handleSaveSettings}
+                  disabled={updateTenantMutation.isPending}
+                >
+                  {updateTenantMutation.isPending
+                    ? "Saving..."
+                    : "Save Branding"}
                 </Button>
               </CardContent>
             </Card>
@@ -324,22 +411,31 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Application Settings</CardTitle>
-                <p className="text-muted-foreground">Configure how your application behaves</p>
+                <p className="text-muted-foreground">
+                  Configure how your application behaves
+                </p>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label className="text-base">Show Pricing Information</Label>
+                    <Label className="text-base">
+                      Show Pricing Information
+                    </Label>
                     <p className="text-sm text-muted-foreground">
                       Display pricing details to potential customers
                     </p>
                   </div>
                   <Switch
                     checked={tenantSettings.showPricing}
-                    onCheckedChange={(checked) => setTenantSettings(prev => ({ ...prev, showPricing: checked }))}
+                    onCheckedChange={(checked) =>
+                      setTenantSettings((prev) => ({
+                        ...prev,
+                        showPricing: checked,
+                      }))
+                    }
                   />
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label className="text-base">Require Phone Number</Label>
@@ -349,12 +445,22 @@ export default function AdminDashboard() {
                   </div>
                   <Switch
                     checked={tenantSettings.requirePhone}
-                    onCheckedChange={(checked) => setTenantSettings(prev => ({ ...prev, requirePhone: checked }))}
+                    onCheckedChange={(checked) =>
+                      setTenantSettings((prev) => ({
+                        ...prev,
+                        requirePhone: checked,
+                      }))
+                    }
                   />
                 </div>
 
-                <Button onClick={handleSaveSettings} disabled={updateTenantMutation.isPending}>
-                  {updateTenantMutation.isPending ? "Saving..." : "Save Settings"}
+                <Button
+                  onClick={handleSaveSettings}
+                  disabled={updateTenantMutation.isPending}
+                >
+                  {updateTenantMutation.isPending
+                    ? "Saving..."
+                    : "Save Settings"}
                 </Button>
               </CardContent>
             </Card>
