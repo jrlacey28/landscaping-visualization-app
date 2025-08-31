@@ -12,7 +12,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
     id: "natural_stone_curbing",
     name: "Natural Stone Curbing",
     prompt:
-      "Add natural stone curbing along the existing lawn edges and walkways with irregularly shaped fieldstone or stacked stone blocks in earth tones (gray, tan, brown). Keep all existing plants, trees, bushes, rock bed, mulch and landscape features exactly where they are and how they are. The stone curbing should follow the natural contours of the landscape and appear professionally installed with clean, defined edges.",
+      "Add natural stone curbing Single-layer, poured concrete garden curbing, with a sloping, rounded top edge, hand-carved block divisions, in a dark gray or charcoal color along the existing lawn edges and walkways with uniqueness to each part in earth tones (gray, tan, brown).Keep all existing plants, trees, bushes, rock bed, mulch and landscape features exactly where they are and how they are. The stone styled concrete curbing should follow the natural contours of the landscape and appear professionally installed with clean, defined edges.",
     referenceImageUrl: "https://mycdn.com/natural-stone-curbing.jpg",
     category: "curbing",
     regionType: "edge",
@@ -110,8 +110,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
   concrete: {
     id: "concrete",
     name: "Concrete",
-    prompt:
-      "What would my yard look like with a concrete patio installed",
+    prompt: "What would my yard look like with a concrete patio installed. appropriately-sized concrete patio (approximately 12x12 feet maximum) with a smooth or lightly textured finish. Use light gray concrete with subtle expansion joints for a professional appearance. The patio should be proportional to the yard size - small to medium scale only, positioned near the house or in a natural gathering area. Include proper drainage slopes and blend naturally with the existing landscape. Do NOT create oversized patios that dominate the yard. Preserve all surrounding vegetation, lawn areas, and landscape elements exactly as shown.",
     referenceImageUrl: "https://mycdn.com/concrete-patio.jpg",
     category: "patio",
     regionType: "hardscape",
