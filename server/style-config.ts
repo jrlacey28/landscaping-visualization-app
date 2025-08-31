@@ -75,7 +75,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
     id: "fresh_sod",
     name: "Fresh Sod",
     prompt:
-      "what would my yard look like with hyoerrealistic natural looking grass as an established yard.",
+      "what would my yard look like with hyperrealistic natural looking grass as an established yard.",
     referenceImageUrl: "/uploads/fresh-sod-reference.jpg",
     category: "grass",
     regionType: "lawn",
@@ -111,7 +111,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
     id: "concrete",
     name: "Concrete",
     prompt:
-      "using the image uploaded add a clean, modern concrete patio with a smooth or lightly textured finish. Use light gray concrete with subtle expansion joints for a professional appearance. The patio should be appropriately sized for the space nothing massive, include proper drainage slopes, and blend naturally with the existing landscape. Preserve all surrounding vegetation and landscape elements exactly as shown. As well as keep the picture size the same",
+      "What would my yard look like with a concrete patio installed",
     referenceImageUrl: "https://mycdn.com/concrete-patio.jpg",
     category: "patio",
     regionType: "hardscape",
