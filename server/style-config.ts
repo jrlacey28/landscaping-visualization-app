@@ -55,14 +55,54 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
     referenceImageUrl: 'https://mycdn.com/brick-curbing.jpg',
     category: 'curbing',
     regionType: 'edge'
+  },
+  premium_mulch: {
+    id: 'premium_mulch',
+    name: 'Premium Mulch',
+    prompt: 'Replace with premium quality hardwood mulch. Rich dark brown organic mulch with consistent texture and depth. Professional installation with clean edges around plant bases.',
+    referenceImageUrl: 'https://mycdn.com/premium-mulch.jpg',
+    category: 'mulch',
+    regionType: 'central'
+  },
+  fresh_sod: {
+    id: 'fresh_sod',
+    name: 'Fresh Sod',
+    prompt: 'Install fresh sod grass in lawn areas. Lush green turf with consistent coverage and professional installation. Smooth, even lawn surface with healthy grass appearance.',
+    referenceImageUrl: 'https://mycdn.com/fresh-sod.jpg',
+    category: 'grass',
+    regionType: 'lawn'
+  },
+  stamped_concrete: {
+    id: 'stamped_concrete',
+    name: 'Stamped Concrete',
+    prompt: 'Install stamped concrete patio with decorative pattern. Textured concrete surface in earth tones with professional finish and clean edges.',
+    referenceImageUrl: 'https://mycdn.com/stamped-concrete.jpg',
+    category: 'patio',
+    regionType: 'hardscape'
+  },
+  designer_pavers: {
+    id: 'designer_pavers',
+    name: 'Designer Pavers',
+    prompt: 'Install designer paver patio with interlocking stone pavers. Premium quality pavers in coordinated colors with tight joints and professional installation.',
+    referenceImageUrl: 'https://mycdn.com/designer-pavers.jpg',
+    category: 'patio',
+    regionType: 'hardscape'
+  },
+  flagstone: {
+    id: 'flagstone',
+    name: 'Flagstone',
+    prompt: 'Install natural flagstone patio with irregular stone pieces. Natural stone in earth tones with mortared joints and professional installation.',
+    referenceImageUrl: 'https://mycdn.com/flagstone.jpg',
+    category: 'patio',
+    regionType: 'hardscape'
   }
 };
 
 export const REGION_STYLE_MAPPING = {
   edge: ['natural_stone_curbing', 'brick_curbing'] as const,
-  central: ['brown_mulch', 'red_mulch', 'river_rock'] as const,
-  hardscape: ['concrete_patio'] as const,
-  lawn: [] as const // Grass/lawn typically wouldn't be replaced
+  central: ['brown_mulch', 'red_mulch', 'river_rock', 'premium_mulch'] as const,
+  hardscape: ['concrete_patio', 'stamped_concrete', 'designer_pavers', 'flagstone'] as const,
+  lawn: ['fresh_sod'] as const
 };
 
 export function getStyleForRegion(regionType: keyof typeof REGION_STYLE_MAPPING, preferredStyleId?: string): StyleConfig {
