@@ -265,20 +265,55 @@ Generate a realistic, professionally edited landscape image that implements only
     console.log(finalPrompt);
     console.log("=====================================");
 
+    // Prepare content parts with original image and reference images
+    const contentParts: any[] = [
+      { text: finalPrompt },
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: "image/jpeg"
+        }
+      }
+    ];
+
+    // Add reference images for each applied style
+    for (const styleId of appliedStyles) {
+      const styleConfig = STYLE_CONFIG[styleId];
+      if (styleConfig.referenceImages) {
+        for (const refImageUrl of styleConfig.referenceImages) {
+          try {
+            // If it's a local file, read it
+            if (refImageUrl.startsWith('/uploads/')) {
+              const fs = await import('fs');
+              const path = await import('path');
+              const imagePath = path.join(process.cwd(), 'public', refImageUrl);
+              if (fs.existsSync(imagePath)) {
+                const refImageBuffer = fs.readFileSync(imagePath);
+                const refBase64 = refImageBuffer.toString('base64');
+                contentParts.push({
+                  text: `Reference image for ${styleConfig.name}:`
+                });
+                contentParts.push({
+                  inlineData: {
+                    data: refBase64,
+                    mimeType: "image/jpeg"
+                  }
+                });
+              }
+            }
+          } catch (error) {
+            console.log(`Could not load reference image: ${refImageUrl}`);
+          }
+        }
+      }
+    }
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-image-preview",
       contents: [
         { 
           role: "user", 
-          parts: [
-            { text: finalPrompt },
-            {
-              inlineData: {
-                data: base64Image,
-                mimeType: "image/jpeg"
-              }
-            }
-          ] 
+          parts: contentParts
         }
       ],
       config: {
