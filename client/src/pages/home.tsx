@@ -300,7 +300,7 @@ export default function Home() {
                           } else if (status.status === "failed") {
                             console.error("AI generation failed");
                             setIsGenerating(false);
-                            alert("AI generation failed. Please try again or contact support if the issue persists.");
+                            alert("Unable to generate visualization. Please check your connection and try again.");
                           } else {
                             // Fall back to polling for any edge cases
                             const pollInterval = setInterval(async () => {
