@@ -8,12 +8,12 @@ export interface IStorage {
   getTenantBySlug(slug: string): Promise<Tenant | undefined>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
   updateTenant(id: number, tenant: Partial<InsertTenant>): Promise<Tenant>;
-  
+
   // Lead methods
   getLead(id: number): Promise<Lead | undefined>;
   getLeadsByTenant(tenantId: number): Promise<Lead[]>;
   createLead(lead: InsertLead): Promise<Lead>;
-  
+
   // Visualization methods
   getVisualization(id: number): Promise<Visualization | undefined>;
   getVisualizationsByTenant(tenantId: number): Promise<Visualization[]>;
