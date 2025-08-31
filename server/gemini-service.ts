@@ -266,7 +266,7 @@ Generate a realistic, professionally edited landscape image that implements only
     console.log("=====================================");
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-preview-image-generation",
+      model: "gemini-2.5-flash-image-preview",
       contents: [
         { 
           role: "user", 
