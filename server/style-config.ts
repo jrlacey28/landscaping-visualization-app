@@ -26,7 +26,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
   },
   concrete_patio: {
     id: 'concrete_patio',
-    name: 'Stamped Concrete Patio',
+    name: 'Concrete',
     prompt: 'Install a clean, modern concrete patio with a smooth or lightly textured finish. Use light gray concrete with subtle expansion joints for a professional appearance. The patio should be appropriately sized for the space, include proper drainage slopes, and blend naturally with the existing landscape. Preserve all surrounding vegetation and landscape elements exactly as shown.',
     referenceImageUrl: 'https://mycdn.com/concrete-patio.jpg',
     category: 'patio',
@@ -75,7 +75,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
   stamped_concrete: {
     id: 'stamped_concrete',
     name: 'Stamped Concrete',
-    prompt: 'Install stamped concrete patio with decorative pattern. Textured concrete surface in earth tones with professional finish and clean edges.',
+    prompt: 'Create a stamped concrete patio with decorative patterns that complement the homes style. Use popular stamped patterns like ashlar slate, cobblestone, or brick texture in earth tone colors (tan, gray, or sandstone). The concrete should have realistic texture and color variation with proper scoring lines. Include a subtle border pattern around the edges and ensure the patio is appropriately sized for the space with proper drainage slopes. Preserve all existing trees, shrubs, plants, and landscape features exactly as shown. The stamped concrete should blend naturally with surrounding lawn and garden areas.',
     referenceImageUrl: 'https://mycdn.com/stamped-concrete.jpg',
     category: 'patio',
     regionType: 'hardscape'
