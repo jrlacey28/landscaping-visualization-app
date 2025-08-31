@@ -11,7 +11,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
   natural_stone_curbing: {
     id: 'natural_stone_curbing',
     name: 'Natural Stone Curbing',
-    prompt: 'Replace with professional natural stone landscape edging and curbing. Clean, stacked stone border with natural gray and beige tones. Crisp edge definition between lawn and landscape beds.',
+    prompt: 'Add natural stone curbing along the existing lawn edges and walkways with irregularly shaped fieldstone or stacked stone blocks in earth tones (gray, tan, brown). Keep all existing plants, trees, bushes, rock bed, mulch and landscape features exactly where they are and how they are. The stone curbing should follow the natural contours of the landscape and appear professionally installed with clean, defined edges.',
     referenceImageUrl: 'https://mycdn.com/natural-stone-curbing.jpg',
     category: 'curbing',
     regionType: 'edge'
@@ -19,7 +19,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
   brown_mulch: {
     id: 'brown_mulch',
     name: 'Brown Colored Mulch',
-    prompt: 'Replace with fresh, rich brown colored mulch. Deep chocolate brown organic mulch covering landscape beds. Clean, even coverage with natural texture and depth.',
+    prompt: 'Replace only the ground cover areas with fresh brown hardwood mulch. Keep all existing trees, bushes, shrubs, flowers, and plants exactly how they are and unchanged. The mulch should be evenly distributed around plant bases with a 2-3 inch depth, creating clean edges against lawn areas and walkways. Use rich, dark brown organic mulch texture.',
     referenceImageUrl: 'https://mycdn.com/brown-mulch.jpg',
     category: 'mulch',
     regionType: 'central'
@@ -27,7 +27,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
   concrete_patio: {
     id: 'concrete_patio',
     name: 'Stamped Concrete Patio',
-    prompt: 'Replace with professional stamped concrete patio. Clean, modern concrete surface with subtle pattern and neutral gray tones. Smooth finish with defined edges.',
+    prompt: 'Install a clean, modern concrete patio with a smooth or lightly textured finish. Use light gray concrete with subtle expansion joints for a professional appearance. The patio should be appropriately sized for the space, include proper drainage slopes, and blend naturally with the existing landscape. Preserve all surrounding vegetation and landscape elements exactly as shown.',
     referenceImageUrl: 'https://mycdn.com/concrete-patio.jpg',
     category: 'patio',
     regionType: 'hardscape'
@@ -35,7 +35,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
   river_rock: {
     id: 'river_rock',
     name: 'River Rock Landscaping',
-    prompt: 'Replace with natural river rock landscaping. Smooth, rounded stones in mixed earth tones. Clean drainage and low-maintenance ground cover.',
+    prompt: 'Replace ground cover areas with natural river rock landscaping. Use mixed-size smooth river rocks in earth tones (gray, brown, tan). Preserve all existing vegetation, trees, bushes, and plants exactly as they appear. The river rock should be evenly distributed around plant bases and landscape beds, creating attractive low-maintenance ground cover.',
     referenceImageUrl: 'https://mycdn.com/river-rock.jpg',
     category: 'gravel',
     regionType: 'central'
