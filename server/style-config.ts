@@ -111,7 +111,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
     id: "concrete",
     name: "Concrete",
     prompt:
-      "using the image uploaded add a clean, modern concrete patio with a smooth or lightly textured finish. Use light gray concrete with subtle expansion joints for a professional appearance. The patio should be appropriately sized for the space nothing massive, include proper drainage slopes, and blend naturally with the existing landscape. Preserve all surrounding vegetation and landscape elements exactly as shown. As well as keep the picture size the same",
+      "Add a modest, appropriately-sized concrete patio (approximately 12x12 feet maximum) with a smooth or lightly textured finish. Use light gray concrete with subtle expansion joints for a professional appearance. The patio should be proportional to the yard size - small to medium scale only, positioned near the house or in a natural gathering area. Include proper drainage slopes and blend naturally with the existing landscape. Do NOT create oversized patios that dominate the yard. Preserve all surrounding vegetation, lawn areas, and landscape elements exactly as shown.",
     referenceImageUrl: "https://mycdn.com/concrete-patio.jpg",
     category: "patio",
     regionType: "hardscape",
