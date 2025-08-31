@@ -204,58 +204,22 @@ export async function processLandscapeWithGemini({
 
     console.log(`✓ Using ${modifications.length} style prompts`);
 
-    // Create structured JSON prompt for better consistency
-    const structuredPrompt = {
-      task: "landscape_modification",
-      modifications: modifications.map(mod => {
-        // Extract key details from each modification
-        if (mod.includes('curbing')) {
-          return {
-            type: "curbing",
-            action: "add",
-            material: mod.includes('stone') ? 'natural_stone' : mod.includes('brick') ? 'brick' : 'concrete',
-            placement: "existing_lawn_edges",
-            specifications: "4-6 inches high, clean defined borders"
-          };
-        } else if (mod.includes('mulch') || mod.includes('sod') || mod.includes('rock')) {
-          return {
-            type: "ground_cover",
-            action: "replace",
-            material: mod.includes('sod') ? 'grass' : mod.includes('rock') ? 'river_rock' : 'mulch',
-            placement: "existing_landscape_beds",
-            specifications: "even distribution, 2-3 inch depth"
-          };
-        } else if (mod.includes('patio')) {
-          return {
-            type: "hardscape",
-            action: "add",
-            material: mod.includes('stamped') ? 'stamped_concrete' : mod.includes('pavers') ? 'designer_pavers' : 'concrete',
-            placement: "appropriate_yard_area",
-            specifications: "professional installation, proper drainage"
-          };
-        }
-        return { type: "general", action: "modify", description: mod };
-      }),
-      preservation_rules: {
-        maintain_exactly: ["house", "driveway", "sidewalks", "existing_hardscape"],
-        preserve_vegetation: ["trees", "shrubs", "mature_plants"],
-        keep_unchanged: ["lawn_areas", "grass_coverage", "yard_layout", "bed_shapes"],
-        technical_requirements: {
-          lighting: "maintain_original",
-          shadows: "preserve_existing",
-          perspective: "keep_same",
-          dimensions: "1920x1080",
-          quality: "professional_realistic"
-        }
-      },
-      instructions: "Apply ONLY the specified modifications. Do not redesign or dramatically alter the yard. Result must look natural and professionally installed."
-    };
+    // Use the actual detailed prompts from style config
+    const finalPrompt = `LANDSCAPE MODIFICATION INSTRUCTIONS:
 
-    const finalPrompt = `Please process this landscape image according to the following structured instructions:
+${modifications.join('\n\n')}
 
-${JSON.stringify(structuredPrompt, null, 2)}
+CRITICAL PRESERVATION RULES:
+- Keep the house, driveway, sidewalks, and all hardscaping exactly the same
+- Preserve all existing trees, shrubs, and mature plants
+- Maintain the exact lawn areas and grass coverage  
+- Keep the same yard layout, bed shapes, and overall design
+- Only modify the specific features listed above
+- Maintain original lighting, shadows, and perspective
+- Keep image dimensions at 1920x1080 pixels
+- Result must look natural and professionally installed
 
-Generate a realistic, professionally edited landscape image that implements only the specified modifications while preserving all other elements exactly as shown.`;
+Apply ONLY the specified modifications above. Do not redesign or dramatically alter the yard.`;
 
     // Step 4: Generate edited image using Gemini
     const base64Image = processedImage.buffer.toString('base64');
