@@ -75,7 +75,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
     id: "fresh_sod",
     name: "Fresh Sod",
     prompt:
-      "what would my yard look like with hyperrealistic natural looking grass as an established yard.",
+      "what would my yard look like with natural looking green grass that looks perfect as an established yard.",
     referenceImageUrl: "/uploads/fresh-sod-reference.jpg",
     category: "grass",
     regionType: "lawn",

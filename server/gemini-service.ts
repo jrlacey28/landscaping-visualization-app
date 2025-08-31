@@ -310,7 +310,7 @@ Generate a realistic, professionally edited landscape image that implements only
                 fit: 'fill', // Force exact dimensions
                 background: { r: 255, g: 255, b: 255, alpha: 1 } // White background if needed
               })
-              .jpeg({ quality: 90 })
+              .jpeg({ quality: 95 })
               .toBuffer();
               
             console.log("✓ Gemini generated and resized landscape image successfully");
