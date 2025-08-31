@@ -67,7 +67,7 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
   fresh_sod: {
     id: 'fresh_sod',
     name: 'Fresh Sod',
-    prompt: 'Install fresh sod grass in lawn areas. Lush green turf with consistent coverage and professional installation. Smooth, even lawn surface with healthy grass appearance.',
+    prompt: 'Install fresh, lush green sod or grass in all lawn areas. Keep all existing trees, shrubs, bushes, flowers, and planted areas completely unchanged. The new grass should be vibrant green, evenly cut, and professionally installed with tight seams. Create smooth transitions between grass and existing landscape beds.',
     referenceImageUrl: 'https://mycdn.com/fresh-sod.jpg',
     category: 'grass',
     regionType: 'lawn'
