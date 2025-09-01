@@ -1,10 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { storage } from "./storage";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -36,7 +37,24 @@ app.use((req, res, next) => {
   next();
 });
 
+async function initializeDatabase() {
+  try {
+    // Ensure demo tenant has correct company name
+    const demoTenant = await storage.getTenantBySlug("demo");
+    if (demoTenant && demoTenant.companyName !== "AI Landscape Visualizer") {
+      await storage.updateTenant(demoTenant.id, {
+        companyName: "AI Landscape Visualizer"
+      });
+      console.log("Updated demo tenant company name to AI Landscape Visualizer");
+    }
+  } catch (error) {
+    console.error("Database initialization error:", error);
+  }
+}
+
 (async () => {
+  await initializeDatabase();
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
