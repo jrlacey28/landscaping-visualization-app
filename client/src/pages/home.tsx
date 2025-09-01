@@ -25,7 +25,6 @@ import {
   checkVisualizationStatus,
   analyzeLandscapeImage,
 } from "@/lib/api";
-import { SparklesText } from "@/components/ui/sparkles-text";
 
 export default function Home() {
   const { tenant, isLoading: tenantLoading } = useTenant();
@@ -283,25 +282,12 @@ export default function Home() {
               <CardContent className="p-8">
                 {/* Just show the uploaded image at the top */}
                 <div className="text-center mb-8">
-                  <div className="max-w-4xl mx-auto relative">
+                  <div className="max-w-4xl mx-auto">
                     <img
                       src={uploadedImage}
                       alt="Uploaded house photo"
                       className="w-full aspect-video object-cover rounded-xl shadow-lg"
                     />
-                    {isGenerating && (
-                      <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                        <div className="text-center max-w-xs px-4 py-8 bg-white/95 rounded-lg shadow-lg border border-white/50">
-                          <div className="w-8 h-8 border-4 border-[#718ae1] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                          <SparklesText
-                            text="Measuring twice, rendering once..."
-                            className="text-lg font-semibold bg-gradient-to-r from-[#718ae1] via-[#dc6d73] to-[#718ae1] bg-clip-text text-transparent drop-shadow-lg"
-                            sparklesCount={8}
-                            colors={{ first: "#718ae1", second: "#dc6d73" }}
-                          />
-                        </div>
-                      </div>
-                    )}
                     <div className="flex justify-center gap-2 mt-4">
                       <Button
                         variant="outline"
@@ -464,8 +450,17 @@ export default function Home() {
                       }
                     }}
                   >
-                    <Sparkles className="h-5 w-5 mr-2" />
-                    {isGenerating ? "Generating..." : "Generate AI Design"}
+                    {isGenerating ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Generating Your Design...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-5 w-5 mr-2" />
+                        Generate AI Design
+                      </>
+                    )}
                   </Button>
 
                   {(!selectedStyles.roof.enabled ||
