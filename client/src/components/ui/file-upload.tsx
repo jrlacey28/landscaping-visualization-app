@@ -112,11 +112,11 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
           <div className="flex justify-center space-x-4 text-sm text-muted-foreground">
             <div className="flex items-center space-x-1">
               <div className="w-2 h-2 bg-primary rounded-full"></div>
-              <span>Front yard photos work great</span>
+              <span></span>
             </div>
             <div className="flex items-center space-x-1">
               <div className="w-2 h-2 bg-secondary rounded-full"></div>
-              <span>Backyard photos too</span>
+              <span></span>
             </div>
           </div>
         </div>
