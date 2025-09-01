@@ -292,10 +292,9 @@ export default function Home() {
                     {isGenerating && (
                       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl flex items-center justify-center">
                         <div className="text-center">
-                          <div className="w-8 h-8 border-4 border-[#718ae1] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                           <SparklesText
                             text="Measuring twice, rendering once..."
-                            className="text-lg font-semibold text-black"
+                            className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-red-500 bg-clip-text text-transparent"
                             sparklesCount={8}
                             colors={{ first: "#718ae1", second: "#dc6d73" }}
                           />
