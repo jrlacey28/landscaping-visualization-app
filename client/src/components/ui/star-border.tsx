@@ -25,7 +25,7 @@ export function StarBorder<T extends ElementType = "button">({
     <Component 
       className={cn(
         "relative overflow-hidden rounded-[20px] transition-transform hover:scale-105",
-        "bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800",
+        "bg-gradient-to-r from-blue-600 via-red-600 to-blue-800",
         "text-white font-semibold py-4 px-8 text-center shadow-lg",
         className
       )} 
@@ -33,21 +33,21 @@ export function StarBorder<T extends ElementType = "button">({
     >
       <div
         className={cn(
-          "absolute w-[400%] h-[60%] bottom-[-15px] right-[-350%] rounded-full animate-star-movement-bottom",
-          "opacity-80"
+          "absolute w-[300%] h-[50%] bottom-[-11px] right-[-250%] rounded-full animate-star-movement-bottom",
+          "opacity-10"
         )}
         style={{
-          background: `radial-gradient(circle, ${starColor} 0%, ${starColor}88 30%, transparent 70%)`,
+          background: `radial-gradient(circle, ${starColor}, transparent 20%)`,
           animationDuration: speed,
         }}
       />
       <div
         className={cn(
-          "absolute w-[400%] h-[60%] top-[-15px] left-[-350%] rounded-full animate-star-movement-top",
-          "opacity-80"
+          "absolute w-[300%] h-[50%] top-[-10px] left-[-250%] rounded-full animate-star-movement-top",
+          "opacity-10"
         )}
         style={{
-          background: `radial-gradient(circle, ${starColor} 0%, ${starColor}88 30%, transparent 70%)`,
+          background: `radial-gradient(circle, ${starColor}, transparent 20%)`,
           animationDuration: speed,
         }}
       />
