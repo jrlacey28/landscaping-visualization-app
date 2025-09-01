@@ -290,9 +290,9 @@ export default function Home() {
                       className="w-full aspect-video object-cover rounded-xl shadow-lg"
                     />
                     {isGenerating && (
-                      <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl flex items-center justify-center overflow-hidden">
+                        <div className="text-center max-w-xs px-4">
+                          <div className="w-8 h-8 border-4 border-[#718ae1] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                           <SparklesText
                             text="Measuring twice, rendering once..."
                             className="text-lg font-semibold bg-gradient-to-r from-[#718ae1] via-[#dc6d73] to-[#718ae1] bg-clip-text text-transparent"
