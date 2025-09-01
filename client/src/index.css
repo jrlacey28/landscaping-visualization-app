@@ -23,19 +23,20 @@
   animation: rainbow 3s ease infinite;
 }
 
-@keyframes gradient-spin {
+@keyframes gradient-flow {
   0% {
     background-position: 0% 50%;
-    transform: rotate(0deg);
+  }
+  50% {
+    background-position: 100% 50%;
   }
   100% {
-    background-position: 100% 50%;
-    transform: rotate(360deg);
+    background-position: 0% 50%;
   }
 }
 
 .animate-gradient-flow {
-  animation: gradient-spin 6s linear infinite;
+  animation: gradient-flow 3s ease-in-out infinite;
 }
 
 @keyframes star-movement-bottom {
