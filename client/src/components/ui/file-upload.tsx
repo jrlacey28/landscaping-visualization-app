@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, X, Camera } from "lucide-react";
+import { Upload, X, Camera, CameraIcon } from "lucide-react";
 import { Button } from "./button";
 
 interface FileUploadProps {
@@ -9,7 +9,12 @@ interface FileUploadProps {
 
 export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -52,6 +57,57 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
     if (e.target.files && e.target.files.length > 0) {
       handleFileSelect(e.target.files[0]);
     }
+  };
+
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } // Use back camera on mobile
+      });
+      setStream(mediaStream);
+      setShowCamera(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      alert('Unable to access camera. Please use file upload instead.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], 'camera-photo.jpg', { type: 'image/jpeg' });
+            const previewUrl = URL.createObjectURL(blob);
+            onFileSelect(file, previewUrl);
+            stopCamera();
+          }
+        }, 'image/jpeg', 0.9);
+      }
+    }
+  };
+
+  const handleCameraInput = () => {
+    cameraInputRef.current?.click();
   };
 
   if (uploadedImage) {
@@ -109,15 +165,36 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
               <span className="text-sm font-medium text-stone-700">PNG, JPG up to 10MB</span>
             </div>
           </div>
-          <div className="flex justify-center space-x-4 text-sm text-muted-foreground">
+          <div className="flex justify-center space-x-4 text-sm text-muted-foreground mb-6">
             <div className="flex items-center space-x-1">
               <div className="w-2 h-2 bg-primary rounded-full"></div>
-              <span></span>
+              <span>Front yard photos work best</span>
             </div>
             <div className="flex items-center space-x-1">
               <div className="w-2 h-2 bg-secondary rounded-full"></div>
-              <span></span>
+              <span>Clear, well-lit images</span>
             </div>
+          </div>
+          
+          <div className="flex justify-center space-x-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={startCamera}
+              className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              Take Photo
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCameraInput}
+              className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+            >
+              <CameraIcon className="h-4 w-4 mr-2" />
+              Camera Roll
+            </Button>
           </div>
         </div>
       </div>
@@ -128,6 +205,53 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
         accept="image/*"
         onChange={handleFileInputChange}
       />
+      
+      <input
+        ref={cameraInputRef}
+        type="file"
+        className="hidden"
+        accept="image/*"
+        capture="environment"
+        onChange={handleFileInputChange}
+      />
+      
+      {showCamera && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-semibold">Take a Photo</h3>
+              <p className="text-sm text-gray-600">Position your home in the viewfinder</p>
+            </div>
+            
+            <div className="relative mb-4">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className="w-full h-64 object-cover rounded-lg bg-gray-100"
+              />
+            </div>
+            
+            <div className="flex justify-center space-x-4">
+              <Button
+                onClick={capturePhoto}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                Capture
+              </Button>
+              <Button
+                onClick={stopCamera}
+                variant="outline"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <canvas ref={canvasRef} className="hidden" />
     </>
   );
 }
