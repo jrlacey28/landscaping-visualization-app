@@ -25,6 +25,7 @@ import {
   checkVisualizationStatus,
   analyzeLandscapeImage,
 } from "@/lib/api";
+import SparklesText from "@/components/ui/sparkles-text"; // Assuming SparklesText is in this path
 
 export default function Home() {
   const { tenant, isLoading: tenantLoading } = useTenant();
@@ -452,8 +453,17 @@ export default function Home() {
                   >
                     {isGenerating ? (
                       <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Generating Your Design...
+                        <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center">
+                          <div className="text-center text-white">
+                            <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                            <SparklesText
+                              text="Measuring twice, rendering once..."
+                              className="text-lg font-semibold text-white"
+                              sparklesCount={8}
+                              colors={{ first: "#ffffff", second: "#e5e7eb" }}
+                            />
+                          </div>
+                        </div>
                       </>
                     ) : (
                       <>
