@@ -57,13 +57,13 @@ export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSe
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <p className="text-stone-600">Select the upgrades you'd like to see on your property</p>
+        <p className="text-slate-600">Select the upgrades you'd like to see on your property</p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-4">
         {/* Decorative Curbing Card */}
         <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.curbing ? 'border-amber-400 bg-gradient-to-br from-amber-400 to-orange-500' : 'border-amber-300 bg-gradient-to-br from-amber-300 to-orange-400'
+          activeToggles.curbing ? 'border-blue-500 bg-gradient-to-br from-blue-600 to-blue-700' : 'border-blue-400 bg-gradient-to-br from-blue-500 to-blue-600'
         }`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Decorative Curbing</h3>
@@ -95,7 +95,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSe
 
         {/* Landscape Type Card */}
         <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.landscape ? 'border-green-400 bg-gradient-to-br from-green-400 to-emerald-500' : 'border-green-300 bg-gradient-to-br from-green-300 to-emerald-400'
+          activeToggles.landscape ? 'border-slate-500 bg-gradient-to-br from-slate-600 to-slate-700' : 'border-slate-400 bg-gradient-to-br from-slate-500 to-slate-600'
         }`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Landscape Type</h3>
@@ -127,7 +127,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSe
 
         {/* Concrete Patio Card */}
         <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.patio ? 'border-blue-400 bg-gradient-to-br from-blue-400 to-indigo-500' : 'border-blue-300 bg-gradient-to-br from-blue-300 to-indigo-400'
+          activeToggles.patio ? 'border-red-500 bg-gradient-to-br from-red-600 to-red-700' : 'border-red-400 bg-gradient-to-br from-red-500 to-red-600'
         }`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Concrete Patio</h3>

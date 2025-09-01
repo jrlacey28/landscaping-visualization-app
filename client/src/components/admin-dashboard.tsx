@@ -71,9 +71,9 @@ export default function AdminDashboard() {
     primaryColor: "#2563EB",
     secondaryColor: "#059669",
     phone: "(555) 123-4567",
-    email: "info@greenvalley.com",
-    address: "123 Landscape Drive\nRiverside, CA 92501",
-    description: "Professional landscaping and concrete services",
+    email: "info@roofpro.com",
+    address: "123 Construction Drive\nRiverside, CA 92501",
+    description: "Professional roofing and siding services",
     showPricing: true,
     requirePhone: false,
   });
@@ -87,12 +87,12 @@ export default function AdminDashboard() {
         primaryColor: currentTenant.primaryColor || "#2563EB",
         secondaryColor: currentTenant.secondaryColor || "#059669",
         phone: currentTenant.phone || "(555) 123-4567",
-        email: currentTenant.email || "info@greenvalley.com",
+        email: currentTenant.email || "info@roofpro.com",
         address:
-          currentTenant.address || "123 Landscape Drive\nRiverside, CA 92501",
+          currentTenant.address || "123 Construction Drive\nRiverside, CA 92501",
         description:
           currentTenant.description ||
-          "Professional landscaping and concrete services",
+          "Professional roofing and siding services",
         showPricing: currentTenant.showPricing ?? true,
         requirePhone: currentTenant.requirePhone ?? false,
       });
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
                 <Settings className="h-4 w-4 text-white" />
               </div>
               <h1 className="text-xl font-bold">
-                YardVision Pro - Admin Dashboard
+                RoofPro AI - Admin Dashboard
               </h1>
             </div>
             <Button

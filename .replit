@@ -49,4 +49,3 @@ task = "shell.exec"
 args = "npm run dev"
 
 [agent]
-integrations = ["javascript_gemini==1.0.0"]
