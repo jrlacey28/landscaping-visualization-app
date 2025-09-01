@@ -12,16 +12,16 @@ interface ProcessedImage {
   format: string;
 }
 
-interface LandscapeEditRequest {
+interface RoofingEditRequest {
   imageBuffer: Buffer;
   selectedStyles: {
-    curbing?: string;
-    landscape?: string;
-    patio?: string;
+    roof?: string;
+    siding?: string;
+    surpriseMe?: string;
   };
 }
 
-interface LandscapeEditResult {
+interface RoofingEditResult {
   editedImageBuffer: Buffer;
   prompt: string;
   appliedStyles: string[];
@@ -56,90 +56,104 @@ async function processImageSize(imageBuffer: Buffer): Promise<ProcessedImage> {
 }
 
 /**
- * Generates a targeted landscape design prompt that only modifies selected features
+ * Generates a targeted roofing design prompt that only modifies selected features
  */
-async function generateLandscapePrompt(selectedStyles: any): Promise<string> {
+async function generateRoofingPrompt(selectedStyles: any): Promise<string> {
   const modifications = [];
 
   // Build very specific modification instructions
-  if (selectedStyles.curbing) {
-    let curbingDetails = '';
-    switch (selectedStyles.curbing) {
-      case 'natural_stone':
-      case 'natural_stone_curbing':
-        curbingDetails = 'Add natural stone curbing ONLY around existing flower beds and lawn edges. Use grey/beige limestone or flagstone blocks, 4-6 inches high, creating clean defined borders. Do NOT change the lawn, plants, or yard layout.';
-        break;
-      case 'brick_curbing':
-        curbingDetails = 'Add red brick curbing ONLY around existing flower beds and lawn edges. Use traditional red clay bricks, 4-6 inches high, creating neat borders. Do NOT change the lawn, plants, or yard layout.';
-        break;
-      case 'concrete_curbing':
-        curbingDetails = 'Add poured concrete curbing ONLY around existing flower beds and lawn edges. Use smooth grey concrete, 4-6 inches high, creating clean modern borders. Do NOT change the lawn, plants, or yard layout.';
-        break;
-      default:
-        curbingDetails = 'Add decorative curbing ONLY around existing flower beds and lawn edges. Do NOT change the lawn, plants, or yard layout.';
+  if (selectedStyles.roof) {
+    let roofDetails = '';
+    
+    // Handle roof style and color combinations
+    if (selectedStyles.roof.includes('asphalt_shingles')) {
+      const color = selectedStyles.roof.split('_')[2] + '_' + selectedStyles.roof.split('_')[3];
+      switch (color) {
+        case 'charcoal_black':
+          roofDetails = 'Replace ONLY the roof with charcoal black asphalt shingles. High-quality dimensional shingles with deep black color and subtle texture variation. Professional installation with proper alignment. Do NOT change the house structure, siding, windows, doors, trim, or landscaping.';
+          break;
+        case 'weathered_gray':
+          roofDetails = 'Replace ONLY the roof with weathered gray asphalt shingles. Premium architectural shingles in sophisticated gray tones with natural weathered appearance. Do NOT change any other home features or landscaping.';
+          break;
+        case 'rustic_brown':
+          roofDetails = 'Replace ONLY the roof with rustic brown asphalt shingles. Rich brown architectural shingles with natural earth tone colors and dimensional texture. Do NOT change the house structure or surroundings.';
+          break;
+        case 'slate_blue':
+          roofDetails = 'Replace ONLY the roof with slate blue asphalt shingles. Premium shingles in sophisticated blue-gray color with architectural dimensionality. Do NOT change any other home elements.';
+          break;
+        case 'forest_green':
+          roofDetails = 'Replace ONLY the roof with forest green asphalt shingles. Deep green architectural shingles with natural color variation. Do NOT change the house or landscape features.';
+          break;
+        default:
+          roofDetails = 'Replace ONLY the roof with asphalt shingles. Do NOT change the house structure, siding, or landscaping.';
+      }
+    } else if (selectedStyles.roof.includes('steel_roof')) {
+      const color = selectedStyles.roof.split('_')[2] + '_' + selectedStyles.roof.split('_')[3];
+      if (color === 'charcoal_black') {
+        roofDetails = 'Replace ONLY the roof with charcoal black steel roofing. Modern standing seam metal roof with clean lines and durable finish. Do NOT change any other home elements or landscaping.';
+      } else {
+        roofDetails = 'Replace ONLY the roof with weathered gray steel roofing. Contemporary metal roof with sophisticated gray finish and standing seam design. Do NOT change the house structure or surroundings.';
+      }
+    } else if (selectedStyles.roof.includes('steel_shingles')) {
+      roofDetails = 'Replace ONLY the roof with charcoal black steel shingles. Premium metal shingles with traditional appearance and modern durability. Do NOT change any other home or landscape features.';
+    } else {
+      roofDetails = 'Replace ONLY the roof with the selected roofing material. Do NOT change the house structure, siding, or landscaping.';
     }
-    modifications.push(curbingDetails);
+    modifications.push(roofDetails);
   }
 
-  if (selectedStyles.landscape) {
-    let landscapeDetails = '';
-    switch (selectedStyles.landscape) {
-      case 'brown_mulch':
-        landscapeDetails = 'Replace ONLY the mulch in existing flower beds with fresh brown wood mulch. Keep all existing plants, flowers, and bed shapes exactly the same. Do NOT change the lawn or add new beds.';
+  if (selectedStyles.siding) {
+    let sidingDetails = '';
+    switch (selectedStyles.siding) {
+      case 'vinyl_siding_white':
+        sidingDetails = 'Replace ONLY the house siding with clean white vinyl siding. Premium quality horizontal lap siding with smooth finish and professional installation. Bright white color with proper trim. Do NOT change the roof, windows, doors, or landscaping.';
         break;
-      case 'red_mulch':
-        landscapeDetails = 'Replace ONLY the mulch in existing flower beds with red cedar mulch. Keep all existing plants, flowers, and bed shapes exactly the same. Do NOT change the lawn or add new beds.';
+      case 'vinyl_siding_gray':
+        sidingDetails = 'Replace ONLY the house siding with modern gray vinyl siding. Contemporary gray color with horizontal lap style and professional installation. Do NOT change the roof, trim, windows, or landscape elements.';
         break;
-      case 'decorative_stone':
-        landscapeDetails = 'Replace ONLY the mulch in existing flower beds with decorative river rocks or landscape stones. Keep all existing plants, flowers, and bed shapes exactly the same. Do NOT change the lawn or add new beds.';
+      case 'fiber_cement_beige':
+        sidingDetails = 'Replace ONLY the house siding with beige fiber cement siding. High-quality cementitious siding in warm beige tone with wood-grain texture. Do NOT change the roof or other home features.';
+        break;
+      case 'wood_siding_natural':
+        sidingDetails = 'Replace ONLY the house siding with natural wood siding. Cedar or similar wood species with natural finish and horizontal board installation. Do NOT change the roof, windows, or landscaping.';
+        break;
+      case 'brick_veneer_red':
+        sidingDetails = 'Replace ONLY the house siding with red brick veneer. Traditional red brick with classic mortar joints and professional masonry installation. Do NOT change the roof, trim, or landscape elements.';
         break;
       default:
-        landscapeDetails = 'Improve ONLY the existing flower bed materials while keeping all plants and bed shapes the same. Do NOT change the lawn or add new beds.';
+        sidingDetails = 'Replace ONLY the house siding with the selected siding material. Do NOT change the roof, windows, doors, or landscaping.';
     }
-    modifications.push(landscapeDetails);
+    modifications.push(sidingDetails);
   }
 
-  if (selectedStyles.patio) {
-    let patioDetails = '';
-    switch (selectedStyles.patio) {
-      case 'concrete_patio':
-        patioDetails = 'Add a concrete patio ONLY in an appropriate yard area, typically near the house or in a back corner. Do NOT change existing lawn, beds, or landscaping.';
-        break;
-      case 'stone_patio':
-        patioDetails = 'Add a natural stone patio ONLY in an appropriate yard area, typically near the house or in a back corner. Do NOT change existing lawn, beds, or landscaping.';
-        break;
-      case 'brick_patio':
-        patioDetails = 'Add a brick patio ONLY in an appropriate yard area, typically near the house or in a back corner. Do NOT change existing lawn, beds, or landscaping.';
-        break;
-      default:
-        patioDetails = 'Add a patio ONLY in an appropriate yard area. Do NOT change existing lawn, beds, or landscaping.';
-    }
-    modifications.push(patioDetails);
+  if (selectedStyles.surpriseMe) {
+    const surpriseDetails = 'Transform this home with a complementary roof and siding combination. Choose appropriate colors and materials that work well together for a beautiful exterior renovation. Maintain all windows, doors, trim, and landscaping exactly as shown.';
+    modifications.push(surpriseDetails);
   }
 
   // Create precise prompt that emphasizes preservation
   const specificPrompt = `
-PRECISE LANDSCAPE EDITING INSTRUCTIONS:
+PRECISE HOME EXTERIOR RENOVATION INSTRUCTIONS:
 
 ${modifications.join('\n\n')}
 
 CRITICAL PRESERVATION RULES:
-- Keep the house, driveway, sidewalks, and all hardscaping exactly the same
-- Preserve all existing trees, shrubs, and mature plants
-- Maintain the exact lawn areas and grass coverage  
-- Keep the same yard layout, bed shapes, and overall design
-- Only modify the specific features listed above
-- Maintain original lighting, shadows, and perspective
+- Keep the house structure, foundation, and framing exactly the same
+- Preserve all windows, doors, and architectural trim details exactly where they are
+- Maintain all existing landscaping, trees, shrubs, and yard features
+- Keep the driveway, walkways, and outdoor fixtures identical
+- Only modify the specific roof/siding features listed above
+- Maintain the original perspective, lighting, and shadows
 - Keep image dimensions at 1920x1080 pixels
-- Result must look natural and professionally installed
+- The final result must look naturally integrated and professionally installed
 
-Make ONLY the specified changes above. Do not redesign or dramatically alter the yard.`;
+Make ONLY the specified changes above. Do not redesign or dramatically alter the home structure or surroundings.`;
 
   return specificPrompt;
 }
 
 /**
- * Processes landscape image with Gemini AI for complete editing workflow
+ * Processes home exterior image with Gemini AI for complete editing workflow
  */
 export async function processLandscapeWithGemini({
   imageBuffer,
@@ -312,7 +326,7 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
               .jpeg({ quality: 95 })
               .toBuffer();
               
-            console.log("✓ Gemini generated and resized landscape image successfully");
+            console.log("✓ Gemini generated and resized roofing image successfully");
             break;
           }
         }
@@ -326,13 +340,13 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
     };
 
   } catch (error) {
-    console.error("Gemini landscape processing error:", error);
-    throw new Error(`Landscape processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error("Gemini roofing processing error:", error);
+    throw new Error(`Roofing processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 /**
- * Analyzes landscape image to suggest improvement areas
+ * Analyzes home exterior image to suggest improvement areas
  */
 export async function analyzeLandscapeImage(imageBuffer: Buffer): Promise<string> {
   try {
@@ -347,11 +361,11 @@ export async function analyzeLandscapeImage(imageBuffer: Buffer): Promise<string
             mimeType: "image/jpeg"
           }
         },
-        "Analyze this landscape image and identify specific areas that could benefit from curbing, landscape materials (mulch, stones), and patio installations. Provide professional landscaping recommendations."
+        "Analyze this home exterior image and identify specific areas that could benefit from roof upgrades and siding improvements. Provide professional roofing and siding recommendations based on the home's architecture and style."
       ],
     });
 
-    return response.text || "Professional landscape analysis completed";
+    return response.text || "Professional exterior analysis completed";
   } catch (error) {
     console.error("Gemini image analysis error:", error);
     return "Image analysis unavailable";
