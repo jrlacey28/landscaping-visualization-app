@@ -2,25 +2,17 @@ import * as fs from "fs";
 import { GoogleGenAI, Modality } from "@google/genai";
 import sharp from "sharp";
 
-// Initialize Gemini AI client with better error handling
+// Initialize Gemini AI client
 const getGeminiApiKey = () => {
-  const possibleKeys = [
-    process.env.GEMINI_API_KEY,
-    process.env.GOOGLE_API_KEY,
-    process.env.GEMINI_KEY,
-    process.env.GOOGLE_GEMINI_API_KEY
-  ];
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_KEY || process.env.GOOGLE_GEMINI_API_KEY;
   
-  for (const key of possibleKeys) {
-    if (key && key.trim()) {
-      console.log("✓ Found Gemini API key");
-      return key.trim();
-    }
+  if (apiKey && apiKey.trim()) {
+    console.log("✓ Found Gemini API key");
+    return apiKey.trim();
   }
   
-  console.error("❌ No Gemini API key found in environment variables");
-  console.error("Checked: GEMINI_API_KEY, GOOGLE_API_KEY, GEMINI_KEY, GOOGLE_GEMINI_API_KEY");
-  throw new Error("GEMINI_API_KEY not found in environment variables");
+  console.log("⚠️ No Gemini API key found - will be checked when needed");
+  return "";
 };
 
 const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
@@ -191,6 +183,11 @@ export async function processLandscapeWithGemini({
   prompt: string;
 }> {
   try {
+    // Check API key at runtime
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || !apiKey.trim()) {
+      throw new Error("GEMINI_API_KEY not found in secrets. Please add your Google Gemini API key to the Secrets tool.");
+    }
     // Step 1: Process and resize image
     const processedImage = await processImageSize(imageBuffer);
 
