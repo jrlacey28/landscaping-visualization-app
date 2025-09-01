@@ -25,7 +25,7 @@ import {
   checkVisualizationStatus,
   analyzeLandscapeImage,
 } from "@/lib/api";
-import SparklesText from "@/components/ui/sparkles-text"; // Assuming SparklesText is in this path
+import { SparklesText } from "@/components/ui/sparkles-text";
 
 export default function Home() {
   const { tenant, isLoading: tenantLoading } = useTenant();
