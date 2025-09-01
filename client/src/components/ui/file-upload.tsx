@@ -22,7 +22,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
       alert('Please upload an image file');
       return;
     }
-    
+
     if (file.size > 10 * 1024 * 1024) {
       alert('File size must be less than 10MB');
       return;
@@ -30,7 +30,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
 
     // Create preview URL for display without modifying original file
     const previewUrl = URL.createObjectURL(file);
-    
+
     // Pass both original file and preview URL
     onFileSelect(file, previewUrl);
   };
@@ -47,7 +47,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       handleFileSelect(files[0]);
@@ -89,12 +89,12 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
       const video = videoRef.current;
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      
+
       if (ctx) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0);
-        
+
         canvas.toBlob((blob) => {
           if (blob) {
             const file = new File([blob], 'camera-photo.jpg', { type: 'image/jpeg' });
@@ -152,7 +152,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
+        onClick={() => setShowOptions(true)}
       >
         <div className="space-y-6">
           <div className="w-24 h-24 bg-gradient-to-br from-stone-600 to-stone-800 rounded-full flex items-center justify-center mx-auto shadow-xl">
@@ -176,18 +176,6 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
               <span>Clear, well-lit images</span>
             </div>
           </div>
-          
-          <div className="flex justify-center">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowOptions(true)}
-              className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 px-8 py-3"
-            >
-              <Camera className="h-5 w-5 mr-2" />
-              Add Photo
-            </Button>
-          </div>
         </div>
       </div>
       <input
@@ -197,7 +185,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
         accept="image/*"
         onChange={handleFileInputChange}
       />
-      
+
       <input
         ref={cameraInputRef}
         type="file"
@@ -206,7 +194,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
         capture="environment"
         onChange={handleFileInputChange}
       />
-      
+
       {showOptions && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
@@ -214,7 +202,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
               <h3 className="text-xl font-semibold mb-2">Add Your Photo</h3>
               <p className="text-gray-600">Choose how you'd like to add your home photo</p>
             </div>
-            
+
             <div className="space-y-4">
               <Button
                 onClick={() => {
@@ -226,7 +214,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
                 <Upload className="h-5 w-5 mr-3" />
                 Upload from Device
               </Button>
-              
+
               <Button
                 onClick={() => {
                   setShowOptions(false);
@@ -237,7 +225,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
                 <Camera className="h-5 w-5 mr-3" />
                 Take Photo Now
               </Button>
-              
+
               <Button
                 onClick={() => {
                   setShowOptions(false);
@@ -249,7 +237,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
                 Choose from Camera Roll
               </Button>
             </div>
-            
+
             <Button
               onClick={() => setShowOptions(false)}
               variant="outline"
@@ -268,7 +256,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
               <h3 className="text-lg font-semibold">Take a Photo</h3>
               <p className="text-sm text-gray-600">Position your home in the viewfinder</p>
             </div>
-            
+
             <div className="relative mb-4">
               <video
                 ref={videoRef}
@@ -277,7 +265,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
                 className="w-full h-64 object-cover rounded-lg bg-gray-100"
               />
             </div>
-            
+
             <div className="flex justify-center space-x-4">
               <Button
                 onClick={capturePhoto}
@@ -296,7 +284,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
           </div>
         </div>
       )}
-      
+
       <canvas ref={canvasRef} className="hidden" />
     </>
   );
