@@ -2,8 +2,28 @@ import * as fs from "fs";
 import { GoogleGenAI, Modality } from "@google/genai";
 import sharp from "sharp";
 
-// Initialize Gemini AI client
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+// Initialize Gemini AI client with better error handling
+const getGeminiApiKey = () => {
+  const possibleKeys = [
+    process.env.GEMINI_API_KEY,
+    process.env.GOOGLE_API_KEY,
+    process.env.GEMINI_KEY,
+    process.env.GOOGLE_GEMINI_API_KEY
+  ];
+  
+  for (const key of possibleKeys) {
+    if (key && key.trim()) {
+      console.log("✓ Found Gemini API key");
+      return key.trim();
+    }
+  }
+  
+  console.error("❌ No Gemini API key found in environment variables");
+  console.error("Checked: GEMINI_API_KEY, GOOGLE_API_KEY, GEMINI_KEY, GOOGLE_GEMINI_API_KEY");
+  throw new Error("GEMINI_API_KEY not found in environment variables");
+};
+
+const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
 
 interface ProcessedImage {
   buffer: Buffer;

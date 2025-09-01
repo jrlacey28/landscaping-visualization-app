@@ -106,7 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      const { tenantId, selectedRoof, selectedSiding, selectedSurpriseMe, selectedCurbing, selectedLandscape, selectedPatio } = req.body;
+      const { tenantId, selectedRoof, selectedSiding, selectedSurpriseMe } = req.body;
 
       if (!tenantId) {
         return res.status(400).json({ error: "Tenant ID is required" });
@@ -118,22 +118,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create base64 for storage
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
 
-      // Create visualization record - support both old and new format for backwards compatibility
+      // Create visualization record
       const visualization = await storage.createVisualization({
         tenantId: parseInt(tenantId),
         originalImageUrl: base64Image,
-        selectedRoof: selectedRoof || selectedCurbing || null,
-        selectedSiding: selectedSiding || selectedLandscape || null,
-        selectedSurpriseMe: selectedSurpriseMe || selectedPatio || null,
+        selectedRoof: selectedRoof || null,
+        selectedSiding: selectedSiding || null,
+        selectedSurpriseMe: selectedSurpriseMe || null,
         status: "processing",
       });
 
-      // Process landscape with Gemini AI
+      // Process with Gemini AI
       try {
         const selectedStyles = {
-          roof: selectedRoof || selectedCurbing || undefined,
-          siding: selectedSiding || selectedLandscape || undefined,
-          surpriseMe: selectedSurpriseMe || selectedPatio || undefined
+          roof: selectedRoof || undefined,
+          siding: selectedSiding || undefined,
+          surpriseMe: selectedSurpriseMe || undefined
         };
 
         const result = await processLandscapeWithGemini({
