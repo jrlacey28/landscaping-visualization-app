@@ -67,7 +67,7 @@ export default function AdminDashboard() {
   });
 
   const [tenantSettings, setTenantSettings] = useState({
-    companyName: "AI Landscape Visualizer",
+    companyName: "AI Roofing & Siding Visualizer",
     primaryColor: "#2563EB",
     secondaryColor: "#059669",
     phone: "(555) 123-4567",
