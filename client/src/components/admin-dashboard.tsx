@@ -82,13 +82,17 @@ export default function AdminDashboard() {
   React.useEffect(() => {
     if (currentTenant) {
       setTenantSettings({
-        companyName: currentTenant.companyName || "AI Landscape Visualizer",
+        companyName:
+          currentTenant.companyName || "AI Roofing & Siding Visualizer",
         primaryColor: currentTenant.primaryColor || "#2563EB",
         secondaryColor: currentTenant.secondaryColor || "#059669",
         phone: currentTenant.phone || "(555) 123-4567",
         email: currentTenant.email || "info@greenvalley.com",
-        address: currentTenant.address || "123 Landscape Drive\nRiverside, CA 92501",
-        description: currentTenant.description || "Professional landscaping and concrete services",
+        address:
+          currentTenant.address || "123 Landscape Drive\nRiverside, CA 92501",
+        description:
+          currentTenant.description ||
+          "Professional landscaping and concrete services",
         showPricing: currentTenant.showPricing ?? true,
         requirePhone: currentTenant.requirePhone ?? false,
       });
