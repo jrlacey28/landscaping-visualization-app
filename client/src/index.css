@@ -23,6 +23,32 @@
   animation: rainbow 3s ease infinite;
 }
 
+@keyframes star-movement-bottom {
+  0% {
+    transform: translateX(0%) rotate(0deg);
+  }
+  100% {
+    transform: translateX(100%) rotate(360deg);
+  }
+}
+
+@keyframes star-movement-top {
+  0% {
+    transform: translateX(0%) rotate(0deg);
+  }
+  100% {
+    transform: translateX(-100%) rotate(-360deg);
+  }
+}
+
+.animate-star-movement-bottom {
+  animation: star-movement-bottom var(--animation-duration, 6s) linear infinite;
+}
+
+.animate-star-movement-top {
+  animation: star-movement-top var(--animation-duration, 6s) linear infinite;
+}
+
 :root {
   --background: 0 0% 100%; /* #FFFFFF */
   --foreground: 210 11% 15%; /* #2A2F36 */

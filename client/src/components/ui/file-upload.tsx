@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Upload, X, Camera } from "lucide-react";
 import { Button } from "./button";
-import { RainbowButton } from "./rainbow-button";
+import { StarBorder } from "./star-border";
 
 interface FileUploadProps {
   onFileSelect: (file: File, previewUrl: string) => void;
@@ -105,10 +105,10 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
           <div>
             <p className="text-2xl font-bold text-stone-800 mb-2">Drop your photo here</p>
             <p className="text-lg text-stone-600 mb-4">or click to browse files</p>
-            <RainbowButton className="mt-4">
+            <StarBorder className="mt-4">
               <Upload className="h-4 w-4 mr-2" />
               Upload
-            </RainbowButton>
+            </StarBorder>
           </div>
           <div className="flex justify-center space-x-4 text-sm text-muted-foreground mb-6">
             <div className="flex items-center space-x-1">
