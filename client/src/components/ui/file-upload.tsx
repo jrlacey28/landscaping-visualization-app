@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, X, Camera, CameraIcon } from "lucide-react";
+import { Upload, X, Camera, Image as CameraIcon } from "lucide-react";
 import { Button } from "./button";
 
 interface FileUploadProps {
@@ -10,6 +10,7 @@ interface FileUploadProps {
 export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -176,24 +177,15 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
             </div>
           </div>
           
-          <div className="flex justify-center space-x-4">
+          <div className="flex justify-center">
             <Button
               type="button"
               variant="outline"
-              onClick={startCamera}
-              className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+              onClick={() => setShowOptions(true)}
+              className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 px-8 py-3"
             >
-              <Camera className="h-4 w-4 mr-2" />
-              Take Photo
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCameraInput}
-              className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-            >
-              <CameraIcon className="h-4 w-4 mr-2" />
-              Camera Roll
+              <Camera className="h-5 w-5 mr-2" />
+              Add Photo
             </Button>
           </div>
         </div>
@@ -215,6 +207,60 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
         onChange={handleFileInputChange}
       />
       
+      {showOptions && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-semibold mb-2">Add Your Photo</h3>
+              <p className="text-gray-600">Choose how you'd like to add your home photo</p>
+            </div>
+            
+            <div className="space-y-4">
+              <Button
+                onClick={() => {
+                  setShowOptions(false);
+                  fileInputRef.current?.click();
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg"
+              >
+                <Upload className="h-5 w-5 mr-3" />
+                Upload from Device
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setShowOptions(false);
+                  startCamera();
+                }}
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg"
+              >
+                <Camera className="h-5 w-5 mr-3" />
+                Take Photo Now
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  setShowOptions(false);
+                  handleCameraInput();
+                }}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 text-lg"
+              >
+                <CameraIcon className="h-5 w-5 mr-3" />
+                Choose from Camera Roll
+              </Button>
+            </div>
+            
+            <Button
+              onClick={() => setShowOptions(false)}
+              variant="outline"
+              className="w-full mt-4"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
       {showCamera && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
