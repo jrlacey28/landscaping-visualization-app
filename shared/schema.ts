@@ -40,9 +40,9 @@ export const visualizations = pgTable("visualizations", {
   tenantId: integer("tenant_id").notNull().references(() => tenants.id),
   originalImageUrl: text("original_image_url").notNull(),
   generatedImageUrl: text("generated_image_url"),
-  selectedCurbing: text("selected_curbing"),
-  selectedLandscape: text("selected_landscape"),
-  selectedPatio: text("selected_patio"),
+  selectedRoof: text("selected_roof"),
+  selectedSiding: text("selected_siding"),
+  selectedSurpriseMe: text("selected_surprise_me"),
   replicateId: text("replicate_id"),
   status: text("status").default("pending"), // pending, processing, completed, failed
   createdAt: timestamp("created_at").defaultNow(),

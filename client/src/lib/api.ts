@@ -9,13 +9,13 @@ export const uploadImageWithFastSAM2 = async (file: File, tenantId: number, sele
   formData.append('tenantId', tenantId.toString());
   
   // Format the selected styles to match backend expectations
-  const curbingValue = selectedStyles.curbing.enabled && selectedStyles.curbing.type ? selectedStyles.curbing.type : '';
-  const landscapeValue = selectedStyles.landscape.enabled && selectedStyles.landscape.type ? selectedStyles.landscape.type : '';
-  const patioValue = selectedStyles.patio.enabled && selectedStyles.patio.type ? selectedStyles.patio.type : '';
+  const roofValue = selectedStyles.roof.enabled && selectedStyles.roof.type ? selectedStyles.roof.type : '';
+  const sidingValue = selectedStyles.siding.enabled && selectedStyles.siding.type ? selectedStyles.siding.type : '';
+  const surpriseMeValue = selectedStyles.surpriseMe.enabled && selectedStyles.surpriseMe.type ? selectedStyles.surpriseMe.type : '';
   
-  formData.append('selectedCurbing', curbingValue);
-  formData.append('selectedLandscape', landscapeValue);
-  formData.append('selectedPatio', patioValue);
+  formData.append('selectedRoof', roofValue);
+  formData.append('selectedSiding', sidingValue);
+  formData.append('selectedSurpriseMe', surpriseMeValue);
 
   const response = await fetch('/api/fast-edit', {
     method: 'POST',
@@ -52,13 +52,13 @@ export const uploadImage = async (file: File, tenantId: number, selectedStyles: 
   formData.append('tenantId', tenantId.toString());
   
   // Format the selected styles to match backend expectations
-  const curbingValue = selectedStyles.curbing.enabled && selectedStyles.curbing.type ? selectedStyles.curbing.type : '';
-  const landscapeValue = selectedStyles.landscape.enabled && selectedStyles.landscape.type ? selectedStyles.landscape.type : '';
-  const patioValue = selectedStyles.patio.enabled && selectedStyles.patio.type ? selectedStyles.patio.type : '';
+  const roofValue = selectedStyles.roof.enabled && selectedStyles.roof.type ? selectedStyles.roof.type : '';
+  const sidingValue = selectedStyles.siding.enabled && selectedStyles.siding.type ? selectedStyles.siding.type : '';
+  const surpriseMeValue = selectedStyles.surpriseMe.enabled && selectedStyles.surpriseMe.type ? selectedStyles.surpriseMe.type : '';
   
-  formData.append('selectedCurbing', curbingValue);
-  formData.append('selectedLandscape', landscapeValue);
-  formData.append('selectedPatio', patioValue);
+  formData.append('selectedRoof', roofValue);
+  formData.append('selectedSiding', sidingValue);
+  formData.append('selectedSurpriseMe', surpriseMeValue);
   
   if (maskData) {
     formData.append('maskData', maskData);

@@ -147,9 +147,9 @@ export async function processLandscapeWithGemini({
 }: {
   imageBuffer: Buffer;
   selectedStyles: {
-    curbing?: string;
-    landscape?: string;
-    patio?: string;
+    roof?: string;
+    siding?: string;
+    surpriseMe?: string;
   };
 }): Promise<{
   editedImageBuffer: Buffer;
@@ -170,31 +170,31 @@ export async function processLandscapeWithGemini({
 
     console.log('🔍 PROCESSING STYLES:', selectedStyles);
 
-    if (selectedStyles.curbing && STYLE_CONFIG[selectedStyles.curbing]) {
-      const styleConfig = STYLE_CONFIG[selectedStyles.curbing];
-      console.log(`✓ Found curbing style: ${styleConfig.name}`);
+    if (selectedStyles.roof && STYLE_CONFIG[selectedStyles.roof]) {
+      const styleConfig = STYLE_CONFIG[selectedStyles.roof];
+      console.log(`✓ Found roof style: ${styleConfig.name}`);
       modifications.push(styleConfig.prompt);
-      appliedStyles.push(selectedStyles.curbing);
-    } else if (selectedStyles.curbing) {
-      console.log(`❌ Curbing style not found: ${selectedStyles.curbing}`);
+      appliedStyles.push(selectedStyles.roof);
+    } else if (selectedStyles.roof) {
+      console.log(`❌ Roof style not found: ${selectedStyles.roof}`);
     }
 
-    if (selectedStyles.landscape && STYLE_CONFIG[selectedStyles.landscape]) {
-      const styleConfig = STYLE_CONFIG[selectedStyles.landscape];
-      console.log(`✓ Found landscape style: ${styleConfig.name}`);
+    if (selectedStyles.siding && STYLE_CONFIG[selectedStyles.siding]) {
+      const styleConfig = STYLE_CONFIG[selectedStyles.siding];
+      console.log(`✓ Found siding style: ${styleConfig.name}`);
       modifications.push(styleConfig.prompt);
-      appliedStyles.push(selectedStyles.landscape);
-    } else if (selectedStyles.landscape) {
-      console.log(`❌ Landscape style not found: ${selectedStyles.landscape}`);
+      appliedStyles.push(selectedStyles.siding);
+    } else if (selectedStyles.siding) {
+      console.log(`❌ Siding style not found: ${selectedStyles.siding}`);
     }
 
-    if (selectedStyles.patio && STYLE_CONFIG[selectedStyles.patio]) {
-      const styleConfig = STYLE_CONFIG[selectedStyles.patio];
-      console.log(`✓ Found patio style: ${styleConfig.name}`);
+    if (selectedStyles.surpriseMe && STYLE_CONFIG[selectedStyles.surpriseMe]) {
+      const styleConfig = STYLE_CONFIG[selectedStyles.surpriseMe];
+      console.log(`✓ Found surprise style: ${styleConfig.name}`);
       modifications.push(styleConfig.prompt);
-      appliedStyles.push(selectedStyles.patio);
-    } else if (selectedStyles.patio) {
-      console.log(`❌ Patio style not found: ${selectedStyles.patio}`);
+      appliedStyles.push(selectedStyles.surpriseMe);
+    } else if (selectedStyles.surpriseMe) {
+      console.log(`❌ Surprise style not found: ${selectedStyles.surpriseMe}`);
     }
 
     if (modifications.length === 0) {
@@ -205,21 +205,21 @@ export async function processLandscapeWithGemini({
     console.log(`✓ Using ${modifications.length} style prompts`);
 
     // Use the actual detailed prompts from style config
-    const finalPrompt = `LANDSCAPE MODIFICATION INSTRUCTIONS:
+    const finalPrompt = `HOME EXTERIOR RENOVATION INSTRUCTIONS:
 
 ${modifications.join('\n\n')}
 
 CRITICAL PRESERVATION RULES:
-- Keep the house, driveway, sidewalks, and all hardscaping exactly the same
-- Preserve all existing trees, shrubs, and mature plants
-- Maintain the exact lawn areas and grass coverage  
-- Keep the same yard layout, bed shapes, and overall design
-- Only modify the specific features listed above
+- Keep the house structure, windows, doors, and trim exactly the same
+- Preserve all existing landscaping, trees, shrubs, and plants
+- Maintain the exact driveway, walkways, and yard layout  
+- Keep the same property layout and overall design
+- Only modify the specific roof/siding features listed above
 - Maintain original lighting, shadows, and perspective
 - Keep image dimensions at 1920x1080 pixels
 - Result must look natural and professionally installed
 
-Apply ONLY the specified modifications above. Do not redesign or dramatically alter the yard.`;
+Apply ONLY the specified modifications above. Do not redesign or dramatically alter the home.`;
 
     // Step 4: Generate edited image using Gemini
     const base64Image = processedImage.buffer.toString('base64');

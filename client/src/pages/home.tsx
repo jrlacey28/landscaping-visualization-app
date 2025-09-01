@@ -33,9 +33,9 @@ export default function Home() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedStyles, setSelectedStyles] = useState({
-    curbing: { enabled: false, type: "" },
-    landscape: { enabled: false, type: "" },
-    patio: { enabled: false, type: "" },
+    roof: { enabled: false, type: "" },
+    siding: { enabled: false, type: "" },
+    surpriseMe: { enabled: false, type: "" },
   });
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [maskData, setMaskData] = useState<string | null>(null);
@@ -255,9 +255,9 @@ export default function Home() {
                       setUploadedImage(null);
                       setGeneratedImage(null);
                       setSelectedStyles({
-                        curbing: { enabled: false, type: "" },
-                        landscape: { enabled: false, type: "" },
-                        patio: { enabled: false, type: "" },
+                        roof: { enabled: false, type: "" },
+                        siding: { enabled: false, type: "" },
+                        surpriseMe: { enabled: false, type: "" },
                       });
                     }}
                   >
@@ -294,9 +294,9 @@ export default function Home() {
                         onClick={() => {
                           setUploadedImage(null);
                           setSelectedStyles({
-                            curbing: { enabled: false, type: "" },
-                            landscape: { enabled: false, type: "" },
-                            patio: { enabled: false, type: "" },
+                            roof: { enabled: false, type: "" },
+                            siding: { enabled: false, type: "" },
+                            surpriseMe: { enabled: false, type: "" },
                           });
                           setMaskData(null);
                         }}
@@ -322,21 +322,21 @@ export default function Home() {
 
                   <StyleSelector
                     selectedStyles={{
-                      curbing: selectedStyles.curbing.type,
-                      landscape: selectedStyles.landscape.type,
-                      patio: selectedStyles.patio.type,
+                      roof: selectedStyles.roof.type,
+                      siding: selectedStyles.siding.type,
+                      surpriseMe: selectedStyles.surpriseMe.type,
                     }}
                     onStyleChange={(styles) => {
                       setSelectedStyles({
-                        curbing: {
-                          enabled: !!styles.curbing,
-                          type: styles.curbing,
+                        roof: {
+                          enabled: !!styles.roof,
+                          type: styles.roof,
                         },
-                        landscape: {
-                          enabled: !!styles.landscape,
-                          type: styles.landscape,
+                        siding: {
+                          enabled: !!styles.siding,
+                          type: styles.siding,
                         },
-                        patio: { enabled: !!styles.patio, type: styles.patio },
+                        surpriseMe: { enabled: !!styles.surpriseMe, type: styles.surpriseMe },
                       });
                     }}
                   />
@@ -347,12 +347,12 @@ export default function Home() {
                     disabled={
                       isGenerating ||
                       !(
-                        (selectedStyles.curbing.enabled &&
-                          selectedStyles.curbing.type) ||
-                        (selectedStyles.landscape.enabled &&
-                          selectedStyles.landscape.type) ||
-                        (selectedStyles.patio.enabled &&
-                          selectedStyles.patio.type)
+                        (selectedStyles.roof.enabled &&
+                          selectedStyles.roof.type) ||
+                        (selectedStyles.siding.enabled &&
+                          selectedStyles.siding.type) ||
+                        (selectedStyles.surpriseMe.enabled &&
+                          selectedStyles.surpriseMe.type)
                       )
                     }
                     onClick={async () => {
@@ -463,12 +463,12 @@ export default function Home() {
                     )}
                   </Button>
 
-                  {(!selectedStyles.curbing.enabled ||
-                    !selectedStyles.curbing.type) &&
-                    (!selectedStyles.landscape.enabled ||
-                      !selectedStyles.landscape.type) &&
-                    (!selectedStyles.patio.enabled ||
-                      !selectedStyles.patio.type) && (
+                  {(!selectedStyles.roof.enabled ||
+                    !selectedStyles.roof.type) &&
+                    (!selectedStyles.siding.enabled ||
+                      !selectedStyles.siding.type) &&
+                    (!selectedStyles.surpriseMe.enabled ||
+                      !selectedStyles.surpriseMe.type) && (
                       <p className="text-sm text-slate-500 text-center">
                         Please select at least one feature option to generate
                         your design
@@ -567,33 +567,31 @@ export default function Home() {
                       {(() => {
                         const appliedStyles = [];
                         if (
-                          selectedStyles.curbing.enabled &&
-                          selectedStyles.curbing.type
+                          selectedStyles.roof.enabled &&
+                          selectedStyles.roof.type
                         ) {
                           appliedStyles.push(
-                            selectedStyles.curbing.type
+                            "Roof: " + selectedStyles.roof.type
                               .replace(/_/g, " ")
                               .replace(/\b\w/g, (l) => l.toUpperCase()),
                           );
                         }
                         if (
-                          selectedStyles.landscape.enabled &&
-                          selectedStyles.landscape.type
+                          selectedStyles.siding.enabled &&
+                          selectedStyles.siding.type
                         ) {
                           appliedStyles.push(
-                            selectedStyles.landscape.type
+                            "Siding: " + selectedStyles.siding.type
                               .replace(/_/g, " ")
                               .replace(/\b\w/g, (l) => l.toUpperCase()),
                           );
                         }
                         if (
-                          selectedStyles.patio.enabled &&
-                          selectedStyles.patio.type
+                          selectedStyles.surpriseMe.enabled &&
+                          selectedStyles.surpriseMe.type
                         ) {
                           appliedStyles.push(
-                            selectedStyles.patio.type
-                              .replace(/_/g, " ")
-                              .replace(/\b\w/g, (l) => l.toUpperCase()),
+                            "Surprise Me: Random roof and siding selection"
                           );
                         }
                         return appliedStyles.length > 0

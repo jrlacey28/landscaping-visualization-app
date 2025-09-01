@@ -4,130 +4,149 @@ export interface StyleConfig {
   prompt: string;
   referenceImageUrl: string;
   referenceImages?: string[]; 
-  category: "curbing" | "mulch" | "patio" | "gravel" | "grass";
-  regionType: "edge" | "central" | "hardscape" | "lawn";
+  category: "roof" | "siding" | "surprise";
+  regionType: "roof" | "exterior" | "random";
 }
 
 export const STYLE_CONFIG: Record<string, StyleConfig> = {
-  natural_stone_curbing: {
-    id: "natural_stone_curbing",
-    name: "Natural Stone Curbing",
-    prompt:
-      "Add natural stone curbing Single-layer, poured concrete garden curbing, with a sloping, rounded top edge, hand-carved block divisions, in a dark gray or charcoal color along the existing lawn edges and walkways with uniqueness to each part in earth tones (gray, tan, brown).Keep all existing plants, trees, bushes, rock bed, mulch and landscape features exactly where they are and how they are. The stone styled concrete curbing should follow the natural contours of the landscape and appear professionally installed with clean, defined edges.",
-    referenceImageUrl: "https://mycdn.com/natural-stone-curbing.jpg",
-    referenceImages: ["/uploads/hand-carved-concrete-curbing.jpg","/uploads/hand-carved-concrete-curbing-2.jpg"],
-    category: "curbing",
-    regionType: "edge",
+  // Roof Styles with Colors
+  asphalt_shingles_charcoal_black: {
+    id: "asphalt_shingles_charcoal_black",
+    name: "Asphalt Shingles - Charcoal Black",
+    prompt: "Replace the roof with charcoal black asphalt shingles. High-quality dimensional shingles with deep black color and subtle texture variation. Professional installation with proper alignment and weather-resistant materials. Keep all house structure, siding, windows, landscaping, and surrounding elements exactly as they are.",
+    referenceImageUrl: "https://mycdn.com/asphalt-shingles-black.jpg",
+    category: "roof",
+    regionType: "roof",
   },
-  brown_mulch: {
-    id: "brown_mulch",
-    name: "Brown Colored Mulch",
-    prompt:
-      "Replace only the ground cover areas with fresh brown hardwood mulch. Keep all existing trees, bushes, shrubs, flowers, and plants exactly how they are and unchanged. The mulch should be evenly distributed around plant bases with a 2-3 inch depth, creating clean edges against lawn areas and walkways. Use rich, dark brown organic mulch texture.",
-    referenceImageUrl: "https://mycdn.com/brown-mulch.jpg",
-    category: "mulch",
-    regionType: "central",
+  asphalt_shingles_weathered_gray: {
+    id: "asphalt_shingles_weathered_gray",
+    name: "Asphalt Shingles - Weathered Gray",
+    prompt: "Replace the roof with weathered gray asphalt shingles. Premium architectural shingles in sophisticated gray tones with natural weathered appearance. Keep all other home elements unchanged including siding, trim, and landscaping.",
+    referenceImageUrl: "https://mycdn.com/asphalt-shingles-gray.jpg",
+    category: "roof",
+    regionType: "roof",
   },
-  concrete_patio: {
-    id: "concrete_patio",
-    name: "Concrete",
-    prompt:
-      "Install a clean, modern concrete patio with a smooth or lightly textured finish. Use light gray concrete with subtle expansion joints for a professional appearance. The patio should be appropriately sized for the space, include proper drainage slopes, and blend naturally with the existing landscape. Preserve all surrounding vegetation and landscape elements exactly as shown.",
-    referenceImageUrl: "https://mycdn.com/concrete-patio.jpg",
-    category: "patio",
-    regionType: "hardscape",
+  asphalt_shingles_rustic_brown: {
+    id: "asphalt_shingles_rustic_brown",
+    name: "Asphalt Shingles - Rustic Brown",
+    prompt: "Replace the roof with rustic brown asphalt shingles. Rich brown architectural shingles with natural earth tone colors and dimensional texture. Maintain all existing house features and landscape elements unchanged.",
+    referenceImageUrl: "https://mycdn.com/asphalt-shingles-brown.jpg",
+    category: "roof",
+    regionType: "roof",
   },
-  river_rock: {
-    id: "river_rock",
-    name: "River Rock Landscaping",
-    prompt:
-      "Replace ground cover areas with natural river rock landscaping. Use mixed-size smooth river rocks in earth tones (gray, brown, tan). Preserve all existing vegetation, trees, bushes, and plants exactly as they appear. The river rock should be evenly distributed around plant bases and landscape beds, creating attractive low-maintenance ground cover.",
-    referenceImageUrl: "https://mycdn.com/river-rock.jpg",
-    category: "gravel",
-    regionType: "central",
+  asphalt_shingles_slate_blue: {
+    id: "asphalt_shingles_slate_blue",
+    name: "Asphalt Shingles - Slate Blue",
+    prompt: "Replace the roof with slate blue asphalt shingles. Premium shingles in sophisticated blue-gray color with architectural dimensionality. Keep house structure, siding, and all surroundings exactly as shown.",
+    referenceImageUrl: "https://mycdn.com/asphalt-shingles-blue.jpg",
+    category: "roof",
+    regionType: "roof",
   },
-  red_mulch: {
-    id: "red_mulch",
-    name: "Red Cedar Mulch",
-    prompt:
-      "Replace with vibrant red cedar mulch. Rich reddish-brown organic mulch with natural wood texture. Fresh appearance with good coverage depth.",
-    referenceImageUrl: "https://mycdn.com/red-mulch.jpg",
-    category: "mulch",
-    regionType: "central",
+  asphalt_shingles_forest_green: {
+    id: "asphalt_shingles_forest_green",
+    name: "Asphalt Shingles - Forest Green",
+    prompt: "Replace the roof with forest green asphalt shingles. Deep green architectural shingles with natural color variation and professional installation. Preserve all other home and landscape features unchanged.",
+    referenceImageUrl: "https://mycdn.com/asphalt-shingles-green.jpg",
+    category: "roof",
+    regionType: "roof",
   },
-  brick_curbing: {
-    id: "brick_curbing",
-    name: "Brick Landscape Edging",
-    prompt:
-      "Replace with classic brick landscape edging. Traditional red brick border with clean mortar lines. Professional installation with straight edges.",
-    referenceImageUrl: "https://mycdn.com/brick-curbing.jpg",
-    category: "curbing",
-    regionType: "edge",
+  steel_roof_charcoal_black: {
+    id: "steel_roof_charcoal_black",
+    name: "Steel Roof - Charcoal Black",
+    prompt: "Replace the roof with charcoal black steel roofing. Modern standing seam metal roof with clean lines and durable finish. Professional installation with proper fasteners and weatherproofing. Keep all other house elements and landscaping exactly unchanged.",
+    referenceImageUrl: "https://mycdn.com/steel-roof-black.jpg",
+    category: "roof",
+    regionType: "roof",
   },
-  premium_mulch: {
-    id: "premium_mulch",
-    name: "Premium Mulch",
-    prompt:
-      "Replace only the ground cover areas with fresh brown hardwood mulch. Keep all existing trees, bushes, shrubs, flowers, and plants exactly unchanged. The mulch should be evenly distributed around plant bases with a 2-3 inch depth, creating clean edges against lawn areas and walkways. Use rich, dark brown organic mulch texture.",
-    referenceImageUrl: "https://mycdn.com/premium-mulch.jpg",
-    category: "mulch",
-    regionType: "central",
+  steel_roof_weathered_gray: {
+    id: "steel_roof_weathered_gray",
+    name: "Steel Roof - Weathered Gray",
+    prompt: "Replace the roof with weathered gray steel roofing. Contemporary metal roof with sophisticated gray finish and standing seam design. Maintain all existing home features and surroundings unchanged.",
+    referenceImageUrl: "https://mycdn.com/steel-roof-gray.jpg",
+    category: "roof",
+    regionType: "roof",
   },
-  fresh_sod: {
-    id: "fresh_sod",
-    name: "Fresh Sod",
-    prompt:
-      "what would my yard look like with natural looking green grass that looks perfect as an established yard.",
-    referenceImageUrl: "/uploads/fresh-sod-reference.jpg",
-    category: "grass",
-    regionType: "lawn",
+  steel_shingles_charcoal_black: {
+    id: "steel_shingles_charcoal_black",
+    name: "Steel Shingles - Charcoal Black",
+    prompt: "Replace the roof with charcoal black steel shingles. Premium metal shingles with traditional appearance and modern durability. Deep black finish with professional installation. Keep all other home and landscape elements exactly as they are.",
+    referenceImageUrl: "https://mycdn.com/steel-shingles-black.jpg",
+    category: "roof",
+    regionType: "roof",
   },
-  stamped_concrete: {
-    id: "stamped_concrete",
-    name: "Stamped Concrete",
-    prompt:
-      "Create a stamped concrete patio with decorative patterns that complement the homes style. Use popular stamped patterns like ashlar slate, cobblestone, or brick texture in earth tone colors (tan, gray, or sandstone). The concrete should have realistic texture and color variation with proper scoring lines. Include a subtle border pattern around the edges and ensure the patio is appropriately sized for the space with proper drainage slopes. Preserve all existing trees, shrubs, plants, and landscape features exactly as shown. The stamped concrete should blend naturally with surrounding lawn and garden areas.",
-    referenceImageUrl: "https://mycdn.com/stamped-concrete.jpg",
-    category: "patio",
-    regionType: "hardscape",
+  
+  // Siding Options
+  vinyl_siding_white: {
+    id: "vinyl_siding_white",
+    name: "Vinyl Siding - White",
+    prompt: "Replace the house siding with clean white vinyl siding. Premium quality horizontal lap siding with smooth finish and professional installation. Bright white color with proper trim and corner details. Keep roof, windows, doors, and all landscaping exactly unchanged.",
+    referenceImageUrl: "https://mycdn.com/vinyl-siding-white.jpg",
+    category: "siding",
+    regionType: "exterior",
   },
-  designer_pavers: {
-    id: "designer_pavers",
-    name: "Designer Pavers",
-    prompt:
-      "Install designer paver patio with interlocking stone pavers. Premium quality pavers in coordinated colors with tight joints and professional installation.",
-    referenceImageUrl: "https://mycdn.com/designer-pavers.jpg",
-    category: "patio",
-    regionType: "hardscape",
+  vinyl_siding_gray: {
+    id: "vinyl_siding_gray",
+    name: "Vinyl Siding - Gray",
+    prompt: "Replace the house siding with modern gray vinyl siding. Contemporary gray color with horizontal lap style and professional installation. Maintain all roof, trim, windows, and landscape elements exactly as shown.",
+    referenceImageUrl: "https://mycdn.com/vinyl-siding-gray.jpg",
+    category: "siding",
+    regionType: "exterior",
   },
-  river_rock_curbing: {
-    id: "river_rock_curbing",
-    name: "River Rock Curbing",
-    prompt:
-      "Install river rock curbing along all lawn borders and pathways. Use smooth, rounded river rocks in mixed natural colors (gray, brown, tan, black) sized 2-4 inches. Maintain all existing vegetation, trees, shrubs, and plantings unchanged. The river rock should create clean, defined borders that follow the existing landscape curves and transitions.",
-    referenceImageUrl: "https://mycdn.com/river-rock-curbing.jpg",
-    category: "curbing",
-    regionType: "edge",
+  fiber_cement_beige: {
+    id: "fiber_cement_beige",
+    name: "Fiber Cement - Beige",
+    prompt: "Replace the house siding with beige fiber cement siding. High-quality cementitious siding in warm beige tone with wood-grain texture. Professional installation with proper trim work. Keep all other home features and landscaping unchanged.",
+    referenceImageUrl: "https://mycdn.com/fiber-cement-beige.jpg",
+    category: "siding",
+    regionType: "exterior",
   },
-  concrete: {
-    id: "concrete",
-    name: "Concrete",
-    prompt: "What would my yard look like with a concrete patio installed. appropriately-sized concrete patio (approximately 12x12 feet maximum) with a smooth or lightly textured finish. Use light gray concrete with subtle expansion joints for a professional appearance. The patio should be proportional to the yard size - small to medium scale only, positioned near the house or in a natural gathering area. Include proper drainage slopes and blend naturally with the existing landscape. Do NOT create oversized patios that dominate the yard. Preserve all surrounding vegetation, lawn areas, and landscape elements exactly as shown.",
-    referenceImageUrl: "https://mycdn.com/concrete-patio.jpg",
-    category: "patio",
-    regionType: "hardscape",
+  wood_siding_natural: {
+    id: "wood_siding_natural",
+    name: "Wood Siding - Natural",
+    prompt: "Replace the house siding with natural wood siding. Cedar or similar wood species with natural finish and horizontal board installation. Maintain the natural wood color and grain pattern. Keep roof, windows, and all landscaping exactly as they are.",
+    referenceImageUrl: "https://mycdn.com/wood-siding-natural.jpg",
+    category: "siding",
+    regionType: "exterior",
+  },
+  brick_veneer_red: {
+    id: "brick_veneer_red",
+    name: "Brick Veneer - Red",
+    prompt: "Replace the house siding with red brick veneer. Traditional red brick with classic mortar joints and professional masonry installation. Rich red color with natural variation. Preserve roof, trim, windows, and all landscape elements unchanged.",
+    referenceImageUrl: "https://mycdn.com/brick-veneer-red.jpg",
+    category: "siding",
+    regionType: "exterior",
+  },
+  
+  // Surprise Me Option
+  random_roof_and_siding: {
+    id: "random_roof_and_siding",
+    name: "Surprise Me - Random Selection",
+    prompt: "Transform this home with a randomly selected roof and siding combination that complements each other. Choose appropriate colors and materials that work well together for a beautiful exterior renovation. Maintain all windows, doors, trim, and landscaping exactly as shown.",
+    referenceImageUrl: "https://mycdn.com/random-combo.jpg",
+    category: "surprise",
+    regionType: "random",
   },
 };
 
 export const REGION_STYLE_MAPPING = {
-  edge: [
-    "natural_stone_curbing",
-    "river_rock_curbing",
-    "brick_curbing",
+  roof: [
+    "asphalt_shingles_charcoal_black",
+    "asphalt_shingles_weathered_gray", 
+    "asphalt_shingles_rustic_brown",
+    "asphalt_shingles_slate_blue",
+    "asphalt_shingles_forest_green",
+    "steel_roof_charcoal_black",
+    "steel_roof_weathered_gray",
+    "steel_shingles_charcoal_black",
   ] as const,
-  central: ["brown_mulch", "red_mulch", "river_rock", "premium_mulch"] as const,
-  hardscape: ["concrete", "stamped_concrete", "designer_pavers"] as const,
-  lawn: ["fresh_sod"] as const,
+  exterior: [
+    "vinyl_siding_white",
+    "vinyl_siding_gray",
+    "fiber_cement_beige", 
+    "wood_siding_natural",
+    "brick_veneer_red",
+  ] as const,
+  random: ["random_roof_and_siding"] as const,
 };
 
 export function getStyleForRegion(
