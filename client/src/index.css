@@ -23,6 +23,22 @@
   animation: rainbow 3s ease infinite;
 }
 
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-flow {
+  animation: gradient-flow 3s ease-in-out infinite;
+}
+
 @keyframes star-movement-bottom {
   0% {
     transform: translateX(-50%) rotate(0deg) scale(0.8);
