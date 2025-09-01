@@ -7,12 +7,12 @@ export const uploadImageWithFastSAM2 = async (file: File, tenantId: number, sele
   const formData = new FormData();
   formData.append('image', file);
   formData.append('tenantId', tenantId.toString());
-  
+
   // Format the selected styles to match backend expectations
   const roofValue = selectedStyles.roof.enabled && selectedStyles.roof.type ? selectedStyles.roof.type : '';
   const sidingValue = selectedStyles.siding.enabled && selectedStyles.siding.type ? selectedStyles.siding.type : '';
   const surpriseMeValue = selectedStyles.surpriseMe.enabled && selectedStyles.surpriseMe.type ? selectedStyles.surpriseMe.type : '';
-  
+
   formData.append('selectedRoof', roofValue);
   formData.append('selectedSiding', sidingValue);
   formData.append('selectedSurpriseMe', surpriseMeValue);
@@ -50,16 +50,16 @@ export const uploadImage = async (file: File, tenantId: number, selectedStyles: 
   const formData = new FormData();
   formData.append('image', file);
   formData.append('tenantId', tenantId.toString());
-  
+
   // Format the selected styles to match backend expectations
   const roofValue = selectedStyles.roof.enabled && selectedStyles.roof.type ? selectedStyles.roof.type : '';
   const sidingValue = selectedStyles.siding.enabled && selectedStyles.siding.type ? selectedStyles.siding.type : '';
   const surpriseMeValue = selectedStyles.surpriseMe.enabled && selectedStyles.surpriseMe.type ? selectedStyles.surpriseMe.type : '';
-  
+
   formData.append('selectedRoof', roofValue);
   formData.append('selectedSiding', sidingValue);
   formData.append('selectedSurpriseMe', surpriseMeValue);
-  
+
   if (maskData) {
     formData.append('maskData', maskData);
   }
@@ -71,11 +71,19 @@ export const uploadImage = async (file: File, tenantId: number, selectedStyles: 
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || 'Upload failed');
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+
+    // Clean up any Replicate-specific error messages
+    let errorMessage = errorData.error || 'Unknown error';
+    if (errorMessage.includes('Replicate') || errorMessage.includes('billing')) {
+      errorMessage = 'AI processing failed. Please try again.';
+    }
+
+    throw new Error(`Upload failed: ${errorMessage}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  return data;
 };
 
 export const checkVisualizationStatus = async (visualizationId: number) => {

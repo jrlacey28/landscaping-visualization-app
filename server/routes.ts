@@ -174,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: "failed",
         });
         res.status(500).json({ 
-          error: "Unable to generate visualization. Please check your internet connection and try again.",
+          error: "AI processing failed. Please try again.",
           details: geminiError.message 
         });
       }
