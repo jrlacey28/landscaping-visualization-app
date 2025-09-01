@@ -3,6 +3,27 @@
 @tailwind utilities;
 
 :root {
+  --color-1: 0 100% 63%;
+  --color-2: 270 100% 63%;
+  --color-3: 210 100% 63%;
+  --color-4: 195 100% 63%;
+  --color-5: 90 100% 63%;
+}
+
+@keyframes rainbow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-rainbow {
+  animation: rainbow 3s ease infinite;
+}
+
+:root {
   --background: 0 0% 100%; /* #FFFFFF */
   --foreground: 210 11% 15%; /* #2A2F36 */
   --muted: 210 11% 96%; /* #F4F5F6 */
