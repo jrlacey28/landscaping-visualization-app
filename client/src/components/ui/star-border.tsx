@@ -14,48 +14,46 @@ export function StarBorder<T extends ElementType = "button">({
   as,
   className,
   color,
-  speed = "6s",
+  speed = "3s",
   children,
   ...props
 }: StarBorderProps<T> & Omit<ComponentPropsWithoutRef<T>, keyof StarBorderProps<T>>) {
   const Component = as || "button"
-  const defaultColor = color || "hsl(var(--foreground))"
+  const starColor = color || "#FFD700"
 
   return (
     <Component 
       className={cn(
-        "relative inline-block py-[1px] overflow-hidden rounded-[20px]",
+        "relative overflow-hidden rounded-[20px] transition-transform hover:scale-105",
+        "bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800",
+        "text-white font-semibold py-4 px-8 text-center shadow-lg",
         className
       )} 
       {...props}
     >
       <div
         className={cn(
-          "absolute w-[300%] h-[50%] bottom-[-11px] right-[-250%] rounded-full animate-star-movement-bottom z-0",
-          "opacity-20 dark:opacity-70" 
+          "absolute w-[400%] h-[60%] bottom-[-15px] right-[-350%] rounded-full animate-star-movement-bottom",
+          "opacity-80"
         )}
         style={{
-          background: `radial-gradient(circle, ${defaultColor}, transparent 10%)`,
+          background: `radial-gradient(circle, ${starColor} 0%, ${starColor}88 30%, transparent 70%)`,
           animationDuration: speed,
         }}
       />
       <div
         className={cn(
-          "absolute w-[300%] h-[50%] top-[-10px] left-[-250%] rounded-full animate-star-movement-top z-0",
-          "opacity-20 dark:opacity-70"
+          "absolute w-[400%] h-[60%] top-[-15px] left-[-350%] rounded-full animate-star-movement-top",
+          "opacity-80"
         )}
         style={{
-          background: `radial-gradient(circle, ${defaultColor}, transparent 10%)`,
+          background: `radial-gradient(circle, ${starColor} 0%, ${starColor}88 30%, transparent 70%)`,
           animationDuration: speed,
         }}
       />
-      <div className={cn(
-        "relative z-1 border text-foreground text-center text-base py-4 px-6 rounded-[20px]",
-        "bg-gradient-to-b from-background/90 to-muted/90 border-border/40",
-        "dark:from-background dark:to-muted dark:border-border"
-      )}>
+      <span className="relative z-10 flex items-center justify-center gap-2">
         {children}
-      </div>
+      </span>
     </Component>
   )
 }

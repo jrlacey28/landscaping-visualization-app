@@ -25,19 +25,31 @@
 
 @keyframes star-movement-bottom {
   0% {
-    transform: translateX(0%) rotate(0deg);
+    transform: translateX(-50%) rotate(0deg) scale(0.8);
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(25%) rotate(180deg) scale(1.2);
   }
   100% {
-    transform: translateX(100%) rotate(360deg);
+    transform: translateX(100%) rotate(360deg) scale(0.8);
+    opacity: 0.6;
   }
 }
 
 @keyframes star-movement-top {
   0% {
-    transform: translateX(0%) rotate(0deg);
+    transform: translateX(50%) rotate(0deg) scale(0.8);
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-25%) rotate(-180deg) scale(1.2);
   }
   100% {
-    transform: translateX(-100%) rotate(-360deg);
+    transform: translateX(-100%) rotate(-360deg) scale(0.8);
+    opacity: 0.6;
   }
 }
 
