@@ -665,7 +665,7 @@ export default function Home() {
             </div>
 
             {/* Center - Business Info */}
-            <div className="flex flex-col items-center space-y-2 text-center">
+            <div className="flex items-center justify-center space-x-6 text-center">
               {tenant.address && (
                 <p className="text-slate-300 text-sm">
                   {tenant.address}
