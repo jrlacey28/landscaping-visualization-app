@@ -73,8 +73,8 @@ export default function Home() {
               Service Unavailable
             </h1>
             <p className="text-muted-foreground">
-              This roofing and siding visualization service is not available at this
-              domain.
+              This roofing and siding visualization service is not available at
+              this domain.
             </p>
           </CardContent>
         </Card>
@@ -155,8 +155,8 @@ export default function Home() {
           </h2>
           <p className="text-xl text-slate-300 mb-8 max-w-3xl mx-auto">
             Upload a photo of your home and see exactly how our professional
-            roofing, siding, and exterior services will transform your
-            property using advanced AI visualization.
+            roofing, siding, and exterior services will transform your property
+            using advanced AI visualization.
           </p>
         </div>
       </section>
@@ -172,8 +172,8 @@ export default function Home() {
                     Upload Your Home Photo
                   </h3>
                   <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                    Take or upload a clear photo of your home's exterior
-                    to see amazing roofing and siding transformation possibilities
+                    Take or upload a clear photo of your home's exterior to see
+                    amazing roofing and siding transformation possibilities
                   </p>
                 </div>
                 <FileUpload
@@ -295,7 +295,7 @@ export default function Home() {
                           <div className="text-center">
                             <SparklesText
                               text="Measuring twice, rendering once..."
-                              className="text-xl font-bold text-white whitespace-nowrap"
+                              className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-red-500 bg-clip-text text-transparent whitespace-nowrap"
                               sparklesCount={12}
                               colors={{ first: "#3b82f6", second: "#ef4444" }}
                             />
@@ -351,7 +351,10 @@ export default function Home() {
                           enabled: !!styles.siding,
                           type: styles.siding,
                         },
-                        surpriseMe: { enabled: !!styles.surpriseMe, type: styles.surpriseMe },
+                        surpriseMe: {
+                          enabled: !!styles.surpriseMe,
+                          type: styles.surpriseMe,
+                        },
                       });
                     }}
                   />
@@ -527,7 +530,8 @@ export default function Home() {
                           visualizationResult.generatedImageUrl,
                         );
                         e.currentTarget.style.display = "none";
-                        const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                        const nextElement = e.currentTarget
+                          .nextElementSibling as HTMLElement;
                         if (nextElement) nextElement.style.display = "flex";
                       }}
                     />
@@ -586,9 +590,10 @@ export default function Home() {
                           selectedStyles.roof.type
                         ) {
                           appliedStyles.push(
-                            "Roof: " + selectedStyles.roof.type
-                              .replace(/_/g, " ")
-                              .replace(/\b\w/g, (l) => l.toUpperCase()),
+                            "Roof: " +
+                              selectedStyles.roof.type
+                                .replace(/_/g, " ")
+                                .replace(/\b\w/g, (l) => l.toUpperCase()),
                           );
                         }
                         if (
@@ -596,9 +601,10 @@ export default function Home() {
                           selectedStyles.siding.type
                         ) {
                           appliedStyles.push(
-                            "Siding: " + selectedStyles.siding.type
-                              .replace(/_/g, " ")
-                              .replace(/\b\w/g, (l) => l.toUpperCase()),
+                            "Siding: " +
+                              selectedStyles.siding.type
+                                .replace(/_/g, " ")
+                                .replace(/\b\w/g, (l) => l.toUpperCase()),
                           );
                         }
                         if (
@@ -606,7 +612,7 @@ export default function Home() {
                           selectedStyles.surpriseMe.type
                         ) {
                           appliedStyles.push(
-                            "Surprise Me: Random roof and siding selection"
+                            "Surprise Me: Random roof and siding selection",
                           );
                         }
                         return appliedStyles.length > 0
@@ -663,9 +669,7 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-white font-semibold">{tenant.companyName}</p>
-                <p className="text-slate-400 text-sm">
-                Powered by Solst LLC
-                </p>
+                <p className="text-slate-400 text-sm">Powered by Solst LLC</p>
               </div>
             </div>
 
