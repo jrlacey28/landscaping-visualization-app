@@ -290,7 +290,7 @@ export default function Home() {
                           <div className="text-center">
                             <SparklesText
                               text="Measuring twice, rendering once..."
-                              className="text-xl font-bold text-white whitespace-nowrap"
+                              className="text-sm sm:text-lg lg:text-xl font-bold text-white whitespace-nowrap"
                               sparklesCount={12}
                               colors={{ first: "#3b82f6", second: "#ef4444" }}
                             />
