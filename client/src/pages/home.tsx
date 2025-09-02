@@ -295,15 +295,9 @@ export default function Home() {
                           <div className="text-center">
                             <SparklesText
                               text="Measuring twice, rendering once..."
-                              className="text-2xl font-bold text-white whitespace-nowrap"
+                              className="text-lg font-bold whitespace-nowrap bg-gradient-to-r from-blue-400 to-red-400 bg-clip-text text-transparent drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
                               sparklesCount={12}
                               colors={{ first: "#3b82f6", second: "#ef4444" }}
-                              style={{
-                                background: 'linear-gradient(to right, #3b82f6, #ef4444)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                textShadow: '0 0 20px rgba(59, 130, 246, 0.3), 0 0 40px rgba(239, 68, 68, 0.3)'
-                              }}
                             />
                           </div>
                         </div>
