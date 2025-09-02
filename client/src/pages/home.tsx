@@ -153,11 +153,6 @@ export default function Home() {
               Before You Build
             </span>
           </h2>
-          <p className="text-xl text-slate-300 mb-8 max-w-3xl mx-auto">
-            Upload a photo of your home and see exactly how our professional
-            roofing, siding, and exterior services will transform your
-            property using advanced AI visualization.
-          </p>
         </div>
       </section>
 
@@ -669,32 +664,18 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Center - Links */}
-            <div className="flex items-center space-x-6">
-              <a
-                href="#pricing"
-                className="text-slate-300 hover:text-blue-400 transition-colors"
-              >
-                Pricing
-              </a>
-              <a
-                href="#terms"
-                className="text-slate-300 hover:text-blue-400 transition-colors"
-              >
-                Terms
-              </a>
-              <a
-                href="#contact"
-                className="text-slate-300 hover:text-blue-400 transition-colors"
-              >
-                Contact
-              </a>
-              <a
-                href="#privacy"
-                className="text-slate-300 hover:text-blue-400 transition-colors"
-              >
-                Privacy
-              </a>
+            {/* Center - Business Info */}
+            <div className="flex flex-col items-center space-y-2 text-center">
+              {tenant.address && (
+                <p className="text-slate-300 text-sm">
+                  {tenant.address}
+                </p>
+              )}
+              {tenant.phone && (
+                <p className="text-slate-300 text-sm">
+                  {tenant.phone}
+                </p>
+              )}
             </div>
 
             {/* Right side - Social icons */}
