@@ -283,21 +283,21 @@ export default function Home() {
               <CardContent className="p-8">
                 {/* Just show the uploaded image at the top */}
                 <div className="text-center mb-8">
-                  <div className="max-w-4xl mx-auto relative">
+                  <div className="max-w-4xl mx-auto relative overflow-hidden rounded-xl">
                     <img
                       src={uploadedImage}
                       alt="Uploaded house photo"
-                      className={`w-full aspect-video object-cover rounded-xl shadow-lg transition-all duration-300 ${isGenerating ? 'blur-sm' : ''}`}
+                      className="w-full aspect-video object-cover shadow-lg transition-all duration-300"
                     />
                     {isGenerating && (
-                      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center">
                         <div className="text-center">
-                          <div className="w-8 h-8 border-4 border-[#718ae1] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                           <SparklesText
                             text="Measuring twice, rendering once..."
-                            className="text-lg font-semibold text-black"
-                            sparklesCount={8}
-                            colors={{ first: "#718ae1", second: "#dc6d73" }}
+                            className="text-3xl font-bold text-white"
+                            sparklesCount={12}
+                            colors={{ first: "#3b82f6", second: "#ef4444" }}
                           />
                         </div>
                       </div>
