@@ -638,7 +638,7 @@ export default function Home() {
       {/* Simplified Footer */}
       <footer className="bg-slate-900/50 border-t border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+          <div className="grid grid-cols-3 items-center">
             {/* Left side - Logo and company */}
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-red-500 rounded-lg flex items-center justify-center">
@@ -679,7 +679,7 @@ export default function Home() {
             </div>
 
             {/* Right side - Social icons */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center justify-end space-x-4">
               <a
                 href="#"
                 className="text-slate-400 hover:text-blue-400 transition-colors"
