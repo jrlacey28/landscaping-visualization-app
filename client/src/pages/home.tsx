@@ -270,7 +270,7 @@ export default function Home() {
                 {/* Get Free Quote button */}
                 <Button
                   size="lg"
-                  className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
+                  className="w-full bg-gradient-to-r from-[#718ae1] via-[#dc6d73] to-[#718ae1] hover:from-[#8299e8] hover:via-[#e67d84] hover:to-[#8299e8] text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
                   onClick={() => setShowLeadForm(true)}
                 >
                   <Phone className="h-5 w-5 mr-2" />
@@ -627,7 +627,7 @@ export default function Home() {
                   </div>
                   <Button
                     size="lg"
-                    className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-semibold py-4 px-8 shadow-lg hover:shadow-xl transition-all"
+                    className="bg-gradient-to-r from-[#718ae1] via-[#dc6d73] to-[#718ae1] hover:from-[#8299e8] hover:via-[#e67d84] hover:to-[#8299e8] text-white font-semibold py-4 px-8 shadow-lg hover:shadow-xl transition-all"
                     onClick={() => setShowLeadForm(true)}
                   >
                     <Phone className="h-5 w-5 mr-2" />
