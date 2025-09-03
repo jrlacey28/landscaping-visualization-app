@@ -145,9 +145,9 @@ export default function Home() {
       </header>
 
       {/* Hero Section with integrated flow */}
-      <section className="py-12">
+      <section className="py-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-0">
             Visualize Your New Roof & Siding
             <span className="text-transparent bg-gradient-to-r from-blue-400 to-red-400 bg-clip-text block">
               Before You Build
