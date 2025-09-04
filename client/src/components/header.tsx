@@ -26,18 +26,11 @@ export default function Header({ tenant }: HeaderProps) {
             <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
               <svg
                 className="w-8 h-8 text-white"
-                viewBox="0 0 24 24"
+                viewBox="0 0 129 133.08"
                 fill="currentColor"
               >
-                {/* House */}
-                <path d="M8 20v-6h4v6h3v-8h2L12 3 7 12h1v8z" />
-                {/* Windows */}
-                <rect x="9" y="14" width="1" height="1" fill="currentColor" opacity="0.8" />
-                <rect x="11" y="14" width="1" height="1" fill="currentColor" opacity="0.8" />
-                <rect x="9" y="16" width="1" height="1" fill="currentColor" opacity="0.8" />
-                <rect x="11" y="16" width="1" height="1" fill="currentColor" opacity="0.8" />
-                {/* Star - moved further away from house */}
-                <path d="M20 6l-1-2-1 2-2 1 2 1 1 2 1-2 2-1z" fill="currentColor" />
+                <path d="M127.96,67.85L64.71,4.39,1.05,67.84c-1.4,1.4-1.41,3.67,0,5.07,1.4,1.4,3.67,1.41,5.07,0l11.8-11.77v68.36c0,1.98,1.6,3.58,3.58,3.58h25.08c1.98,0,3.58-1.6,3.58-3.58v-28.67c0-3.96,3.21-7.17,7.17-7.17h14.33c3.96,0,7.17,3.21,7.17,7.17v28.67c0,1.98,1.6,3.58,3.58,3.58h25.08c1.98,0,3.58-1.6,3.58-3.58V61.08l11.8,11.83c1.4,1.4,3.67,1.41,5.07,0,1.4-1.4,1.41-3.67,0-5.07h.02Z"/>
+                <path d="M108.72,0c-1.61,12.38-2.91,13.68-15.29,15.29,12.38,1.61,13.68,2.91,15.29,15.29,1.61-12.38,2.91-13.68,15.29-15.29-12.38-1.61-13.68-2.91-15.29-15.29Z"/>
               </svg>
             </div>
             <div>
