@@ -23,19 +23,21 @@ export default function Header({ tenant }: HeaderProps) {
         <div className="flex justify-between items-center py-6">
           <div className="flex items-center space-x-3">
             {/* Logo */}
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-red-500 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
               <svg
-                className="w-7 h-7 text-white"
-                fill="none"
-                stroke="currentColor"
+                className="w-8 h-8 text-white"
                 viewBox="0 0 24 24"
+                fill="currentColor"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 21l9-18 9 18H3z M12 2v19"
-                />
+                {/* House */}
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                {/* Windows */}
+                <rect x="8.5" y="14" width="1.5" height="1.5" fill="currentColor" opacity="0.8" />
+                <rect x="14" y="14" width="1.5" height="1.5" fill="currentColor" opacity="0.8" />
+                <rect x="8.5" y="16.5" width="1.5" height="1.5" fill="currentColor" opacity="0.8" />
+                <rect x="14" y="16.5" width="1.5" height="1.5" fill="currentColor" opacity="0.8" />
+                {/* Star */}
+                <path d="M19 8l-1.5-3-1.5 3-3 1.5 3 1.5 1.5 3 1.5-3 3-1.5z" fill="currentColor" />
               </svg>
             </div>
             <div>
