@@ -363,6 +363,153 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
 }
 
 /**
+ * Processes pool visualization requests - completely separate from roofing/siding
+ */
+export async function processPoolWithGemini({
+  imageBuffer,
+  selectedStyles
+}: {
+  imageBuffer: Buffer;
+  selectedStyles: Record<string, any>;
+}): Promise<{
+  editedImageBuffer: Buffer;
+  appliedStyles: string[];
+  prompt: string;
+}> {
+  try {
+    // Check API key at runtime
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || !apiKey.trim()) {
+      throw new Error("GEMINI_API_KEY not found in secrets. Please add your Google Gemini API key to the Secrets tool.");
+    }
+
+    // Step 1: Process and resize image
+    const processedImage = await processImageSize(imageBuffer);
+
+    // Step 2: Generate pool-specific prompt using POOL style config
+    const { POOL_STYLE_CONFIG } = await import('./pool-style-config');
+
+    // Build prompt based on selected pool styles
+    const modifications = [];
+    const appliedStyles = [];
+
+    console.log('🏊 PROCESSING POOL STYLES:', selectedStyles);
+
+    // Process each selected pool style
+    Object.keys(selectedStyles).forEach(styleKey => {
+      const styleConfig = selectedStyles[styleKey];
+      if (styleConfig && styleConfig.prompt) {
+        console.log(`✓ Found pool style: ${styleConfig.name || styleKey}`);
+        modifications.push(styleConfig.prompt);
+        appliedStyles.push(styleKey);
+      } else if (selectedStyles[styleKey]) {
+        console.log(`❌ Pool style not found: ${styleKey}`);
+      }
+    });
+
+    if (modifications.length === 0) {
+      console.log('❌ No valid pool modifications found');
+      throw new Error('No valid pool modifications selected');
+    }
+
+    console.log(`✓ Using ${modifications.length} pool style prompts`);
+
+    // Pool-specific final prompt
+    const finalPrompt = `POOL INSTALLATION INSTRUCTIONS:
+
+${modifications.join('\n\n')}
+
+CRITICAL PRESERVATION RULES:
+- Keep the house structure, windows, doors, and all architecture exactly the same
+- Preserve all existing non-pool landscaping, trees, shrubs, and plants
+- Maintain the exact driveway, walkways, and existing hardscaping
+- Keep the same property layout and overall yard design
+- Only add the pool and related features as specified above
+- Maintain original lighting, shadows, and perspective
+- Keep image dimensions at 1920x1080 pixels
+- Result must look natural and professionally installed
+- Pool should fit harmoniously in the available yard space
+
+Apply ONLY the pool installations specified above. Do not redesign the yard or dramatically alter existing features.`;
+
+    // Step 3: Generate edited image using Gemini
+    const base64Image = processedImage.buffer.toString('base64');
+
+    console.log("🏊 POOL GEMINI PROMPT BEING SENT:");
+    console.log("=====================================");
+    console.log(finalPrompt);
+    console.log("=====================================");
+
+    const contentParts: any[] = [
+      { text: finalPrompt },
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: "image/jpeg"
+        }
+      }
+    ];
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-image-preview",
+      contents: [
+        { 
+          role: "user", 
+          parts: contentParts
+        }
+      ],
+      config: {
+        responseModalities: [Modality.TEXT, Modality.IMAGE],
+      },
+    });
+
+    // Extract the generated image from Gemini response
+    let generatedImageBuffer = processedImage.buffer; // fallback to original
+
+    if (response.candidates && response.candidates.length > 0) {
+      const content = response.candidates[0].content;
+      if (content && content.parts) {
+        for (const part of content.parts) {
+          if (part.inlineData && part.inlineData.data) {
+            // Convert base64 to buffer for the generated image
+            const rawGeneratedBuffer = Buffer.from(part.inlineData.data, 'base64');
+            
+            // Force the generated image to match original dimensions
+            const originalMetadata = await sharp(processedImage.buffer).metadata();
+            const targetWidth = originalMetadata.width || 1920;
+            const targetHeight = originalMetadata.height || 1080;
+            
+            console.log(`🏊 Resizing pool image to match original: ${targetWidth}x${targetHeight}`);
+            
+            // Resize generated image to match original dimensions exactly
+            generatedImageBuffer = await sharp(rawGeneratedBuffer)
+              .resize(targetWidth, targetHeight, {
+                fit: 'fill', // Force exact dimensions
+                background: { r: 255, g: 255, b: 255, alpha: 1 } // White background if needed
+              })
+              .jpeg({ quality: 95 })
+              .toBuffer();
+              
+            console.log("✓ Gemini generated and resized pool image successfully");
+            break;
+          }
+        }
+      }
+    }
+
+    return {
+      editedImageBuffer: generatedImageBuffer,
+      prompt: finalPrompt,
+      appliedStyles
+    };
+
+  } catch (error) {
+    console.error("Gemini pool processing error:", error);
+    throw new Error(`Pool processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
  * Analyzes home exterior image to suggest improvement areas
  */
 export async function analyzeLandscapeImage(imageBuffer: Buffer): Promise<string> {

@@ -9,7 +9,7 @@ import fs from "fs";
 import { storage } from "./storage";
 import { insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { z } from "zod";
-import { processLandscapeWithGemini, analyzeLandscapeImage } from "./gemini-service";
+import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage } from "./gemini-service";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 
@@ -319,8 +319,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           detailedPrompts.push(POOL_STYLE_CONFIG[selectedFeatures].prompt);
         }
 
-        // Process with Gemini using the proper pool style configuration
-        const result = await processLandscapeWithGemini({
+        // Process with Gemini using the pool-specific processing function
+        const result = await processPoolWithGemini({
           imageBuffer: originalImageBuffer,
           selectedStyles: poolStylesForProcessing
         });
