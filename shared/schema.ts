@@ -63,10 +63,24 @@ export const poolVisualizations = pgTable("pool_visualizations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const landscapeVisualizations = pgTable("landscape_visualizations", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  originalImageUrl: text("original_image_url").notNull(),
+  generatedImageUrl: text("generated_image_url"),
+  selectedCurbing: text("selected_curbing"),
+  selectedLandscape: text("selected_landscape"),
+  selectedPatios: text("selected_patios"),
+  replicateId: text("replicate_id"),
+  status: text("status").default("pending"), // pending, processing, completed, failed
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   leads: many(leads),
   visualizations: many(visualizations),
   poolVisualizations: many(poolVisualizations),
+  landscapeVisualizations: many(landscapeVisualizations),
 }));
 
 export const leadsRelations = relations(leads, ({ one }) => ({
@@ -86,6 +100,13 @@ export const visualizationsRelations = relations(visualizations, ({ one }) => ({
 export const poolVisualizationsRelations = relations(poolVisualizations, ({ one }) => ({
   tenant: one(tenants, {
     fields: [poolVisualizations.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const landscapeVisualizationsRelations = relations(landscapeVisualizations, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [landscapeVisualizations.tenantId],
     references: [tenants.id],
   }),
 }));
@@ -110,6 +131,11 @@ export const insertPoolVisualizationSchema = createInsertSchema(poolVisualizatio
   createdAt: true,
 });
 
+export const insertLandscapeVisualizationSchema = createInsertSchema(landscapeVisualizations).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type Tenant = typeof tenants.$inferSelect;
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type Lead = typeof leads.$inferSelect;
@@ -118,3 +144,5 @@ export type Visualization = typeof visualizations.$inferSelect;
 export type InsertVisualization = z.infer<typeof insertVisualizationSchema>;
 export type PoolVisualization = typeof poolVisualizations.$inferSelect;
 export type InsertPoolVisualization = z.infer<typeof insertPoolVisualizationSchema>;
+export type LandscapeVisualization = typeof landscapeVisualizations.$inferSelect;
+export type InsertLandscapeVisualization = z.infer<typeof insertLandscapeVisualizationSchema>;

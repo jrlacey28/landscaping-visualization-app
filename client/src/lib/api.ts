@@ -242,3 +242,39 @@ export const checkPoolVisualizationStatus = async (poolVisualizationId: number) 
 
   return response.json();
 };
+
+// Landscape-specific API functions
+export const uploadLandscapeImage = async (formData: FormData) => {
+  const response = await fetch("/api/landscape/upload", {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+
+    // Clean up any error messages
+    let errorMessage = errorData.error || "Unknown error";
+    if (errorMessage.includes("AI") || errorMessage.includes("processing")) {
+      errorMessage = "Landscape AI processing failed. Please try again.";
+    }
+
+    throw new Error(`Landscape upload failed: ${errorMessage}`);
+  }
+
+  const data = await response.json();
+  return data;
+};
+
+export const checkLandscapeVisualizationStatus = async (landscapeVisualizationId: number) => {
+  const response = await fetch(`/api/landscape/${landscapeVisualizationId}/status`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to check landscape status");
+  }
+
+  return response.json();
+};

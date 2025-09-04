@@ -541,3 +541,181 @@ export async function analyzeLandscapeImage(imageBuffer: Buffer): Promise<string
     return "Image analysis unavailable";
   }
 }
+
+/**
+ * Processes landscape visualization requests - curbing, landscape materials, and patios
+ */
+export async function processLandscapeVisualizationWithGemini({
+  imageBuffer,
+  selectedStyles
+}: {
+  imageBuffer: Buffer;
+  selectedStyles: {
+    curbing?: string;
+    landscape?: string;
+    patios?: string;
+  };
+}): Promise<{
+  editedImageBuffer: Buffer;
+  appliedStyles: string[];
+  prompt: string;
+}> {
+  try {
+    // Check API key at runtime
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || !apiKey.trim()) {
+      throw new Error("GEMINI_API_KEY not found in secrets. Please add your Google Gemini API key to the Secrets tool.");
+    }
+
+    // Step 1: Process and resize image
+    const processedImage = await processImageSize(imageBuffer);
+
+    // Step 2: Generate landscape-specific prompt using landscape style config
+    const { LANDSCAPE_STYLE_CONFIG } = await import("./landscape-style-config");
+
+    // Build prompt based on selected landscape styles
+    const modifications: string[] = [];
+    const appliedStyles: string[] = [];
+
+    console.log("🌿 PROCESSING LANDSCAPE STYLES:", selectedStyles);
+
+    if (selectedStyles.curbing) {
+      try {
+        const styleConfig = LANDSCAPE_STYLE_CONFIG[selectedStyles.curbing];
+        if (styleConfig) {
+          console.log(`✓ Found curbing style: ${styleConfig.name}`);
+          modifications.push(styleConfig.prompt);
+          appliedStyles.push(selectedStyles.curbing);
+        }
+      } catch (error) {
+        console.log(`❌ Curbing style not found: ${selectedStyles.curbing}`);
+      }
+    }
+
+    if (selectedStyles.landscape) {
+      try {
+        const styleConfig = LANDSCAPE_STYLE_CONFIG[selectedStyles.landscape];
+        if (styleConfig) {
+          console.log(`✓ Found landscape style: ${styleConfig.name}`);
+          modifications.push(styleConfig.prompt);
+          appliedStyles.push(selectedStyles.landscape);
+        }
+      } catch (error) {
+        console.log(`❌ Landscape style not found: ${selectedStyles.landscape}`);
+      }
+    }
+
+    if (selectedStyles.patios) {
+      try {
+        const styleConfig = LANDSCAPE_STYLE_CONFIG[selectedStyles.patios];
+        if (styleConfig) {
+          console.log(`✓ Found patio style: ${styleConfig.name}`);
+          modifications.push(styleConfig.prompt);
+          appliedStyles.push(selectedStyles.patios);
+        }
+      } catch (error) {
+        console.log(`❌ Patio style not found: ${selectedStyles.patios}`);
+      }
+    }
+
+    if (modifications.length === 0) {
+      console.log("❌ No valid landscape modifications found");
+      throw new Error("No valid landscape modifications selected");
+    }
+
+    console.log(`✓ Using ${modifications.length} landscape style prompts`);
+
+    // Landscape-specific final prompt
+    const finalPrompt = `LANDSCAPE TRANSFORMATION INSTRUCTIONS:
+
+${modifications.join("\n\n")}
+
+CRITICAL PRESERVATION RULES:
+- Keep the house structure, windows, doors, and all architecture exactly the same
+- Preserve all existing trees, large shrubs, and established landscaping not being modified
+- Maintain the exact driveway, walkways, and existing hardscaping unless adding patios
+- Keep the same property layout and overall yard design
+- Only add or modify the specific landscape features listed above
+- Maintain original lighting, shadows, and perspective
+- Keep image dimensions at 1920x1080 pixels
+- Result must look natural and professionally installed
+- Landscape changes should enhance the existing property
+
+Apply ONLY the landscape modifications specified above. Do not redesign the entire yard or dramatically alter existing features.`;
+
+    // Step 3: Generate edited image using Gemini
+    const base64Image = processedImage.buffer.toString("base64");
+
+    console.log("🌿 LANDSCAPE GEMINI PROMPT BEING SENT:");
+    console.log("=====================================");
+    console.log(finalPrompt);
+    console.log("=====================================");
+
+    const contentParts: any[] = [
+      { text: finalPrompt },
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: "image/jpeg"
+        }
+      }
+    ];
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-image-preview",
+      contents: [
+        { 
+          role: "user", 
+          parts: contentParts
+        }
+      ],
+      config: {
+        responseModalities: [Modality.TEXT, Modality.IMAGE],
+      },
+    });
+
+    // Extract the generated image from Gemini response
+    let generatedImageBuffer = processedImage.buffer; // fallback to original
+
+    if (response.candidates && response.candidates.length > 0) {
+      const content = response.candidates[0].content;
+      if (content && content.parts) {
+        for (const part of content.parts) {
+          if (part.inlineData && part.inlineData.data) {
+            // Convert base64 to buffer for the generated image
+            const rawGeneratedBuffer = Buffer.from(part.inlineData.data, "base64");
+            
+            // Force the generated image to match original dimensions
+            const originalMetadata = await sharp(processedImage.buffer).metadata();
+            const targetWidth = originalMetadata.width || 1920;
+            const targetHeight = originalMetadata.height || 1080;
+            
+            console.log(`🌿 Resizing landscape image to match original: ${targetWidth}x${targetHeight}`);
+            
+            // Resize generated image to match original dimensions exactly
+            generatedImageBuffer = await sharp(rawGeneratedBuffer)
+              .resize(targetWidth, targetHeight, { 
+                fit: "fill",
+                withoutEnlargement: false 
+              })
+              .jpeg({ quality: 85 })
+              .toBuffer();
+            
+            console.log("✓ Gemini generated and resized landscape image successfully");
+            break;
+          }
+        }
+      }
+    }
+
+    return {
+      editedImageBuffer: generatedImageBuffer,
+      appliedStyles: appliedStyles,
+      prompt: finalPrompt
+    };
+
+  } catch (error) {
+    console.error("Gemini landscape processing error:", error);
+    throw new Error(`Landscape processing failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+}

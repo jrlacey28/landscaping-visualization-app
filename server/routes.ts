@@ -7,7 +7,7 @@ import path from "path";
 import fs from "fs";
 
 import { storage } from "./storage";
-import { insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertTenantSchema } from "@shared/schema";
+import { insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { z } from "zod";
 import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage } from "./gemini-service";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";

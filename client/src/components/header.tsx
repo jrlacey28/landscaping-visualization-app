@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Home, Waves } from "lucide-react";
+import { ChevronDown, Home, Waves, TreePine } from "lucide-react";
 import type { Tenant } from "@shared/schema";
 
 interface HeaderProps {
@@ -81,6 +81,18 @@ export default function Header({ tenant }: HeaderProps) {
                     </div>
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link 
+                    href="/landscape"
+                    className="group relative select-none rounded-sm text-sm outline-none hover:bg-slate-100 hover:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors font-medium bg-[#ffffff] text-[#000000]"
+                  >
+                    <TreePine className="h-4 w-4" />
+                    <div>
+                      <div className="font-medium">Landscape Design</div>
+                      <div className="text-xs text-slate-500 group-hover:text-white">AI landscape visualization</div>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -123,6 +135,12 @@ export default function Header({ tenant }: HeaderProps) {
                   <Link href="/pools" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100">
                     <Waves className="h-4 w-4" />
                     Pool Visualization
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/landscape" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100">
+                    <TreePine className="h-4 w-4" />
+                    Landscape Design
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>

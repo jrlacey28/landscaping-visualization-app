@@ -1,4 +1,4 @@
-import { tenants, leads, visualizations, poolVisualizations, type Tenant, type InsertTenant, type Lead, type InsertLead, type Visualization, type InsertVisualization, type PoolVisualization, type InsertPoolVisualization } from "@shared/schema";
+import { tenants, leads, visualizations, poolVisualizations, landscapeVisualizations, type Tenant, type InsertTenant, type Lead, type InsertLead, type Visualization, type InsertVisualization, type PoolVisualization, type InsertPoolVisualization, type LandscapeVisualization, type InsertLandscapeVisualization } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -25,6 +25,12 @@ export interface IStorage {
   getPoolVisualizationsByTenant(tenantId: number): Promise<PoolVisualization[]>;
   createPoolVisualization(poolVisualization: InsertPoolVisualization): Promise<PoolVisualization>;
   updatePoolVisualization(id: number, poolVisualization: Partial<InsertPoolVisualization>): Promise<PoolVisualization>;
+
+  // Landscape Visualization methods
+  getLandscapeVisualization(id: number): Promise<LandscapeVisualization | undefined>;
+  getLandscapeVisualizationsByTenant(tenantId: number): Promise<LandscapeVisualization[]>;
+  createLandscapeVisualization(landscapeVisualization: InsertLandscapeVisualization): Promise<LandscapeVisualization>;
+  updateLandscapeVisualization(id: number, landscapeVisualization: Partial<InsertLandscapeVisualization>): Promise<LandscapeVisualization>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -134,6 +140,36 @@ export class DatabaseStorage implements IStorage {
       .where(eq(poolVisualizations.id, id))
       .returning();
     return poolVisualization;
+  }
+
+  async getLandscapeVisualization(id: number): Promise<LandscapeVisualization | undefined> {
+    const [landscapeVisualization] = await db.select().from(landscapeVisualizations).where(eq(landscapeVisualizations.id, id));
+    return landscapeVisualization || undefined;
+  }
+
+  async getLandscapeVisualizationsByTenant(tenantId: number): Promise<LandscapeVisualization[]> {
+    return await db
+      .select()
+      .from(landscapeVisualizations)
+      .where(eq(landscapeVisualizations.tenantId, tenantId))
+      .orderBy(desc(landscapeVisualizations.createdAt));
+  }
+
+  async createLandscapeVisualization(insertLandscapeVisualization: InsertLandscapeVisualization): Promise<LandscapeVisualization> {
+    const [landscapeVisualization] = await db
+      .insert(landscapeVisualizations)
+      .values(insertLandscapeVisualization)
+      .returning();
+    return landscapeVisualization;
+  }
+
+  async updateLandscapeVisualization(id: number, insertLandscapeVisualization: Partial<InsertLandscapeVisualization>): Promise<LandscapeVisualization> {
+    const [landscapeVisualization] = await db
+      .update(landscapeVisualizations)
+      .set(insertLandscapeVisualization)
+      .where(eq(landscapeVisualizations.id, id))
+      .returning();
+    return landscapeVisualization;
   }
 }
 
