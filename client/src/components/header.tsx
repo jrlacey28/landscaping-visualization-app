@@ -67,8 +67,8 @@ export default function Header({ tenant }: HeaderProps) {
                     href="/"
                     className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${
                       currentService === "roofing" 
-                        ? "bg-blue-50 text-blue-700" 
-                        : "hover:bg-slate-50"
+                        ? "bg-purple-50 text-purple-700 font-medium" 
+                        : "hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-700"
                     }`}
                   >
                     <Home className="h-4 w-4" />
@@ -83,8 +83,8 @@ export default function Header({ tenant }: HeaderProps) {
                     href="/pools"
                     className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${
                       currentService === "pools" 
-                        ? "bg-cyan-50 text-cyan-700" 
-                        : "hover:bg-slate-50"
+                        ? "bg-blue-50 text-blue-700 font-medium" 
+                        : "hover:bg-gradient-to-r hover:from-blue-50 hover:to-green-50 hover:text-blue-700"
                     }`}
                   >
                     <Waves className="h-4 w-4" />
