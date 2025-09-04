@@ -52,7 +52,7 @@ export default function Header({ tenant }: HeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="text-slate-300 hover:text-blue-400 transition-colors flex items-center gap-1"
+                  className="text-slate-300 hover:bg-white hover:text-black transition-colors flex items-center gap-1"
                 >
                   Services
                   <ChevronDown className="h-4 w-4" />
@@ -67,8 +67,8 @@ export default function Header({ tenant }: HeaderProps) {
                     href="/"
                     className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${
                       currentService === "roofing" 
-                        ? "bg-blue-50 text-blue-700" 
-                        : "hover:bg-slate-50"
+                        ? "bg-purple-100 text-purple-800 font-medium" 
+                        : "hover:bg-white hover:text-black"
                     }`}
                   >
                     <Home className="h-4 w-4" />
@@ -83,8 +83,8 @@ export default function Header({ tenant }: HeaderProps) {
                     href="/pools"
                     className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${
                       currentService === "pools" 
-                        ? "bg-cyan-50 text-cyan-700" 
-                        : "hover:bg-slate-50"
+                        ? "bg-blue-100 text-blue-800 font-medium" 
+                        : "hover:bg-white hover:text-black"
                     }`}
                   >
                     <Waves className="h-4 w-4" />
