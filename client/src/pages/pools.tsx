@@ -77,7 +77,7 @@ export default function Pools() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-blue-400 via-cyan-300 to-green-400"
+      className="min-h-screen bg-gradient-to-br from-blue-800 via-cyan-700 to-green-700"
       style={brandColors}
     >
       {/* Header with Services Menu */}
@@ -88,7 +88,7 @@ export default function Pools() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-0">
             Visualize Your New Pool
-            <span className="text-transparent bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text block">
+            <span className="text-transparent bg-gradient-to-r from-cyan-200 to-green-200 bg-clip-text block font-extrabold drop-shadow-lg">
               Before You Build
             </span>
           </h2>
