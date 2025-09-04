@@ -112,7 +112,7 @@ export default function AdminDashboard() {
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-white"
+                  className="w-6 h-6 text-white"
                   viewBox="0 0 128.37 135.86"
                   fill="currentColor"
                   style={{ transform: 'translateX(0.5px)' }}

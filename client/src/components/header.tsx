@@ -25,7 +25,7 @@ export default function Header({ tenant }: HeaderProps) {
             {/* Logo */}
             <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
               <svg
-                className="w-8 h-8 text-white"
+                className="w-9 h-9 text-white"
                 viewBox="0 0 128.37 135.86"
                 fill="currentColor"
                 style={{ transform: 'translateX(1px)' }}
