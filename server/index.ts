@@ -41,11 +41,11 @@ async function initializeDatabase() {
   try {
     // Ensure demo tenant has correct company name
     const demoTenant = await storage.getTenantBySlug("demo");
-    if (demoTenant && demoTenant.companyName !== "AI Landscape Visualizer") {
+    if (demoTenant && demoTenant.companyName !== "AI Roofing & Siding Visualizer") {
       await storage.updateTenant(demoTenant.id, {
-        companyName: "AI Landscape Visualizer"
+        companyName: "AI Roofing & Siding Visualizer"
       });
-      console.log("Updated demo tenant company name to AI Landscape Visualizer");
+      console.log("Updated demo tenant company name to AI Roofing & Siding Visualizer");
     }
   } catch (error) {
     console.error("Database initialization error:", error);
