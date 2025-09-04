@@ -290,21 +290,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
           features: selectedFeatures || undefined
         };
 
-        // Create pool-specific prompt by combining selected styles
-        let poolPrompt = "Transform this backyard by adding a beautiful swimming pool. ";
+        // Import the pool style config to get detailed prompts
+        const { POOL_STYLE_CONFIG } = await import("./pool-style-config");
         
-        if (selectedPoolType) poolPrompt += `Pool type: ${selectedPoolType}. `;
-        if (selectedPoolSize) poolPrompt += `Pool size: ${selectedPoolSize}. `;
-        if (selectedDecking) poolPrompt += `Decking: ${selectedDecking}. `;
-        if (selectedLandscaping) poolPrompt += `Landscaping: ${selectedLandscaping}. `;
-        if (selectedFeatures) poolPrompt += `Special features: ${selectedFeatures}. `;
+        // Build proper pool styles object using the configuration system
+        const poolStylesForProcessing: Record<string, any> = {};
+        let detailedPrompts: string[] = [];
         
-        poolPrompt += "Maintain all existing house structure, windows, doors, and non-pool landscaping exactly as shown. Create a realistic pool installation that fits naturally in the space.";
+        // Get detailed prompts from pool style configuration
+        if (selectedPoolType && POOL_STYLE_CONFIG[selectedPoolType]) {
+          poolStylesForProcessing[selectedPoolType] = POOL_STYLE_CONFIG[selectedPoolType];
+          detailedPrompts.push(POOL_STYLE_CONFIG[selectedPoolType].prompt);
+        }
+        if (selectedPoolSize && POOL_STYLE_CONFIG[selectedPoolSize]) {
+          poolStylesForProcessing[selectedPoolSize] = POOL_STYLE_CONFIG[selectedPoolSize];
+          detailedPrompts.push(POOL_STYLE_CONFIG[selectedPoolSize].prompt);
+        }
+        if (selectedDecking && POOL_STYLE_CONFIG[selectedDecking]) {
+          poolStylesForProcessing[selectedDecking] = POOL_STYLE_CONFIG[selectedDecking];
+          detailedPrompts.push(POOL_STYLE_CONFIG[selectedDecking].prompt);
+        }
+        if (selectedLandscaping && POOL_STYLE_CONFIG[selectedLandscaping]) {
+          poolStylesForProcessing[selectedLandscaping] = POOL_STYLE_CONFIG[selectedLandscaping];
+          detailedPrompts.push(POOL_STYLE_CONFIG[selectedLandscaping].prompt);
+        }
+        if (selectedFeatures && POOL_STYLE_CONFIG[selectedFeatures]) {
+          poolStylesForProcessing[selectedFeatures] = POOL_STYLE_CONFIG[selectedFeatures];
+          detailedPrompts.push(POOL_STYLE_CONFIG[selectedFeatures].prompt);
+        }
 
-        // For pools, we'll use the existing structure but with a custom approach
+        // Process with Gemini using the proper pool style configuration
         const result = await processLandscapeWithGemini({
           imageBuffer: originalImageBuffer,
-          selectedStyles: {} // Empty styles since we're using custom pool logic
+          selectedStyles: poolStylesForProcessing
         });
 
         // Convert edited image to base64 for storage
@@ -316,7 +334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: 'succeeded',
           output: [editedBase64],
           appliedStyles: selectedPoolStyles,
-          prompt: poolPrompt
+          prompt: detailedPrompts.join(' ')
         };
 
         // Update pool visualization with result
@@ -331,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           replicateId: prediction.id,
           status: "completed",
           appliedStyles: selectedPoolStyles,
-          prompt: poolPrompt
+          prompt: detailedPrompts.join(' ')
         });
 
       } catch (geminiError: any) {
