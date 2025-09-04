@@ -14,7 +14,7 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     id: "natural_stone_curbing",
     name: "Natural Stone Curbing",
     prompt:
-      "Add professional decorative concrete curbing around existing garden beds with natural stone texture. Install continuous poured concrete edging that is textured and colored to mimic natural stone appearance, creating a single-level border (approximately 3-4 inches high) between lawn and landscape beds. The concrete curbing should have a stone-like finish with varied gray and tan earth tones, appearing as one continuous piece with natural stone texture molded into the surface. Keep all existing plants, trees, bushes, and landscape features exactly where they are.",
+      "Add professional decorative continuous poured concrete curbing around existing garden beds. The edging should be a single continuous strip of molded concrete (3–4 inches tall), not stacked rocks. Apply a stone-textured surface imprint so the concrete resembles natural stone, with seamless joints and smooth flow along the garden bed. Use subtle gray and tan earth tones with a stamped stone-like finish, but keep the curbing clearly one solid piece of concrete. Do not generate loose rocks or stacked stones. Maintain all existing plants, grass, mulch, and landscape features exactly as they are.",
     referenceImageUrl: "https://mycdn.com/natural-stone-curbing.jpg",
     category: "curbing",
     regionType: "border",
@@ -167,7 +167,8 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     name: "Medium Rectangular Concrete Patio",
     prompt:
       "Add a medium rectangular concrete patio (approximately 15x18 feet) in an appropriate area of the yard. Clean straight edges with smooth finished concrete in light gray, professionally installed with expansion joints. Position thoughtfully for outdoor dining and entertaining while maintaining all existing house structure, landscaping, trees, and yard layout unchanged.",
-    referenceImageUrl: "https://mycdn.com/rectangular-concrete-patio-medium.jpg",
+    referenceImageUrl:
+      "https://mycdn.com/rectangular-concrete-patio-medium.jpg",
     category: "patios",
     regionType: "outdoor",
   },
