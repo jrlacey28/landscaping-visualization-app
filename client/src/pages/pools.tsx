@@ -207,7 +207,7 @@ export default function Pools() {
                 {/* Get Free Quote button */}
                 <Button
                   size="lg"
-                  className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 shadow-md hover:shadow-lg transition-all"
+                  className="w-full bg-gradient-to-r from-blue-600 via-green-500 to-blue-600 hover:from-blue-700 hover:via-green-600 hover:to-blue-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
                   onClick={() => setShowLeadForm(true)}
                 >
                   <Phone className="h-5 w-5 mr-2" />
