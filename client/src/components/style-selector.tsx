@@ -88,7 +88,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSe
                 <p className="text-sm text-white/80 mb-2">Choose Style:</p>
                 <div className="space-y-2">
                   {roofStyles.map((style) => (
-                    <label key={style.value} className="flex items-center space-x-3 cursor-pointer">
+                    <label key={style.value} className={`flex items-center space-x-3 cursor-pointer p-2 rounded-md transition-colors ${selectedRoofStyle === style.value ? 'bg-blue-100 text-blue-800' : 'hover:bg-white hover:text-black'}`}>
                       <input
                         type="radio"
                         name="roofStyle"
@@ -113,7 +113,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSe
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
                   <div className="space-y-2">
                     {roofColors.map((color) => (
-                      <label key={color.value} className="flex items-center space-x-3 cursor-pointer">
+                      <label key={color.value} className={`flex items-center space-x-3 cursor-pointer p-2 rounded-md transition-colors ${selectedRoofColor === color.value ? 'bg-blue-100 text-blue-800' : 'hover:bg-white hover:text-black'}`}>
                         <input
                           type="radio"
                           name="roofColor"
@@ -151,7 +151,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSe
           {activeToggles.siding && (
             <div className="space-y-3">
               {sidingOptions.map((option) => (
-                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                <label key={option.value} className={`flex items-center space-x-3 cursor-pointer p-2 rounded-md transition-colors ${selectedStyles.siding === option.value ? 'bg-blue-100 text-blue-800' : 'hover:bg-white hover:text-black'}`}>
                   <input
                     type="radio"
                     name="siding"
