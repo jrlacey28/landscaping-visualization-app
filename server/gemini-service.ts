@@ -722,18 +722,51 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
       }
     ];
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image-preview",
-      contents: [
-        { 
-          role: "user", 
-          parts: contentParts
+    // Add retry logic for Gemini API failures
+    let response;
+    let lastError;
+    const maxRetries = 3;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🌿 Gemini API attempt ${attempt}/${maxRetries}`);
+        
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-image-preview",
+          contents: [
+            { 
+              role: "user", 
+              parts: contentParts
+            }
+          ],
+          config: {
+            responseModalities: [Modality.TEXT, Modality.IMAGE],
+          },
+        });
+        
+        console.log(`✓ Gemini API succeeded on attempt ${attempt}`);
+        break; // Success, exit retry loop
+        
+      } catch (error: any) {
+        lastError = error;
+        console.log(`❌ Gemini API attempt ${attempt} failed:`, error.message || error);
+        
+        if (attempt === maxRetries) {
+          console.log(`❌ All ${maxRetries} Gemini API attempts failed`);
+          throw error;
         }
-      ],
-      config: {
-        responseModalities: [Modality.TEXT, Modality.IMAGE],
-      },
-    });
+        
+        // Wait before retrying (exponential backoff)
+        const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    // Ensure response exists after retry logic
+    if (!response) {
+      throw new Error("Failed to get response from Gemini API after all retries");
+    }
 
     // Extract the generated image from Gemini response
     let generatedImageBuffer = processedImage.buffer; // fallback to original

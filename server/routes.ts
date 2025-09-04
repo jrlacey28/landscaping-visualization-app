@@ -519,8 +519,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: "failed"
         });
 
+        // Provide more specific error messages
+        let errorMessage = "AI processing failed. Please try again.";
+        if (error.message && error.message.includes("Internal error encountered")) {
+          errorMessage = "Google's AI service is temporarily unavailable. Please try again in a moment.";
+        } else if (error.message && error.message.includes("after all retries")) {
+          errorMessage = "AI service is experiencing issues. Please try again in a few minutes.";
+        }
+
         res.status(500).json({ 
-          error: "AI processing failed. Please try again.",
+          error: errorMessage,
           landscapeVisualizationId: landscapeVisualization.id
         });
       }
