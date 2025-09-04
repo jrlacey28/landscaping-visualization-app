@@ -76,7 +76,7 @@ export default function Header({ tenant }: HeaderProps) {
                 <DropdownMenuItem asChild>
                   <Link 
                     href="/pools"
-                    className="relative select-none rounded-sm text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors hover:bg-blue-50 bg-[#ffffff]"
+                    className="relative select-none rounded-sm text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors hover:bg-slate-100 bg-[#ffffff]"
                   >
                     <Waves className="h-4 w-4" />
                     <div>
@@ -118,13 +118,13 @@ export default function Header({ tenant }: HeaderProps) {
                 align="end"
               >
                 <DropdownMenuItem asChild>
-                  <Link href="/" className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 transition-colors">
+                  <Link href="/" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100 transition-colors">
                     <Home className="h-4 w-4" />
                     Roofing & Siding
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/pools" className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50">
+                  <Link href="/pools" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100">
                     <Waves className="h-4 w-4" />
                     Pool Visualization
                   </Link>
