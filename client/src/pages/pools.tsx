@@ -116,6 +116,7 @@ export default function Pools() {
                     setUploadedImage(previewUrl);
                   }}
                   uploadedImage={uploadedImage}
+                  theme="pool"
                 />
               </CardContent>
             </Card>
