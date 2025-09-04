@@ -67,7 +67,7 @@ export default function AdminDashboard() {
   });
 
   const [tenantSettings, setTenantSettings] = useState({
-    companyName: "AI Roofing & Siding Visualizer",
+    companyName: "DreamBuilder",
     primaryColor: "#2563EB",
     secondaryColor: "#059669",
     phone: "(555) 123-4567",
@@ -83,7 +83,7 @@ export default function AdminDashboard() {
     if (currentTenant) {
       setTenantSettings({
         companyName:
-          currentTenant.companyName || "AI Roofing & Siding Visualizer",
+          currentTenant.companyName || "DreamBuilder",
         primaryColor: currentTenant.primaryColor || "#2563EB",
         secondaryColor: currentTenant.secondaryColor || "#059669",
         phone: currentTenant.phone || "(555) 123-4567",
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
                 </svg>
               </div>
               <h1 className="text-xl font-bold">
-                RoofPro AI - Admin Dashboard
+                DreamBuilder - Admin Dashboard
               </h1>
             </div>
             <Button

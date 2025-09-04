@@ -1,8 +1,8 @@
-# Landscaping Visualization App
+# DreamBuilder - Landscaping Visualization App
 
 ## Overview
 
-This is a white-label SaaS platform that enables landscaping companies to provide AI-powered design visualization services to their customers. The application allows users to upload property images and apply various landscaping styles (curbing, landscape materials, patio options) using Google's Gemini AI for streamlined image processing. The platform uses Gemini's advanced multimodal capabilities for intelligent prompt generation, image analysis, and landscape transformation in a single unified workflow.
+DreamBuilder is a white-label SaaS platform that enables landscaping companies to provide AI-powered design visualization services to their customers. The application allows users to upload property images and apply various landscaping styles (curbing, landscape materials, patio options) using Google's Gemini AI for streamlined image processing. The platform uses Gemini's advanced multimodal capabilities for intelligent prompt generation, image analysis, and landscape transformation in a single unified workflow.
 
 ## User Preferences
 
