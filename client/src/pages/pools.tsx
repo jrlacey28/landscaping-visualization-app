@@ -472,7 +472,7 @@ export default function Pools() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <LeadCaptureForm
-              tenantId={tenant.id}
+              tenant={tenant}
               originalImageUrl={uploadedImage}
               generatedImageUrl={generatedImage}
               selectedStyles={selectedPoolStyles}

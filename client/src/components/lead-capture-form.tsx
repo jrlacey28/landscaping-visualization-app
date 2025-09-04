@@ -29,11 +29,7 @@ type LeadFormData = z.infer<typeof leadFormSchema>;
 interface LeadCaptureFormProps {
   tenant: Tenant;
   onClose: () => void;
-  selectedStyles: {
-    curbing: { enabled: boolean; type: string };
-    landscape: { enabled: boolean; type: string };
-    patio: { enabled: boolean; type: string };
-  };
+  selectedStyles: any; // More flexible to handle different style structures
   originalImageUrl: string | null;
   generatedImageUrl: string | null;
 }
