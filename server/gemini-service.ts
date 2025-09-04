@@ -732,7 +732,7 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
         console.log(`🌿 Gemini API attempt ${attempt}/${maxRetries}`);
         
         response = await ai.models.generateContent({
-          model: "gemini-2.0-flash-exp",
+          model: "gemini-2.5-flash-image-preview",
           contents: [
             { 
               role: "user", 
