@@ -169,7 +169,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSe
 
         {/* Surprise Me Card */}
         <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.surpriseMe ? 'border-orange-500 bg-gradient-to-br from-orange-600 to-red-600' : 'border-orange-400 bg-gradient-to-br from-orange-500 to-red-500'
+          activeToggles.surpriseMe ? 'border-red-500 bg-gradient-to-br from-red-600 to-rose-700' : 'border-red-400 bg-gradient-to-br from-red-500 to-rose-600'
         }`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Surprise Me!</h3>
