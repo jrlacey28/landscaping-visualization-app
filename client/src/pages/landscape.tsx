@@ -114,7 +114,7 @@ export default function Landscape() {
                     setUploadedImage(previewUrl);
                   }}
                   uploadedImage={uploadedImage}
-                  theme="default"
+                  theme="landscape"
                 />
               </CardContent>
             </Card>

@@ -6,7 +6,7 @@ import { StarBorder } from "./star-border";
 interface FileUploadProps {
   onFileSelect: (file: File, previewUrl: string) => void;
   uploadedImage: string | null;
-  theme?: "default" | "pool";
+  theme?: "default" | "pool" | "landscape";
 }
 
 export default function FileUpload({ onFileSelect, uploadedImage, theme = "default" }: FileUploadProps) {
@@ -109,6 +109,8 @@ export default function FileUpload({ onFileSelect, uploadedImage, theme = "defau
             <StarBorder className={`mt-4 ${
               theme === "pool" 
                 ? "bg-gradient-to-r from-blue-600 via-green-500 to-blue-600 hover:from-blue-700 hover:via-green-600 hover:to-blue-700"
+                : theme === "landscape"
+                ? "bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-700 hover:via-teal-600 hover:to-emerald-700"
                 : ""
             }`}>
               <Upload className="h-4 w-4 mr-2" />
