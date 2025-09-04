@@ -448,7 +448,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Landscape-specific API routes
+  
+  // Landscape visualization upload
+  app.post("/api/landscape/upload", upload.single("image"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
 
+      const { tenantId, selectedCurbing, selectedLandscape, selectedPatios } = req.body;
+
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant ID is required" });
+      }
+
+      // Process image with size constraints (max 1920x1080)
+      const originalImageBuffer = req.file.buffer;
+
+      // Create base64 for storage
+      const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
+
+      // Create landscape visualization record
+      const landscapeVisualization = await storage.createLandscapeVisualization({
+        tenantId: parseInt(tenantId),
+        originalImageUrl: base64Image,
+        selectedCurbing: selectedCurbing || null,
+        selectedLandscape: selectedLandscape || null,
+        selectedPatios: selectedPatios || null,
+        status: "processing",
+      });
+
+      // Process with Gemini AI using landscape-specific prompts
+      try {
+        const selectedLandscapeStyles = {
+          curbing: selectedCurbing || undefined,
+          landscape: selectedLandscape || undefined,
+          patios: selectedPatios || undefined
+        };
+
+        console.log('🌿 Processing landscape with Gemini:', selectedLandscapeStyles);
+
+        const { processLandscapeVisualizationWithGemini } = await import("./gemini-service");
+        const result = await processLandscapeVisualizationWithGemini({
+          imageBuffer: originalImageBuffer,
+          selectedStyles: selectedLandscapeStyles
+        });
+
+        // Convert processed image to base64 for storage
+        const processedBase64 = `data:image/jpeg;base64,${result.editedImageBuffer.toString('base64')}`;
+
+        // Update landscape visualization with result
+        await storage.updateLandscapeVisualization(landscapeVisualization.id, {
+          generatedImageUrl: processedBase64,
+          status: "completed"
+        });
+
+        res.json({
+          landscapeVisualizationId: landscapeVisualization.id,
+          generatedImageUrl: processedBase64,
+          appliedStyles: result.appliedStyles,
+          message: "Landscape visualization completed successfully"
+        });
+
+      } catch (error: any) {
+        console.error("Landscape Gemini processing error:", error);
+        
+        // Update record with error status
+        await storage.updateLandscapeVisualization(landscapeVisualization.id, {
+          status: "failed"
+        });
+
+        res.status(500).json({ 
+          error: "AI processing failed. Please try again.",
+          landscapeVisualizationId: landscapeVisualization.id
+        });
+      }
+
+    } catch (error: any) {
+      console.error("Landscape upload error:", error);
+      res.status(500).json({ error: "Upload failed. Please try again." });
+    }
+  });
+
+  // Get landscape visualization status
+  app.get("/api/landscape/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const landscapeVisualization = await storage.getLandscapeVisualization(parseInt(id));
+
+      if (!landscapeVisualization) {
+        return res.status(404).json({ error: "Landscape visualization not found" });
+      }
+
+      // With Gemini, processing is immediate, so just return the current status
+      res.json(landscapeVisualization);
+    } catch (error) {
+      console.error("Error checking landscape visualization status:", error);
+      res.status(500).json({ error: "Failed to check landscape status" });
+    }
+  });
+
+  // Get landscape visualizations for tenant
+  app.get("/api/tenants/:tenantId/landscape-visualizations", async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const landscapeVisualizations = await storage.getLandscapeVisualizationsByTenant(parseInt(tenantId));
+      res.json(landscapeVisualizations);
+    } catch (error) {
+      console.error("Error fetching landscape visualizations:", error);
+      res.status(500).json({ error: "Failed to fetch landscape visualizations" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
