@@ -196,8 +196,8 @@ export async function processLandscapeWithGemini({
     const { getStyleConfig } = await import('./style-config');
 
     // Build prompt based on selected styles using actual style config
-    const modifications = [];
-    const appliedStyles = [];
+    const modifications: string[] = [];
+    const appliedStyles: string[] = [];
 
     console.log('🔍 PROCESSING STYLES:', selectedStyles);
 
@@ -279,7 +279,7 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
 
     // Add reference images for each applied style
     for (const styleId of appliedStyles) {
-      const styleConfig = STYLE_CONFIG[styleId];
+      const styleConfig = getStyleConfig(styleId);
       if (styleConfig.referenceImages) {
         for (const refImageUrl of styleConfig.referenceImages) {
           try {
@@ -396,8 +396,8 @@ export async function processPoolWithGemini({
     const { POOL_STYLE_CONFIG } = await import('./pool-style-config');
 
     // Build prompt based on selected pool styles
-    const modifications = [];
-    const appliedStyles = [];
+    const modifications: string[] = [];
+    const appliedStyles: string[] = [];
 
     console.log('🏊 PROCESSING POOL STYLES:', selectedStyles);
 
