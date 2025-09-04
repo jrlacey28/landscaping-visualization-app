@@ -76,11 +76,7 @@ export default function Header({ tenant }: HeaderProps) {
                 <DropdownMenuItem asChild>
                   <Link 
                     href="/pools"
-                    className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${
-                      currentService === "pools" 
-                        ? "bg-blue-100 text-blue-800 font-medium" 
-                        : "hover:bg-blue-50"
-                    }`}
+                    className="relative select-none rounded-sm text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors hover:bg-blue-50 bg-[#ffffff]"
                   >
                     <Waves className="h-4 w-4" />
                     <div>
