@@ -105,7 +105,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
           <div>
             <p className="text-2xl font-bold text-stone-800 mb-2">Drop your photo here</p>
             <p className="text-lg text-stone-600 mb-4">or click to browse files</p>
-            <StarBorder className="mt-4">
+            <StarBorder className="mt-4 bg-gradient-to-r from-blue-600 via-green-500 to-blue-600 hover:from-blue-700 hover:via-green-600 hover:to-blue-700">
               <Upload className="h-4 w-4 mr-2" />
               Upload
             </StarBorder>
