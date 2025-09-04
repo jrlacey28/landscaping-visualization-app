@@ -8,6 +8,9 @@ import {
   Download,
   Camera,
   FileImage,
+  Facebook,
+  Twitter,
+  Instagram,
 } from "lucide-react";
 import FileUpload from "@/components/ui/file-upload";
 import PoolStyleSelector from "@/components/pool-style-selector";
@@ -74,7 +77,7 @@ export default function Pools() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900"
+      className="min-h-screen bg-gradient-to-br from-blue-400 via-cyan-300 to-green-400"
       style={brandColors}
     >
       {/* Header with Services Menu */}
@@ -481,6 +484,74 @@ export default function Pools() {
           </div>
         </div>
       )}
+
+      {/* Footer */}
+      <footer className="bg-slate-900/50 border-t border-slate-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col space-y-6 md:grid md:grid-cols-3 md:items-center md:space-y-0">
+            {/* Left side - Logo and company */}
+            <div className="flex items-center justify-center space-x-3 md:justify-start">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-white font-semibold">{tenant.companyName}</p>
+                <p className="text-slate-400 text-sm">
+                  Powered by Solst LLC
+                </p>
+              </div>
+            </div>
+
+            {/* Center - Business Info */}
+            <div className="flex flex-col items-center space-y-2 text-center md:flex-row md:justify-center md:space-y-0 md:space-x-6">
+              {tenant.address && (
+                <p className="text-slate-300 text-sm">
+                  {tenant.address}
+                </p>
+              )}
+              {tenant.phone && (
+                <p className="text-slate-300 text-sm">
+                  {tenant.phone}
+                </p>
+              )}
+            </div>
+
+            {/* Right side - Social icons */}
+            <div className="flex items-center justify-center space-x-4 md:justify-end">
+              <a
+                href="#"
+                className="text-slate-400 hover:text-blue-400 transition-colors"
+              >
+                <Facebook className="h-5 w-5" />
+              </a>
+              <a
+                href="#"
+                className="text-slate-400 hover:text-blue-400 transition-colors"
+              >
+                <Twitter className="h-5 w-5" />
+              </a>
+              <a
+                href="#"
+                className="text-slate-400 hover:text-blue-400 transition-colors"
+              >
+                <Instagram className="h-5 w-5" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
