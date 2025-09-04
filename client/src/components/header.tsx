@@ -68,7 +68,7 @@ export default function Header({ tenant }: HeaderProps) {
                     className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${
                       currentService === "roofing" 
                         ? "bg-purple-100 text-purple-800 font-medium" 
-                        : "hover:bg-white hover:text-black"
+                        : "hover:!bg-white hover:!text-black"
                     }`}
                   >
                     <Home className="h-4 w-4" />
@@ -84,7 +84,7 @@ export default function Header({ tenant }: HeaderProps) {
                     className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${
                       currentService === "pools" 
                         ? "bg-blue-100 text-blue-800 font-medium" 
-                        : "hover:bg-white hover:text-black"
+                        : "hover:!bg-white hover:!text-black"
                     }`}
                   >
                     <Waves className="h-4 w-4" />
@@ -127,7 +127,7 @@ export default function Header({ tenant }: HeaderProps) {
                 align="end"
               >
                 <DropdownMenuItem asChild>
-                  <Link href="/" className="flex items-center gap-2 px-3 py-2">
+                  <Link href="/" className="flex items-center gap-2 px-3 py-2 hover:!bg-white hover:!text-black transition-colors">
                     <Home className="h-4 w-4" />
                     Roofing & Siding
                   </Link>
