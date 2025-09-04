@@ -189,3 +189,56 @@ export const analyzeLandscapeImage = async (file: File) => {
 
   return response.json();
 };
+
+// Pool-specific API functions
+export const uploadPoolImage = async (file: File, tenantId: number, selectedPoolStyles: any) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  formData.append('tenantId', tenantId.toString());
+
+  // Format the selected pool styles to match backend expectations
+  const poolTypeValue = selectedPoolStyles.poolType || '';
+  const poolSizeValue = selectedPoolStyles.poolSize || '';
+  const deckingValue = selectedPoolStyles.decking || '';
+  const landscapingValue = selectedPoolStyles.landscaping || '';
+  const featuresValue = selectedPoolStyles.features || '';
+
+  formData.append('selectedPoolType', poolTypeValue);
+  formData.append('selectedPoolSize', poolSizeValue);
+  formData.append('selectedDecking', deckingValue);
+  formData.append('selectedLandscaping', landscapingValue);
+  formData.append('selectedFeatures', featuresValue);
+
+  const response = await fetch('/api/pools/upload', {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+
+    // Clean up any error messages
+    let errorMessage = errorData.error || 'Unknown error';
+    if (errorMessage.includes('AI') || errorMessage.includes('processing')) {
+      errorMessage = 'Pool AI processing failed. Please try again.';
+    }
+
+    throw new Error(`Pool upload failed: ${errorMessage}`);
+  }
+
+  const data = await response.json();
+  return data;
+};
+
+export const checkPoolVisualizationStatus = async (poolVisualizationId: number) => {
+  const response = await fetch(`/api/pools/${poolVisualizationId}/status`, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to check pool status');
+  }
+
+  return response.json();
+};

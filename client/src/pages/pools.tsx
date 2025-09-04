@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Eye,
   Phone,
@@ -9,50 +8,35 @@ import {
   Download,
   Camera,
   FileImage,
-  Facebook,
-  Twitter,
-  Instagram,
-  Edit,
 } from "lucide-react";
 import FileUpload from "@/components/ui/file-upload";
-import ImageComparison from "@/components/ui/image-comparison";
-import InpaintingCanvas from "@/components/ui/inpainting-canvas";
-import StyleSelector from "@/components/style-selector";
+import PoolStyleSelector from "@/components/pool-style-selector";
 import LeadCaptureForm from "@/components/lead-capture-form";
 import Header from "@/components/header";
 import { SparklesText } from "@/components/ui/sparkles-text";
 import { useTenant } from "@/hooks/use-tenant";
 import {
-  uploadImage,
-  checkVisualizationStatus,
-  analyzeLandscapeImage,
+  uploadPoolImage,
+  checkPoolVisualizationStatus,
 } from "@/lib/api";
 
-export default function Home() {
+export default function Pools() {
   const { tenant, isLoading: tenantLoading } = useTenant();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedStyles, setSelectedStyles] = useState({
-    roof: { enabled: false, type: "" },
-    siding: { enabled: false, type: "" },
-    surpriseMe: { enabled: false, type: "" },
+  const [selectedPoolStyles, setSelectedPoolStyles] = useState({
+    poolType: "",
+    poolSize: "",
+    decking: "",
+    landscaping: "",
+    features: "",
   });
   const [showLeadForm, setShowLeadForm] = useState(false);
-  const [maskData, setMaskData] = useState<string | null>(null);
-  const [showInpainting, setShowInpainting] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
-  const [visualizationResult, setVisualizationResult] = useState<any>(null); // Added to store visualization results
-  const [isLoading, setIsLoading] = useState(false); // Added loading state for submission
-
-  const handleAutoInpaint = async (imageUrl: string, maskData: string) => {
-    // For the simplified Gemini workflow, direct users to use the main upload process
-    alert(
-      "Please use the 'Generate Visualization' button with your selected styles for the new streamlined AI processing.",
-    );
-    setIsGenerating(false);
-  };
+  const [poolVisualizationResult, setPoolVisualizationResult] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   if (tenantLoading) {
     return (
@@ -74,7 +58,7 @@ export default function Home() {
               Service Unavailable
             </h1>
             <p className="text-muted-foreground">
-              This roofing and siding visualization service is not available at this
+              This pool visualization service is not available at this
               domain.
             </p>
           </CardContent>
@@ -100,8 +84,8 @@ export default function Home() {
       <section className="py-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-0">
-            Visualize Your New Roof & Siding
-            <span className="text-transparent bg-gradient-to-r from-blue-400 to-red-400 bg-clip-text block">
+            Visualize Your New Pool
+            <span className="text-transparent bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text block">
               Before You Build
             </span>
           </h2>
@@ -116,11 +100,11 @@ export default function Home() {
               <CardContent className="p-12">
                 <div className="text-center mb-8">
                   <h3 className="text-3xl font-bold text-slate-800 mb-4">
-                    Upload Your Home Photo
+                    Upload Your Backyard Photo
                   </h3>
                   <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                    Take or upload a clear photo of your home's exterior
-                    to see amazing roofing and siding transformation possibilities
+                    Take or upload a clear photo of your backyard
+                    to see amazing pool design possibilities
                   </p>
                 </div>
                 <FileUpload
@@ -141,7 +125,7 @@ export default function Home() {
                     alt={
                       showingOriginal
                         ? "Original photo"
-                        : "AI Generated roofing & siding design"
+                        : "AI Generated pool design"
                     }
                     className="w-full aspect-video object-cover rounded-xl shadow-lg"
                   />
@@ -168,7 +152,7 @@ export default function Home() {
                                 const url = URL.createObjectURL(blob);
                                 const a = document.createElement("a");
                                 a.href = url;
-                                a.download = "roofing-siding-design.jpg";
+                                a.download = "pool-design.jpg";
                                 a.click();
                                 URL.revokeObjectURL(url);
                               }
@@ -192,7 +176,7 @@ export default function Home() {
                   >
                     <Eye className="h-5 w-5 mr-2" />
                     {showingOriginal
-                      ? "View New Design"
+                      ? "View Pool Design"
                       : "View Original Photo"}
                   </Button>
 
@@ -202,10 +186,12 @@ export default function Home() {
                     onClick={() => {
                       setUploadedImage(null);
                       setGeneratedImage(null);
-                      setSelectedStyles({
-                        roof: { enabled: false, type: "" },
-                        siding: { enabled: false, type: "" },
-                        surpriseMe: { enabled: false, type: "" },
+                      setSelectedPoolStyles({
+                        poolType: "",
+                        poolSize: "",
+                        decking: "",
+                        landscaping: "",
+                        features: "",
                       });
                     }}
                   >
@@ -234,17 +220,17 @@ export default function Home() {
                     <div className="relative overflow-hidden rounded-xl">
                       <img
                         src={uploadedImage}
-                        alt="Uploaded house photo"
+                        alt="Uploaded backyard photo"
                         className="w-full aspect-video object-cover shadow-lg transition-all duration-300"
                       />
                       {isGenerating && (
                         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl flex items-center justify-center">
                           <div className="text-center">
                             <SparklesText
-                              text="Measuring twice, rendering once..."
+                              text="Designing your perfect pool oasis..."
                               className="text-sm sm:text-lg lg:text-xl font-bold text-white whitespace-nowrap"
                               sparklesCount={12}
-                              colors={{ first: "#3b82f6", second: "#ef4444" }}
+                              colors={{ first: "#3b82f6", second: "#06b6d4" }}
                             />
                           </div>
                         </div>
@@ -255,12 +241,13 @@ export default function Home() {
                         variant="outline"
                         onClick={() => {
                           setUploadedImage(null);
-                          setSelectedStyles({
-                            roof: { enabled: false, type: "" },
-                            siding: { enabled: false, type: "" },
-                            surpriseMe: { enabled: false, type: "" },
+                          setSelectedPoolStyles({
+                            poolType: "",
+                            poolSize: "",
+                            decking: "",
+                            landscaping: "",
+                            features: "",
                           });
-                          setMaskData(null);
                         }}
                         className="border-slate-400 text-slate-600 hover:bg-slate-100"
                       >
@@ -271,36 +258,20 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Feature Selection Section */}
+                {/* Pool Feature Selection Section */}
                 <div className="space-y-6">
                   <div className="text-center">
                     <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                      Choose Your Features
+                      Choose Your Pool Features
                     </h3>
                     <p className="text-slate-600">
-                      Select the roofing and siding options you'd like to see
+                      Select the pool options you'd like to see in your backyard
                     </p>
                   </div>
 
-                  <StyleSelector
-                    selectedStyles={{
-                      roof: selectedStyles.roof.type,
-                      siding: selectedStyles.siding.type,
-                      surpriseMe: selectedStyles.surpriseMe.type,
-                    }}
-                    onStyleChange={(styles) => {
-                      setSelectedStyles({
-                        roof: {
-                          enabled: !!styles.roof,
-                          type: styles.roof,
-                        },
-                        siding: {
-                          enabled: !!styles.siding,
-                          type: styles.siding,
-                        },
-                        surpriseMe: { enabled: !!styles.surpriseMe, type: styles.surpriseMe },
-                      });
-                    }}
+                  <PoolStyleSelector
+                    selectedStyles={selectedPoolStyles}
+                    onStyleChange={setSelectedPoolStyles}
                   />
 
                   <Button
@@ -309,17 +280,16 @@ export default function Home() {
                     disabled={
                       isGenerating ||
                       !(
-                        (selectedStyles.roof.enabled &&
-                          selectedStyles.roof.type) ||
-                        (selectedStyles.siding.enabled &&
-                          selectedStyles.siding.type) ||
-                        (selectedStyles.surpriseMe.enabled &&
-                          selectedStyles.surpriseMe.type)
+                        selectedPoolStyles.poolType ||
+                        selectedPoolStyles.poolSize ||
+                        selectedPoolStyles.decking ||
+                        selectedPoolStyles.landscaping ||
+                        selectedPoolStyles.features
                       )
                     }
                     onClick={async () => {
                       setIsGenerating(true);
-                      setVisualizationResult(null); // Clear previous results
+                      setPoolVisualizationResult(null);
                       try {
                         // Use original file to preserve maximum quality
                         if (!originalFile) {
@@ -330,62 +300,61 @@ export default function Home() {
                           return;
                         }
 
-                        // Upload image and generate AI visualization
-                        const result = await uploadImage(
+                        // Upload image and generate pool AI visualization
+                        const result = await uploadPoolImage(
                           originalFile,
                           tenant.id,
-                          selectedStyles,
-                          maskData || undefined,
+                          selectedPoolStyles,
                         );
 
-                        if (result.visualizationId) {
+                        if (result.poolVisualizationId) {
                           // Check status immediately since Gemini processes instantly
-                          const status = await checkVisualizationStatus(
-                            result.visualizationId,
+                          const status = await checkPoolVisualizationStatus(
+                            result.poolVisualizationId,
                           );
-                          setVisualizationResult(status); // Store status and URL
+                          setPoolVisualizationResult(status);
 
                           if (
                             status.status === "completed" &&
                             status.generatedImageUrl
                           ) {
                             // Gemini workflow completed immediately
-                            setGeneratedImage(status.generatedImageUrl); // Set generatedImage for the other view
+                            setGeneratedImage(status.generatedImageUrl);
                             setIsGenerating(false);
                           } else if (status.status === "failed") {
-                            console.error("AI generation failed");
+                            console.error("Pool AI generation failed");
                             setIsGenerating(false);
                             alert(
-                              "Unable to generate visualization. Please check your connection and try again.",
+                              "Unable to generate pool visualization. Please check your connection and try again.",
                             );
                           } else {
                             // Fall back to polling for any edge cases
                             const pollInterval = setInterval(async () => {
                               try {
                                 const polledStatus =
-                                  await checkVisualizationStatus(
-                                    result.visualizationId,
+                                  await checkPoolVisualizationStatus(
+                                    result.poolVisualizationId,
                                   );
-                                setVisualizationResult(polledStatus); // Update visualizationResult during polling
+                                setPoolVisualizationResult(polledStatus);
                                 if (
                                   polledStatus.status === "completed" &&
                                   polledStatus.generatedImageUrl
                                 ) {
                                   setGeneratedImage(
                                     polledStatus.generatedImageUrl,
-                                  ); // Set generatedImage for the other view
+                                  );
                                   setIsGenerating(false);
                                   clearInterval(pollInterval);
                                 } else if (polledStatus.status === "failed") {
-                                  console.error("AI generation failed");
+                                  console.error("Pool AI generation failed");
                                   setIsGenerating(false);
                                   clearInterval(pollInterval);
                                   alert(
-                                    "AI generation failed. Please try again or contact support if the issue persists.",
+                                    "Pool AI generation failed. Please try again or contact support if the issue persists.",
                                   );
                                 }
                               } catch (error) {
-                                console.error("Error checking status:", error);
+                                console.error("Error checking pool status:", error);
                                 setIsGenerating(false);
                                 clearInterval(pollInterval);
                               }
@@ -404,10 +373,10 @@ export default function Home() {
                           }
                         }
                       } catch (error) {
-                        console.error("Error generating visualization:", error);
+                        console.error("Error generating pool visualization:", error);
                         setIsGenerating(false);
                         alert(
-                          "Unable to generate visualization. Please check that your Replicate account has billing enabled and try again.",
+                          "Unable to generate pool visualization. Please check your connection and try again.",
                         );
                       }
                     }}
@@ -415,24 +384,23 @@ export default function Home() {
                     {isGenerating ? (
                       <>
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Generating Your Design...
+                        Generating Your Pool Design...
                       </>
                     ) : (
                       <>
                         <Sparkles className="h-5 w-5 mr-2" />
-                        Generate AI Design
+                        Generate AI Pool Design
                       </>
                     )}
                   </Button>
 
-                  {(!selectedStyles.roof.enabled ||
-                    !selectedStyles.roof.type) &&
-                    (!selectedStyles.siding.enabled ||
-                      !selectedStyles.siding.type) &&
-                    (!selectedStyles.surpriseMe.enabled ||
-                      !selectedStyles.surpriseMe.type) && (
+                  {!selectedPoolStyles.poolType &&
+                    !selectedPoolStyles.poolSize &&
+                    !selectedPoolStyles.decking &&
+                    !selectedPoolStyles.landscaping &&
+                    !selectedPoolStyles.features && (
                       <p className="text-sm text-slate-500 text-center">
-                        Please select at least one feature option to generate
+                        Please select at least one pool feature option to generate
                         your design
                       </p>
                     )}
@@ -441,11 +409,11 @@ export default function Home() {
             </Card>
           )}
 
-          {/* Render visualization results */}
-          {visualizationResult && (
+          {/* Render pool visualization results */}
+          {poolVisualizationResult && (
             <div className="mt-8">
               <h3 className="text-lg font-semibold mb-4 text-center text-white">
-                Your Roofing & Siding Design
+                Your Pool Design
               </h3>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
@@ -460,210 +428,58 @@ export default function Home() {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium mb-2 text-white">
-                    Enhanced Design
+                    Pool Design
                   </h4>
-                  {visualizationResult.status === "completed" &&
-                  visualizationResult.generatedImageUrl ? (
+                  {poolVisualizationResult.status === "completed" &&
+                  poolVisualizationResult.generatedImageUrl ? (
                     <img
-                      src={visualizationResult.generatedImageUrl}
-                      alt="Enhanced roofing & siding design"
+                      src={poolVisualizationResult.generatedImageUrl}
+                      alt="Enhanced pool design"
                       className="w-full h-auto rounded-lg shadow-md"
                       onError={(e) => {
                         console.error(
                           "Image failed to load:",
-                          visualizationResult.generatedImageUrl,
+                          poolVisualizationResult.generatedImageUrl,
                         );
                         e.currentTarget.style.display = "none";
                         const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
                         if (nextElement) nextElement.style.display = "flex";
                       }}
                     />
-                  ) : visualizationResult.status === "failed" ? (
+                  ) : poolVisualizationResult.status === "failed" ? (
                     <div className="w-full h-64 bg-red-50 border-2 border-red-200 rounded-lg flex items-center justify-center">
                       <p className="text-red-600">
-                        Generation failed. Please try again.
+                        Pool design generation failed
                       </p>
                     </div>
                   ) : (
-                    <div className="w-full h-64 bg-slate-100 rounded-lg flex items-center justify-center">
+                    <div className="w-full h-64 bg-blue-50 border-2 border-blue-200 rounded-lg flex items-center justify-center">
                       <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                        <p className="text-slate-600">
-                          Generating your roofing & siding design...
-                        </p>
+                        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                        <p className="text-blue-600">Generating pool design...</p>
                       </div>
                     </div>
                   )}
-                  <div
-                    className="w-full h-64 bg-yellow-50 border-2 border-yellow-200 rounded-lg flex-col items-center justify-center text-center p-4"
-                    style={{ display: "none" }}
-                  >
-                    <p className="text-yellow-700 mb-2">
-                      Image failed to display
-                    </p>
-                    <p className="text-xs text-yellow-600">
-                      URL: {visualizationResult.generatedImageUrl}
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() =>
-                        window.open(
-                          visualizationResult.generatedImageUrl,
-                          "_blank",
-                        )
-                      }
-                    >
-                      Open in New Tab
-                    </Button>
-                  </div>
                 </div>
               </div>
-
-              {visualizationResult.status === "completed" && (
-                <div className="text-center mt-6">
-                  <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-700">
-                      Applied styles:{" "}
-                      {(() => {
-                        const appliedStyles = [];
-                        if (
-                          selectedStyles.roof.enabled &&
-                          selectedStyles.roof.type
-                        ) {
-                          appliedStyles.push(
-                            "Roof: " + selectedStyles.roof.type
-                              .replace(/_/g, " ")
-                              .replace(/\b\w/g, (l) => l.toUpperCase()),
-                          );
-                        }
-                        if (
-                          selectedStyles.siding.enabled &&
-                          selectedStyles.siding.type
-                        ) {
-                          appliedStyles.push(
-                            "Siding: " + selectedStyles.siding.type
-                              .replace(/_/g, " ")
-                              .replace(/\b\w/g, (l) => l.toUpperCase()),
-                          );
-                        }
-                        if (
-                          selectedStyles.surpriseMe.enabled &&
-                          selectedStyles.surpriseMe.type
-                        ) {
-                          appliedStyles.push(
-                            "Surprise Me: Random roof and siding selection"
-                          );
-                        }
-                        return appliedStyles.length > 0
-                          ? appliedStyles.join(", ")
-                          : "No styles applied";
-                      })()}
-                    </p>
-                    {visualizationResult.prompt && (
-                      <details className="mt-2">
-                        <summary className="text-xs text-blue-600 cursor-pointer">
-                          View Prompt Details
-                        </summary>
-                        <p className="text-xs text-blue-600 mt-1 whitespace-pre-wrap">
-                          {visualizationResult.prompt}
-                        </p>
-                      </details>
-                    )}
-                  </div>
-                  <Button
-                    size="lg"
-                    className="bg-gradient-to-r from-[#718ae1] via-[#dc6d73] to-[#718ae1] hover:from-[#8299e8] hover:via-[#e67d84] hover:to-[#8299e8] text-white font-semibold py-4 px-8 shadow-lg hover:shadow-xl transition-all"
-                    onClick={() => setShowLeadForm(true)}
-                  >
-                    <Phone className="h-5 w-5 mr-2" />
-                    Get Free Quote for This Design
-                  </Button>
-                </div>
-              )}
             </div>
           )}
         </div>
       </main>
 
-      {/* Simplified Footer */}
-      <footer className="bg-slate-900/50 border-t border-slate-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col space-y-6 md:grid md:grid-cols-3 md:items-center md:space-y-0">
-            {/* Left side - Logo and company */}
-            <div className="flex items-center justify-center space-x-3 md:justify-start">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-red-500 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 21l9-18 9 18H3z M12 2v19"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="text-white font-semibold">{tenant.companyName}</p>
-                <p className="text-slate-400 text-sm">
-                Powered by Solst LLC
-                </p>
-              </div>
-            </div>
-
-            {/* Center - Business Info */}
-            <div className="flex flex-col items-center space-y-2 text-center md:flex-row md:justify-center md:space-y-0 md:space-x-6">
-              {tenant.address && (
-                <p className="text-slate-300 text-sm">
-                  {tenant.address}
-                </p>
-              )}
-              {tenant.phone && (
-                <p className="text-slate-300 text-sm">
-                  {tenant.phone}
-                </p>
-              )}
-            </div>
-
-            {/* Right side - Social icons */}
-            <div className="flex items-center justify-center space-x-4 md:justify-end">
-              <a
-                href="#"
-                className="text-slate-400 hover:text-blue-400 transition-colors"
-              >
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a
-                href="#"
-                className="text-slate-400 hover:text-blue-400 transition-colors"
-              >
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a
-                href="#"
-                className="text-slate-400 hover:text-blue-400 transition-colors"
-              >
-                <Instagram className="h-5 w-5" />
-              </a>
-            </div>
+      {/* Lead Capture Form Modal */}
+      {showLeadForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <LeadCaptureForm
+              tenantId={tenant.id}
+              originalImageUrl={uploadedImage}
+              generatedImageUrl={generatedImage}
+              selectedStyles={selectedPoolStyles}
+              onClose={() => setShowLeadForm(false)}
+            />
           </div>
         </div>
-      </footer>
-
-      {/* Lead Capture Modal */}
-      {showLeadForm && (
-        <LeadCaptureForm
-          tenant={tenant}
-          onClose={() => setShowLeadForm(false)}
-          selectedStyles={selectedStyles}
-          originalImageUrl={uploadedImage}
-          generatedImageUrl={generatedImage}
-        />
       )}
     </div>
   );

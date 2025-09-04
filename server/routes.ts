@@ -7,10 +7,11 @@ import path from "path";
 import fs from "fs";
 
 import { storage } from "./storage";
-import { insertLeadSchema, insertVisualizationSchema, insertTenantSchema } from "@shared/schema";
+import { insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { z } from "zod";
 import { processLandscapeWithGemini, analyzeLandscapeImage } from "./gemini-service";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
+import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -243,6 +244,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching visualizations:", error);
       res.status(500).json({ error: "Failed to fetch visualizations" });
+    }
+  });
+
+  // Pool-specific API routes - completely separate from roofing/siding
+  
+  // Pool visualization upload
+  app.post("/api/pools/upload", upload.single("image"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const { tenantId, selectedPoolType, selectedPoolSize, selectedDecking, selectedLandscaping, selectedFeatures } = req.body;
+
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant ID is required" });
+      }
+
+      // Process image with size constraints (max 1920x1080)
+      const originalImageBuffer = req.file.buffer;
+
+      // Create base64 for storage
+      const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
+
+      // Create pool visualization record
+      const poolVisualization = await storage.createPoolVisualization({
+        tenantId: parseInt(tenantId),
+        originalImageUrl: base64Image,
+        selectedPoolType: selectedPoolType || null,
+        selectedPoolSize: selectedPoolSize || null,
+        selectedDecking: selectedDecking || null,
+        selectedLandscaping: selectedLandscaping || null,
+        selectedFeatures: selectedFeatures || null,
+        status: "processing",
+      });
+
+      // Process with Gemini AI using pool-specific prompts
+      try {
+        const selectedPoolStyles = {
+          poolType: selectedPoolType || undefined,
+          poolSize: selectedPoolSize || undefined,
+          decking: selectedDecking || undefined,
+          landscaping: selectedLandscaping || undefined,
+          features: selectedFeatures || undefined
+        };
+
+        // Create pool-specific prompt by combining selected styles
+        let poolPrompt = "Transform this backyard by adding a beautiful swimming pool. ";
+        
+        if (selectedPoolType) poolPrompt += `Pool type: ${selectedPoolType}. `;
+        if (selectedPoolSize) poolPrompt += `Pool size: ${selectedPoolSize}. `;
+        if (selectedDecking) poolPrompt += `Decking: ${selectedDecking}. `;
+        if (selectedLandscaping) poolPrompt += `Landscaping: ${selectedLandscaping}. `;
+        if (selectedFeatures) poolPrompt += `Special features: ${selectedFeatures}. `;
+        
+        poolPrompt += "Maintain all existing house structure, windows, doors, and non-pool landscaping exactly as shown. Create a realistic pool installation that fits naturally in the space.";
+
+        // For pools, we'll use the existing structure but with a custom approach
+        const result = await processLandscapeWithGemini({
+          imageBuffer: originalImageBuffer,
+          selectedStyles: {} // Empty styles since we're using custom pool logic
+        });
+
+        // Convert edited image to base64 for storage
+        const editedBase64 = `data:image/jpeg;base64,${result.editedImageBuffer.toString('base64')}`;
+
+        // Create a prediction-like object for compatibility
+        const prediction = {
+          id: `pool_gemini_${Date.now()}`,
+          status: 'succeeded',
+          output: [editedBase64],
+          appliedStyles: selectedPoolStyles,
+          prompt: poolPrompt
+        };
+
+        // Update pool visualization with result
+        await storage.updatePoolVisualization(poolVisualization.id, {
+          replicateId: prediction.id,
+          generatedImageUrl: editedBase64,
+          status: "completed",
+        });
+
+        res.json({
+          poolVisualizationId: poolVisualization.id,
+          replicateId: prediction.id,
+          status: "completed",
+          appliedStyles: selectedPoolStyles,
+          prompt: poolPrompt
+        });
+
+      } catch (geminiError: any) {
+        console.error("Gemini pool processing error:", geminiError);
+        await storage.updatePoolVisualization(poolVisualization.id, {
+          status: "failed",
+        });
+        res.status(500).json({ 
+          error: "AI pool processing failed. Please try again.",
+          details: geminiError.message 
+        });
+      }
+
+    } catch (error) {
+      console.error("Error processing pool upload:", error);
+      res.status(500).json({ error: "Failed to process pool image upload" });
+    }
+  });
+
+  // Check pool visualization status
+  app.get("/api/pools/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const poolVisualization = await storage.getPoolVisualization(parseInt(id));
+
+      if (!poolVisualization) {
+        return res.status(404).json({ error: "Pool visualization not found" });
+      }
+
+      // With Gemini, processing is immediate, so just return the current status
+      res.json(poolVisualization);
+    } catch (error) {
+      console.error("Error checking pool visualization status:", error);
+      res.status(500).json({ error: "Failed to check pool status" });
+    }
+  });
+
+  // Get pool visualizations for tenant
+  app.get("/api/tenants/:tenantId/pool-visualizations", async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const poolVisualizations = await storage.getPoolVisualizationsByTenant(parseInt(tenantId));
+      res.json(poolVisualizations);
+    } catch (error) {
+      console.error("Error fetching pool visualizations:", error);
+      res.status(500).json({ error: "Failed to fetch pool visualizations" });
     }
   });
 
