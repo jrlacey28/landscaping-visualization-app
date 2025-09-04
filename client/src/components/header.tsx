@@ -80,7 +80,7 @@ export default function Header({ tenant }: HeaderProps) {
                     className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${
                       currentService === "pools" 
                         ? "bg-blue-100 text-blue-800 font-medium" 
-                        : "hover:!bg-white hover:!text-black"
+                        : "hover:bg-blue-50"
                     }`}
                   >
                     <Waves className="h-4 w-4" />
@@ -92,7 +92,7 @@ export default function Header({ tenant }: HeaderProps) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             <a
               href="#gallery"
               className="text-slate-300 hover:text-blue-400 transition-colors"
@@ -106,7 +106,7 @@ export default function Header({ tenant }: HeaderProps) {
               Contact
             </a>
           </nav>
-          
+
           {/* Mobile menu button - simplified for now */}
           <div className="md:hidden">
             <DropdownMenu>
@@ -123,13 +123,13 @@ export default function Header({ tenant }: HeaderProps) {
                 align="end"
               >
                 <DropdownMenuItem asChild>
-                  <Link href="/" className="flex items-center gap-2 px-3 py-2 hover:!bg-white hover:!text-black transition-colors">
+                  <Link href="/" className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 transition-colors">
                     <Home className="h-4 w-4" />
                     Roofing & Siding
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/pools" className="flex items-center gap-2 px-3 py-2">
+                  <Link href="/pools" className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50">
                     <Waves className="h-4 w-4" />
                     Pool Visualization
                   </Link>
