@@ -99,7 +99,7 @@ export default function FileUpload({ onFileSelect, uploadedImage }: FileUploadPr
         onClick={() => fileInputRef.current?.click()}
       >
         <div className="space-y-6">
-          <div className="w-24 h-24 bg-gradient-to-br from-blue-600 to-green-600 rounded-full flex items-center justify-center mx-auto shadow-xl">
+          <div className="w-24 h-24 bg-gradient-to-br from-stone-600 to-stone-800 rounded-full flex items-center justify-center mx-auto shadow-xl">
             <Camera className="h-12 w-12 text-white" />
           </div>
           <div>
