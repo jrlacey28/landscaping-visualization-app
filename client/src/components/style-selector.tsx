@@ -18,11 +18,21 @@ const roofStyles = [
 ];
 
 const roofColors = [
-  { value: "charcoal_black", label: "Charcoal Black" },
-  { value: "weathered_gray", label: "Weathered Gray" },
-  { value: "rustic_brown", label: "Rustic Brown" },
-  { value: "slate_blue", label: "Slate Blue" },
-  { value: "forest_green", label: "Forest Green" },
+  { value: "charcoal_gray", label: "Charcoal Gray", hex: "#36454F" },
+  { value: "pewter_gray", label: "Pewter Gray", hex: "#8C92AC" },
+  { value: "weathered_wood", label: "Weathered Wood", hex: "#79685D" },
+  { value: "driftwood", label: "Driftwood", hex: "#A7988A" },
+  { value: "desert_tan", label: "Desert Tan", hex: "#D2B48C" },
+  { value: "slate_blue", label: "Slate Blue", hex: "#6A7BA2" },
+  { value: "williamsburg_gray", label: "Williamsburg Gray", hex: "#B0AFAE" },
+  { value: "forest_green", label: "Forest Green", hex: "#014421" },
+  { value: "midnight_black", label: "Midnight Black", hex: "#1C1C1C" },
+  { value: "moire_black", label: "Moire Black", hex: "#2E2E2E" },
+  { value: "merlot", label: "Merlot", hex: "#73343A" },
+  { value: "estate_gray", label: "Estate Gray", hex: "#555555" },
+  { value: "barkwood", label: "Barkwood", hex: "#5C4033" },
+  { value: "harbor_blue", label: "Harbor Blue", hex: "#46647E" },
+  { value: "onyx_black", label: "Onyx Black", hex: "#0F0F0F" },
 ];
 
 const sidingStyles = [
@@ -33,13 +43,21 @@ const sidingStyles = [
 ];
 
 const sidingColors = [
-  { value: "white", label: "White" },
-  { value: "gray", label: "Gray" },
-  { value: "beige", label: "Beige" },
-  { value: "natural", label: "Natural" },
-  { value: "red", label: "Red" },
-  { value: "brown", label: "Brown" },
-  { value: "tan", label: "Tan" },
+  { value: "white", label: "White", hex: "#FFFFFF" },
+  { value: "colonial_white", label: "Colonial White", hex: "#FAF9F6" },
+  { value: "gray", label: "Gray", hex: "#808080" },
+  { value: "greige", label: "Greige", hex: "#BEB6AA" },
+  { value: "beige_almond", label: "Beige / Almond", hex: "#F5F5DC" },
+  { value: "sandstone", label: "Sandstone", hex: "#C2B280" },
+  { value: "navy_coastal_blue", label: "Navy / Coastal Blue", hex: "#2C3E50" },
+  { value: "sage_green", label: "Sage Green", hex: "#9C9F84" },
+  { value: "forest_green", label: "Forest Green", hex: "#014421" },
+  { value: "autumn_red", label: "Autumn Red", hex: "#8B2E2E" },
+  { value: "brown_chestnut_espresso", label: "Brown (Chestnut / Espresso)", hex: "#4B3621" },
+  { value: "charcoal_dark_gray", label: "Charcoal / Dark Gray", hex: "#333333" },
+  { value: "clay_khaki", label: "Clay / Khaki", hex: "#B2A17E" },
+  { value: "azure_blue", label: "Azure Blue", hex: "#4A90E2" },
+  { value: "savannah_wicker", label: "Savannah Wicker", hex: "#D8CAB1" },
 ];
 
 export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSelectorProps) {

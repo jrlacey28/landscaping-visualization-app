@@ -8,6 +8,119 @@ export interface StyleConfig {
   regionType: "roof" | "exterior" | "random";
 }
 
+// Base style templates for dynamic prompt generation
+interface StyleTemplate {
+  id: string;
+  name: string;
+  basePrompt: string;
+  referenceImageUrl: string;
+  category: "roof" | "siding";
+  regionType: "roof" | "exterior";
+}
+
+// Color descriptors for each color option
+interface ColorDescriptor {
+  value: string;
+  label: string;
+  hex: string;
+  promptDescription: string;
+}
+
+export const ROOF_COLORS: Record<string, ColorDescriptor> = {
+  charcoal_gray: { value: "charcoal_gray", label: "Charcoal Gray", hex: "#36454F", promptDescription: "charcoal gray color with sophisticated dark tones" },
+  pewter_gray: { value: "pewter_gray", label: "Pewter Gray", hex: "#8C92AC", promptDescription: "pewter gray with subtle blue undertones" },
+  weathered_wood: { value: "weathered_wood", label: "Weathered Wood", hex: "#79685D", promptDescription: "weathered wood brown with natural earth tones" },
+  driftwood: { value: "driftwood", label: "Driftwood", hex: "#A7988A", promptDescription: "driftwood gray-brown with weathered appearance" },
+  desert_tan: { value: "desert_tan", label: "Desert Tan", hex: "#D2B48C", promptDescription: "desert tan with warm sandy coloration" },
+  slate_blue: { value: "slate_blue", label: "Slate Blue", hex: "#6A7BA2", promptDescription: "slate blue with sophisticated blue-gray tones" },
+  williamsburg_gray: { value: "williamsburg_gray", label: "Williamsburg Gray", hex: "#B0AFAE", promptDescription: "Williamsburg gray with classic neutral tones" },
+  forest_green: { value: "forest_green", label: "Forest Green", hex: "#014421", promptDescription: "deep forest green with rich natural coloration" },
+  midnight_black: { value: "midnight_black", label: "Midnight Black", hex: "#1C1C1C", promptDescription: "midnight black with deep, rich darkness" },
+  moire_black: { value: "moire_black", label: "Moire Black", hex: "#2E2E2E", promptDescription: "moire black with subtle texture variation" },
+  merlot: { value: "merlot", label: "Merlot", hex: "#73343A", promptDescription: "merlot red-brown with wine-inspired tones" },
+  estate_gray: { value: "estate_gray", label: "Estate Gray", hex: "#555555", promptDescription: "estate gray with classic medium-tone coloration" },
+  barkwood: { value: "barkwood", label: "Barkwood", hex: "#5C4033", promptDescription: "barkwood brown with natural wood-like appearance" },
+  harbor_blue: { value: "harbor_blue", label: "Harbor Blue", hex: "#46647E", promptDescription: "harbor blue with coastal blue-gray tones" },
+  onyx_black: { value: "onyx_black", label: "Onyx Black", hex: "#0F0F0F", promptDescription: "onyx black with premium deep black finish" },
+};
+
+export const SIDING_COLORS: Record<string, ColorDescriptor> = {
+  white: { value: "white", label: "White", hex: "#FFFFFF", promptDescription: "crisp white with clean, bright appearance" },
+  colonial_white: { value: "colonial_white", label: "Colonial White", hex: "#FAF9F6", promptDescription: "colonial white with warm, off-white tones" },
+  gray: { value: "gray", label: "Gray", hex: "#808080", promptDescription: "classic gray with neutral medium tones" },
+  greige: { value: "greige", label: "Greige", hex: "#BEB6AA", promptDescription: "greige with warm gray-beige blend" },
+  beige_almond: { value: "beige_almond", label: "Beige / Almond", hex: "#F5F5DC", promptDescription: "beige almond with warm, creamy tones" },
+  sandstone: { value: "sandstone", label: "Sandstone", hex: "#C2B280", promptDescription: "sandstone with natural tan-brown coloration" },
+  navy_coastal_blue: { value: "navy_coastal_blue", label: "Navy / Coastal Blue", hex: "#2C3E50", promptDescription: "navy coastal blue with deep maritime tones" },
+  sage_green: { value: "sage_green", label: "Sage Green", hex: "#9C9F84", promptDescription: "sage green with muted natural green tones" },
+  forest_green: { value: "forest_green", label: "Forest Green", hex: "#014421", promptDescription: "deep forest green with rich natural coloration" },
+  autumn_red: { value: "autumn_red", label: "Autumn Red", hex: "#8B2E2E", promptDescription: "autumn red with warm brick-like tones" },
+  brown_chestnut_espresso: { value: "brown_chestnut_espresso", label: "Brown (Chestnut / Espresso)", hex: "#4B3621", promptDescription: "rich brown with chestnut and espresso undertones" },
+  charcoal_dark_gray: { value: "charcoal_dark_gray", label: "Charcoal / Dark Gray", hex: "#333333", promptDescription: "charcoal dark gray with contemporary deep tones" },
+  clay_khaki: { value: "clay_khaki", label: "Clay / Khaki", hex: "#B2A17E", promptDescription: "clay khaki with earthy tan-brown coloration" },
+  azure_blue: { value: "azure_blue", label: "Azure Blue", hex: "#4A90E2", promptDescription: "azure blue with vibrant sky-inspired tones" },
+  savannah_wicker: { value: "savannah_wicker", label: "Savannah Wicker", hex: "#D8CAB1", promptDescription: "savannah wicker with warm natural beige tones" },
+};
+
+export const STYLE_TEMPLATES: Record<string, StyleTemplate> = {
+  asphalt_shingles: {
+    id: "asphalt_shingles",
+    name: "Asphalt Shingles",
+    basePrompt: "Replace the roof with {COLOR_DESCRIPTION} asphalt shingles. High-quality dimensional architectural shingles with {COLOR_DESCRIPTION} and professional installation with proper alignment and weather-resistant materials. Keep all house structure, siding, windows, landscaping, and surrounding elements exactly as they are.",
+    referenceImageUrl: "https://mycdn.com/asphalt-shingles.jpg",
+    category: "roof",
+    regionType: "roof",
+  },
+  steel_roof: {
+    id: "steel_roof", 
+    name: "Steel Roof",
+    basePrompt: "Replace the roof with {COLOR_DESCRIPTION} steel roofing. Modern standing seam metal roof with {COLOR_DESCRIPTION} and durable finish. Professional installation with proper fasteners and weatherproofing. Keep all other house elements and landscaping exactly unchanged.",
+    referenceImageUrl: "https://mycdn.com/steel-roof.jpg",
+    category: "roof",
+    regionType: "roof",
+  },
+  steel_shingles: {
+    id: "steel_shingles",
+    name: "Steel Shingles", 
+    basePrompt: "Replace the roof with {COLOR_DESCRIPTION} steel shingles. Premium metal shingles with traditional appearance, modern durability, and {COLOR_DESCRIPTION}. Professional installation with proper fasteners. Keep all other home and landscape elements exactly as they are.",
+    referenceImageUrl: "https://mycdn.com/steel-shingles.jpg",
+    category: "roof",
+    regionType: "roof",
+  },
+  vinyl_siding: {
+    id: "vinyl_siding",
+    name: "Vinyl Siding",
+    basePrompt: "Replace the house siding with {COLOR_DESCRIPTION} vinyl siding. Premium quality horizontal lap siding with {COLOR_DESCRIPTION} and professional installation with proper trim and corner details. Keep roof, windows, doors, and all landscaping exactly unchanged.",
+    referenceImageUrl: "https://mycdn.com/vinyl-siding.jpg",
+    category: "siding",
+    regionType: "exterior",
+  },
+  fiber_cement: {
+    id: "fiber_cement",
+    name: "Fiber Cement",
+    basePrompt: "Replace the house siding with {COLOR_DESCRIPTION} fiber cement siding. High-quality cementitious siding with {COLOR_DESCRIPTION} and wood-grain texture. Professional installation with proper trim work. Keep all other home features and landscaping unchanged.",
+    referenceImageUrl: "https://mycdn.com/fiber-cement.jpg",
+    category: "siding", 
+    regionType: "exterior",
+  },
+  wood_siding: {
+    id: "wood_siding",
+    name: "Wood Siding",
+    basePrompt: "Replace the house siding with {COLOR_DESCRIPTION} wood siding. Cedar or similar wood species with {COLOR_DESCRIPTION} and horizontal board installation. Natural wood grain pattern with professional finish. Keep roof, windows, and all landscaping exactly as they are.",
+    referenceImageUrl: "https://mycdn.com/wood-siding.jpg",
+    category: "siding",
+    regionType: "exterior",
+  },
+  brick_veneer: {
+    id: "brick_veneer", 
+    name: "Brick Veneer",
+    basePrompt: "Replace the house siding with {COLOR_DESCRIPTION} brick veneer. Traditional brick with classic mortar joints, professional masonry installation, and {COLOR_DESCRIPTION} with natural variation. Preserve roof, trim, windows, and all landscape elements unchanged.",
+    referenceImageUrl: "https://mycdn.com/brick-veneer.jpg",
+    category: "siding",
+    regionType: "exterior",
+  },
+};
+
 export const STYLE_CONFIG: Record<string, StyleConfig> = {
   // Roof Styles with Colors
   asphalt_shingles_charcoal_black: {
@@ -172,6 +285,66 @@ export function getStyleForRegion(
 
   // Fallback to first available style
   return Object.values(STYLE_CONFIG)[0];
+}
+
+// Dynamic prompt generation function
+export function generateStyleConfig(styleType: string, colorValue: string): StyleConfig {
+  const template = STYLE_TEMPLATES[styleType];
+  if (!template) {
+    throw new Error(`Unknown style type: ${styleType}`);
+  }
+
+  const colorDescriptor = template.category === "roof" 
+    ? ROOF_COLORS[colorValue] 
+    : SIDING_COLORS[colorValue];
+    
+  if (!colorDescriptor) {
+    throw new Error(`Unknown color: ${colorValue} for ${template.category}`);
+  }
+
+  const prompt = template.basePrompt.replace(/{COLOR_DESCRIPTION}/g, colorDescriptor.promptDescription);
+  
+  return {
+    id: `${styleType}_${colorValue}`,
+    name: `${template.name} - ${colorDescriptor.label}`,
+    prompt: prompt,
+    referenceImageUrl: template.referenceImageUrl,
+    category: template.category,
+    regionType: template.regionType,
+  };
+}
+
+// Helper function to get style config for combined style+color selection
+export function getStyleConfig(styleAndColor: string): StyleConfig {
+  // Handle legacy static configurations first
+  if (STYLE_CONFIG[styleAndColor]) {
+    return STYLE_CONFIG[styleAndColor];
+  }
+  
+  // Parse dynamic style_color format
+  const parts = styleAndColor.split('_');
+  if (parts.length >= 2) {
+    // Find the best split point - look for known style types
+    for (const styleType of Object.keys(STYLE_TEMPLATES)) {
+      if (styleAndColor.startsWith(styleType + '_')) {
+        const colorValue = styleAndColor.substring(styleType.length + 1);
+        try {
+          return generateStyleConfig(styleType, colorValue);
+        } catch (error) {
+          console.warn(`Failed to generate config for ${styleType} + ${colorValue}:`, error);
+        }
+      }
+    }
+  }
+  
+  // Fallback to first available style
+  const fallback = Object.values(STYLE_CONFIG)[0];
+  if (fallback) {
+    return fallback;
+  }
+  
+  // Generate a default config if no static configs exist
+  return generateStyleConfig('asphalt_shingles', 'charcoal_gray');
 }
 
 export function getAllStyles(): StyleConfig[] {

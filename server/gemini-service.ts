@@ -193,7 +193,7 @@ export async function processLandscapeWithGemini({
 
     // Step 2: Generate tailored prompt using style config
     // Import style config to get proper prompts
-    const { STYLE_CONFIG } = await import('./style-config');
+    const { getStyleConfig } = await import('./style-config');
 
     // Build prompt based on selected styles using actual style config
     const modifications = [];
@@ -201,31 +201,37 @@ export async function processLandscapeWithGemini({
 
     console.log('🔍 PROCESSING STYLES:', selectedStyles);
 
-    if (selectedStyles.roof && STYLE_CONFIG[selectedStyles.roof]) {
-      const styleConfig = STYLE_CONFIG[selectedStyles.roof];
-      console.log(`✓ Found roof style: ${styleConfig.name}`);
-      modifications.push(styleConfig.prompt);
-      appliedStyles.push(selectedStyles.roof);
-    } else if (selectedStyles.roof) {
-      console.log(`❌ Roof style not found: ${selectedStyles.roof}`);
+    if (selectedStyles.roof) {
+      try {
+        const styleConfig = getStyleConfig(selectedStyles.roof);
+        console.log(`✓ Found roof style: ${styleConfig.name}`);
+        modifications.push(styleConfig.prompt);
+        appliedStyles.push(selectedStyles.roof);
+      } catch (error) {
+        console.log(`❌ Roof style not found: ${selectedStyles.roof}`);
+      }
     }
 
-    if (selectedStyles.siding && STYLE_CONFIG[selectedStyles.siding]) {
-      const styleConfig = STYLE_CONFIG[selectedStyles.siding];
-      console.log(`✓ Found siding style: ${styleConfig.name}`);
-      modifications.push(styleConfig.prompt);
-      appliedStyles.push(selectedStyles.siding);
-    } else if (selectedStyles.siding) {
-      console.log(`❌ Siding style not found: ${selectedStyles.siding}`);
+    if (selectedStyles.siding) {
+      try {
+        const styleConfig = getStyleConfig(selectedStyles.siding);
+        console.log(`✓ Found siding style: ${styleConfig.name}`);
+        modifications.push(styleConfig.prompt);
+        appliedStyles.push(selectedStyles.siding);
+      } catch (error) {
+        console.log(`❌ Siding style not found: ${selectedStyles.siding}`);
+      }
     }
 
-    if (selectedStyles.surpriseMe && STYLE_CONFIG[selectedStyles.surpriseMe]) {
-      const styleConfig = STYLE_CONFIG[selectedStyles.surpriseMe];
-      console.log(`✓ Found surprise style: ${styleConfig.name}`);
-      modifications.push(styleConfig.prompt);
-      appliedStyles.push(selectedStyles.surpriseMe);
-    } else if (selectedStyles.surpriseMe) {
-      console.log(`❌ Surprise style not found: ${selectedStyles.surpriseMe}`);
+    if (selectedStyles.surpriseMe) {
+      try {
+        const styleConfig = getStyleConfig(selectedStyles.surpriseMe);
+        console.log(`✓ Found surprise style: ${styleConfig.name}`);
+        modifications.push(styleConfig.prompt);
+        appliedStyles.push(selectedStyles.surpriseMe);
+      } catch (error) {
+        console.log(`❌ Surprise style not found: ${selectedStyles.surpriseMe}`);
+      }
     }
 
     if (modifications.length === 0) {
