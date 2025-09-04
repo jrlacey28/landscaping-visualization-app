@@ -69,7 +69,7 @@ export default function Header({ tenant }: HeaderProps) {
                   >
                     <Home className="h-4 w-4" />
                     <div>
-                      <div className="font-medium">Roofing & Siding</div>
+                      <div className="font-medium text-[#000000]">Roofing & Siding</div>
                       <div className="text-xs text-slate-500">AI home exterior visualization</div>
                     </div>
                   </Link>
