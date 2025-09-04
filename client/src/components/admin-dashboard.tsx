@@ -110,21 +110,21 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
                 <svg
                   className="w-5 h-5 text-white"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                 >
                   {/* House */}
-                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                  <path d="M8 20v-6h4v6h3v-8h2L12 3 7 12h1v8z" />
                   {/* Windows */}
-                  <rect x="8.5" y="14" width="1.5" height="1.5" fill="currentColor" opacity="0.8" />
-                  <rect x="14" y="14" width="1.5" height="1.5" fill="currentColor" opacity="0.8" />
-                  <rect x="8.5" y="16.5" width="1.5" height="1.5" fill="currentColor" opacity="0.8" />
-                  <rect x="14" y="16.5" width="1.5" height="1.5" fill="currentColor" opacity="0.8" />
-                  {/* Star */}
-                  <path d="M19 8l-1.5-3-1.5 3-3 1.5 3 1.5 1.5 3 1.5-3 3-1.5z" fill="currentColor" />
+                  <rect x="9" y="14" width="1" height="1" fill="currentColor" opacity="0.8" />
+                  <rect x="11" y="14" width="1" height="1" fill="currentColor" opacity="0.8" />
+                  <rect x="9" y="16" width="1" height="1" fill="currentColor" opacity="0.8" />
+                  <rect x="11" y="16" width="1" height="1" fill="currentColor" opacity="0.8" />
+                  {/* Star - moved further away from house */}
+                  <path d="M20 6l-1-2-1 2-2 1 2 1 1 2 1-2 2-1z" fill="currentColor" />
                 </svg>
               </div>
               <h1 className="text-xl font-bold">
