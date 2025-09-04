@@ -14,7 +14,7 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     id: "natural_stone_curbing",
     name: "Natural Stone Curbing",
     prompt:
-      "Add professional decorative concrete curbing around existing garden beds with natural stone texture. Install continuous poured concrete edging that is textured and colored to mimic natural stone appearance, creating a single-level border (approximately 4-6 inches high) between lawn and landscape beds. The concrete curbing should have a stone-like finish with varied gray and tan earth tones, appearing as one continuous piece with natural stone texture molded into the surface. Keep all existing plants, trees, bushes, and landscape features exactly where they are.",
+      "Add professional decorative concrete curbing around existing garden beds with natural stone texture. Install continuous poured concrete edging that is textured and colored to mimic natural stone appearance, creating a single-level border (approximately 3-4 inches high) between lawn and landscape beds. The concrete curbing should have a stone-like finish with varied gray and tan earth tones, appearing as one continuous piece with natural stone texture molded into the surface. Keep all existing plants, trees, bushes, and landscape features exactly where they are.",
     referenceImageUrl: "https://mycdn.com/natural-stone-curbing.jpg",
     category: "curbing",
     regionType: "border",

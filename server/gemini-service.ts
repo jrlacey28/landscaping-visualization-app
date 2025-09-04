@@ -607,11 +607,72 @@ export async function processLandscapeVisualizationWithGemini({
 
     if (selectedStyles.patios) {
       try {
-        const styleConfig = LANDSCAPE_STYLE_CONFIG[selectedStyles.patios];
+        // Handle new patio spec format: "style|shape|size"
+        const patioSpec = selectedStyles.patios;
+        let styleConfig;
+        let shape = 'rectangular';
+        let size = 'medium';
+        
+        if (patioSpec.includes('|')) {
+          // Parse combined specification
+          const [styleId, shapeSpec, sizeSpec] = patioSpec.split('|');
+          shape = shapeSpec || 'rectangular';
+          size = sizeSpec || 'medium';
+          styleConfig = LANDSCAPE_STYLE_CONFIG[styleId];
+        } else {
+          // Legacy single ID format
+          styleConfig = LANDSCAPE_STYLE_CONFIG[patioSpec];
+        }
+        
         if (styleConfig) {
-          console.log(`✓ Found patio style: ${styleConfig.name}`);
-          modifications.push(styleConfig.prompt);
-          appliedStyles.push(selectedStyles.patios);
+          console.log(`✓ Found patio style: ${styleConfig.name} (${shape}, ${size})`);
+          
+          // Modify the prompt to include shape and size specifications
+          let enhancedPrompt = styleConfig.prompt;
+          
+          // Add shape specifications
+          if (shape === 'curved') {
+            enhancedPrompt = enhancedPrompt.replace(
+              'in an appropriate area of the yard',
+              `in an appropriate area of the yard. Design with flowing curved edges and organic shapes`
+            );
+          } else if (shape === 'circular') {
+            enhancedPrompt = enhancedPrompt.replace(
+              'in an appropriate area of the yard',
+              `in an appropriate area of the yard. Create a perfect circular design`
+            );
+          } else if (shape === 'l_shaped') {
+            enhancedPrompt = enhancedPrompt.replace(
+              'in an appropriate area of the yard',
+              `in an appropriate area of the yard. Design in an L-shaped configuration to maximize corner space`
+            );
+          } else if (shape === 'rectangular') {
+            enhancedPrompt = enhancedPrompt.replace(
+              'in an appropriate area of the yard',
+              `in an appropriate area of the yard. Create clean rectangular design with straight edges`
+            );
+          }
+          
+          // Add size specifications
+          if (size === 'small') {
+            enhancedPrompt = enhancedPrompt.replace(
+              'patio',
+              'small patio (approximately 10x12 feet)'
+            );
+          } else if (size === 'large') {
+            enhancedPrompt = enhancedPrompt.replace(
+              'patio',
+              'large patio (approximately 20x24 feet)'
+            );
+          } else {
+            enhancedPrompt = enhancedPrompt.replace(
+              'patio',
+              'medium patio (approximately 15x18 feet)'
+            );
+          }
+          
+          modifications.push(enhancedPrompt);
+          appliedStyles.push(patioSpec);
         }
       } catch (error) {
         console.log(`❌ Patio style not found: ${selectedStyles.patios}`);

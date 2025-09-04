@@ -93,23 +93,12 @@ export default function LandscapeStyleSelector({
     const newSelection = { ...patioSelection, [field]: value };
     setPatioSelection(newSelection);
     
-    // Generate the patio ID based on selection
-    let patioId = newSelection.style;
-    if (newSelection.shape !== 'rectangular' || newSelection.size !== 'medium') {
-      if (newSelection.shape === 'curved') {
-        patioId = `curved_concrete_patio_${newSelection.size}`;
-      } else if (newSelection.shape === 'rectangular') {
-        patioId = `rectangular_concrete_patio_${newSelection.size}`;
-      } else if (newSelection.shape === 'circular') {
-        patioId = 'circular_concrete_patio';
-      } else if (newSelection.shape === 'l_shaped') {
-        patioId = 'l_shaped_concrete_patio';
-      }
-    }
+    // Create a combined patio specification that preserves the style
+    const patioSpec = `${newSelection.style}|${newSelection.shape}|${newSelection.size}`;
     
     onStyleChange({
       ...selectedStyles,
-      patios: patioId,
+      patios: patioSpec,
     });
   };
 
