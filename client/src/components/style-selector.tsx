@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface StyleSelectorProps {
   selectedStyles: {
@@ -108,24 +109,24 @@ export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSe
               {selectedRoofStyle && (
                 <div>
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
-                  <div className="space-y-3">
-                    {roofColors.map((color) => (
-                      <label key={color.value} className="flex items-center space-x-3 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="roofColor"
-                          value={color.value}
-                          checked={selectedRoofColor === color.value}
-                          onChange={() => {
-                            setSelectedRoofColor(color.value);
-                            handleOptionSelect('roof', `${selectedRoofStyle}_${color.value}`);
-                          }}
-                          className="w-4 h-4 text-white border-white/30 focus:ring-white"
-                        />
-                        <span className="text-sm text-white drop-shadow-sm">{color.label}</span>
-                      </label>
-                    ))}
-                  </div>
+                  <Select
+                    value={selectedRoofColor}
+                    onValueChange={(value) => {
+                      setSelectedRoofColor(value);
+                      handleOptionSelect('roof', `${selectedRoofStyle}_${value}`);
+                    }}
+                  >
+                    <SelectTrigger className="bg-white/90 border-white/30 text-slate-800">
+                      <SelectValue placeholder="Select a color" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roofColors.map((color) => (
+                        <SelectItem key={color.value} value={color.value}>
+                          {color.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>
@@ -146,20 +147,23 @@ export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSe
           </div>
           
           {activeToggles.siding && (
-            <div className="space-y-3">
-              {sidingOptions.map((option) => (
-                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="siding"
-                    value={option.value}
-                    checked={selectedStyles.siding === option.value}
-                    onChange={() => handleOptionSelect('siding', option.value)}
-                    className="w-4 h-4 text-white border-white/30 focus:ring-white"
-                  />
-                  <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
-                </label>
-              ))}
+            <div>
+              <p className="text-sm text-white/80 mb-2">Choose Siding:</p>
+              <Select
+                value={selectedStyles.siding}
+                onValueChange={(value) => handleOptionSelect('siding', value)}
+              >
+                <SelectTrigger className="bg-white/90 border-white/30 text-slate-800">
+                  <SelectValue placeholder="Select siding type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sidingOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
         </div>
