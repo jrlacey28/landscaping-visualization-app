@@ -272,7 +272,7 @@ export default function Home() {
                 </div>
 
                 {/* Feature Selection Section */}
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="text-center">
                     <h3 className="text-2xl font-bold text-slate-800 mb-2">
                       Choose Your Features

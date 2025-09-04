@@ -63,9 +63,6 @@ export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSe
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-6">
-        <p className="text-slate-600">Select the roofing and siding options you'd like to see on your home</p>
-      </div>
 
       <div className="grid md:grid-cols-3 gap-4">
         {/* Roof Card */}

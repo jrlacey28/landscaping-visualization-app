@@ -79,9 +79,6 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange }: Poo
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-6">
-        <p className="text-slate-600">Select the pool features and options you'd like to see in your backyard</p>
-      </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Pool Type Card */}
