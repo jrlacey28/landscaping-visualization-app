@@ -14,7 +14,7 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     id: "natural_stone_curbing",
     name: "Natural Stone Curbing",
     prompt:
-      "Add professional landscape curbing made of structured natural stone blocks around existing garden beds. Install continuous stone block edging with individual rectangular stone pieces placed end-to-end, creating a clean border between lawn and landscape beds. Each stone block should be uniform in height (approximately 4-6 inches), laid flat with tight joints, forming a straight, defined edge. Use natural gray stone blocks in earth tones that create a professional boundary separating grass from mulched/planted areas. Keep all existing plants, trees, bushes, and landscape features exactly where they are.",
+      "Add professional decorative concrete curbing around existing garden beds with natural stone texture. Install continuous poured concrete edging that is textured and colored to mimic natural stone appearance, creating a single-level border (approximately 4-6 inches high) between lawn and landscape beds. The concrete curbing should have a stone-like finish with varied gray and tan earth tones, appearing as one continuous piece with natural stone texture molded into the surface. Keep all existing plants, trees, bushes, and landscape features exactly where they are.",
     referenceImageUrl: "https://mycdn.com/natural-stone-curbing.jpg",
     category: "curbing",
     regionType: "border",
@@ -23,7 +23,7 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     id: "concrete_curbing",
     name: "Concrete Curbing",
     prompt:
-      "Add professional landscape curbing made of structured concrete blocks around existing garden beds. Install continuous concrete block edging with individual rectangular concrete pieces placed end-to-end, creating a clean border between lawn and landscape beds. Each concrete block should be uniform in height (approximately 4-6 inches), laid flat with tight joints, forming a straight, defined edge. Use light gray concrete blocks that create a professional boundary separating grass from mulched/planted areas. Keep all existing plants, trees, bushes, and landscape features exactly where they are.",
+      "Add professional decorative concrete curbing around existing garden beds. Install continuous poured concrete edging that creates a single-level border (approximately 4-6 inches high) between lawn and landscape beds. The concrete curbing should be one continuous piece with smooth light gray finish, professionally formed to create clean garden definition. Keep all existing plants, trees, bushes, and landscape features exactly where they are.",
     referenceImageUrl: "https://mycdn.com/concrete-curbing.jpg",
     category: "curbing",
     regionType: "border",
@@ -32,7 +32,7 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     id: "brick_curbing",
     name: "Brick Curbing",
     prompt:
-      "Add professional landscape curbing made of structured brick blocks around existing garden beds. Install continuous brick block edging with individual rectangular red clay bricks placed end-to-end in soldier course pattern, creating a clean border between lawn and landscape beds. Each brick should be uniform in height (approximately 4-6 inches), laid flat with tight joints, forming a straight, defined edge. Use traditional red clay bricks that create a professional boundary separating grass from mulched/planted areas. Keep all existing plants, trees, bushes, and landscape features exactly where they are.",
+      "Add professional decorative concrete curbing around existing garden beds with brick texture. Install continuous poured concrete edging that is textured and colored to mimic traditional brick appearance, creating a single-level border (approximately 4-6 inches high) between lawn and landscape beds. The concrete curbing should have a brick-like finish with red clay coloring and texture molded into the surface, appearing as one continuous piece. Keep all existing plants, trees, bushes, and landscape features exactly where they are.",
     referenceImageUrl: "https://mycdn.com/brick-curbing.jpg",
     category: "curbing",
     regionType: "border",

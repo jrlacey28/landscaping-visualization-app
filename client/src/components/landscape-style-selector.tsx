@@ -14,6 +14,12 @@ interface LandscapeStyleSelectorProps {
   }) => void;
 }
 
+interface PatioSelection {
+  style: string;
+  shape: string;
+  size: string;
+}
+
 const curbingOptions = [
   { value: "natural_stone_curbing", label: "Natural Stone Curbing" },
   { value: "concrete_curbing", label: "Concrete Curbing" },
@@ -28,11 +34,24 @@ const landscapeOptions = [
   { value: "pine_straw", label: "Pine Straw Mulch" },
 ];
 
-const patioOptions = [
-  { value: "stamped_concrete_patio", label: "Stamped Concrete Patio" },
-  { value: "plain_concrete_patio", label: "Plain Concrete Patio" },
-  { value: "exposed_aggregate_patio", label: "Exposed Aggregate Patio" },
-  { value: "colored_concrete_patio", label: "Colored Concrete Patio" },
+const patioStyles = [
+  { value: "stamped_concrete_patio", label: "Stamped Concrete" },
+  { value: "plain_concrete_patio", label: "Plain Concrete" },
+  { value: "exposed_aggregate_patio", label: "Exposed Aggregate" },
+  { value: "colored_concrete_patio", label: "Colored Concrete" },
+];
+
+const patioShapes = [
+  { value: "rectangular", label: "Rectangular" },
+  { value: "curved", label: "Curved" },
+  { value: "circular", label: "Circular" },
+  { value: "l_shaped", label: "L-Shaped" },
+];
+
+const patioSizes = [
+  { value: "small", label: "Small" },
+  { value: "medium", label: "Medium" },
+  { value: "large", label: "Large" },
 ];
 
 export default function LandscapeStyleSelector({
@@ -43,6 +62,12 @@ export default function LandscapeStyleSelector({
     curbing: !!selectedStyles.curbing,
     landscape: !!selectedStyles.landscape,
     patios: !!selectedStyles.patios,
+  });
+
+  const [patioSelection, setPatioSelection] = useState<PatioSelection>({
+    style: 'plain_concrete_patio',
+    shape: 'rectangular',
+    size: 'medium'
   });
 
   const handleToggleChange = (category: 'curbing' | 'landscape' | 'patios', enabled: boolean) => {
@@ -61,6 +86,30 @@ export default function LandscapeStyleSelector({
     onStyleChange({
       ...selectedStyles,
       [category]: value,
+    });
+  };
+
+  const updatePatioSelection = (field: keyof PatioSelection, value: string) => {
+    const newSelection = { ...patioSelection, [field]: value };
+    setPatioSelection(newSelection);
+    
+    // Generate the patio ID based on selection
+    let patioId = newSelection.style;
+    if (newSelection.shape !== 'rectangular' || newSelection.size !== 'medium') {
+      if (newSelection.shape === 'curved') {
+        patioId = `curved_concrete_patio_${newSelection.size}`;
+      } else if (newSelection.shape === 'rectangular') {
+        patioId = `rectangular_concrete_patio_${newSelection.size}`;
+      } else if (newSelection.shape === 'circular') {
+        patioId = 'circular_concrete_patio';
+      } else if (newSelection.shape === 'l_shaped') {
+        patioId = 'l_shaped_concrete_patio';
+      }
+    }
+    
+    onStyleChange({
+      ...selectedStyles,
+      patios: patioId,
     });
   };
 
@@ -145,20 +194,56 @@ export default function LandscapeStyleSelector({
           </div>
           
           {activeToggles.patios && (
-            <div className="space-y-3">
-              {patioOptions.map((option) => (
-                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="patios"
-                    value={option.value}
-                    checked={selectedStyles.patios === option.value}
-                    onChange={() => handleOptionSelect('patios', option.value)}
-                    className="w-4 h-4 text-white border-white/30 focus:ring-white"
-                  />
-                  <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
-                </label>
-              ))}
+            <div className="space-y-4">
+              {/* Patio Style */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Style</label>
+                <select
+                  value={patioSelection.style}
+                  onChange={(e) => updatePatioSelection('style', e.target.value)}
+                  className="w-full px-3 py-2 text-sm bg-white/20 border border-white/30 rounded-md text-white placeholder-white/70 focus:ring-2 focus:ring-white focus:border-transparent"
+                >
+                  {patioStyles.map((style) => (
+                    <option key={style.value} value={style.value} className="text-gray-900">
+                      {style.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Patio Shape */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Shape</label>
+                <select
+                  value={patioSelection.shape}
+                  onChange={(e) => updatePatioSelection('shape', e.target.value)}
+                  className="w-full px-3 py-2 text-sm bg-white/20 border border-white/30 rounded-md text-white placeholder-white/70 focus:ring-2 focus:ring-white focus:border-transparent"
+                >
+                  {patioShapes.map((shape) => (
+                    <option key={shape.value} value={shape.value} className="text-gray-900">
+                      {shape.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Patio Size - only show for shapes that have size options */}
+              {(patioSelection.shape === 'rectangular' || patioSelection.shape === 'curved') && (
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Size</label>
+                  <select
+                    value={patioSelection.size}
+                    onChange={(e) => updatePatioSelection('size', e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-white/20 border border-white/30 rounded-md text-white placeholder-white/70 focus:ring-2 focus:ring-white focus:border-transparent"
+                  >
+                    {patioSizes.map((size) => (
+                      <option key={size.value} value={size.value} className="text-gray-900">
+                        {size.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           )}
         </div>
