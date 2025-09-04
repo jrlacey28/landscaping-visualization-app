@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PoolStyleSelectorProps {
   selectedStyles: {
@@ -96,23 +95,20 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange }: Poo
           </div>
           
           {activeToggles.poolType && (
-            <div>
-              <p className="text-sm text-white/80 mb-2">Choose Pool Type:</p>
-              <Select
-                value={selectedStyles.poolType}
-                onValueChange={(value) => handleOptionSelect('poolType', value)}
-              >
-                <SelectTrigger className="bg-white/90 border-white/30 text-slate-800">
-                  <SelectValue placeholder="Select pool type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {poolTypes.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              {poolTypes.map((option) => (
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="poolType"
+                    value={option.value}
+                    checked={selectedStyles.poolType === option.value}
+                    onChange={() => handleOptionSelect('poolType', option.value)}
+                    className="w-4 h-4 text-white border-white/30 focus:ring-white"
+                  />
+                  <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
+                </label>
+              ))}
             </div>
           )}
         </div>
@@ -131,23 +127,20 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange }: Poo
           </div>
           
           {activeToggles.poolSize && (
-            <div>
-              <p className="text-sm text-white/80 mb-2">Choose Pool Size:</p>
-              <Select
-                value={selectedStyles.poolSize}
-                onValueChange={(value) => handleOptionSelect('poolSize', value)}
-              >
-                <SelectTrigger className="bg-white/90 border-white/30 text-slate-800">
-                  <SelectValue placeholder="Select pool size" />
-                </SelectTrigger>
-                <SelectContent>
-                  {poolSizes.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              {poolSizes.map((option) => (
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="poolSize"
+                    value={option.value}
+                    checked={selectedStyles.poolSize === option.value}
+                    onChange={() => handleOptionSelect('poolSize', option.value)}
+                    className="w-4 h-4 text-white border-white/30 focus:ring-white"
+                  />
+                  <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
+                </label>
+              ))}
             </div>
           )}
         </div>
@@ -166,23 +159,20 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange }: Poo
           </div>
           
           {activeToggles.decking && (
-            <div>
-              <p className="text-sm text-white/80 mb-2">Choose Decking:</p>
-              <Select
-                value={selectedStyles.decking}
-                onValueChange={(value) => handleOptionSelect('decking', value)}
-              >
-                <SelectTrigger className="bg-white/90 border-white/30 text-slate-800">
-                  <SelectValue placeholder="Select decking type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {deckingOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              {deckingOptions.map((option) => (
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="decking"
+                    value={option.value}
+                    checked={selectedStyles.decking === option.value}
+                    onChange={() => handleOptionSelect('decking', option.value)}
+                    className="w-4 h-4 text-white border-white/30 focus:ring-white"
+                  />
+                  <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
+                </label>
+              ))}
             </div>
           )}
         </div>
@@ -201,23 +191,20 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange }: Poo
           </div>
           
           {activeToggles.landscaping && (
-            <div>
-              <p className="text-sm text-white/80 mb-2">Choose Landscaping:</p>
-              <Select
-                value={selectedStyles.landscaping}
-                onValueChange={(value) => handleOptionSelect('landscaping', value)}
-              >
-                <SelectTrigger className="bg-white/90 border-white/30 text-slate-800">
-                  <SelectValue placeholder="Select landscaping style" />
-                </SelectTrigger>
-                <SelectContent>
-                  {landscapingOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              {landscapingOptions.map((option) => (
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="landscaping"
+                    value={option.value}
+                    checked={selectedStyles.landscaping === option.value}
+                    onChange={() => handleOptionSelect('landscaping', option.value)}
+                    className="w-4 h-4 text-white border-white/30 focus:ring-white"
+                  />
+                  <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
+                </label>
+              ))}
             </div>
           )}
         </div>
@@ -236,23 +223,20 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange }: Poo
           </div>
           
           {activeToggles.features && (
-            <div>
-              <p className="text-sm text-white/80 mb-2">Choose Features:</p>
-              <Select
-                value={selectedStyles.features}
-                onValueChange={(value) => handleOptionSelect('features', value)}
-              >
-                <SelectTrigger className="bg-white/90 border-white/30 text-slate-800">
-                  <SelectValue placeholder="Select special features" />
-                </SelectTrigger>
-                <SelectContent>
-                  {featureOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              {featureOptions.map((option) => (
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="features"
+                    value={option.value}
+                    checked={selectedStyles.features === option.value}
+                    onChange={() => handleOptionSelect('features', option.value)}
+                    className="w-4 h-4 text-white border-white/30 focus:ring-white"
+                  />
+                  <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
+                </label>
+              ))}
             </div>
           )}
         </div>

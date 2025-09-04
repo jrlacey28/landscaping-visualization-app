@@ -25,12 +25,21 @@ const roofColors = [
   { value: "forest_green", label: "Forest Green" },
 ];
 
-const sidingOptions = [
-  { value: "vinyl_siding_white", label: "Vinyl Siding - White" },
-  { value: "vinyl_siding_gray", label: "Vinyl Siding - Gray" },
-  { value: "fiber_cement_beige", label: "Fiber Cement - Beige" },
-  { value: "wood_siding_natural", label: "Wood Siding - Natural" },
-  { value: "brick_veneer_red", label: "Brick Veneer - Red" },
+const sidingStyles = [
+  { value: "vinyl_siding", label: "Vinyl Siding" },
+  { value: "fiber_cement", label: "Fiber Cement" },
+  { value: "wood_siding", label: "Wood Siding" },
+  { value: "brick_veneer", label: "Brick Veneer" },
+];
+
+const sidingColors = [
+  { value: "white", label: "White" },
+  { value: "gray", label: "Gray" },
+  { value: "beige", label: "Beige" },
+  { value: "natural", label: "Natural" },
+  { value: "red", label: "Red" },
+  { value: "brown", label: "Brown" },
+  { value: "tan", label: "Tan" },
 ];
 
 export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSelectorProps) {
@@ -42,6 +51,8 @@ export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSe
   
   const [selectedRoofStyle, setSelectedRoofStyle] = useState("");
   const [selectedRoofColor, setSelectedRoofColor] = useState("");
+  const [selectedSidingStyle, setSelectedSidingStyle] = useState("");
+  const [selectedSidingColor, setSelectedSidingColor] = useState("");
 
   const handleToggleChange = (category: 'roof' | 'siding' | 'surpriseMe', enabled: boolean) => {
     setActiveToggles(prev => ({ ...prev, [category]: enabled }));
@@ -147,23 +158,55 @@ export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSe
           </div>
           
           {activeToggles.siding && (
-            <div>
-              <p className="text-sm text-white/80 mb-2">Choose Siding:</p>
-              <Select
-                value={selectedStyles.siding}
-                onValueChange={(value) => handleOptionSelect('siding', value)}
-              >
-                <SelectTrigger className="bg-white/90 border-white/30 text-slate-800">
-                  <SelectValue placeholder="Select siding type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sidingOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
+            <div className="space-y-3">
+              {/* Siding Style Selection */}
+              <div>
+                <p className="text-sm text-white/80 mb-2">Choose Style:</p>
+                <div className="space-y-3">
+                  {sidingStyles.map((style) => (
+                    <label key={style.value} className="flex items-center space-x-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="sidingStyle"
+                        value={style.value}
+                        checked={selectedSidingStyle === style.value}
+                        onChange={() => {
+                          setSelectedSidingStyle(style.value);
+                          setSelectedSidingColor(""); // Reset color when style changes
+                          handleOptionSelect('siding', '');
+                        }}
+                        className="w-4 h-4 text-white border-white/30 focus:ring-white"
+                      />
+                      <span className="text-sm text-white drop-shadow-sm">{style.label}</span>
+                    </label>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              </div>
+              
+              {/* Siding Color Selection */}
+              {selectedSidingStyle && (
+                <div>
+                  <p className="text-sm text-white/80 mb-2">Choose Color:</p>
+                  <Select
+                    value={selectedSidingColor}
+                    onValueChange={(value) => {
+                      setSelectedSidingColor(value);
+                      handleOptionSelect('siding', `${selectedSidingStyle}_${value}`);
+                    }}
+                  >
+                    <SelectTrigger className="bg-white/90 border-white/30 text-slate-800">
+                      <SelectValue placeholder="Select a color" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sidingColors.map((color) => (
+                        <SelectItem key={color.value} value={color.value}>
+                          {color.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
         </div>
