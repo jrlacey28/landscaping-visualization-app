@@ -73,137 +73,6 @@ export default function Landscape() {
     "--secondary": tenant.secondaryColor,
   } as React.CSSProperties;
 
-  const handleFileSelect = (file: File, previewUrl: string) => {
-    setOriginalFile(file);
-    setUploadedImage(previewUrl);
-    setGeneratedImage(null);
-    setLandscapeVisualizationResult(null);
-  };
-
-  const handleRemoveImage = () => {
-    setUploadedImage(null);
-    setOriginalFile(null);
-    setGeneratedImage(null);
-    setLandscapeVisualizationResult(null);
-    setSelectedLandscapeStyles({
-      curbing: "",
-      landscape: "",
-      patios: "",
-    });
-  };
-
-  const hasSelectedStyles = () => {
-    return Object.values(selectedLandscapeStyles).some(style => style !== "");
-  };
-
-  const handleGenerateVisualization = async () => {
-    if (!originalFile || !hasSelectedStyles()) return;
-
-    setIsGenerating(true);
-    setIsLoading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("image", originalFile);
-      formData.append("selectedCurbing", selectedLandscapeStyles.curbing);
-      formData.append("selectedLandscape", selectedLandscapeStyles.landscape);
-      formData.append("selectedPatios", selectedLandscapeStyles.patios);
-
-      console.log("Uploading landscape visualization with styles:", selectedLandscapeStyles);
-
-      const result = await uploadLandscapeImage(formData);
-      const visualizationId = result.landscapeVisualizationId;
-
-      if (result.generatedImageUrl) {
-        setGeneratedImage(result.generatedImageUrl);
-        setLandscapeVisualizationResult(result);
-        setIsGenerating(false);
-        setIsLoading(false);
-      } else {
-        // Poll for completion
-        const pollForCompletion = async () => {
-          let attempts = 0;
-          const maxAttempts = 60; // 5 minutes max
-
-          const poll = async () => {
-            try {
-              attempts++;
-              const status = await checkLandscapeVisualizationStatus(visualizationId);
-              
-              if (status.generatedImageUrl) {
-                setGeneratedImage(status.generatedImageUrl);
-                setLandscapeVisualizationResult(status);
-                setIsGenerating(false);
-                setIsLoading(false);
-                return;
-              }
-
-              if (status.status === "failed") {
-                throw new Error("Landscape visualization failed");
-              }
-
-              if (attempts < maxAttempts) {
-                setTimeout(poll, 5000); // Poll every 5 seconds
-              } else {
-                throw new Error("Landscape visualization timed out");
-              }
-            } catch (error) {
-              console.error("Error polling landscape status:", error);
-              setIsGenerating(false);
-              setIsLoading(false);
-            }
-          };
-
-          poll();
-        };
-
-        pollForCompletion();
-      }
-    } catch (error) {
-      console.error("Error generating landscape visualization:", error);
-      setIsGenerating(false);
-      setIsLoading(false);
-    }
-  };
-
-  const downloadImage = () => {
-    const imageUrl = showingOriginal ? uploadedImage : generatedImage;
-    if (!imageUrl) return;
-
-    const link = document.createElement("a");
-    link.href = imageUrl;
-    link.download = showingOriginal ? "original-landscape.jpg" : "landscape-visualization.jpg";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const shareToSocial = (platform: string) => {
-    const imageUrl = generatedImage;
-    if (!imageUrl) return;
-
-    const text = encodeURIComponent(`Check out my new landscape design created with ${tenant.companyName}!`);
-    let shareUrl = "";
-
-    switch (platform) {
-      case "facebook":
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(imageUrl)}&quote=${text}`;
-        break;
-      case "twitter":
-        shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(imageUrl)}`;
-        break;
-      case "instagram":
-        // Instagram doesn't support direct sharing, so we'll just copy the image URL
-        navigator.clipboard.writeText(imageUrl);
-        alert("Image URL copied! You can paste it in Instagram.");
-        return;
-    }
-
-    if (shareUrl) {
-      window.open(shareUrl, "_blank", "width=600,height=400");
-    }
-  };
-
   return (
     <div
       className="min-h-screen bg-gradient-to-br from-green-800 via-emerald-700 to-teal-700"
@@ -232,197 +101,450 @@ export default function Landscape() {
               <CardContent className="p-12">
                 <div className="text-center mb-8">
                   <h3 className="text-3xl font-bold text-slate-800 mb-4">
-                    Upload Your Home Photo
+                    Upload Your Yard Photo
                   </h3>
                   <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                    Take or upload a clear photo of your home's front or back yard to see amazing
-                    transformation possibilities
+                    Take or upload a clear photo of your yard
+                    to see amazing landscape design possibilities
                   </p>
                 </div>
-
                 <FileUpload
-                  onFileSelect={handleFileSelect}
+                  onFileSelect={(file, previewUrl) => {
+                    setOriginalFile(file);
+                    setUploadedImage(previewUrl);
+                  }}
                   uploadedImage={uploadedImage}
                   theme="default"
                 />
-
-                <div className="text-center mt-6">
-                  <p className="text-sm text-slate-500">
-                    Clear and well lit images work the best
-                  </p>
+              </CardContent>
+            </Card>
+          ) : generatedImage ? (
+            <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
+              <CardContent className="p-8">
+                <div className="mb-6">
+                  <img
+                    src={showingOriginal ? uploadedImage : generatedImage}
+                    alt={
+                      showingOriginal
+                        ? "Original photo"
+                        : "AI Generated landscape design"
+                    }
+                    className="w-full aspect-video object-cover rounded-xl shadow-lg"
+                  />
                 </div>
+
+                {/* Top row with three buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                    onClick={() => {
+                      const img = document.createElement("img");
+                      img.crossOrigin = "anonymous";
+                      img.onload = function () {
+                        const canvas = document.createElement("canvas");
+                        const ctx = canvas.getContext("2d");
+                        if (ctx) {
+                          canvas.width = img.width;
+                          canvas.height = img.height;
+                          ctx.drawImage(img, 0, 0);
+                          canvas.toBlob(
+                            (blob) => {
+                              if (blob) {
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = "landscape-design.jpg";
+                                a.click();
+                                URL.revokeObjectURL(url);
+                              }
+                            },
+                            "image/jpeg",
+                            0.9,
+                          );
+                        }
+                      };
+                      img.src = generatedImage;
+                    }}
+                  >
+                    <Download className="h-5 w-5 mr-2" />
+                    Download Image
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                    onClick={() => setShowingOriginal(!showingOriginal)}
+                  >
+                    <Eye className="h-5 w-5 mr-2" />
+                    {showingOriginal
+                      ? "View Landscape Design"
+                      : "View Original Photo"}
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                    onClick={() => {
+                      setUploadedImage(null);
+                      setGeneratedImage(null);
+                      setSelectedLandscapeStyles({
+                        curbing: "",
+                        landscape: "",
+                        patios: "",
+                      });
+                    }}
+                  >
+                    <Camera className="h-5 w-5 mr-2" />
+                    Try Another Photo
+                  </Button>
+                </div>
+
+                {/* Get Free Quote button */}
+                <Button
+                  size="lg"
+                  className="w-full bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-700 hover:via-teal-600 hover:to-emerald-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
+                  onClick={() => setShowLeadForm(true)}
+                >
+                  <Phone className="h-5 w-5 mr-2" />
+                  Get Free Quote
+                </Button>
               </CardContent>
             </Card>
           ) : (
-            <>
-              {/* Image and Style Selection */}
-              <div className="grid lg:grid-cols-2 gap-8 mb-8">
-                {/* Image Preview */}
-                <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-semibold text-slate-800">
-                        {showingOriginal ? "Original Photo" : generatedImage ? "Landscape Design" : "Your Photo"}
-                      </h3>
-                      <div className="flex gap-2">
-                        {generatedImage && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowingOriginal(!showingOriginal)}
-                            className="flex items-center gap-2"
-                          >
-                            <Eye className="w-4 h-4" />
-                            {showingOriginal ? "Show Design" : "Show Original"}
-                          </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleRemoveImage}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="relative rounded-lg overflow-hidden bg-slate-100">
+            <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
+              <CardContent className="p-8">
+                {/* Just show the uploaded image at the top */}
+                <div className="text-center mb-8">
+                  <div className="max-w-4xl mx-auto relative">
+                    <div className="relative overflow-hidden rounded-xl">
                       <img
-                        src={showingOriginal ? uploadedImage! : generatedImage || uploadedImage!}
-                        alt={showingOriginal ? "Original" : "Landscape Design"}
-                        className="w-full h-auto"
+                        src={uploadedImage}
+                        alt="Uploaded yard photo"
+                        className="w-full aspect-video object-cover shadow-lg transition-all duration-300"
                       />
-                      {isGenerating && !generatedImage && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                          <div className="text-center text-white">
-                            <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                            <p className="text-sm">Creating your landscape design...</p>
+                      {isGenerating && (
+                        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                          <div className="text-center">
+                            <SparklesText
+                              text="Designing your perfect landscape..."
+                              className="text-sm sm:text-lg lg:text-xl font-bold text-white whitespace-nowrap"
+                              sparklesCount={12}
+                              colors={{ first: "#10b981", second: "#14b8a6" }}
+                            />
                           </div>
                         </div>
                       )}
                     </div>
-
-                    {generatedImage && (
-                      <div className="mt-4 flex gap-2 flex-wrap">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={downloadImage}
-                          className="flex items-center gap-2"
-                        >
-                          <Download className="w-4 h-4" />
-                          Download
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => shareToSocial("facebook")}
-                          className="flex items-center gap-2"
-                        >
-                          <Facebook className="w-4 h-4" />
-                          Facebook
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => shareToSocial("twitter")}
-                          className="flex items-center gap-2"
-                        >
-                          <Twitter className="w-4 h-4" />
-                          Twitter
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => shareToSocial("instagram")}
-                          className="flex items-center gap-2"
-                        >
-                          <Instagram className="w-4 h-4" />
-                          Instagram
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Style Selection */}
-                <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-semibold text-slate-800 mb-4">
-                      Choose Your Landscape Features
-                    </h3>
-                    
-                    <LandscapeStyleSelector
-                      selectedStyles={selectedLandscapeStyles}
-                      onStyleChange={setSelectedLandscapeStyles}
-                    />
-
-                    <div className="mt-6">
+                    <div className="flex justify-center gap-2 mt-4">
                       <Button
-                        onClick={handleGenerateVisualization}
-                        disabled={!hasSelectedStyles() || isGenerating}
-                        className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white py-3 text-lg font-semibold"
+                        variant="outline"
+                        onClick={() => {
+                          setUploadedImage(null);
+                          setSelectedLandscapeStyles({
+                            curbing: "",
+                            landscape: "",
+                            patios: "",
+                          });
+                        }}
+                        className="border-slate-400 text-slate-600 hover:bg-slate-100"
                       >
-                        {isGenerating ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Creating Design...
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Sparkles className="w-5 h-5" />
-                            Generate Landscape Design
-                          </div>
-                        )}
+                        <FileImage className="h-4 w-4 mr-2" />
+                        Choose Different Photo
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                  </div>
+                </div>
 
-              {/* Lead Capture */}
-              {generatedImage && !showLeadForm && (
-                <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
-                  <CardContent className="p-8 text-center">
-                    <h3 className="text-2xl font-bold text-slate-800 mb-4">
-                      Love Your New Landscape Design?
+                {/* Landscape Feature Selection Section */}
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <h3 className="text-2xl font-bold text-slate-800 mb-2">
+                      Choose Your Landscape Features
                     </h3>
-                    <p className="text-lg text-slate-600 mb-6">
-                      Get a free consultation with {tenant.companyName} to make this vision a reality!
+                    <p className="text-slate-600">
+                      Select the landscape options you'd like to see in your yard
                     </p>
-                    <Button
-                      onClick={() => setShowLeadForm(true)}
-                      className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-8 py-3 text-lg font-semibold"
-                    >
-                      <Phone className="w-5 h-5 mr-2" />
-                      Get Free Consultation
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+                  </div>
 
-              {/* Lead Capture Form */}
-              {showLeadForm && (
-                <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
-                  <CardContent className="p-8">
-                    <LeadCaptureForm
-                      tenant={tenant}
-                      selectedStyles={selectedLandscapeStyles}
-                      originalImageUrl={uploadedImage}
-                      generatedImageUrl={generatedImage}
-                      onClose={() => {
-                        setShowLeadForm(false);
-                        // Optionally show success message
+                  <LandscapeStyleSelector
+                    selectedStyles={selectedLandscapeStyles}
+                    onStyleChange={setSelectedLandscapeStyles}
+                  />
+
+                  <Button
+                    size="lg"
+                    className="w-full bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-700 hover:via-teal-600 hover:to-emerald-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={
+                      isGenerating ||
+                      !(
+                        selectedLandscapeStyles.curbing ||
+                        selectedLandscapeStyles.landscape ||
+                        selectedLandscapeStyles.patios
+                      )
+                    }
+                    onClick={async () => {
+                      setIsGenerating(true);
+                      setLandscapeVisualizationResult(null);
+                      try {
+                        // Use original file to preserve maximum quality
+                        if (!originalFile) {
+                          alert(
+                            "Original file not found. Please re-upload your image.",
+                          );
+                          setIsGenerating(false);
+                          return;
+                        }
+
+                        // Upload image and generate landscape AI visualization
+                        const result = await uploadLandscapeImage(
+                          originalFile,
+                          tenant.id,
+                          selectedLandscapeStyles,
+                        );
+
+                        if (result.landscapeVisualizationId) {
+                          // Check status immediately since Gemini processes instantly
+                          const status = await checkLandscapeVisualizationStatus(
+                            result.landscapeVisualizationId,
+                          );
+                          setLandscapeVisualizationResult(status);
+
+                          if (
+                            status.status === "completed" &&
+                            status.generatedImageUrl
+                          ) {
+                            // Gemini workflow completed immediately
+                            setGeneratedImage(status.generatedImageUrl);
+                            setIsGenerating(false);
+                          } else if (status.status === "failed") {
+                            console.error("Landscape AI generation failed");
+                            setIsGenerating(false);
+                            alert(
+                              "Unable to generate landscape visualization. Please check your connection and try again.",
+                            );
+                          } else {
+                            // Fall back to polling for any edge cases
+                            const pollInterval = setInterval(async () => {
+                              try {
+                                const polledStatus =
+                                  await checkLandscapeVisualizationStatus(
+                                    result.landscapeVisualizationId,
+                                  );
+                                setLandscapeVisualizationResult(polledStatus);
+                                if (
+                                  polledStatus.status === "completed" &&
+                                  polledStatus.generatedImageUrl
+                                ) {
+                                  setGeneratedImage(
+                                    polledStatus.generatedImageUrl,
+                                  );
+                                  setIsGenerating(false);
+                                  clearInterval(pollInterval);
+                                } else if (polledStatus.status === "failed") {
+                                  console.error("Landscape AI generation failed");
+                                  setIsGenerating(false);
+                                  clearInterval(pollInterval);
+                                  alert(
+                                    "Landscape AI generation failed. Please try again or contact support if the issue persists.",
+                                  );
+                                }
+                              } catch (error) {
+                                console.error("Error checking landscape status:", error);
+                                setIsGenerating(false);
+                                clearInterval(pollInterval);
+                              }
+                            }, 2000);
+
+                            // Timeout after 1 minute (reduced since Gemini is fast)
+                            setTimeout(() => {
+                              clearInterval(pollInterval);
+                              if (isGenerating) {
+                                setIsGenerating(false);
+                                alert(
+                                  "Processing timed out. Please try again.",
+                                );
+                              }
+                            }, 60000);
+                          }
+                        }
+                      } catch (error) {
+                        console.error("Error generating landscape visualization:", error);
+                        setIsGenerating(false);
+                        alert(
+                          "Unable to generate landscape visualization. Please check your connection and try again.",
+                        );
+                      }
+                    }}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Generating Your Landscape Design...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-5 w-5 mr-2" />
+                        Generate AI Landscape Design
+                      </>
+                    )}
+                  </Button>
+
+                  {!selectedLandscapeStyles.curbing &&
+                    !selectedLandscapeStyles.landscape &&
+                    !selectedLandscapeStyles.patios && (
+                      <p className="text-sm text-slate-500 text-center">
+                        Please select at least one landscape feature option to generate
+                        your design
+                      </p>
+                    )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Render landscape visualization results */}
+          {landscapeVisualizationResult && (
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4 text-center text-white">
+                Your Landscape Design
+              </h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-sm font-medium mb-2 text-white">
+                    Original
+                  </h4>
+                  <img
+                    src={uploadedImage || ""}
+                    alt="Original"
+                    className="w-full h-auto rounded-lg shadow-md"
+                  />
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-2 text-white">
+                    Landscape Design
+                  </h4>
+                  {landscapeVisualizationResult.status === "completed" &&
+                  landscapeVisualizationResult.generatedImageUrl ? (
+                    <img
+                      src={landscapeVisualizationResult.generatedImageUrl}
+                      alt="Enhanced landscape design"
+                      className="w-full h-auto rounded-lg shadow-md"
+                      onError={(e) => {
+                        console.error(
+                          "Image failed to load:",
+                          landscapeVisualizationResult.generatedImageUrl,
+                        );
+                        e.currentTarget.style.display = "none";
+                        const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (nextElement) nextElement.style.display = "flex";
                       }}
                     />
-                  </CardContent>
-                </Card>
-              )}
-            </>
+                  ) : landscapeVisualizationResult.status === "failed" ? (
+                    <div className="w-full h-64 bg-red-50 border-2 border-red-200 rounded-lg flex items-center justify-center">
+                      <p className="text-red-600">
+                        Landscape design generation failed
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="w-full h-64 bg-emerald-50 border-2 border-emerald-200 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                        <p className="text-emerald-600">Generating landscape design...</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </main>
+
+      {/* Lead Capture Form Modal */}
+      {showLeadForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <LeadCaptureForm
+              tenant={tenant}
+              originalImageUrl={uploadedImage}
+              generatedImageUrl={generatedImage}
+              selectedStyles={selectedLandscapeStyles}
+              onClose={() => setShowLeadForm(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="bg-slate-900/50 border-t border-slate-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col space-y-6 md:grid md:grid-cols-3 md:items-center md:space-y-0">
+            {/* Left side - Logo and company */}
+            <div className="flex items-center justify-center space-x-3 md:justify-start">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 via-teal-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-6 h-6 text-white"
+                  viewBox="0 0 128.37 135.86"
+                  fill="currentColor"
+                  style={{ transform: 'translate(0.5px, -0.5px)' }}
+                >
+                  <path fill="#fff" d="M111.98,78.77L56.63,23.24.92,78.76c-1.23,1.22-1.23,3.21,0,4.44,1.22,1.23,3.21,1.23,4.43,0l10.33-10.3v59.82c0,1.73,1.4,3.14,3.14,3.14h21.95c1.73,0,3.14-1.4,3.14-3.14v-25.09c0-3.46,2.81-6.27,6.27-6.27h12.54c3.46,0,6.27,2.81,6.27,6.27v25.09c0,1.73,1.4,3.14,3.14,3.14h21.95c1.73,0,3.14-1.4,3.14-3.14v-59.89l10.32,10.36c1.22,1.23,3.21,1.23,4.43,0,1.23-1.22,1.23-3.21,0-4.43Z"/>
+                  <path fill="#fff" d="M102.82,0c-2.69,20.69-4.87,22.87-25.55,25.55,20.69,2.69,22.87,4.87,25.55,25.55,2.69-20.69,4.87-22.87,25.55-25.55-20.69-2.69-22.87-4.87-25.55-25.55Z"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-white font-semibold">{tenant.companyName}</p>
+                <p className="text-slate-400 text-sm">
+                  Powered by Solst LLC
+                </p>
+              </div>
+            </div>
+
+            {/* Center - Business Info */}
+            <div className="flex flex-col items-center space-y-2 text-center md:flex-row md:justify-center md:space-y-0 md:space-x-6">
+              {tenant.address && (
+                <p className="text-slate-300 text-sm">
+                  {tenant.address}
+                </p>
+              )}
+              {tenant.phone && (
+                <p className="text-slate-300 text-sm">
+                  {tenant.phone}
+                </p>
+              )}
+            </div>
+
+            {/* Right side - Social links */}
+            <div className="flex items-center justify-center space-x-4 md:justify-end">
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <Facebook className="h-5 w-5" />
+              </a>
+              <a
+                href="https://twitter.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <Twitter className="h-5 w-5" />
+              </a>
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <Instagram className="h-5 w-5" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

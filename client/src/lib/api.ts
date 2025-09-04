@@ -244,20 +244,33 @@ export const checkPoolVisualizationStatus = async (poolVisualizationId: number) 
 };
 
 // Landscape-specific API functions
-export const uploadLandscapeImage = async (formData: FormData) => {
-  const response = await fetch("/api/landscape/upload", {
-    method: "POST",
+export const uploadLandscapeImage = async (file: File, tenantId: number, selectedLandscapeStyles: any) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  formData.append('tenantId', tenantId.toString());
+
+  // Format the selected landscape styles to match backend expectations
+  const curbingValue = selectedLandscapeStyles.curbing || '';
+  const landscapeValue = selectedLandscapeStyles.landscape || '';
+  const patiosValue = selectedLandscapeStyles.patios || '';
+
+  formData.append('selectedCurbing', curbingValue);
+  formData.append('selectedLandscape', landscapeValue);
+  formData.append('selectedPatios', patiosValue);
+
+  const response = await fetch('/api/landscape/upload', {
+    method: 'POST',
     body: formData,
-    credentials: "include",
+    credentials: 'include',
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
 
     // Clean up any error messages
-    let errorMessage = errorData.error || "Unknown error";
-    if (errorMessage.includes("AI") || errorMessage.includes("processing")) {
-      errorMessage = "Landscape AI processing failed. Please try again.";
+    let errorMessage = errorData.error || 'Unknown error';
+    if (errorMessage.includes('AI') || errorMessage.includes('processing')) {
+      errorMessage = 'Landscape AI processing failed. Please try again.';
     }
 
     throw new Error(`Landscape upload failed: ${errorMessage}`);
