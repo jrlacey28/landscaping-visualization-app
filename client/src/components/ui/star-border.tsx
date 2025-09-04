@@ -23,8 +23,8 @@ export function StarBorder<T extends ElementType = "button">({
     <Component 
       className={cn(
         "relative overflow-hidden rounded-[50px] transition-all duration-300 hover:scale-105",
-        "bg-gradient-to-r from-blue-600 via-cyan-500 to-green-600",
-        "hover:from-blue-700 hover:via-cyan-600 hover:to-green-700",
+        "bg-gradient-to-r from-blue-600 via-green-500 to-blue-600",
+        "hover:from-blue-700 hover:via-green-600 hover:to-blue-700",
         "text-white font-semibold py-3 px-16 text-center shadow-lg hover:shadow-xl",
         className
       )} 
