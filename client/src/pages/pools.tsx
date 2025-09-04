@@ -280,7 +280,7 @@ export default function Pools() {
 
                   <Button
                     size="lg"
-                    className="w-full bg-gradient-to-r from-[#718ae1] via-[#dc6d73] to-[#718ae1] hover:from-[#8299e8] hover:via-[#e67d84] hover:to-[#8299e8] text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-gradient-to-r from-blue-600 via-green-500 to-blue-600 hover:from-blue-700 hover:via-green-600 hover:to-blue-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={
                       isGenerating ||
                       !(
