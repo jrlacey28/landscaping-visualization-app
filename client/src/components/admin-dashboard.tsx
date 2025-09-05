@@ -43,6 +43,11 @@ export default function AdminDashboard() {
       enabled: !!mockTenantId,
     });
 
+  const { data: usageStats, isLoading: usageLoading } = useQuery({
+    queryKey: [`/api/tenants/${mockTenantId}/usage`],
+    enabled: !!mockTenantId,
+  });
+
   const updateTenantMutation = useMutation({
     mutationFn: async (data: Partial<Tenant>) => {
       return apiRequest("PATCH", `/api/tenants/${mockTenantId}`, data);
@@ -212,14 +217,33 @@ export default function AdminDashboard() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Conversion Rate
+                    Total Images Generated
                   </CardTitle>
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">24.5%</div>
+                  <div className="text-2xl font-bold">
+                    {usageLoading ? '...' : (usageStats?.totals?.totalGenerations || 0)}
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    +3% from last month
+                    Past 30 days
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Landscape Generations
+                  </CardTitle>
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {usageLoading ? '...' : (usageStats?.totals?.landscapeGenerations || 0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Past 30 days
                   </p>
                 </CardContent>
               </Card>

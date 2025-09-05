@@ -612,6 +612,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get usage statistics for tenant
+  app.get("/api/tenants/:tenantId/usage", async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const { days } = req.query;
+      
+      const stats = await storage.getUsageStats(
+        parseInt(tenantId), 
+        days ? parseInt(days as string) : 30
+      );
+      
+      // Calculate totals
+      const totals = stats.reduce((acc, stat) => ({
+        totalGenerations: acc.totalGenerations + stat.totalGenerations,
+        imageGenerations: acc.imageGenerations + stat.imageGenerations,
+        landscapeGenerations: acc.landscapeGenerations + stat.landscapeGenerations,
+        poolGenerations: acc.poolGenerations + stat.poolGenerations,
+      }), {
+        totalGenerations: 0,
+        imageGenerations: 0,
+        landscapeGenerations: 0,
+        poolGenerations: 0,
+      });
+
+      res.json({
+        stats,
+        totals,
+        period: `${days || 30} days`
+      });
+    } catch (error) {
+      console.error("Error fetching usage stats:", error);
+      res.status(500).json({ error: "Failed to fetch usage statistics" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

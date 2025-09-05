@@ -198,8 +198,17 @@ export default function EmbedPage() {
                     size="lg"
                     className="w-full bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-700 hover:via-teal-600 hover:to-emerald-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
                     onClick={() => {
-                      // Handle quote request - could show a form or redirect
-                      alert('Contact form would appear here for quote request');
+                      const contactPhone = tenant.contactPhone || tenant.phone || '(555) 123-4567';
+                      const message = encodeURIComponent(`Hi! I'm interested in getting a free quote for landscape design. I just tried your landscape visualizer and would like to discuss my project.`);
+                      
+                      if (contactPhone.startsWith('(') || contactPhone.startsWith('+')) {
+                        // Phone number format - open phone app
+                        const cleanPhone = contactPhone.replace(/[\(\)\-\s]/g, '');
+                        window.open(`tel:${cleanPhone}`, '_self');
+                      } else {
+                        // Email or other contact method
+                        window.open(`mailto:${tenant.email || 'info@company.com'}?subject=Landscape Design Quote Request&body=${message}`, '_blank');
+                      }
                     }}
                   >
                     <Phone className="h-5 w-5 mr-2" />

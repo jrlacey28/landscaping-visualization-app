@@ -19,12 +19,13 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
     primaryColor: "#10b981",
     secondaryColor: "#059669",
     companyName: tenant.companyName,
+    contactPhone: tenant.contactPhone || tenant.phone || "",
   });
   
   const [copied, setCopied] = useState(false);
   
   const baseUrl = window.location.origin;
-  const embedUrl = `${baseUrl}/embed?tenant=${tenant.slug}&primaryColor=${encodeURIComponent(config.primaryColor)}&secondaryColor=${encodeURIComponent(config.secondaryColor)}&companyName=${encodeURIComponent(config.companyName)}&showHeader=${config.showHeader}`;
+  const embedUrl = `${baseUrl}/embed?tenant=${tenant.slug}&primaryColor=${encodeURIComponent(config.primaryColor)}&secondaryColor=${encodeURIComponent(config.secondaryColor)}&companyName=${encodeURIComponent(config.companyName)}&contactPhone=${encodeURIComponent(config.contactPhone)}&showHeader=${config.showHeader}`;
   
   const iframeCode = `<iframe 
   src="${embedUrl}"
@@ -94,6 +95,16 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
               value={config.companyName}
               onChange={(e) => setConfig({ ...config, companyName: e.target.value })}
               placeholder="Your Company Name"
+            />
+          </div>
+          
+          <div className="md:col-span-2">
+            <Label htmlFor="contactPhone">Contact Phone for Quote Button</Label>
+            <Input
+              id="contactPhone"
+              value={config.contactPhone}
+              onChange={(e) => setConfig({ ...config, contactPhone: e.target.value })}
+              placeholder="(555) 123-4567"
             />
           </div>
           

@@ -11,6 +11,7 @@ export const tenants = pgTable("tenants", {
   primaryColor: text("primary_color").default("#2563EB"),
   secondaryColor: text("secondary_color").default("#059669"),
   phone: text("phone"),
+  contactPhone: text("contact_phone"), // Separate contact phone for lead capture
   email: text("email"),
   address: text("address"),
   description: text("description"),
@@ -111,6 +112,23 @@ export const landscapeVisualizationsRelations = relations(landscapeVisualization
   }),
 }));
 
+export const usageStats = pgTable("usage_stats", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  date: timestamp("date").defaultNow(),
+  imageGenerations: integer("image_generations").default(0),
+  landscapeGenerations: integer("landscape_generations").default(0),
+  poolGenerations: integer("pool_generations").default(0),
+  totalGenerations: integer("total_generations").default(0),
+});
+
+export const usageStatsRelations = relations(usageStats, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [usageStats.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
 export const insertTenantSchema = createInsertSchema(tenants).omit({
   id: true,
   createdAt: true,
@@ -146,3 +164,9 @@ export type PoolVisualization = typeof poolVisualizations.$inferSelect;
 export type InsertPoolVisualization = z.infer<typeof insertPoolVisualizationSchema>;
 export type LandscapeVisualization = typeof landscapeVisualizations.$inferSelect;
 export type InsertLandscapeVisualization = z.infer<typeof insertLandscapeVisualizationSchema>;
+export type UsageStats = typeof usageStats.$inferSelect;
+
+export const insertUsageStatsSchema = createInsertSchema(usageStats).omit({
+  id: true,
+  date: true,
+});
