@@ -28,36 +28,47 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [selectedTenantForStats, setSelectedTenantForStats] = useState<number>(1); // Default to mockTenantId
 
   // For demo purposes, we'll use a mock tenant ID
   const mockTenantId = 1;
 
+  const { data: allTenants = [] } = useQuery<Tenant[]>({
+    queryKey: ["/api/tenants"],
+  });
+
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
-    queryKey: [`/api/tenants/${mockTenantId}/leads`],
-    enabled: !!mockTenantId,
+    queryKey: [`/api/tenants/${selectedTenantForStats}/leads`],
+    enabled: !!selectedTenantForStats,
   });
 
   const { data: visualizations = [], isLoading: visualizationsLoading } =
     useQuery({
-      queryKey: [`/api/tenants/${mockTenantId}/visualizations`],
-      enabled: !!mockTenantId,
+      queryKey: [`/api/tenants/${selectedTenantForStats}/visualizations`],
+      enabled: !!selectedTenantForStats,
+    });
+
+    const { data: selectedTenantLandscapeViz = [], isLoading: landscapeVizLoading } =
+    useQuery({
+      queryKey: [`/api/tenants/${selectedTenantForStats}/landscape-visualizations`],
+      enabled: !!selectedTenantForStats,
     });
 
   const { data: usageStats, isLoading: usageLoading } = useQuery({
-    queryKey: [`/api/tenants/${mockTenantId}/usage`],
-    enabled: !!mockTenantId,
+    queryKey: [`/api/tenants/${selectedTenantForStats}/usage`],
+    enabled: !!selectedTenantForStats,
   });
 
   const updateTenantMutation = useMutation({
     mutationFn: async (data: Partial<Tenant>) => {
-      return apiRequest("PATCH", `/api/tenants/${mockTenantId}`, data);
+      return apiRequest("PATCH", `/api/tenants/${selectedTenantForStats}`, data);
     },
     onSuccess: () => {
       toast({
         title: "Settings Updated",
         description: "Your branding and settings have been saved successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/tenant/demo`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/tenant/${selectedTenantForStats}`] });
     },
     onError: (error: any) => {
       toast({
@@ -70,7 +81,7 @@ export default function AdminDashboard() {
 
   // Load current tenant data
   const { data: currentTenant } = useQuery({
-    queryKey: [`/api/tenant/demo`],
+    queryKey: [`/api/tenant/${selectedTenantForStats}`],
   });
 
   const [tenantSettings, setTenantSettings] = useState({
@@ -112,6 +123,11 @@ export default function AdminDashboard() {
 
   // For the embed code generator, we need the tenant data to generate the correct embed URL.
   const tenant = currentTenant;
+
+  const selectedTenantLeads = leads;
+  const selectedTenantVisualizations = visualizations;
+  const selectedTenantLandscapeViz = selectedTenantLandscapeViz;
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -155,6 +171,10 @@ export default function AdminDashboard() {
               <BarChart3 className="h-4 w-4" />
               <span>Overview</span>
             </TabsTrigger>
+            <TabsTrigger value="clients" className="flex items-center space-x-2">
+              <Users className="h-4 w-4" />
+              <span>Clients</span>
+            </TabsTrigger>
             <TabsTrigger value="leads" className="flex items-center space-x-2">
               <Users className="h-4 w-4" />
               <span>Leads</span>
@@ -181,69 +201,55 @@ export default function AdminDashboard() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Dashboard Overview</h2>
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="tenantSelector">View stats for:</Label>
+                <select
+                  id="tenantSelector"
+                  value={selectedTenantForStats}
+                  onChange={(e) => setSelectedTenantForStats(parseInt(e.target.value))}
+                  className="px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  {allTenants.map((tenant: Tenant) => (
+                    <option key={tenant.id} value={tenant.id}>
+                      {tenant.companyName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
                     Total Leads
                   </CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{leads.length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +12% from last month
+                  <div className="text-3xl font-bold">
+                    {selectedTenantLeads.length}
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    All time leads captured
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Visualizations
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Total Generations
                   </CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {visualizations.length}
+                  <div className="text-3xl font-bold">
+                    {(selectedTenantVisualizations.length + selectedTenantLandscapeViz.length)}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    +8% from last month
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Images Generated
-                  </CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {usageLoading ? '...' : (usageStats?.totals?.totalGenerations || 0)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Past 30 days
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Landscape Generations
-                  </CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {usageLoading ? '...' : (usageStats?.totals?.landscapeGenerations || 0)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Past 30 days
+                  <p className="text-muted-foreground text-sm">
+                    Images processed
                   </p>
                 </CardContent>
               </Card>
@@ -255,7 +261,7 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {leads.slice(0, 5).map((lead: Lead, index) => (
+                  {selectedTenantLeads.slice(0, 5).map((lead: Lead, index) => (
                     <div
                       key={lead.id}
                       className="flex items-center justify-between p-3 bg-muted rounded-lg"
@@ -278,6 +284,57 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
+          {/* Clients Tab (New) */}
+          <TabsContent value="clients" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Client Management</CardTitle>
+                <div className="flex justify-between items-center">
+                  <p className="text-muted-foreground">
+                    Manage all your clients (tenants)
+                  </p>
+                  <Button onClick={() => alert("Add New Client")}>
+                    <Plus className="h-4 w-4 mr-2" /> Add Client
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {allTenants.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      No clients yet. Add your first client!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {allTenants.map((tenant: Tenant) => (
+                      <Card key={tenant.id}>
+                        <CardContent className="p-4 flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold">{tenant.companyName}</h4>
+                            <p className="text-sm text-muted-foreground">{tenant.email}</p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button variant="outline" size="sm" onClick={() => alert(`Edit ${tenant.companyName}`)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => alert(`Delete ${tenant.companyName}`)}>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14c0-1 0-2-1-2H6c-1 0-1-1-1-2V6"></path>
+                                <path d="M9 6V4c0-1 1-2 2-2h2c1 0 2 1 2 2v2"></path>
+                              </svg>
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Leads Tab */}
           <TabsContent value="leads" className="space-y-6">
             <Card>
@@ -292,15 +349,15 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-center py-8">
                     <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                   </div>
-                ) : leads.length === 0 ? (
+                ) : selectedTenantLeads.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">
-                      No leads yet. Start promoting your visualization tool!
+                      No leads yet for this client. Start promoting your visualization tool!
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {leads.map((lead: Lead) => (
+                    {selectedTenantLeads.map((lead: Lead) => (
                       <Card key={lead.id}>
                         <CardContent className="p-4">
                           <div className="flex justify-between items-start">
@@ -362,7 +419,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-center py-8">
                     <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                   </div>
-                ) : visualizations.length === 0 ? (
+                ) : selectedTenantVisualizations.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">
                       No visualizations yet. Upload a new one!
@@ -373,7 +430,7 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <div className="grid md:grid-cols-3 gap-4">
-                    {visualizations.map((viz) => (
+                    {selectedTenantVisualizations.map((viz) => (
                       <Card key={viz.id} className="relative group overflow-hidden">
                         <CardContent className="p-0">
                           <img

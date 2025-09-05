@@ -27,6 +27,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve static files from uploads directory
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
+  // Get all tenants (admin only)
+  app.get("/api/tenants", async (req, res) => {
+    try {
+      const allTenants = await storage.getAllTenants();
+      res.json(allTenants);
+    } catch (error) {
+      console.error("Error fetching tenants:", error);
+      res.status(500).json({ error: "Failed to fetch tenants" });
+    }
+  });
+
   // Get tenant by slug (for multi-tenant setup)
   app.get("/api/tenant/:slug", async (req, res) => {
     try {
