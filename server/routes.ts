@@ -85,7 +85,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/tenants/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const tenantData = insertTenantSchema.partial().parse(req.body);
+      // Convert string dates to Date objects before validation
+      const requestBody = { ...req.body };
+      if (requestBody.lastResetDate && typeof requestBody.lastResetDate === 'string') {
+        requestBody.lastResetDate = new Date(requestBody.lastResetDate);
+      }
+      
+      const tenantData = insertTenantSchema.partial().parse(requestBody);
       const tenant = await storage.updateTenant(parseInt(id), tenantData);
       res.json(tenant);
     } catch (error) {
