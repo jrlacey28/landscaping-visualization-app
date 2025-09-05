@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
-  const [selectedTenantForStats, setSelectedTenantForStats] = useState<number | null>(null);
+  const [selectedTenantForStats, setSelectedTenantForStats] = useState<number | null>(1); // Default to tenant ID 1
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [editingClient, setEditingClient] = useState<Tenant | null>(null);
   const [newClientData, setNewClientData] = useState({
@@ -65,7 +65,16 @@ export default function AdminDashboard() {
       enabled: !!selectedTenantForStats,
     });
 
-  const { data: usageStats, isLoading: usageLoading } = useQuery({
+  const { data: usageStats, isLoading: usageLoading } = useQuery<{
+    stats: any[];
+    totals: {
+      totalGenerations: number;
+      imageGenerations: number;
+      landscapeGenerations: number;
+      poolGenerations: number;
+    };
+    period: string;
+  }>({
     queryKey: [`/api/tenants/${selectedTenantForStats}/usage`],
     enabled: !!selectedTenantForStats,
   });
@@ -856,7 +865,7 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   {(() => {
-                    const selectedTenant = tenants.find(t => t.id === selectedTenantForStats);
+                    const selectedTenant = allTenants.find(t => t.id === selectedTenantForStats);
                     return selectedTenant ? (
                       <div className="space-y-2">
                         <p><strong>Company:</strong> {selectedTenant.companyName}</p>
@@ -875,7 +884,7 @@ export default function AdminDashboard() {
               </Card>
             )}
 
-            {usageStats && (
+            {usageStats && usageStats.totals && (
               <Card>
                 <CardHeader>
                   <CardTitle>Usage Statistics (Last 30 Days)</CardTitle>
@@ -883,15 +892,15 @@ export default function AdminDashboard() {
                 <CardContent>
                   <div className="grid gap-4 md:grid-cols-3">
                     <div className="text-center">
-                      <div className="text-2xl font-bold">{usageStats.totals.totalGenerations}</div>
+                      <div className="text-2xl font-bold">{usageStats.totals.totalGenerations || 0}</div>
                       <p className="text-sm text-muted-foreground">Total Generations</p>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold">{usageStats.totals.landscapeGenerations}</div>
+                      <div className="text-2xl font-bold">{usageStats.totals.landscapeGenerations || 0}</div>
                       <p className="text-sm text-muted-foreground">Landscape</p>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold">{usageStats.totals.imageGenerations}</div>
+                      <div className="text-2xl font-bold">{usageStats.totals.imageGenerations || 0}</div>
                       <p className="text-sm text-muted-foreground">Roofing/Siding</p>
                     </div>
                   </div>
