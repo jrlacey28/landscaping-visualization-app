@@ -135,7 +135,10 @@ export default function EmbedPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <Button
                       size="lg"
-                      className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      style={{ 
+                        background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`
+                      }}
                       onClick={() => {
                         const img = document.createElement("img");
                         img.crossOrigin = "anonymous";
@@ -171,7 +174,10 @@ export default function EmbedPage() {
 
                     <Button
                       size="lg"
-                      className="bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      style={{ 
+                        background: `linear-gradient(to right, #64748b, #475569)`
+                      }}
                       onClick={() => setShowingOriginal(!showingOriginal)}
                     >
                       <Eye className="h-5 w-5 mr-2" />
@@ -196,7 +202,10 @@ export default function EmbedPage() {
                   {/* Get Free Quote button */}
                   <Button
                     size="lg"
-                    className="w-full bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-700 hover:via-teal-600 hover:to-emerald-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
+                    className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
+                    style={{ 
+                      background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
+                    }}
                     onClick={() => {
                       const contactPhone = tenant.contactPhone || tenant.phone || '(555) 123-4567';
                       const message = encodeURIComponent(`Hi! I'm interested in getting a free quote for landscape design. I just tried your landscape visualizer and would like to discuss my project.`);
@@ -239,6 +248,8 @@ export default function EmbedPage() {
             <LandscapeStyleSelector
               selectedStyles={selectedLandscapeStyles}
               onStyleChange={setSelectedLandscapeStyles}
+              primaryColor={primaryColor}
+              secondaryColor={secondaryColor}
             />
           </div>
         )}
@@ -248,7 +259,10 @@ export default function EmbedPage() {
           <div className="mb-6">
             <Button
               size="lg"
-              className="w-full bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-700 hover:via-teal-600 hover:to-emerald-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+              className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+              style={{ 
+                background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
+              }}
               disabled={
                 isGenerating ||
                 !(

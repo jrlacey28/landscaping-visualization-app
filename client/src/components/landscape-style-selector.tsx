@@ -12,6 +12,8 @@ interface LandscapeStyleSelectorProps {
     landscape: string;
     patios: string;
   }) => void;
+  primaryColor?: string;
+  secondaryColor?: string;
 }
 
 interface PatioSelection {
@@ -62,6 +64,8 @@ const patioSizes = [
 export default function LandscapeStyleSelector({
   selectedStyles,
   onStyleChange,
+  primaryColor = "#10b981",
+  secondaryColor = "#059669"
 }: LandscapeStyleSelectorProps) {
   const [activeToggles, setActiveToggles] = useState({
     curbing: !!selectedStyles.curbing,
@@ -140,9 +144,13 @@ export default function LandscapeStyleSelector({
     <div className="space-y-6">
       <div className="grid md:grid-cols-3 gap-4">
         {/* Curbing Card */}
-        <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.curbing ? 'border-emerald-500 bg-gradient-to-br from-emerald-600 to-emerald-700' : 'border-emerald-400 bg-gradient-to-br from-emerald-500 to-emerald-600'
-        }`}>
+        <div className="rounded-xl border-2 p-6 transition-all"
+             style={{
+               borderColor: activeToggles.curbing ? primaryColor : `${primaryColor}cc`,
+               background: activeToggles.curbing 
+                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
+                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+             }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Curbing</h3>
             <Switch

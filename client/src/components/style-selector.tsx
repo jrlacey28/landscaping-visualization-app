@@ -9,6 +9,8 @@ interface StyleSelectorProps {
     surpriseMe: string;
   };
   onStyleChange: (styles: { roof: string; siding: string; surpriseMe: string }) => void;
+  primaryColor?: string;
+  secondaryColor?: string;
 }
 
 const roofStyles = [
@@ -60,7 +62,7 @@ const sidingColors = [
   { value: "savannah_wicker", label: "Savannah Wicker", hex: "#D8CAB1" },
 ];
 
-export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSelectorProps) {
+export default function StyleSelector({ selectedStyles, onStyleChange, primaryColor = "#10b981", secondaryColor = "#059669" }: StyleSelectorProps) {
   const [activeToggles, setActiveToggles] = useState({
     roof: !!selectedStyles.roof,
     siding: !!selectedStyles.siding,
@@ -96,9 +98,13 @@ export default function StyleSelector({ selectedStyles, onStyleChange }: StyleSe
 
       <div className="grid md:grid-cols-3 gap-4">
         {/* Roof Card */}
-        <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.roof ? 'border-blue-500 bg-gradient-to-br from-blue-600 to-blue-700' : 'border-blue-400 bg-gradient-to-br from-blue-500 to-blue-600'
-        }`}>
+        <div className="rounded-xl border-2 p-6 transition-all"
+             style={{
+               borderColor: activeToggles.roof ? primaryColor : `${primaryColor}cc`,
+               background: activeToggles.roof 
+                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
+                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+             }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Roof</h3>
             <Switch

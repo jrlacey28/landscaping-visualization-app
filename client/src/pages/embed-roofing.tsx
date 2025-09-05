@@ -23,9 +23,9 @@ export default function EmbedRoofingPage() {
   const [showingOriginal, setShowingOriginal] = useState(false);
   
   const [selectedStyles, setSelectedStyles] = useState({
-    roofing: "",
+    roof: "",
     siding: "",
-    trim: "",
+    surpriseMe: "",
   });
 
   // Apply custom branding
@@ -126,7 +126,10 @@ export default function EmbedRoofingPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <Button
                       size="lg"
-                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      style={{ 
+                        background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`
+                      }}
                       onClick={() => {
                         const img = document.createElement("img");
                         img.crossOrigin = "anonymous";
@@ -187,7 +190,10 @@ export default function EmbedRoofingPage() {
                   {/* Get Free Quote button */}
                   <Button
                     size="lg"
-                    className="w-full bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 hover:from-blue-700 hover:via-indigo-600 hover:to-blue-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
+                    className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
+                    style={{ 
+                      background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
+                    }}
                     onClick={() => {
                       const contactPhone = tenant.contactPhone || tenant.phone || '(555) 123-4567';
                       const message = encodeURIComponent(`Hi! I'm interested in getting a free quote for roofing and siding. I just tried your visualizer and would like to discuss my project.`);
@@ -228,6 +234,8 @@ export default function EmbedRoofingPage() {
             <StyleSelector
               selectedStyles={selectedStyles}
               onStyleChange={setSelectedStyles}
+              primaryColor={primaryColor}
+              secondaryColor={secondaryColor}
             />
           </div>
         )}
@@ -237,13 +245,16 @@ export default function EmbedRoofingPage() {
           <div className="mb-6">
             <Button
               size="lg"
-              className="w-full bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 hover:from-blue-700 hover:via-indigo-600 hover:to-blue-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+              className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+              style={{ 
+                background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
+              }}
               disabled={
                 isGenerating ||
                 !(
-                  selectedStyles.roofing ||
+                  selectedStyles.roof ||
                   selectedStyles.siding ||
-                  selectedStyles.trim
+                  selectedStyles.surpriseMe
                 )
               }
               onClick={async () => {

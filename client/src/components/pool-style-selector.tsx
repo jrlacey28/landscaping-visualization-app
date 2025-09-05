@@ -16,6 +16,8 @@ interface PoolStyleSelectorProps {
     landscaping: string; 
     features: string; 
   }) => void;
+  primaryColor?: string;
+  secondaryColor?: string;
 }
 
 const poolTypes = [
@@ -49,7 +51,7 @@ const featureOptions = [
   { value: "pool_with_lighting", label: "Pool with LED Lighting" },
 ];
 
-export default function PoolStyleSelector({ selectedStyles, onStyleChange }: PoolStyleSelectorProps) {
+export default function PoolStyleSelector({ selectedStyles, onStyleChange, primaryColor = "#10b981", secondaryColor = "#059669" }: PoolStyleSelectorProps) {
   const [activeToggles, setActiveToggles] = useState({
     poolType: !!selectedStyles.poolType,
     poolSize: !!selectedStyles.poolSize,
@@ -82,9 +84,13 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange }: Poo
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Pool Type Card */}
-        <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.poolType ? 'border-blue-500 bg-gradient-to-br from-blue-600 to-blue-700' : 'border-blue-400 bg-gradient-to-br from-blue-500 to-blue-600'
-        }`}>
+        <div className="rounded-xl border-2 p-6 transition-all"
+             style={{
+               borderColor: activeToggles.poolType ? primaryColor : `${primaryColor}cc`,
+               background: activeToggles.poolType 
+                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
+                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+             }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Pool Type</h3>
             <Switch
@@ -114,9 +120,13 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange }: Poo
         </div>
 
         {/* Pool Size Card */}
-        <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.poolSize ? 'border-cyan-500 bg-gradient-to-br from-cyan-600 to-cyan-700' : 'border-cyan-400 bg-gradient-to-br from-cyan-500 to-cyan-600'
-        }`}>
+        <div className="rounded-xl border-2 p-6 transition-all"
+             style={{
+               borderColor: activeToggles.poolSize ? secondaryColor : `${secondaryColor}cc`,
+               background: activeToggles.poolSize 
+                 ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
+                 : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
+             }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Pool Size</h3>
             <Switch
