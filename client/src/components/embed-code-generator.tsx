@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -24,6 +24,17 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
   });
   
   const [copied, setCopied] = useState(false);
+
+  // Update config when tenant changes
+  useEffect(() => {
+    setConfig(prevConfig => ({
+      ...prevConfig,
+      primaryColor: tenant.primaryColor || "#10b981",
+      secondaryColor: tenant.secondaryColor || "#059669",
+      companyName: tenant.companyName,
+      contactPhone: tenant.contactPhone || tenant.phone || ""
+    }));
+  }, [tenant]);
   
   const baseUrl = window.location.origin;
   
