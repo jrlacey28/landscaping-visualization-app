@@ -16,16 +16,41 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
     width: "100%",
     height: "800px",
     showHeader: true,
-    primaryColor: "#10b981",
-    secondaryColor: "#059669",
+    primaryColor: tenant.primaryColor || "#10b981",
+    secondaryColor: tenant.secondaryColor || "#059669",
     companyName: tenant.companyName,
     contactPhone: tenant.contactPhone || tenant.phone || "",
+    visualizerType: "landscape" as "landscape" | "roofing" | "pools"
   });
   
   const [copied, setCopied] = useState(false);
   
   const baseUrl = window.location.origin;
-  const embedUrl = `${baseUrl}/embed?tenant=${tenant.slug}&primaryColor=${encodeURIComponent(config.primaryColor)}&secondaryColor=${encodeURIComponent(config.secondaryColor)}&companyName=${encodeURIComponent(config.companyName)}&contactPhone=${encodeURIComponent(config.contactPhone)}&showHeader=${config.showHeader}`;
+  
+  // Choose the right URL based on visualizer type
+  const getEmbedUrl = () => {
+    const params = new URLSearchParams({
+      tenant: tenant.slug,
+      primaryColor: config.primaryColor,
+      secondaryColor: config.secondaryColor,
+      companyName: config.companyName,
+      contactPhone: config.contactPhone,
+      showHeader: config.showHeader.toString()
+    });
+
+    switch (config.visualizerType) {
+      case 'landscape':
+        return `${baseUrl}/embed?${params.toString()}`;
+      case 'roofing':
+        return `${baseUrl}/embed-roofing?${params.toString()}`;
+      case 'pools':
+        return `${baseUrl}/embed-pools?${params.toString()}`;
+      default:
+        return `${baseUrl}/embed?${params.toString()}`;
+    }
+  };
+
+  const embedUrl = getEmbedUrl();
   
   const iframeCode = `<iframe 
   src="${embedUrl}"
@@ -48,6 +73,20 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
         <h3 className="text-lg font-semibold mb-4">Customize Your Embed</h3>
         
         <div className="grid md:grid-cols-2 gap-4 mb-6">
+          <div className="md:col-span-2">
+            <Label htmlFor="visualizerType">Visualizer Type</Label>
+            <select
+              id="visualizerType"
+              value={config.visualizerType}
+              onChange={(e) => setConfig({ ...config, visualizerType: e.target.value as "landscape" | "roofing" | "pools" })}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+            >
+              <option value="landscape">Landscape Visualizer</option>
+              <option value="roofing">Roofing & Siding Visualizer</option>
+              <option value="pools">Pool Visualizer</option>
+            </select>
+          </div>
+          
           <div>
             <Label htmlFor="width">Width</Label>
             <Input

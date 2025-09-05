@@ -7,17 +7,21 @@ import Home from "@/pages/home";
 import Pools from "@/pages/pools";
 import Landscape from "@/pages/landscape";
 import Admin from "@/pages/admin";
-import EmbedPage from "@/pages/embed";
+import Embed from "@/pages/embed";
+import EmbedRoofing from "@/pages/embed-roofing";
+import EmbedPools from "@/pages/embed-pools";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/pools" component={Pools} />
       <Route path="/landscape" component={Landscape} />
+      <Route path="/pools" component={Pools} />
       <Route path="/admin" component={Admin} />
-      <Route path="/embed" component={EmbedPage} />
+      <Route path="/embed" component={Embed} />
+      <Route path="/embed-roofing" component={EmbedRoofing} />
+      <Route path="/embed-pools" component={EmbedPools} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -735,14 +735,42 @@ export default function AdminDashboard() {
           <TabsContent value="embed" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Website Embed Code</CardTitle>
+                <CardTitle>Website Embed Code Generator</CardTitle>
                 <p className="text-muted-foreground">
-                  Generate embed code to add the landscape visualizer to your
-                  website
+                  Generate embed code for your clients to add visualizers to their websites
                 </p>
               </CardHeader>
               <CardContent>
-                {tenant && <EmbedCodeGenerator tenant={tenant} />}
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="embed-client-select">Select Client:</Label>
+                    <select
+                      id="embed-client-select"
+                      value={selectedTenant?.id || ''}
+                      onChange={(e) => {
+                        const tenantId = e.target.value ? parseInt(e.target.value) : null;
+                        const tenant = allTenants.find(t => t.id === tenantId);
+                        setSelectedTenant(tenant || null);
+                      }}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    >
+                      <option value="">Choose a client...</option>
+                      {allTenants.map((tenant) => (
+                        <option key={tenant.id} value={tenant.id}>
+                          {tenant.companyName} ({tenant.slug})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {selectedTenant ? (
+                    <EmbedCodeGenerator tenant={selectedTenant} />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Please select a client to generate their embed code
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -812,9 +840,9 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Client Usage Analytics</CardTitle>
-                <CardDescription>
+                <p className="text-muted-foreground text-sm">
                   Select a client to view their detailed usage statistics
-                </CardDescription>
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-2">
