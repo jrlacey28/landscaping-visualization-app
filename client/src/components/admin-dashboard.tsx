@@ -9,6 +9,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Settings,
   Users,
   BarChart3,
@@ -22,6 +32,7 @@ import {
   ToggleRight,
   CheckCircle,
   XCircle,
+  Trash2,
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +46,7 @@ export default function AdminDashboard() {
   const [selectedTenantForStats, setSelectedTenantForStats] = useState<number | null>(null); // No default - requires selection
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [editingClient, setEditingClient] = useState<Tenant | null>(null);
+  const [deletingClient, setDeletingClient] = useState<Tenant | null>(null);
   const [newClientData, setNewClientData] = useState({
     companyName: "",
     slug: "",
@@ -183,6 +195,27 @@ export default function AdminDashboard() {
     },
   });
 
+  const deleteClientMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/tenants/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Client Deleted",
+        description: "Client and all associated data have been permanently removed.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
+      setDeletingClient(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete client.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Load current tenant data
   const { data: currentTenant } = useQuery<Tenant>({
     queryKey: [`/api/tenant/${mockTenantId}`],
@@ -247,6 +280,11 @@ export default function AdminDashboard() {
       id: editingClient.id, 
       data: editingClient 
     });
+  };
+
+  const handleDeleteClient = () => {
+    if (!deletingClient) return;
+    deleteClientMutation.mutate(deletingClient.id);
   };
 
   // For the embed code generator, we need the tenant data to generate the correct embed URL.
@@ -680,6 +718,15 @@ export default function AdminDashboard() {
                                 <Code className="h-4 w-4" />
                                 <span>Preview</span>
                               </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setDeletingClient(tenant)}
+                                className="flex items-center space-x-1 text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span>Delete</span>
+                              </Button>
                             </div>
                             
                             <Button
@@ -983,6 +1030,35 @@ export default function AdminDashboard() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!deletingClient} onOpenChange={() => setDeletingClient(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Client</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete <strong>{deletingClient?.companyName}</strong>? 
+                This action cannot be undone and will permanently remove:
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>All client data and settings</li>
+                  <li>All generated visualizations</li>
+                  <li>All collected leads</li>
+                  <li>Embed access will be terminated</li>
+                </ul>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteClient}
+                disabled={deleteClientMutation.isPending}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {deleteClientMutation.isPending ? "Deleting..." : "Delete Permanently"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
