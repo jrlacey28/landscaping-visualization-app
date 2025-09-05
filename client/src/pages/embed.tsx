@@ -93,7 +93,7 @@ export default function EmbedPage() {
 
         {/* Image Upload */}
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Upload Your Property Photo</h2>
+          <h2 className="text-xl font-semibold text-white mb-4 text-center">Upload Your Property Photo</h2>
           
           {!uploadedImage ? (
             <div className="border-2 border-dashed border-white/30 rounded-lg p-8 text-center">
@@ -117,11 +117,13 @@ export default function EmbedPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <img
-                src={uploadedImage}
-                alt="Uploaded property"
-                className="w-full h-64 object-cover rounded-lg"
-              />
+              <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                <img
+                  src={uploadedImage}
+                  alt="Uploaded property"
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <Button
                 variant="outline"
                 onClick={() => {
@@ -214,34 +216,71 @@ export default function EmbedPage() {
             <h3 className="text-xl font-semibold text-white mb-4 text-center">
               Your Landscape Design
             </h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="text-sm font-medium mb-2 text-white">Original</h4>
-                <img
-                  src={uploadedImage || ""}
-                  alt="Original"
-                  className="w-full h-auto rounded-lg shadow-md"
-                />
-              </div>
-              <div>
-                <h4 className="text-sm font-medium mb-2 text-white">Enhanced Design</h4>
-                {landscapeVisualizationResult.status === "completed" &&
-                landscapeVisualizationResult.generatedImageUrl ? (
+            
+            {landscapeVisualizationResult.status === "completed" &&
+            landscapeVisualizationResult.generatedImageUrl ? (
+              <div className="space-y-6">
+                {/* Generated Image Display */}
+                <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden">
                   <img
                     src={landscapeVisualizationResult.generatedImageUrl}
                     alt="Enhanced landscape design"
-                    className="w-full h-auto rounded-lg shadow-md"
+                    className="w-full h-full object-cover"
                   />
-                ) : (
-                  <div className="w-full h-64 bg-emerald-50 border-2 border-emerald-200 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                      <p className="text-emerald-600">Generating design...</p>
-                    </div>
-                  </div>
-                )}
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = landscapeVisualizationResult.generatedImageUrl;
+                      link.download = 'landscape-design.jpg';
+                      link.click();
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    Download
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setUploadedImage(null);
+                      setOriginalFile(null);
+                      setLandscapeVisualizationResult(null);
+                    }}
+                    variant="outline"
+                    className="border-white text-white hover:bg-white hover:text-gray-900"
+                  >
+                    Try Another Photo
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const modal = document.createElement('div');
+                      modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4';
+                      modal.innerHTML = `
+                        <div class="relative max-w-4xl max-h-full">
+                          <img src="${uploadedImage}" alt="Original Image" class="max-w-full max-h-full object-contain rounded-lg" />
+                          <button class="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-75" onclick="this.parentElement.parentElement.remove()">×</button>
+                        </div>
+                      `;
+                      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+                      document.body.appendChild(modal);
+                    }}
+                    variant="outline"
+                    className="border-white text-white hover:bg-white hover:text-gray-900"
+                  >
+                    Original Image
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="w-full aspect-video bg-emerald-50 border-2 border-emerald-200 rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  <p className="text-emerald-600">Generating design...</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
