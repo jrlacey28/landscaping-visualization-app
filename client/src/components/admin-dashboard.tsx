@@ -37,19 +37,19 @@ export default function AdminDashboard() {
     queryKey: ["/api/tenants"],
   });
 
-  const { data: leads = [], isLoading: leadsLoading } = useQuery({
+  const { data: leads = [], isLoading: leadsLoading } = useQuery<Lead[]>({
     queryKey: [`/api/tenants/${selectedTenantForStats}/leads`],
     enabled: !!selectedTenantForStats,
   });
 
   const { data: visualizations = [], isLoading: visualizationsLoading } =
-    useQuery({
+    useQuery<any[]>({
       queryKey: [`/api/tenants/${selectedTenantForStats}/visualizations`],
       enabled: !!selectedTenantForStats,
     });
 
-    const { data: selectedTenantLandscapeViz = [], isLoading: landscapeVizLoading } =
-    useQuery({
+  const { data: landscapeVisualizations = [], isLoading: landscapeVizLoading } =
+    useQuery<any[]>({
       queryKey: [`/api/tenants/${selectedTenantForStats}/landscape-visualizations`],
       enabled: !!selectedTenantForStats,
     });
@@ -80,7 +80,7 @@ export default function AdminDashboard() {
   });
 
   // Load current tenant data
-  const { data: currentTenant } = useQuery({
+  const { data: currentTenant } = useQuery<Tenant>({
     queryKey: [`/api/tenant/${selectedTenantForStats}`],
   });
 
@@ -126,7 +126,6 @@ export default function AdminDashboard() {
 
   const selectedTenantLeads = leads;
   const selectedTenantVisualizations = visualizations;
-  const selectedTenantLandscapeViz = selectedTenantLandscapeViz;
 
 
   return (
@@ -246,7 +245,7 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">
-                    {(selectedTenantVisualizations.length + selectedTenantLandscapeViz.length)}
+                    {(selectedTenantVisualizations.length + landscapeVisualizations.length)}
                   </div>
                   <p className="text-muted-foreground text-sm">
                     Images processed
@@ -261,7 +260,7 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {selectedTenantLeads.slice(0, 5).map((lead: Lead, index) => (
+                  {selectedTenantLeads.slice(0, 5).map((lead: Lead) => (
                     <div
                       key={lead.id}
                       className="flex items-center justify-between p-3 bg-muted rounded-lg"
@@ -430,7 +429,7 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <div className="grid md:grid-cols-3 gap-4">
-                    {selectedTenantVisualizations.map((viz) => (
+                    {selectedTenantVisualizations.map((viz: any) => (
                       <Card key={viz.id} className="relative group overflow-hidden">
                         <CardContent className="p-0">
                           <img
