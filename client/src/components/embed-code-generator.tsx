@@ -27,33 +27,57 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
 
   // Update config when tenant changes
   useEffect(() => {
-    // Check for saved config for this tenant
+    if (!tenant?.slug) return;
+    
+    // Check for saved config for this specific tenant
     const savedConfig = localStorage.getItem(`embed-config-${tenant.slug}`);
     
     if (savedConfig) {
-      const parsed = JSON.parse(savedConfig);
-      setConfig(prevConfig => ({
-        ...prevConfig,
-        ...parsed,
-        // Always use current tenant data for company info
-        companyName: tenant.companyName,
-        contactPhone: tenant.contactPhone || tenant.phone || ""
-      }));
+      try {
+        const parsed = JSON.parse(savedConfig);
+        setConfig({
+          width: parsed.width || "100%",
+          height: parsed.height || "100%", 
+          primaryColor: parsed.primaryColor || tenant.primaryColor || "#10b981",
+          secondaryColor: parsed.secondaryColor || tenant.secondaryColor || "#059669",
+          showHeader: parsed.showHeader !== undefined ? parsed.showHeader : true,
+          visualizerType: parsed.visualizerType || "landscape",
+          // Always use current tenant data for company info
+          companyName: tenant.companyName,
+          contactPhone: tenant.contactPhone || tenant.phone || ""
+        });
+      } catch (error) {
+        console.error('Error parsing saved config:', error);
+        // Fallback to tenant defaults
+        setConfig({
+          width: "100%",
+          height: "100%",
+          primaryColor: tenant.primaryColor || "#10b981",
+          secondaryColor: tenant.secondaryColor || "#059669",
+          showHeader: true,
+          visualizerType: "landscape",
+          companyName: tenant.companyName,
+          contactPhone: tenant.contactPhone || tenant.phone || ""
+        });
+      }
     } else {
       // Use tenant defaults if no saved config
-      setConfig(prevConfig => ({
-        ...prevConfig,
+      setConfig({
+        width: "100%", 
+        height: "100%",
         primaryColor: tenant.primaryColor || "#10b981",
         secondaryColor: tenant.secondaryColor || "#059669",
+        showHeader: true,
+        visualizerType: "landscape",
         companyName: tenant.companyName,
         contactPhone: tenant.contactPhone || tenant.phone || ""
-      }));
+      });
     }
-  }, [tenant]);
+  }, [tenant?.slug, tenant?.companyName, tenant?.primaryColor, tenant?.secondaryColor, tenant?.phone, tenant?.contactPhone]);
 
-  // Save config to localStorage whenever it changes
+  // Save config to localStorage whenever it changes (but only for the current tenant)
   useEffect(() => {
-    if (tenant) {
+    if (tenant && tenant.slug) {
       const configToSave = {
         width: config.width,
         height: config.height,
@@ -64,7 +88,7 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
       };
       localStorage.setItem(`embed-config-${tenant.slug}`, JSON.stringify(configToSave));
     }
-  }, [config.width, config.height, config.primaryColor, config.secondaryColor, config.showHeader, config.visualizerType, tenant]);
+  }, [config.width, config.height, config.primaryColor, config.secondaryColor, config.showHeader, config.visualizerType, tenant?.slug]);
   
   const baseUrl = window.location.origin;
   
