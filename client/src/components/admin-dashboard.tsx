@@ -18,6 +18,10 @@ import {
   Phone,
   MapPin,
   Code,
+  ToggleLeft,
+  ToggleRight,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -152,6 +156,28 @@ export default function AdminDashboard() {
       toast({
         title: "Error",
         description: error.message || "Failed to update client.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const toggleClientStatusMutation = useMutation({
+    mutationFn: async ({ id, active }: { id: number; active: boolean }) => {
+      return apiRequest("PATCH", `/api/tenants/${id}`, { active });
+    },
+    onSuccess: (_, { active }) => {
+      toast({
+        title: active ? "Client Activated" : "Client Deactivated",
+        description: active 
+          ? "Client access has been restored." 
+          : "Client access has been suspended.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update client status.",
         variant: "destructive",
       });
     },
@@ -341,15 +367,15 @@ export default function AdminDashboard() {
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-blue-700">
                     <Users className="h-5 w-5" />
-                    Total Clients
+                    Active Clients
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-blue-900">
-                    {allTenants.length}
+                    {allTenants.filter(tenant => tenant.active).length}
                   </div>
                   <p className="text-blue-600 text-sm">
-                    Active clients
+                    {allTenants.filter(tenant => !tenant.active).length} inactive
                   </p>
                 </CardContent>
               </Card>
@@ -578,70 +604,105 @@ export default function AdminDashboard() {
                   </Card>
                 )}
 
-                {/* Clients List */}
+                {/* Clients Grid */}
                 {allTenants.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      No clients yet. Add your first client!
+                  <div className="text-center py-12">
+                    <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No clients yet</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Add your first client to start managing their visualizer embeds
                     </p>
+                    <Button 
+                      onClick={() => setIsAddingClient(true)}
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" /> Add Your First Client
+                    </Button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {allTenants.map((tenant: Tenant) => (
-                      <Card key={tenant.id}>
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <h4 className="font-semibold">{tenant.companyName}</h4>
-                              <p className="text-sm text-muted-foreground">{tenant.email}</p>
-                              <p className="text-xs text-muted-foreground">Slug: {tenant.slug}</p>
+                      <Card key={tenant.id} className={`transition-all hover:shadow-lg ${!tenant.active ? 'opacity-75 border-red-200' : 'border-green-200'}`}>
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-3 h-3 rounded-full ${tenant.active ? 'bg-green-500' : 'bg-red-500'}`} />
+                              <div>
+                                <CardTitle className="text-lg">{tenant.companyName}</CardTitle>
+                                <p className="text-sm text-muted-foreground">/{tenant.slug}</p>
+                              </div>
                             </div>
-                            <div className="flex space-x-2">
-                              <Button variant="outline" size="sm" onClick={() => handleEditClient(tenant)}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant={tenant.active ? "default" : "destructive"}>
+                                {tenant.active ? "Active" : "Inactive"}
+                              </Badge>
                             </div>
                           </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {/* Client Info */}
+                          <div className="grid grid-cols-1 gap-2 text-sm">
+                            {tenant.email && (
+                              <div className="flex items-center space-x-2 text-muted-foreground">
+                                <Mail className="h-4 w-4" />
+                                <span>{tenant.email}</span>
+                              </div>
+                            )}
+                            {tenant.phone && (
+                              <div className="flex items-center space-x-2 text-muted-foreground">
+                                <Phone className="h-4 w-4" />
+                                <span>{tenant.phone}</span>
+                              </div>
+                            )}
+                          </div>
 
-                          {/* Embed URL Section */}
-                          <div className="bg-gray-50 rounded-lg p-3 space-y-2">
-                            <Label className="text-sm font-medium">Embed URL for {tenant.companyName}:</Label>
-                            <div className="flex items-center space-x-2">
-                              <code className="flex-1 text-xs bg-white px-2 py-1 rounded border">
-                                {window.location.origin}/embed?tenant={tenant.slug}&companyName={encodeURIComponent(tenant.companyName)}&primaryColor=%2310b981&secondaryColor=%23059669&contactPhone={encodeURIComponent(tenant.phone || '(555) 123-4567')}
-                              </code>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  const embedUrl = `${window.location.origin}/embed?tenant=${tenant.slug}&companyName=${encodeURIComponent(tenant.companyName)}&primaryColor=%2310b981&secondaryColor=%23059669&contactPhone=${encodeURIComponent(tenant.phone || '(555) 123-4567')}`;
-                                  navigator.clipboard.writeText(embedUrl);
-                                  toast({
-                                    title: "Copied!",
-                                    description: "Embed URL copied to clipboard",
-                                  });
-                                }}
+                          {/* Action Buttons */}
+                          <div className="flex justify-between items-center pt-3 border-t">
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleEditClient(tenant)}
+                                className="flex items-center space-x-1"
                               >
-                                Copy
+                                <Edit className="h-4 w-4" />
+                                <span>Edit</span>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const embedUrl = `${window.location.origin}/embed?tenant=${tenant.slug}`;
+                                  window.open(embedUrl, '_blank');
+                                }}
+                                className="flex items-center space-x-1"
+                              >
+                                <Code className="h-4 w-4" />
+                                <span>Preview</span>
                               </Button>
                             </div>
-
-                            {/* Quick customization note */}
-                            <p className="text-xs text-muted-foreground">
-                              💡 To customize: Edit the client details above, then copy the updated URL. 
-                              The phone number and company name will automatically update in the embed.
-                            </p>
-
-                            {/* Preview button */}
+                            
                             <Button
+                              variant={tenant.active ? "destructive" : "default"}
                               size="sm"
-                              variant="secondary"
-                              onClick={() => {
-                                const embedUrl = `${window.location.origin}/embed?tenant=${tenant.slug}&companyName=${encodeURIComponent(tenant.companyName)}&primaryColor=%2310b981&secondaryColor=%23059669&contactPhone=${encodeURIComponent(tenant.phone || '(555) 123-4567')}`;
-                                window.open(embedUrl, '_blank');
-                              }}
+                              onClick={() => toggleClientStatusMutation.mutate({ 
+                                id: tenant.id, 
+                                active: !tenant.active 
+                              })}
+                              disabled={toggleClientStatusMutation.isPending}
+                              className="flex items-center space-x-1"
                             >
-                              Preview Embed
+                              {tenant.active ? (
+                                <>
+                                  <XCircle className="h-4 w-4" />
+                                  <span>Suspend</span>
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle className="h-4 w-4" />
+                                  <span>Activate</span>
+                                </>
+                              )}
                             </Button>
                           </div>
                         </CardContent>

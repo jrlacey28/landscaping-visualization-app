@@ -17,6 +17,7 @@ export const tenants = pgTable("tenants", {
   description: text("description"),
   showPricing: boolean("show_pricing").default(true),
   requirePhone: boolean("require_phone").default(false),
+  active: boolean("active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
