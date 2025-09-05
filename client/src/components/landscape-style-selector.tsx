@@ -22,16 +22,21 @@ interface PatioSelection {
 
 const curbingOptions = [
   { value: "natural_stone_curbing", label: "Natural Stone Curbing" },
-  { value: "concrete_curbing", label: "Concrete Curbing" },
   { value: "brick_curbing", label: "Brick Curbing" },
-  { value: "metal_curbing", label: "Metal Curbing" },
+];
+
+const curbingColors = [
+  { value: "gray", label: "Gray" },
+  { value: "tan", label: "Tan" },
+  { value: "brown", label: "Brown" },
+  { value: "charcoal", label: "Charcoal" },
+  { value: "sandstone", label: "Sandstone" },
 ];
 
 const landscapeOptions = [
-  { value: "mulch_beds", label: "Fresh Mulch Beds" },
-  { value: "river_rock", label: "River Rock Landscaping" },
-  { value: "decorative_gravel", label: "Decorative Gravel" },
-  { value: "pine_straw", label: "Pine Straw Mulch" },
+  { value: "fresh_mulch", label: "Fresh Mulch" },
+  { value: "river_rock", label: "River Rock" },
+  { value: "new_grass", label: "New Grass" },
 ];
 
 const patioStyles = [
@@ -64,6 +69,11 @@ export default function LandscapeStyleSelector({
     patios: !!selectedStyles.patios,
   });
 
+  const [curbingSelection, setCurbingSelection] = useState({
+    type: 'natural_stone_curbing',
+    color: 'gray'
+  });
+
   const [patioSelection, setPatioSelection] = useState<PatioSelection>({
     style: 'plain_concrete_patio',
     shape: 'rectangular',
@@ -83,9 +93,33 @@ export default function LandscapeStyleSelector({
   };
 
   const handleOptionSelect = (category: 'curbing' | 'landscape' | 'patios', value: string) => {
+    if (category === 'curbing') {
+      const newSelection = { ...curbingSelection, type: value };
+      setCurbingSelection(newSelection);
+      const fullCurbingId = value === 'natural_stone_curbing' 
+        ? `${value}_${newSelection.color}` 
+        : value;
+      onStyleChange({
+        ...selectedStyles,
+        [category]: fullCurbingId,
+      });
+    } else {
+      onStyleChange({
+        ...selectedStyles,
+        [category]: value,
+      });
+    }
+  };
+
+  const handleCurbingColorChange = (color: string) => {
+    const newSelection = { ...curbingSelection, color };
+    setCurbingSelection(newSelection);
+    const fullCurbingId = curbingSelection.type === 'natural_stone_curbing' 
+      ? `${curbingSelection.type}_${color}` 
+      : curbingSelection.type;
     onStyleChange({
       ...selectedStyles,
-      [category]: value,
+      curbing: fullCurbingId,
     });
   };
 
@@ -119,30 +153,47 @@ export default function LandscapeStyleSelector({
           </div>
           
           {activeToggles.curbing && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {curbingOptions.map((option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
                   <input
                     type="radio"
                     name="curbing"
                     value={option.value}
-                    checked={selectedStyles.curbing === option.value}
+                    checked={curbingSelection.type === option.value}
                     onChange={() => handleOptionSelect('curbing', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
               ))}
+              
+              {curbingSelection.type === 'natural_stone_curbing' && (
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">Color</label>
+                  <select
+                    value={curbingSelection.color}
+                    onChange={(e) => handleCurbingColorChange(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-white/20 border border-white/30 rounded-md text-white placeholder-white/70 focus:ring-2 focus:ring-white focus:border-transparent"
+                  >
+                    {curbingColors.map((color) => (
+                      <option key={color.value} value={color.value} className="text-gray-900">
+                        {color.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Landscape Materials Card */}
+        {/* Landscaping Card */}
         <div className={`rounded-xl border-2 p-6 transition-all ${
           activeToggles.landscape ? 'border-teal-500 bg-gradient-to-br from-teal-600 to-teal-700' : 'border-teal-400 bg-gradient-to-br from-teal-500 to-teal-600'
         }`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white drop-shadow-sm">Landscape Materials</h3>
+            <h3 className="text-lg font-semibold text-white drop-shadow-sm">Landscaping</h3>
             <Switch
               checked={activeToggles.landscape}
               onCheckedChange={(checked) => handleToggleChange('landscape', checked)}

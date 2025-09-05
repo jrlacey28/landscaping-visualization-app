@@ -10,11 +10,11 @@ export interface LandscapeStyleConfig {
 
 export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
   // Curbing Options
-  natural_stone_curbing: {
-    id: "natural_stone_curbing",
-    name: "Natural Stone Curbing",
+  natural_stone_curbing_gray: {
+    id: "natural_stone_curbing_gray",
+    name: "Natural Stone Curbing - Gray",
     prompt:
-      "Add continuous poured decorative concrete curbing around the existing garden beds, following the current bed outline. Use a slant/mower profile, 4 inches wide × 3 inches tall: the bed side is the tall, near-vertical back, and the top slopes down toward the lawn with a smooth rounded front lip sitting just above the grass. The curb must be one seamless, monolithic strip of cast-in-place concrete, not modular units. Apply a stamped stone surface texture (texture only—still clearly concrete) in subtle gray/tan tones. Optional shallow control joints may appear every few feet but the curb still reads as one piece. Keep all plants, rock, mulch, grass, walkway, and lighting unchanged. Do not generate bricks, blocks, pavers, segmented edging, stacked stone, boulder borders, retaining walls, or loose rocks; do not alter lawn shape or bed layout; no tall walls.",
+      "Add continuous poured decorative concrete curbing around the existing garden beds, following the current bed outline. Use a slant/mower profile, 4 inches wide × 3 inches tall: the bed side is the tall, near-vertical back, and the top slopes down toward the lawn with a smooth rounded front lip sitting just above the grass. The curb must be one seamless, monolithic strip of cast-in-place concrete, not modular units. Apply a stamped stone surface texture (texture only—still clearly concrete) in subtle gray tones. Optional shallow control joints may appear every few feet but the curb still reads as one piece. Keep all plants, rock, mulch, grass, walkway, and lighting unchanged. Do not generate bricks, blocks, pavers, segmented edging, stacked stone, boulder borders, retaining walls, or loose rocks; do not alter lawn shape or bed layout; no tall walls.",
     referenceImageUrl: "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
     referenceImages: [
       "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
@@ -23,12 +23,55 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     category: "curbing",
     regionType: "border",
   },
-  concrete_curbing: {
-    id: "concrete_curbing",
-    name: "Concrete Curbing",
+  natural_stone_curbing_tan: {
+    id: "natural_stone_curbing_tan",
+    name: "Natural Stone Curbing - Tan",
     prompt:
-      "Add professional decorative concrete curbing around existing garden beds. Install continuous poured concrete edging that creates a single-level border (approximately 4-6 inches high) between lawn and landscape beds. The concrete curbing should be one continuous piece with smooth light gray finish, professionally formed to create clean garden definition. Keep all existing plants, trees, bushes, and landscape features exactly where they are.",
-    referenceImageUrl: "https://mycdn.com/concrete-curbing.jpg",
+      "Add continuous poured decorative concrete curbing around the existing garden beds, following the current bed outline. Use a slant/mower profile, 4 inches wide × 3 inches tall: the bed side is the tall, near-vertical back, and the top slopes down toward the lawn with a smooth rounded front lip sitting just above the grass. The curb must be one seamless, monolithic strip of cast-in-place concrete, not modular units. Apply a stamped stone surface texture (texture only—still clearly concrete) in warm tan/beige tones. Optional shallow control joints may appear every few feet but the curb still reads as one piece. Keep all plants, rock, mulch, grass, walkway, and lighting unchanged. Do not generate bricks, blocks, pavers, segmented edging, stacked stone, boulder borders, retaining walls, or loose rocks; do not alter lawn shape or bed layout; no tall walls.",
+    referenceImageUrl: "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
+    referenceImages: [
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033992300.png"
+    ],
+    category: "curbing",
+    regionType: "border",
+  },
+  natural_stone_curbing_brown: {
+    id: "natural_stone_curbing_brown",
+    name: "Natural Stone Curbing - Brown",
+    prompt:
+      "Add continuous poured decorative concrete curbing around the existing garden beds, following the current bed outline. Use a slant/mower profile, 4 inches wide × 3 inches tall: the bed side is the tall, near-vertical back, and the top slopes down toward the lawn with a smooth rounded front lip sitting just above the grass. The curb must be one seamless, monolithic strip of cast-in-place concrete, not modular units. Apply a stamped stone surface texture (texture only—still clearly concrete) in rich brown/earth tones. Optional shallow control joints may appear every few feet but the curb still reads as one piece. Keep all plants, rock, mulch, grass, walkway, and lighting unchanged. Do not generate bricks, blocks, pavers, segmented edging, stacked stone, boulder borders, retaining walls, or loose rocks; do not alter lawn shape or bed layout; no tall walls.",
+    referenceImageUrl: "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
+    referenceImages: [
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033992300.png"
+    ],
+    category: "curbing",
+    regionType: "border",
+  },
+  natural_stone_curbing_charcoal: {
+    id: "natural_stone_curbing_charcoal",
+    name: "Natural Stone Curbing - Charcoal",
+    prompt:
+      "Add continuous poured decorative concrete curbing around the existing garden beds, following the current bed outline. Use a slant/mower profile, 4 inches wide × 3 inches tall: the bed side is the tall, near-vertical back, and the top slopes down toward the lawn with a smooth rounded front lip sitting just above the grass. The curb must be one seamless, monolithic strip of cast-in-place concrete, not modular units. Apply a stamped stone surface texture (texture only—still clearly concrete) in dark charcoal/anthracite tones. Optional shallow control joints may appear every few feet but the curb still reads as one piece. Keep all plants, rock, mulch, grass, walkway, and lighting unchanged. Do not generate bricks, blocks, pavers, segmented edging, stacked stone, boulder borders, retaining walls, or loose rocks; do not alter lawn shape or bed layout; no tall walls.",
+    referenceImageUrl: "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
+    referenceImages: [
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033992300.png"
+    ],
+    category: "curbing",
+    regionType: "border",
+  },
+  natural_stone_curbing_sandstone: {
+    id: "natural_stone_curbing_sandstone",
+    name: "Natural Stone Curbing - Sandstone",
+    prompt:
+      "Add continuous poured decorative concrete curbing around the existing garden beds, following the current bed outline. Use a slant/mower profile, 4 inches wide × 3 inches tall: the bed side is the tall, near-vertical back, and the top slopes down toward the lawn with a smooth rounded front lip sitting just above the grass. The curb must be one seamless, monolithic strip of cast-in-place concrete, not modular units. Apply a stamped stone surface texture (texture only—still clearly concrete) in warm sandstone/buff tones. Optional shallow control joints may appear every few feet but the curb still reads as one piece. Keep all plants, rock, mulch, grass, walkway, and lighting unchanged. Do not generate bricks, blocks, pavers, segmented edging, stacked stone, boulder borders, retaining walls, or loose rocks; do not alter lawn shape or bed layout; no tall walls.",
+    referenceImageUrl: "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
+    referenceImages: [
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033992300.png"
+    ],
     category: "curbing",
     regionType: "border",
   },
@@ -41,20 +84,11 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     category: "curbing",
     regionType: "border",
   },
-  metal_curbing: {
-    id: "metal_curbing",
-    name: "Metal Curbing",
-    prompt:
-      "Add sleek metal curbing around existing landscape beds and garden areas. Modern steel or aluminum edging with clean lines and contemporary appearance, professionally installed for crisp garden definition. Only add metal curbing around existing planted areas while keeping all other elements unchanged.",
-    referenceImageUrl: "https://mycdn.com/metal-curbing.jpg",
-    category: "curbing",
-    regionType: "border",
-  },
 
-  // Landscape Materials
-  mulch_beds: {
-    id: "mulch_beds",
-    name: "Fresh Mulch Beds",
+  // Landscaping
+  fresh_mulch: {
+    id: "fresh_mulch",
+    name: "Fresh Mulch",
     prompt:
       "Replace existing mulch in landscape beds with fresh, dark brown organic mulch. Rich, chocolate-colored wood mulch spread evenly in all existing planted areas, creating clean garden appearance. Only replace mulch in existing beds - preserve the exact bed shapes, all plants, trees, house structure, and lawn areas unchanged.",
     referenceImageUrl: "https://mycdn.com/mulch-beds.jpg",
@@ -63,28 +97,19 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
   },
   river_rock: {
     id: "river_rock",
-    name: "River Rock Landscaping",
+    name: "River Rock",
     prompt:
       "Replace existing mulch with beautiful river rock in landscape beds. Smooth, rounded river stones in natural gray and tan colors, professionally installed in existing planted areas. Only replace ground cover in existing beds - maintain all plants, bed borders, house features, and lawn areas exactly as they are.",
     referenceImageUrl: "https://mycdn.com/river-rock.jpg",
     category: "landscape",
     regionType: "garden",
   },
-  decorative_gravel: {
-    id: "decorative_gravel",
-    name: "Decorative Gravel",
+  new_grass: {
+    id: "new_grass",
+    name: "New Grass",
     prompt:
-      "Replace existing mulch with decorative crushed gravel in landscape beds. Beautiful crushed stone in neutral earth tones, creating low-maintenance ground cover in existing planted areas. Only replace mulch in existing beds while preserving all plants, bed shapes, house structure, and surrounding landscape unchanged.",
-    referenceImageUrl: "https://mycdn.com/decorative-gravel.jpg",
-    category: "landscape",
-    regionType: "garden",
-  },
-  pine_straw: {
-    id: "pine_straw",
-    name: "Pine Straw Mulch",
-    prompt:
-      "Replace existing mulch with natural pine straw in landscape beds. Golden-brown pine needle mulch laid evenly in all existing planted areas, creating natural Southern-style landscaping. Only replace ground cover in existing beds - keep all plants, bed borders, house features, and lawn areas exactly unchanged.",
-    referenceImageUrl: "https://mycdn.com/pine-straw.jpg",
+      "Install fresh, lush green sod or seed to create beautiful new grass areas where appropriate. Add vibrant, healthy grass to enhance the existing lawn areas or create new grassy sections that complement the landscape design. The new grass should appear thick, green, and professionally maintained. Only add grass in logical areas while preserving all existing plants, trees, bed borders, house structure, and hardscaping unchanged.",
+    referenceImageUrl: "https://mycdn.com/new-grass.jpg",
     category: "landscape",
     regionType: "garden",
   },
