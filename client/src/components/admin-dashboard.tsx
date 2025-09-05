@@ -544,15 +544,59 @@ export default function AdminDashboard() {
                   <div className="space-y-4">
                     {allTenants.map((tenant: Tenant) => (
                       <Card key={tenant.id}>
-                        <CardContent className="p-4 flex justify-between items-center">
-                          <div>
-                            <h4 className="font-semibold">{tenant.companyName}</h4>
-                            <p className="text-sm text-muted-foreground">{tenant.email}</p>
-                            <p className="text-xs text-muted-foreground">Slug: {tenant.slug}</p>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h4 className="font-semibold">{tenant.companyName}</h4>
+                              <p className="text-sm text-muted-foreground">{tenant.email}</p>
+                              <p className="text-xs text-muted-foreground">Slug: {tenant.slug}</p>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button variant="outline" size="sm" onClick={() => handleEditClient(tenant)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm" onClick={() => handleEditClient(tenant)}>
-                              <Edit className="h-4 w-4" />
+                          
+                          {/* Embed URL Section */}
+                          <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                            <Label className="text-sm font-medium">Embed URL for {tenant.companyName}:</Label>
+                            <div className="flex items-center space-x-2">
+                              <code className="flex-1 text-xs bg-white px-2 py-1 rounded border">
+                                {window.location.origin}/embed?tenant={tenant.slug}&companyName={encodeURIComponent(tenant.companyName)}&primaryColor=%2310b981&secondaryColor=%23059669&contactPhone={encodeURIComponent(tenant.phone || '(555) 123-4567')}
+                              </code>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  const embedUrl = `${window.location.origin}/embed?tenant=${tenant.slug}&companyName=${encodeURIComponent(tenant.companyName)}&primaryColor=%2310b981&secondaryColor=%23059669&contactPhone=${encodeURIComponent(tenant.phone || '(555) 123-4567')}`;
+                                  navigator.clipboard.writeText(embedUrl);
+                                  toast({
+                                    title: "Copied!",
+                                    description: "Embed URL copied to clipboard",
+                                  });
+                                }}
+                              >
+                                Copy
+                              </Button>
+                            </div>
+                            
+                            {/* Quick customization note */}
+                            <p className="text-xs text-muted-foreground">
+                              💡 To customize: Edit the client details above, then copy the updated URL. 
+                              The phone number and company name will automatically update in the embed.
+                            </p>
+                            
+                            {/* Preview button */}
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => {
+                                const embedUrl = `${window.location.origin}/embed?tenant=${tenant.slug}&companyName=${encodeURIComponent(tenant.companyName)}&primaryColor=%2310b981&secondaryColor=%23059669&contactPhone=${encodeURIComponent(tenant.phone || '(555) 123-4567')}`;
+                                window.open(embedUrl, '_blank');
+                              }}
+                            >
+                              Preview Embed
                             </Button>
                           </div>
                         </CardContent>
