@@ -38,7 +38,7 @@ export default function Header({ tenant }: HeaderProps) {
               <p className="text-sm text-slate-300">Powered by Solst LLC</p>
             </div>
           </div>
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-8 -mr-12">
             {/* Services Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
