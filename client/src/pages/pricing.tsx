@@ -5,6 +5,7 @@ import { PricingCard, type PricingTier } from "@/components/ui/pricing-card"
 import { Tab } from "@/components/ui/pricing-tab"
 import { useTenant } from "@/hooks/use-tenant"
 import Header from "@/components/header"
+import ContactForm from "@/components/contact-form"
 
 interface PricingSectionProps {
   title: string
@@ -139,28 +140,46 @@ export default function PricingPage() {
 
       {/* Contact Section */}
       <section id="contact" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-white mb-8">Ready to Get Started?</h2>
-          <p className="text-slate-300 mb-8">
-            Contact us today to discuss your needs and get a custom quote.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {tenant.email && (
-              <a
-                href={`mailto:${tenant.email}`}
-                className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-black bg-white hover:bg-gray-100 transition-colors"
-              >
-                Email Us
-              </a>
-            )}
-            {tenant.phone && (
-              <a
-                href={`tel:${tenant.phone}`}
-                className="inline-flex items-center justify-center px-6 py-3 border border-white text-base font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-black transition-colors"
-              >
-                Call Us
-              </a>
-            )}
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-white mb-4">Ready to Get Started?</h2>
+            <p className="text-slate-300 mb-8">
+              Contact us today to discuss your needs and get a custom quote.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-12 items-start">
+            <div className="space-y-6">
+              <ContactForm 
+                tenantId={tenant.id}
+                title="Get Your Quote"
+                description="Tell us about your business and we'll reach out with pricing details."
+              />
+            </div>
+            
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-xl font-semibold text-white mb-4">Other Ways to Reach Us</h3>
+                <div className="flex flex-col gap-4">
+                  {tenant.email && (
+                    <a
+                      href={`mailto:${tenant.email}`}
+                      className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-black bg-white hover:bg-gray-100 transition-colors"
+                    >
+                      Email Us
+                    </a>
+                  )}
+                  {tenant.phone && (
+                    <a
+                      href={`tel:${tenant.phone}`}
+                      className="inline-flex items-center justify-center px-6 py-3 border border-white text-base font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-black transition-colors"
+                    >
+                      Call Us
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
