@@ -148,38 +148,12 @@ export default function PricingPage() {
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 gap-12 items-start">
-            <div className="space-y-6">
-              <ContactForm 
-                tenantId={tenant.id}
-                title="Get Your Quote"
-                description="Tell us about your business and we'll reach out with pricing details."
-              />
-            </div>
-            
-            <div className="space-y-6">
-              <div className="text-center">
-                <h3 className="text-xl font-semibold text-white mb-4">Other Ways to Reach Us</h3>
-                <div className="flex flex-col gap-4">
-                  {tenant.email && (
-                    <a
-                      href={`mailto:${tenant.email}`}
-                      className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-black bg-white hover:bg-gray-100 transition-colors"
-                    >
-                      Email Us
-                    </a>
-                  )}
-                  {tenant.phone && (
-                    <a
-                      href={`tel:${tenant.phone}`}
-                      className="inline-flex items-center justify-center px-6 py-3 border border-white text-base font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-black transition-colors"
-                    >
-                      Call Us
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
+          <div className="max-w-2xl mx-auto">
+            <ContactForm 
+              tenantId={tenant.id}
+              title="Get Your Quote"
+              description="Tell us about your business and we'll reach out with pricing details."
+            />
           </div>
         </div>
       </section>
