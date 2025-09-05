@@ -65,6 +65,12 @@ export default function AdminDashboard() {
       enabled: !!selectedTenantForStats,
     });
 
+  const { data: poolVisualizations = [], isLoading: poolVizLoading } =
+    useQuery<any[]>({
+      queryKey: [`/api/tenants/${selectedTenantForStats}/pool-visualizations`],
+      enabled: !!selectedTenantForStats,
+    });
+
   const { data: usageStats, isLoading: usageLoading } = useQuery<{
     stats: any[];
     totals: {
@@ -352,7 +358,7 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">
-                    {(selectedTenantVisualizations.length + landscapeVisualizations.length)}
+                    {(selectedTenantVisualizations.length + landscapeVisualizations.length + (poolVisualizations?.length || 0))}
                   </div>
                   <p className="text-muted-foreground text-sm">
                     Images processed
@@ -925,6 +931,23 @@ export default function AdminDashboard() {
                   </div>
                   <p className="text-muted-foreground text-sm">
                     Roofing images processed
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Pool Generations
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">
+                    {poolVisualizations.length}
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    Pool images processed
                   </p>
                 </CardContent>
               </Card>
