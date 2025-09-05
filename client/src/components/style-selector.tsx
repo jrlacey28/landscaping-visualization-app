@@ -169,9 +169,13 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
         </div>
 
         {/* Siding Card */}
-        <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.siding ? 'border-slate-500 bg-gradient-to-br from-slate-600 to-slate-700' : 'border-slate-400 bg-gradient-to-br from-slate-500 to-slate-600'
-        }`}>
+        <div className="rounded-xl border-2 p-6 transition-all"
+             style={{
+               borderColor: activeToggles.siding ? secondaryColor : `${secondaryColor}cc`,
+               background: activeToggles.siding 
+                 ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
+                 : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
+             }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Siding</h3>
             <Switch
@@ -236,9 +240,13 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
         </div>
 
         {/* Surprise Me Card */}
-        <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.surpriseMe ? 'border-red-500 bg-gradient-to-br from-red-600 to-rose-700' : 'border-red-400 bg-gradient-to-br from-red-500 to-rose-600'
-        }`}>
+        <div className="rounded-xl border-2 p-6 transition-all"
+             style={{
+               borderColor: activeToggles.surpriseMe ? primaryColor : `${primaryColor}cc`,
+               background: activeToggles.surpriseMe 
+                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor})` 
+                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+             }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Surprise Me!</h3>
             <Switch

@@ -122,8 +122,8 @@ export default function EmbedRoofingPage() {
               
               {/* Show buttons only after generation is complete */}
               {visualizationResult?.status === "completed" && visualizationResult?.generatedImageUrl ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Button
                       size="lg"
                       className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
@@ -165,16 +165,24 @@ export default function EmbedRoofingPage() {
 
                     <Button
                       size="lg"
-                      className="bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      style={{ 
+                        background: `linear-gradient(to right, #64748b, #475569)`
+                      }}
                       onClick={() => setShowingOriginal(!showingOriginal)}
                     >
                       <Eye className="h-5 w-5 mr-2" />
                       {showingOriginal ? "View New Design" : "View Original Photo"}
                     </Button>
-
+                  </div>
+                  
+                  <div className="w-full">
                     <Button
                       size="lg"
-                      className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      className="w-full text-white font-semibold shadow-md hover:shadow-lg transition-all py-3"
+                      style={{ 
+                        background: `linear-gradient(to right, ${secondaryColor}, ${primaryColor})`
+                      }}
                       onClick={() => {
                         setUploadedImage(null);
                         setOriginalFile(null);

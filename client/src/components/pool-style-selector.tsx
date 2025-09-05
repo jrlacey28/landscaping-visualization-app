@@ -156,9 +156,13 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
         </div>
 
         {/* Decking Card */}
-        <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.decking ? 'border-amber-500 bg-gradient-to-br from-amber-600 to-amber-700' : 'border-amber-400 bg-gradient-to-br from-amber-500 to-amber-600'
-        }`}>
+        <div className="rounded-xl border-2 p-6 transition-all"
+             style={{
+               borderColor: activeToggles.decking ? primaryColor : `${primaryColor}cc`,
+               background: activeToggles.decking 
+                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
+                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+             }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Pool Decking</h3>
             <Switch
@@ -188,9 +192,13 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
         </div>
 
         {/* Landscaping Card */}
-        <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.landscaping ? 'border-green-500 bg-gradient-to-br from-green-600 to-green-700' : 'border-green-400 bg-gradient-to-br from-green-500 to-green-600'
-        }`}>
+        <div className="rounded-xl border-2 p-6 transition-all"
+             style={{
+               borderColor: activeToggles.landscaping ? secondaryColor : `${secondaryColor}cc`,
+               background: activeToggles.landscaping 
+                 ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
+                 : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
+             }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Landscaping</h3>
             <Switch
@@ -220,9 +228,13 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
         </div>
 
         {/* Features Card */}
-        <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.features ? 'border-purple-500 bg-gradient-to-br from-purple-600 to-purple-700' : 'border-purple-400 bg-gradient-to-br from-purple-500 to-purple-600'
-        }`}>
+        <div className="rounded-xl border-2 p-6 transition-all"
+             style={{
+               borderColor: activeToggles.features ? primaryColor : `${primaryColor}cc`,
+               background: activeToggles.features 
+                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor})` 
+                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+             }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Special Features</h3>
             <Switch

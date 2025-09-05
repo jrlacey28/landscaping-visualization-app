@@ -131,8 +131,8 @@ export default function EmbedPage() {
               
               {/* Show buttons only after generation is complete */}
               {landscapeVisualizationResult?.status === "completed" && landscapeVisualizationResult?.generatedImageUrl ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Button
                       size="lg"
                       className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
@@ -184,9 +184,15 @@ export default function EmbedPage() {
                       {showingOriginal ? "View Landscape Design" : "View Original Photo"}
                     </Button>
 
+                  </div>
+                  
+                  <div className="w-full">
                     <Button
                       size="lg"
-                      className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      className="w-full text-white font-semibold shadow-md hover:shadow-lg transition-all py-3"
+                      style={{ 
+                        background: `linear-gradient(to right, ${secondaryColor}, ${primaryColor})`
+                      }}
                       onClick={() => {
                         setUploadedImage(null);
                         setOriginalFile(null);

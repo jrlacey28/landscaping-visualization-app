@@ -197,9 +197,13 @@ export default function LandscapeStyleSelector({
         </div>
 
         {/* Landscaping Card */}
-        <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.landscape ? 'border-teal-500 bg-gradient-to-br from-teal-600 to-teal-700' : 'border-teal-400 bg-gradient-to-br from-teal-500 to-teal-600'
-        }`}>
+        <div className="rounded-xl border-2 p-6 transition-all"
+             style={{
+               borderColor: activeToggles.landscape ? secondaryColor : `${secondaryColor}cc`,
+               background: activeToggles.landscape 
+                 ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
+                 : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
+             }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Landscaping</h3>
             <Switch
@@ -229,9 +233,13 @@ export default function LandscapeStyleSelector({
         </div>
 
         {/* Concrete Patios Card */}
-        <div className={`rounded-xl border-2 p-6 transition-all ${
-          activeToggles.patios ? 'border-green-500 bg-gradient-to-br from-green-600 to-green-700' : 'border-green-400 bg-gradient-to-br from-green-500 to-green-600'
-        }`}>
+        <div className="rounded-xl border-2 p-6 transition-all"
+             style={{
+               borderColor: activeToggles.patios ? primaryColor : `${primaryColor}cc`,
+               background: activeToggles.patios 
+                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
+                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+             }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Concrete Patios</h3>
             <Switch
