@@ -21,7 +21,7 @@ export default function Header({ tenant }: HeaderProps) {
     <header className="relative z-50">
       <div className="max-w-7xl mx-auto pl-4 pr-4 sm:pl-6 sm:pr-6 lg:pl-8 lg:pr-8">
         <div className="flex justify-between items-center py-6">
-          <div className="flex items-center space-x-3 -ml-2">
+          <div className="flex items-center space-x-3 -ml-8">
             {/* Logo */}
             <svg
               className="w-12 h-12 text-white"

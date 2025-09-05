@@ -592,7 +592,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto pl-4 pr-4 sm:pl-6 sm:pr-6 lg:pl-8 lg:pr-8 py-8">
           <div className="flex flex-col space-y-6 md:grid md:grid-cols-3 md:items-center md:space-y-0">
             {/* Left side - Logo and company */}
-            <div className="flex items-center justify-center space-x-3 md:justify-start -ml-2">
+            <div className="flex items-center justify-center space-x-3 md:justify-start -ml-8">
               <svg
                 className="w-10 h-10 text-white"
                 viewBox="0 0 128.37 135.86"
