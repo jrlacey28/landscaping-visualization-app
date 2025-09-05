@@ -7,6 +7,7 @@ import Home from "@/pages/home";
 import Pools from "@/pages/pools";
 import Landscape from "@/pages/landscape";
 import Admin from "@/pages/admin";
+import EmbedPage from "@/pages/embed";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/pools" component={Pools} />
       <Route path="/landscape" component={Landscape} />
       <Route path="/admin" component={Admin} />
+      <Route path="/embed" component={EmbedPage} />
       <Route component={NotFound} />
     </Switch>
   );

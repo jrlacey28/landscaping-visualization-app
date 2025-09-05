@@ -569,6 +569,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create subscription for tenant
+  app.post("/api/tenants/:tenantId/subscription", async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      const { plan, billingEmail, paymentMethodId } = req.body;
+      
+      // Here you would integrate with Stripe, Paddle, or your payment processor
+      // For now, we'll just update the tenant record
+      
+      const subscription = {
+        plan: plan, // 'basic', 'pro', 'enterprise'
+        status: 'active',
+        billingEmail: billingEmail,
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+      };
+      
+      // You would store this in a subscriptions table
+      res.json({ success: true, subscription });
+    } catch (error) {
+      console.error("Error creating subscription:", error);
+      res.status(500).json({ error: "Failed to create subscription" });
+    }
+  });
+
+  // Generate API key for tenant (for direct API access)
+  app.post("/api/tenants/:tenantId/api-key", async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+      
+      // Generate a unique API key
+      const apiKey = `lv_${Buffer.from(`${tenantId}_${Date.now()}`).toString('base64')}`;
+      
+      // Store API key in database (you'd need to add an api_keys table)
+      // For now, just return it
+      
+      res.json({ apiKey });
+    } catch (error) {
+      console.error("Error generating API key:", error);
+      res.status(500).json({ error: "Failed to generate API key" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

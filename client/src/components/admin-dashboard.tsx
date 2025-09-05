@@ -17,10 +17,12 @@ import {
   Mail,
   Phone,
   MapPin,
+  Code,
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import type { Tenant, Lead } from "@shared/schema";
+import EmbedCodeGenerator from "./embed-code-generator";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -103,6 +105,9 @@ export default function AdminDashboard() {
     updateTenantMutation.mutate(tenantSettings);
   };
 
+  // For the embed code generator, we need the tenant data to generate the correct embed URL.
+  const tenant = currentTenant;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -137,7 +142,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger
               value="overview"
               className="flex items-center space-x-2"
@@ -150,11 +155,15 @@ export default function AdminDashboard() {
               <span>Leads</span>
             </TabsTrigger>
             <TabsTrigger
-              value="branding"
+              value="visualizations"
               className="flex items-center space-x-2"
             >
               <Edit className="h-4 w-4" />
-              <span>Branding</span>
+              <span>Visualizations</span>
+            </TabsTrigger>
+            <TabsTrigger value="embed" className="flex items-center space-x-2">
+              <Code className="h-4 w-4" />
+              <span>Embed Code</span>
             </TabsTrigger>
             <TabsTrigger
               value="settings"
@@ -315,127 +324,71 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* Branding Tab */}
-          <TabsContent value="branding" className="space-y-6">
+          {/* Visualizations Tab */}
+          <TabsContent value="visualizations" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Company Branding</CardTitle>
+                <CardTitle>Visualizations</CardTitle>
                 <p className="text-muted-foreground">
-                  Customize your company's appearance
+                  Manage your landscape visualizations
                 </p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="companyName">Company Name</Label>
-                    <Input
-                      id="companyName"
-                      value={tenantSettings.companyName}
-                      onChange={(e) =>
-                        setTenantSettings((prev) => ({
-                          ...prev,
-                          companyName: e.target.value,
-                        }))
-                      }
-                    />
+              <CardContent>
+                {visualizationsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                   </div>
-                  <div>
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      value={tenantSettings.phone}
-                      onChange={(e) =>
-                        setTenantSettings((prev) => ({
-                          ...prev,
-                          phone: e.target.value,
-                        }))
-                      }
-                    />
+                ) : visualizations.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      No visualizations yet. Upload a new one!
+                    </p>
+                    <Button className="mt-4">
+                      <Plus className="h-4 w-4 mr-2" /> Add Visualization
+                    </Button>
                   </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={tenantSettings.email}
-                      onChange={(e) =>
-                        setTenantSettings((prev) => ({
-                          ...prev,
-                          email: e.target.value,
-                        }))
-                      }
-                    />
+                ) : (
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {visualizations.map((viz) => (
+                      <Card key={viz.id} className="relative group overflow-hidden">
+                        <CardContent className="p-0">
+                          <img
+                            src={viz.thumbnailUrl}
+                            alt="Visualization"
+                            className="w-full h-48 object-cover rounded-t-lg"
+                          />
+                        </CardContent>
+                        <CardHeader className="p-4">
+                          <CardTitle className="text-lg">
+                            {viz.name}
+                          </CardTitle>
+                          <CardDescription>{viz.description}</CardDescription>
+                        </CardHeader>
+                        <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                          <Button onClick={() => alert("View/Edit Visualization")}>
+                            View/Edit
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
-                  <div>
-                    <Label htmlFor="primaryColor">Primary Color</Label>
-                    <div className="flex space-x-2">
-                      <Input
-                        id="primaryColor"
-                        type="color"
-                        value={tenantSettings.primaryColor}
-                        onChange={(e) =>
-                          setTenantSettings((prev) => ({
-                            ...prev,
-                            primaryColor: e.target.value,
-                          }))
-                        }
-                        className="w-16"
-                      />
-                      <Input
-                        value={tenantSettings.primaryColor}
-                        onChange={(e) =>
-                          setTenantSettings((prev) => ({
-                            ...prev,
-                            primaryColor: e.target.value,
-                          }))
-                        }
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
-                </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                <div>
-                  <Label htmlFor="address">Business Address</Label>
-                  <Textarea
-                    id="address"
-                    value={tenantSettings.address}
-                    onChange={(e) =>
-                      setTenantSettings((prev) => ({
-                        ...prev,
-                        address: e.target.value,
-                      }))
-                    }
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Company Description</Label>
-                  <Textarea
-                    id="description"
-                    value={tenantSettings.description}
-                    onChange={(e) =>
-                      setTenantSettings((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    rows={3}
-                  />
-                </div>
-
-                <Button
-                  onClick={handleSaveSettings}
-                  disabled={updateTenantMutation.isPending}
-                >
-                  {updateTenantMutation.isPending
-                    ? "Saving..."
-                    : "Save Branding"}
-                </Button>
+          {/* Embed Code Tab */}
+          <TabsContent value="embed" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Website Embed Code</CardTitle>
+                <p className="text-muted-foreground">
+                  Generate embed code to add the landscape visualizer to your
+                  website
+                </p>
+              </CardHeader>
+              <CardContent>
+                {tenant && <EmbedCodeGenerator tenant={tenant} />}
               </CardContent>
             </Card>
           </TabsContent>
