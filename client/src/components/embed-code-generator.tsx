@@ -27,14 +27,44 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
 
   // Update config when tenant changes
   useEffect(() => {
-    setConfig(prevConfig => ({
-      ...prevConfig,
-      primaryColor: tenant.primaryColor || "#10b981",
-      secondaryColor: tenant.secondaryColor || "#059669",
-      companyName: tenant.companyName,
-      contactPhone: tenant.contactPhone || tenant.phone || ""
-    }));
+    // Check for saved config for this tenant
+    const savedConfig = localStorage.getItem(`embed-config-${tenant.slug}`);
+    
+    if (savedConfig) {
+      const parsed = JSON.parse(savedConfig);
+      setConfig(prevConfig => ({
+        ...prevConfig,
+        ...parsed,
+        // Always use current tenant data for company info
+        companyName: tenant.companyName,
+        contactPhone: tenant.contactPhone || tenant.phone || ""
+      }));
+    } else {
+      // Use tenant defaults if no saved config
+      setConfig(prevConfig => ({
+        ...prevConfig,
+        primaryColor: tenant.primaryColor || "#10b981",
+        secondaryColor: tenant.secondaryColor || "#059669",
+        companyName: tenant.companyName,
+        contactPhone: tenant.contactPhone || tenant.phone || ""
+      }));
+    }
   }, [tenant]);
+
+  // Save config to localStorage whenever it changes
+  useEffect(() => {
+    if (tenant) {
+      const configToSave = {
+        width: config.width,
+        height: config.height,
+        primaryColor: config.primaryColor,
+        secondaryColor: config.secondaryColor,
+        showHeader: config.showHeader,
+        visualizerType: config.visualizerType
+      };
+      localStorage.setItem(`embed-config-${tenant.slug}`, JSON.stringify(configToSave));
+    }
+  }, [config.width, config.height, config.primaryColor, config.secondaryColor, config.showHeader, config.visualizerType, tenant]);
   
   const baseUrl = window.location.origin;
   
