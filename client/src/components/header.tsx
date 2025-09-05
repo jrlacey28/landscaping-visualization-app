@@ -44,7 +44,7 @@ export default function Header({ tenant }: HeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="text-slate-300 hover:bg-white hover:text-black transition-colors flex items-center gap-1"
+                  className="text-slate-300 hover:bg-white hover:text-black transition-colors flex items-center gap-1 px-0"
                 >
                   Services
                   <ChevronDown className="h-4 w-4" />
@@ -98,6 +98,12 @@ export default function Header({ tenant }: HeaderProps) {
               className="text-slate-300 hover:text-blue-400 transition-colors"
             >
               Gallery
+            </a>
+            <a
+              href="/pricing"
+              className="text-slate-300 hover:text-blue-400 transition-colors"
+            >
+              Pricing
             </a>
             <a
               href="#contact"
