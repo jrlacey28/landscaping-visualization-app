@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
-  const [selectedTenantForStats, setSelectedTenantForStats] = useState<number | null>(1); // Default to tenant ID 1
+  const [selectedTenantForStats, setSelectedTenantForStats] = useState<number | null>(null); // No default - requires selection
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [editingClient, setEditingClient] = useState<Tenant | null>(null);
   const [newClientData, setNewClientData] = useState({

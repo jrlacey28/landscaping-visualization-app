@@ -79,7 +79,7 @@ export default function EmbedPage() {
   }
 
   return (
-    <div className="min-h-screen p-4" style={{ background: `linear-gradient(to bottom right, ${primaryColor}dd, ${secondaryColor}dd, ${primaryColor}cc)` }}>
+    <div className="min-h-screen p-2" style={{ background: `linear-gradient(to bottom right, ${primaryColor}dd, ${secondaryColor}dd, ${primaryColor}cc)` }}>
       <div className="max-w-4xl mx-auto">
         {showHeader && (
           <div className="text-center mb-8">
@@ -93,7 +93,7 @@ export default function EmbedPage() {
         )}
 
         {/* Image Upload */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-6">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 mb-4">
           <h2 className="text-xl font-semibold text-white mb-4 text-center">Upload Your Property Photo</h2>
           
           {!uploadedImage ? (
@@ -262,7 +262,7 @@ export default function EmbedPage() {
 
         {/* Style Selection */}
         {uploadedImage && (
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 mb-6">
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 mb-4">
             <h2 className="text-xl font-semibold text-white mb-4">Choose Your Landscape Style</h2>
             <LandscapeStyleSelector
               selectedStyles={selectedLandscapeStyles}
@@ -275,7 +275,7 @@ export default function EmbedPage() {
 
         {/* Generate Button */}
         {uploadedImage && (
-          <div className="mb-6">
+          <div className="mb-4">
             <Button
               size="lg"
               className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
@@ -336,17 +336,6 @@ export default function EmbedPage() {
           </div>
         )}
 
-        {/* Processing Status - only show when generating */}
-        {isGenerating && (
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
-            <div className="w-full aspect-video bg-emerald-50 border-2 border-emerald-200 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                <p className="text-emerald-600">Generating design...</p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
