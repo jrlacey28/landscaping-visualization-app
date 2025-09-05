@@ -14,6 +14,8 @@ export default function EmbedRoofingPage() {
   const secondaryColor = urlParams.get('secondaryColor') || '#059669';
   const companyName = urlParams.get('companyName') || '';
   const showHeader = urlParams.get('showHeader') !== 'false';
+  const contactType = urlParams.get('contactType') || 'phone';
+  const contactLink = urlParams.get('contactLink') || '';
   
   const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant(tenantSlug);
   
@@ -216,14 +218,18 @@ export default function EmbedRoofingPage() {
                       background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
                     }}
                     onClick={() => {
-                      const contactPhone = tenant.contactPhone || tenant.phone || '(555) 123-4567';
-                      const message = encodeURIComponent(`Hi! I'm interested in getting a free quote for roofing and siding. I just tried your visualizer and would like to discuss my project.`);
-                      
-                      if (contactPhone.startsWith('(') || contactPhone.startsWith('+')) {
-                        const cleanPhone = contactPhone.replace(/[\(\)\-\s]/g, '');
-                        window.open(`tel:${cleanPhone}`, '_self');
+                      if (contactType === 'link' && contactLink) {
+                        window.open(contactLink, '_blank');
                       } else {
-                        window.open(`mailto:${tenant.email || 'info@company.com'}?subject=Roofing & Siding Quote Request&body=${message}`, '_blank');
+                        const contactPhone = tenant.contactPhone || tenant.phone || '(555) 123-4567';
+                        const message = encodeURIComponent(`Hi! I'm interested in getting a free quote for roofing and siding. I just tried your visualizer and would like to discuss my project.`);
+                        
+                        if (contactPhone.startsWith('(') || contactPhone.startsWith('+')) {
+                          const cleanPhone = contactPhone.replace(/[\(\)\-\s]/g, '');
+                          window.open(`tel:${cleanPhone}`, '_self');
+                        } else {
+                          window.open(`mailto:${tenant.email || 'info@company.com'}?subject=Roofing & Siding Quote Request&body=${message}`, '_blank');
+                        }
                       }
                     }}
                   >

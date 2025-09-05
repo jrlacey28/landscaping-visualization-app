@@ -20,6 +20,8 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
     secondaryColor: tenant.secondaryColor || "#059669",
     companyName: tenant.companyName,
     contactPhone: tenant.contactPhone || tenant.phone || "",
+    contactType: "phone" as "phone" | "link",
+    contactLink: "",
     visualizerType: "landscape" as "landscape" | "roofing" | "pools"
   });
   
@@ -41,6 +43,8 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
           primaryColor: parsed.primaryColor || tenant.primaryColor || "#10b981",
           secondaryColor: parsed.secondaryColor || tenant.secondaryColor || "#059669",
           showHeader: parsed.showHeader !== undefined ? parsed.showHeader : true,
+          contactType: parsed.contactType || "phone",
+          contactLink: parsed.contactLink || "",
           visualizerType: parsed.visualizerType || "landscape",
           // Always use current tenant data for company info
           companyName: tenant.companyName,
@@ -55,6 +59,8 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
           primaryColor: tenant.primaryColor || "#10b981",
           secondaryColor: tenant.secondaryColor || "#059669",
           showHeader: true,
+          contactType: "phone",
+          contactLink: "",
           visualizerType: "landscape",
           companyName: tenant.companyName,
           contactPhone: tenant.contactPhone || tenant.phone || ""
@@ -68,6 +74,8 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
         primaryColor: tenant.primaryColor || "#10b981",
         secondaryColor: tenant.secondaryColor || "#059669",
         showHeader: true,
+        contactType: "phone",
+        contactLink: "",
         visualizerType: "landscape",
         companyName: tenant.companyName,
         contactPhone: tenant.contactPhone || tenant.phone || ""
@@ -84,11 +92,13 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
         primaryColor: config.primaryColor,
         secondaryColor: config.secondaryColor,
         showHeader: config.showHeader,
+        contactType: config.contactType,
+        contactLink: config.contactLink,
         visualizerType: config.visualizerType
       };
       localStorage.setItem(`embed-config-${tenant.slug}`, JSON.stringify(configToSave));
     }
-  }, [config.width, config.height, config.primaryColor, config.secondaryColor, config.showHeader, config.visualizerType, tenant?.slug]);
+  }, [config.width, config.height, config.primaryColor, config.secondaryColor, config.showHeader, config.contactType, config.contactLink, config.visualizerType, tenant?.slug]);
   
   const baseUrl = window.location.origin;
   
@@ -100,6 +110,8 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
       secondaryColor: config.secondaryColor,
       companyName: config.companyName,
       contactPhone: config.contactPhone,
+      contactType: config.contactType,
+      contactLink: config.contactLink,
       showHeader: config.showHeader.toString()
     });
 
@@ -203,14 +215,39 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
           </div>
           
           <div className="md:col-span-2">
-            <Label htmlFor="contactPhone">Contact Phone for Quote Button</Label>
-            <Input
-              id="contactPhone"
-              value={config.contactPhone}
-              onChange={(e) => setConfig({ ...config, contactPhone: e.target.value })}
-              placeholder="(555) 123-4567"
-            />
+            <Label htmlFor="contactType">Quote Button Action</Label>
+            <select
+              id="contactType"
+              value={config.contactType}
+              onChange={(e) => setConfig({ ...config, contactType: e.target.value as "phone" | "link" })}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+            >
+              <option value="phone">Phone Number</option>
+              <option value="link">Custom Link</option>
+            </select>
           </div>
+          
+          {config.contactType === "phone" ? (
+            <div className="md:col-span-2">
+              <Label htmlFor="contactPhone">Contact Phone Number</Label>
+              <Input
+                id="contactPhone"
+                value={config.contactPhone}
+                onChange={(e) => setConfig({ ...config, contactPhone: e.target.value })}
+                placeholder="(555) 123-4567"
+              />
+            </div>
+          ) : (
+            <div className="md:col-span-2">
+              <Label htmlFor="contactLink">Contact Link URL</Label>
+              <Input
+                id="contactLink"
+                value={config.contactLink}
+                onChange={(e) => setConfig({ ...config, contactLink: e.target.value })}
+                placeholder="https://yoursite.com/contact"
+              />
+            </div>
+          )}
           
           <div className="md:col-span-2 flex items-center space-x-2">
             <Switch
