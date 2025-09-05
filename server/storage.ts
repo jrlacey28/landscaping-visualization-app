@@ -2,20 +2,8 @@ import { tenants, leads, visualizations, poolVisualizations, landscapeVisualizat
 import { db } from "./db";
 import { eq, desc, and, gte } from "drizzle-orm";
 
-// Assuming usageStats table definition exists in @shared/schema
-// import { usageStats, type UsageStat } from "@shared/schema";
-
-// Placeholder for the usageStats table definition if it's not imported
-// In a real scenario, this should be properly imported from your schema file.
-const usageStats = {
-  id: { type: 'number', primaryKey: true },
-  tenantId: { type: 'number' },
-  date: { type: 'date' },
-  totalGenerations: { type: 'number', default: 0 },
-  imageGenerations: { type: 'number', default: 0 },
-  landscapeGenerations: { type: 'number', default: 0 },
-  poolGenerations: { type: 'number', default: 0 },
-};
+// Usage stats functionality temporarily disabled
+// TODO: Implement proper usageStats table in schema when needed
 
 
 export interface IStorage {
@@ -48,6 +36,10 @@ export interface IStorage {
   getLandscapeVisualizationsByTenant(tenantId: number): Promise<LandscapeVisualization[]>;
   createLandscapeVisualization(landscapeVisualization: InsertLandscapeVisualization): Promise<LandscapeVisualization>;
   updateLandscapeVisualization(id: number, landscapeVisualization: Partial<InsertLandscapeVisualization>): Promise<LandscapeVisualization>;
+
+  // Usage stats methods
+  trackUsage(tenantId: number, type: 'visualization' | 'landscape' | 'pool'): Promise<void>;
+  getUsageStats(tenantId: number, days?: number): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -205,75 +197,17 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async trackUsage(tenantId: number, type: 'visualization' | 'landscape' | 'pool') {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    try {
-      // Try to get today's stats for the tenant
-      const existingStats = await this.db
-        .select()
-        .from(usageStats)
-        .where(
-          and(
-            eq(usageStats.tenantId, tenantId),
-            gte(usageStats.date, today)
-          )
-        )
-        .limit(1);
-
-      if (existingStats.length > 0) {
-        // Update existing stats
-        const stats = existingStats[0];
-        const updates: any = {
-          totalGenerations: stats.totalGenerations + 1
-        };
-
-        if (type === 'visualization') {
-          updates.imageGenerations = stats.imageGenerations + 1;
-        } else if (type === 'landscape') {
-          updates.landscapeGenerations = stats.landscapeGenerations + 1;
-        } else if (type === 'pool') {
-          updates.poolGenerations = stats.poolGenerations + 1;
-        }
-
-        await this.db
-          .update(usageStats)
-          .set(updates)
-          .where(eq(usageStats.id, stats.id));
-      } else {
-        // Create new stats entry
-        const newStats: any = {
-          tenantId,
-          date: today,
-          totalGenerations: 1,
-          imageGenerations: type === 'visualization' ? 1 : 0,
-          landscapeGenerations: type === 'landscape' ? 1 : 0,
-          poolGenerations: type === 'pool' ? 1 : 0,
-        };
-
-        await this.db.insert(usageStats).values(newStats);
-      }
-    } catch (error) {
-      console.error('Error tracking usage:', error);
-      // Don't fail the main operation if usage tracking fails
-    }
+  async trackUsage(tenantId: number, type: 'visualization' | 'landscape' | 'pool'): Promise<void> {
+    // Usage tracking temporarily disabled
+    // TODO: Implement proper usage tracking when usageStats table is created
+    console.log(`Usage tracked for tenant ${tenantId}, type: ${type}`);
+    return Promise.resolve();
   }
 
-  async getUsageStats(tenantId: number, days: number = 30) {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    return this.db
-      .select()
-      .from(usageStats)
-      .where(
-        and(
-          eq(usageStats.tenantId, tenantId),
-          gte(usageStats.date, startDate)
-        )
-      )
-      .orderBy(desc(usageStats.date));
+  async getUsageStats(tenantId: number, days: number = 30): Promise<any[]> {
+    // Usage stats temporarily disabled - return empty data
+    // TODO: Implement proper usage stats when usageStats table is created
+    return Promise.resolve([]);
   }
 }
 

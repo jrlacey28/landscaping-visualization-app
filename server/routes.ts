@@ -42,7 +42,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tenant/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
-      const tenant = await storage.getTenantBySlug(slug);
+      
+      // Check if slug is numeric (ID) or string (slug)
+      const isNumeric = /^\d+$/.test(slug);
+      
+      let tenant;
+      if (isNumeric) {
+        // Treat as ID
+        tenant = await storage.getTenant(parseInt(slug));
+      } else {
+        // Treat as slug
+        tenant = await storage.getTenantBySlug(slug);
+      }
 
       if (!tenant) {
         return res.status(404).json({ error: "Tenant not found" });
