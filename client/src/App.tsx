@@ -10,6 +10,7 @@ import Admin from "@/pages/admin";
 import Embed from "@/pages/embed";
 import EmbedRoofing from "@/pages/embed-roofing";
 import EmbedPools from "@/pages/embed-pools";
+import EmbedManager from "@/pages/embed-manager";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/embed" component={Embed} />
       <Route path="/embed-roofing" component={EmbedRoofing} />
       <Route path="/embed-pools" component={EmbedPools} />
+      <Route path="/embed-manager" component={EmbedManager} />
       <Route component={NotFound} />
     </Switch>
   );
