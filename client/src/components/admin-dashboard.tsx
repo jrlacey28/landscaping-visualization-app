@@ -331,7 +331,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-1 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 lg:grid-cols-5 gap-1 h-auto p-1">
             <TabsTrigger
               value="overview"
               className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
@@ -345,6 +345,13 @@ export default function AdminDashboard() {
             >
               <Users className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Clients</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="leads" 
+              className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
+            >
+              <Mail className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Leads</span>
             </TabsTrigger>
             <TabsTrigger 
               value="embed" 
@@ -883,6 +890,136 @@ export default function AdminDashboard() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Leads Tab */}
+          <TabsContent value="leads" className="space-y-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <h2 className="text-2xl md:text-3xl font-bold">Leads Management</h2>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="leadsSelector" className="text-sm whitespace-nowrap">View leads for:</Label>
+                  <select
+                    id="leadsSelector"
+                    value={selectedTenantForStats || ''}
+                    onChange={(e) => setSelectedTenantForStats(e.target.value ? parseInt(e.target.value) : null)}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm min-w-[150px]"
+                  >
+                    <option value="">Select a Client</option>
+                    {allTenants.map((tenant: Tenant) => (
+                      <option key={tenant.id} value={tenant.id}>
+                        {tenant.companyName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {!selectedTenantForStats ? (
+              <Card>
+                <CardContent className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 text-lg mb-2">Select a client to view their leads</p>
+                    <p className="text-gray-500 text-sm">Choose a client from the dropdown above to see all form submissions</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    Leads for {allTenants.find(t => t.id === selectedTenantForStats)?.companyName}
+                  </CardTitle>
+                  <CardDescription>
+                    All contact form submissions from your website
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {leadsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : leads.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 text-lg mb-2">No leads yet</p>
+                      <p className="text-gray-500 text-sm">Contact form submissions will appear here</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-600">
+                          Total leads: {leads.length}
+                        </p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="border-b bg-gray-50">
+                              <th className="text-left p-3 font-medium text-gray-700">Name</th>
+                              <th className="text-left p-3 font-medium text-gray-700">Business</th>
+                              <th className="text-left p-3 font-medium text-gray-700">Email</th>
+                              <th className="text-left p-3 font-medium text-gray-700">Phone</th>
+                              <th className="text-left p-3 font-medium text-gray-700">Date</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {leads.map((lead) => (
+                              <tr key={lead.id} className="border-b hover:bg-gray-50">
+                                <td className="p-3">
+                                  <div className="font-medium text-gray-900">
+                                    {lead.firstName} {lead.lastName}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <div className="text-gray-700">
+                                    {lead.businessName || 'Not provided'}
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <a 
+                                    href={`mailto:${lead.email}`}
+                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                  >
+                                    {lead.email}
+                                  </a>
+                                </td>
+                                <td className="p-3">
+                                  {lead.phone ? (
+                                    <a 
+                                      href={`tel:${lead.phone}`}
+                                      className="text-blue-600 hover:text-blue-800 hover:underline"
+                                    >
+                                      {lead.phone}
+                                    </a>
+                                  ) : (
+                                    <span className="text-gray-500">Not provided</span>
+                                  )}
+                                </td>
+                                <td className="p-3">
+                                  <div className="text-gray-700 text-sm">
+                                    {lead.createdAt ? (
+                                      <>
+                                        {new Date(lead.createdAt).toLocaleDateString()} {new Date(lead.createdAt).toLocaleTimeString()}
+                                      </>
+                                    ) : (
+                                      'Date not available'
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           
