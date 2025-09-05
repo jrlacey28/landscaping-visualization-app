@@ -4,6 +4,7 @@ import { useTenant } from "../hooks/use-tenant";
 import StyleSelector from "../components/style-selector";
 import { Button } from "../components/ui/button";
 import { Upload, Sparkles, Download, Eye, Camera, Phone } from "lucide-react";
+import { SparklesText } from "@/components/ui/sparkles-text";
 import { uploadImage, checkVisualizationStatus } from "../lib/api";
 
 export default function EmbedRoofingPage() {
@@ -108,7 +109,7 @@ export default function EmbedRoofingPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden">
+              <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden relative">
                 <img
                   src={visualizationResult?.status === "completed" && visualizationResult?.generatedImageUrl ? 
                     (showingOriginal ? uploadedImage : visualizationResult.generatedImageUrl) : 
@@ -118,6 +119,18 @@ export default function EmbedRoofingPage() {
                     "Uploaded home"}
                   className="w-full h-full object-cover"
                 />
+                {isGenerating && (
+                  <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <SparklesText
+                        text="Designing your perfect roof & siding..."
+                        className="text-sm sm:text-lg lg:text-xl font-bold text-white whitespace-nowrap"
+                        sparklesCount={12}
+                        colors={{ first: primaryColor, second: secondaryColor }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               
               {/* Show buttons only after generation is complete */}

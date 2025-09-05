@@ -3,6 +3,7 @@ import { useTenant } from "../hooks/use-tenant";
 import LandscapeStyleSelector from "../components/landscape-style-selector";
 import { Button } from "../components/ui/button";
 import { Upload, Sparkles, Download, Eye, Camera, Phone } from "lucide-react";
+import { SparklesText } from "@/components/ui/sparkles-text";
 import { uploadLandscapeImage, checkLandscapeVisualizationStatus } from "../lib/api";
 
 interface EmbedProps {
@@ -117,7 +118,7 @@ export default function EmbedPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden">
+              <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden relative">
                 <img
                   src={landscapeVisualizationResult?.status === "completed" && landscapeVisualizationResult?.generatedImageUrl ? 
                     (showingOriginal ? uploadedImage : landscapeVisualizationResult.generatedImageUrl) : 
@@ -127,6 +128,18 @@ export default function EmbedPage() {
                     "Uploaded property"}
                   className="w-full h-full object-cover"
                 />
+                {isGenerating && (
+                  <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <SparklesText
+                        text="Designing your perfect landscape..."
+                        className="text-sm sm:text-lg lg:text-xl font-bold text-white whitespace-nowrap"
+                        sparklesCount={12}
+                        colors={{ first: primaryColor, second: secondaryColor }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               
               {/* Show buttons only after generation is complete */}

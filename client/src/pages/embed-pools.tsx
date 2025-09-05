@@ -4,6 +4,7 @@ import { useTenant } from "../hooks/use-tenant";
 import PoolStyleSelector from "../components/pool-style-selector";
 import { Button } from "../components/ui/button";
 import { Upload, Sparkles, Download, Eye, Camera, Phone } from "lucide-react";
+import { SparklesText } from "@/components/ui/sparkles-text";
 import { uploadPoolImage, checkPoolVisualizationStatus } from "../lib/api";
 
 export default function EmbedPoolsPage() {
@@ -110,7 +111,7 @@ export default function EmbedPoolsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden">
+              <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden relative">
                 <img
                   src={poolVisualizationResult?.status === "completed" && poolVisualizationResult?.generatedImageUrl ? 
                     (showingOriginal ? uploadedImage : poolVisualizationResult.generatedImageUrl) : 
@@ -120,6 +121,18 @@ export default function EmbedPoolsPage() {
                     "Uploaded backyard"}
                   className="w-full h-full object-cover"
                 />
+                {isGenerating && (
+                  <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <SparklesText
+                        text="Designing your perfect pool area..."
+                        className="text-sm sm:text-lg lg:text-xl font-bold text-white whitespace-nowrap"
+                        sparklesCount={12}
+                        colors={{ first: primaryColor, second: secondaryColor }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               
               {/* Show buttons only after generation is complete */}
