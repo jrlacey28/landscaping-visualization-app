@@ -78,7 +78,7 @@ export default function EmbedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-900 to-green-900 p-4">
+    <div className="min-h-screen p-4" style={{ background: `linear-gradient(to bottom right, ${primaryColor}dd, ${secondaryColor}dd, ${primaryColor}cc)` }}>
       <div className="max-w-4xl mx-auto">
         {showHeader && (
           <div className="text-center mb-8">

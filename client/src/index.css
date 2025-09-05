@@ -84,6 +84,10 @@
   --destructive-foreground: 210 20% 98%; /* #F8FAFC */
   --ring: 210 100% 34%; /* #0056B3 */
   --radius: 0.5rem;
+  
+  /* Custom embed colors - these get set by the embed pages */
+  --primary-color: #10b981;
+  --secondary-color: #059669;
 }
 
 .dark {
@@ -179,6 +183,31 @@
 
 .animate-slide-up {
   animation: slideUp 0.3s ease-out;
+}
+
+/* Custom embed color utilities */
+.bg-primary-custom {
+  background-color: var(--primary-color) !important;
+}
+
+.bg-secondary-custom {
+  background-color: var(--secondary-color) !important;
+}
+
+.text-primary-custom {
+  color: var(--primary-color) !important;
+}
+
+.text-secondary-custom {
+  color: var(--secondary-color) !important;
+}
+
+.border-primary-custom {
+  border-color: var(--primary-color) !important;
+}
+
+.border-secondary-custom {
+  border-color: var(--secondary-color) !important;
 }
 
 /* Utility classes for smooth transitions */

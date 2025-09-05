@@ -371,22 +371,6 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-purple-700">
-                    <BarChart3 className="h-5 w-5" />
-                    Landscape Gens
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-purple-900">
-                    {landscapeVisualizations.length}
-                  </div>
-                  <p className="text-purple-600 text-sm">
-                    Images processed
-                  </p>
-                </CardContent>
-              </Card>
 
               <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
                 <CardHeader className="pb-2">
