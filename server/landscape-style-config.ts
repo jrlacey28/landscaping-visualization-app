@@ -14,11 +14,12 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     id: "natural_stone_curbing_gray",
     name: "Natural Stone Curbing - Gray",
     prompt:
-      "Add continuous poured decorative concrete curbing around the existing garden beds, following the current bed outline. Use a slant/mower profile, 4 inches wide × 3 inches tall: the bed side is the tall, near-vertical back, and the top slopes down toward the lawn with a smooth rounded front lip sitting just above the grass. The curb must be one seamless, monolithic strip of cast-in-place concrete, not modular units. Apply a stamped stone surface texture (texture only—still clearly concrete) in subtle gray tones. Optional shallow control joints may appear every few feet but the curb still reads as one piece. Keep all plants, rock, mulch, grass, walkway, and lighting unchanged. Do not generate bricks, blocks, pavers, segmented edging, stacked stone, boulder borders, retaining walls, or loose rocks; do not alter lawn shape or bed layout; no tall walls.",
-    referenceImageUrl: "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
+      "Add LOW continuous poured decorative concrete curbing around existing garden beds. CRITICAL: Curbing must be ONLY 3-4 inches tall maximum with a sloped mower-friendly profile - IGNORE the height shown in reference images. Create a slant profile where the bed side is 3-4 inches tall and slopes down at a 45-degree angle to a rounded lip that sits just 1 inch above grass level. Reference images show TEXTURE ONLY - use specified dimensions, not image heights. Apply stamped natural stone texture in subtle gray tones. Must be one continuous monolithic strip, not blocks. Keep all existing plants, mulch, grass unchanged. Do not create tall walls, stacked stone, or boulder borders.",
+    referenceImageUrl:
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
     referenceImages: [
       "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
-      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033992300.png"
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033992300.png",
     ],
     category: "curbing",
     regionType: "border",
@@ -27,11 +28,12 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     id: "natural_stone_curbing_tan",
     name: "Natural Stone Curbing - Tan",
     prompt:
-      "Add continuous poured decorative concrete curbing around the existing garden beds, following the current bed outline. Use a slant/mower profile, 4 inches wide × 3 inches tall: the bed side is the tall, near-vertical back, and the top slopes down toward the lawn with a smooth rounded front lip sitting just above the grass. The curb must be one seamless, monolithic strip of cast-in-place concrete, not modular units. Apply a stamped stone surface texture (texture only—still clearly concrete) in warm tan/beige tones. Optional shallow control joints may appear every few feet but the curb still reads as one piece. Keep all plants, rock, mulch, grass, walkway, and lighting unchanged. Do not generate bricks, blocks, pavers, segmented edging, stacked stone, boulder borders, retaining walls, or loose rocks; do not alter lawn shape or bed layout; no tall walls.",
-    referenceImageUrl: "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
+      "Add LOW continuous poured decorative concrete curbing around existing garden beds. CRITICAL: Curbing must be ONLY 3-4 inches tall maximum with a sloped mower-friendly profile - IGNORE the height shown in reference images. Create a slant profile where the bed side is 3-4 inches tall and slopes down at a 45-degree angle to a rounded lip that sits just 1 inch above grass level. Reference images show TEXTURE ONLY - use specified dimensions, not image heights. Apply stamped natural stone texture in warm tan/beige tones. Must be one continuous monolithic strip, not blocks. Keep all existing plants, mulch, grass unchanged. Do not create tall walls, stacked stone, or boulder borders.",
+    referenceImageUrl:
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
     referenceImages: [
       "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
-      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033992300.png"
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033992300.png",
     ],
     category: "curbing",
     regionType: "border",
@@ -40,12 +42,9 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     id: "natural_stone_curbing_brown",
     name: "Natural Stone Curbing - Brown",
     prompt:
-      "Add continuous poured decorative concrete curbing around the existing garden beds, following the current bed outline. Use a slant/mower profile, 4 inches wide × 3 inches tall: the bed side is the tall, near-vertical back, and the top slopes down toward the lawn with a smooth rounded front lip sitting just above the grass. The curb must be one seamless, monolithic strip of cast-in-place concrete, not modular units. Apply a stamped stone surface texture (texture only—still clearly concrete) in rich brown/earth tones. Optional shallow control joints may appear every few feet but the curb still reads as one piece. Keep all plants, rock, mulch, grass, walkway, and lighting unchanged. Do not generate bricks, blocks, pavers, segmented edging, stacked stone, boulder borders, retaining walls, or loose rocks; do not alter lawn shape or bed layout; no tall walls.",
-    referenceImageUrl: "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
-    referenceImages: [
-      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
-      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033992300.png"
-    ],
+      "Add LOW continuous poured decorative concrete curbing around existing garden beds. CRITICAL: Curbing must be ONLY 3-4 inches tall maximum with a sloped mower-friendly profile - IGNORE the height shown in reference images. Create a slant profile where the bed side is 3-4 inches tall and slopes down at a 45-degree angle to a rounded lip that sits just 1 inch above grass level. Reference images show TEXTURE ONLY - use specified dimensions, not image heights. Apply stamped natural stone texture in rich brown/earth tones. Must be one continuous monolithic strip, not blocks. Keep all existing plants, mulch, grass unchanged. Do not create tall walls, stacked stone, or boulder borders.",
+    referenceImageUrl: "../uploads/IMG_2129.jpg",
+    referenceImages: ["../uploads/IMG_2129.jpg"],
     category: "curbing",
     regionType: "border",
   },
@@ -54,10 +53,11 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     name: "Natural Stone Curbing - Charcoal",
     prompt:
       "Add continuous poured decorative concrete curbing around the existing garden beds, following the current bed outline. Use a slant/mower profile, 4 inches wide × 3 inches tall: the bed side is the tall, near-vertical back, and the top slopes down toward the lawn with a smooth rounded front lip sitting just above the grass. The curb must be one seamless, monolithic strip of cast-in-place concrete, not modular units. Apply a stamped stone surface texture (texture only—still clearly concrete) in dark charcoal/anthracite tones. Optional shallow control joints may appear every few feet but the curb still reads as one piece. Keep all plants, rock, mulch, grass, walkway, and lighting unchanged. Do not generate bricks, blocks, pavers, segmented edging, stacked stone, boulder borders, retaining walls, or loose rocks; do not alter lawn shape or bed layout; no tall walls.",
-    referenceImageUrl: "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
+    referenceImageUrl:
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
     referenceImages: [
       "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
-      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033992300.png"
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033992300.png",
     ],
     category: "curbing",
     regionType: "border",
@@ -67,10 +67,11 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     name: "Natural Stone Curbing - Sandstone",
     prompt:
       "Add continuous poured decorative concrete curbing around the existing garden beds, following the current bed outline. Use a slant/mower profile, 4 inches wide × 3 inches tall: the bed side is the tall, near-vertical back, and the top slopes down toward the lawn with a smooth rounded front lip sitting just above the grass. The curb must be one seamless, monolithic strip of cast-in-place concrete, not modular units. Apply a stamped stone surface texture (texture only—still clearly concrete) in warm sandstone/buff tones. Optional shallow control joints may appear every few feet but the curb still reads as one piece. Keep all plants, rock, mulch, grass, walkway, and lighting unchanged. Do not generate bricks, blocks, pavers, segmented edging, stacked stone, boulder borders, retaining walls, or loose rocks; do not alter lawn shape or bed layout; no tall walls.",
-    referenceImageUrl: "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
+    referenceImageUrl:
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
     referenceImages: [
       "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033241182.png",
-      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033992300.png"
+      "../attached_assets/Untitled design - 2025-08-31T143852.517_1757033992300.png",
     ],
     category: "curbing",
     regionType: "border",
