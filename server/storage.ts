@@ -119,7 +119,51 @@ export class DatabaseStorage implements IStorage {
       .insert(visualizations)
       .values(insertVisualization)
       .returning();
+    
+    // Increment the tenant's generation count
+    await this.incrementTenantGenerations(insertVisualization.tenantId);
+    
     return visualization;
+  }
+
+  async incrementTenantGenerations(tenantId: number): Promise<void> {
+    // Get current tenant data
+    const tenant = await this.getTenant(tenantId);
+    if (!tenant) {
+      throw new Error('Tenant not found');
+    }
+
+    // Check if we need to reset the monthly count (start of new month)
+    const now = new Date();
+    const lastReset = new Date(tenant.lastResetDate || tenant.createdAt || now);
+    
+    let shouldReset = false;
+    if (lastReset.getMonth() !== now.getMonth() || lastReset.getFullYear() !== now.getFullYear()) {
+      shouldReset = true;
+    }
+
+    const newCount = shouldReset ? 1 : (tenant.currentMonthGenerations || 0) + 1;
+    const limit = tenant.monthlyGenerationLimit || 100;
+    
+    // Update the generation count and reset date if needed
+    const updateData: any = {
+      currentMonthGenerations: newCount,
+    };
+
+    if (shouldReset) {
+      updateData.lastResetDate = now;
+    }
+
+    // Auto-suspend if over limit
+    if (newCount > limit && tenant.active) {
+      updateData.active = false;
+      console.log(`Auto-suspending tenant ${tenant.slug} - exceeded limit: ${newCount}/${limit}`);
+    }
+
+    await this.db
+      .update(tenants)
+      .set(updateData)
+      .where(eq(tenants.id, tenantId));
   }
 
   async updateVisualization(id: number, insertVisualization: Partial<InsertVisualization>): Promise<Visualization> {
@@ -149,6 +193,10 @@ export class DatabaseStorage implements IStorage {
       .insert(poolVisualizations)
       .values(insertPoolVisualization)
       .returning();
+    
+    // Increment the tenant's generation count
+    await this.incrementTenantGenerations(insertPoolVisualization.tenantId);
+    
     return poolVisualization;
   }
 
@@ -179,6 +227,10 @@ export class DatabaseStorage implements IStorage {
       .insert(landscapeVisualizations)
       .values(insertLandscapeVisualization)
       .returning();
+    
+    // Increment the tenant's generation count
+    await this.incrementTenantGenerations(insertLandscapeVisualization.tenantId);
+    
     return landscapeVisualization;
   }
 

@@ -18,6 +18,9 @@ export const tenants = pgTable("tenants", {
   showPricing: boolean("show_pricing").default(true),
   requirePhone: boolean("require_phone").default(false),
   active: boolean("active").default(true),
+  monthlyGenerationLimit: integer("monthly_generation_limit").default(100),
+  currentMonthGenerations: integer("current_month_generations").default(0),
+  lastResetDate: timestamp("last_reset_date").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

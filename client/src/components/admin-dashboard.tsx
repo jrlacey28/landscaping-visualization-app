@@ -374,13 +374,6 @@ export default function AdminDashboard() {
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
               <h2 className="text-2xl md:text-3xl font-bold">Dashboard Overview</h2>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <Button 
-                  onClick={() => window.location.href = '/embed-manager'}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Manage Embeds
-                </Button>
                 <div className="flex items-center space-x-2">
                   <Label htmlFor="tenantSelector" className="text-sm whitespace-nowrap">View stats for:</Label>
                   <select
@@ -454,44 +447,126 @@ export default function AdminDashboard() {
               </Card>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Recent Activity</CardTitle>
-                <p className="text-muted-foreground">Latest leads and client activity</p>
-              </CardHeader>
-              <CardContent>
-                {selectedTenantLeads.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Recent Activity</h3>
-                    <p className="text-gray-500">
-                      Leads will appear here once clients start using your visualization tools.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {selectedTenantLeads.slice(0, 5).map((lead: Lead) => (
-                      <div
-                        key={lead.id}
-                        className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:shadow-sm transition-shadow"
-                      >
-                        <div>
-                          <p className="font-semibold text-gray-900">
-                            {lead.firstName} {lead.lastName}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {lead.email}
-                          </p>
+{selectedTenantForStats ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Recent Activity</CardTitle>
+                  <p className="text-muted-foreground">Latest leads and client activity</p>
+                </CardHeader>
+                <CardContent>
+                  {selectedTenantLeads.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-600 mb-2">No Recent Activity</h3>
+                      <p className="text-gray-500">
+                        Leads will appear here once clients start using your visualization tools.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {selectedTenantLeads.slice(0, 5).map((lead: Lead) => (
+                        <div
+                          key={lead.id}
+                          className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:shadow-sm transition-shadow"
+                        >
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              {lead.firstName} {lead.lastName}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {lead.email}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                            {new Date(lead.createdAt!).toLocaleDateString()}
+                          </Badge>
                         </div>
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                          {new Date(lead.createdAt!).toLocaleDateString()}
-                        </Badge>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Client Generation Usage</CardTitle>
+                  <p className="text-muted-foreground">Monthly generation limits and current usage</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-2">Client</th>
+                          <th className="text-left py-3 px-2">Status</th>
+                          <th className="text-right py-3 px-2">Used/Limit</th>
+                          <th className="text-right py-3 px-2">Progress</th>
+                          <th className="text-right py-3 px-2">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allTenants.map((tenant: Tenant) => {
+                          const usagePercent = Math.min((tenant.currentMonthGenerations || 0) / (tenant.monthlyGenerationLimit || 100) * 100, 100);
+                          const isOverLimit = (tenant.currentMonthGenerations || 0) > (tenant.monthlyGenerationLimit || 100);
+                          
+                          return (
+                            <tr key={tenant.id} className="border-b hover:bg-gray-50">
+                              <td className="py-4 px-2">
+                                <div>
+                                  <p className="font-medium">{tenant.companyName}</p>
+                                  <p className="text-sm text-gray-500">/{tenant.slug}</p>
+                                </div>
+                              </td>
+                              <td className="py-4 px-2">
+                                <Badge variant={tenant.active ? (isOverLimit ? "destructive" : "default") : "destructive"}>
+                                  {!tenant.active ? "Suspended" : isOverLimit ? "Over Limit" : "Active"}
+                                </Badge>
+                              </td>
+                              <td className="py-4 px-2 text-right">
+                                <span className={`font-mono ${isOverLimit ? 'text-red-600' : ''}`}>
+                                  {tenant.currentMonthGenerations || 0}/{tenant.monthlyGenerationLimit || 100}
+                                </span>
+                              </td>
+                              <td className="py-4 px-2 text-right">
+                                <div className="w-20 ml-auto">
+                                  <div className="bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className={`h-2 rounded-full ${isOverLimit ? 'bg-red-500' : usagePercent > 80 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                                      style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-xs text-gray-500">{Math.round(usagePercent)}%</span>
+                                </div>
+                              </td>
+                              <td className="py-4 px-2 text-right">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    // Reset generation count
+                                    updateClientMutation.mutate({
+                                      id: tenant.id,
+                                      data: { 
+                                        currentMonthGenerations: 0, 
+                                        lastResetDate: new Date(),
+                                        active: true // Reactivate if suspended
+                                      }
+                                    });
+                                  }}
+                                  className="text-xs"
+                                >
+                                  Reset
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Clients Tab */}
@@ -505,12 +580,20 @@ export default function AdminDashboard() {
                       Manage all your clients and their embed configurations
                     </p>
                   </div>
-                  <Button 
-                    onClick={() => setIsAddingClient(true)}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                  >
-                    <Plus className="h-4 w-4 mr-2" /> Add New Client
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => window.location.href = '/embed-manager'}
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                    >
+                      <Settings className="h-4 w-4 mr-2" /> Manage Embeds
+                    </Button>
+                    <Button 
+                      onClick={() => setIsAddingClient(true)}
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" /> Add New Client
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -630,6 +713,31 @@ export default function AdminDashboard() {
                           rows={2}
                         />
                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="editMonthlyLimit">Monthly Generation Limit</Label>
+                          <Input
+                            id="editMonthlyLimit"
+                            type="number"
+                            min="0"
+                            value={editingClient.monthlyGenerationLimit || 100}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, monthlyGenerationLimit: parseInt(e.target.value) }) : null)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editCurrentGenerations">Current Month Usage</Label>
+                          <Input
+                            id="editCurrentGenerations"
+                            type="number"
+                            min="0"
+                            value={editingClient.currentMonthGenerations || 0}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, currentMonthGenerations: parseInt(e.target.value) }) : null)}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Set to 0 to reset usage count
+                          </p>
+                        </div>
+                      </div>
                       <div className="flex space-x-2">
                         <Button onClick={handleSaveClient} disabled={updateClientMutation.isPending}>
                           {updateClientMutation.isPending ? "Saving..." : "Save Changes"}
@@ -692,6 +800,29 @@ export default function AdminDashboard() {
                                 <span>{tenant.phone}</span>
                               </div>
                             )}
+                            {/* Generation Usage */}
+                            <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-xs font-medium text-gray-600">Monthly Usage</span>
+                                <span className="text-xs font-mono">
+                                  {tenant.currentMonthGenerations || 0}/{tenant.monthlyGenerationLimit || 100}
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full transition-all ${
+                                    (tenant.currentMonthGenerations || 0) > (tenant.monthlyGenerationLimit || 100) 
+                                      ? 'bg-red-500' 
+                                      : (tenant.currentMonthGenerations || 0) / (tenant.monthlyGenerationLimit || 100) > 0.8 
+                                        ? 'bg-yellow-500' 
+                                        : 'bg-green-500'
+                                  }`}
+                                  style={{ 
+                                    width: `${Math.min((tenant.currentMonthGenerations || 0) / (tenant.monthlyGenerationLimit || 100) * 100, 100)}%` 
+                                  }}
+                                />
+                              </div>
+                            </div>
                           </div>
 
                           {/* Action Buttons */}
