@@ -572,7 +572,7 @@ export default function AdminDashboard() {
                               </Button>
                             </div>
                           </div>
-                          
+
                           {/* Embed URL Section */}
                           <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                             <Label className="text-sm font-medium">Embed URL for {tenant.companyName}:</Label>
@@ -595,13 +595,13 @@ export default function AdminDashboard() {
                                 Copy
                               </Button>
                             </div>
-                            
+
                             {/* Quick customization note */}
                             <p className="text-xs text-muted-foreground">
                               💡 To customize: Edit the client details above, then copy the updated URL. 
                               The phone number and company name will automatically update in the embed.
                             </p>
-                            
+
                             {/* Preview button */}
                             <Button
                               size="sm"
@@ -777,7 +777,7 @@ export default function AdminDashboard() {
                       ))}
                     </select>
                   </div>
-                  
+
                   {selectedTenant ? (
                     <EmbedCodeGenerator tenant={selectedTenant} />
                   ) : (
