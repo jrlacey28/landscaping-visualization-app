@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useTenant } from "../hooks/use-tenant";
 import LandscapeStyleSelector from "../components/landscape-style-selector";
 import { Button } from "../components/ui/button";
-import { Upload, Sparkles } from "lucide-react";
+import { Upload, Sparkles, Download, Eye, Camera } from "lucide-react";
 import { uploadLandscapeImage, checkLandscapeVisualizationStatus } from "../lib/api";
 
 interface EmbedProps {
@@ -119,22 +119,97 @@ export default function EmbedPage() {
             <div className="space-y-4">
               <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden">
                 <img
-                  src={uploadedImage}
-                  alt="Uploaded property"
+                  src={landscapeVisualizationResult?.status === "completed" && landscapeVisualizationResult?.generatedImageUrl ? landscapeVisualizationResult.generatedImageUrl : uploadedImage}
+                  alt={landscapeVisualizationResult?.status === "completed" ? "Enhanced landscape design" : "Uploaded property"}
                   className="w-full h-full object-cover"
                 />
               </div>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setUploadedImage(null);
-                  setOriginalFile(null);
-                  setLandscapeVisualizationResult(null);
-                }}
-                className="w-full"
-              >
-                Upload Different Photo
-              </Button>
+              
+              {/* Show buttons only after generation is complete */}
+              {landscapeVisualizationResult?.status === "completed" && landscapeVisualizationResult?.generatedImageUrl ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                    onClick={() => {
+                      const img = document.createElement("img");
+                      img.crossOrigin = "anonymous";
+                      img.onload = function () {
+                        const canvas = document.createElement("canvas");
+                        const ctx = canvas.getContext("2d");
+                        if (ctx) {
+                          canvas.width = img.width;
+                          canvas.height = img.height;
+                          ctx.drawImage(img, 0, 0);
+                          canvas.toBlob(
+                            (blob) => {
+                              if (blob) {
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = "landscape-design.jpg";
+                                a.click();
+                                URL.revokeObjectURL(url);
+                              }
+                            },
+                            "image/jpeg",
+                            0.9,
+                          );
+                        }
+                      };
+                      img.src = landscapeVisualizationResult.generatedImageUrl;
+                    }}
+                  >
+                    <Download className="h-5 w-5 mr-2" />
+                    Download Image
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                    onClick={() => {
+                      const modal = document.createElement('div');
+                      modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4';
+                      modal.innerHTML = `
+                        <div class="relative max-w-4xl max-h-full">
+                          <img src="${uploadedImage}" alt="Original Image" class="max-w-full max-h-full object-contain rounded-lg" />
+                          <button class="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-75" onclick="this.parentElement.parentElement.remove()">×</button>
+                        </div>
+                      `;
+                      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+                      document.body.appendChild(modal);
+                    }}
+                  >
+                    <Eye className="h-5 w-5 mr-2" />
+                    View Original Photo
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                    onClick={() => {
+                      setUploadedImage(null);
+                      setOriginalFile(null);
+                      setLandscapeVisualizationResult(null);
+                    }}
+                  >
+                    <Camera className="h-5 w-5 mr-2" />
+                    Try Another Photo
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setUploadedImage(null);
+                    setOriginalFile(null);
+                    setLandscapeVisualizationResult(null);
+                  }}
+                  className="w-full"
+                >
+                  Upload Different Photo
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -210,77 +285,15 @@ export default function EmbedPage() {
           </div>
         )}
 
-        {/* Results */}
-        {landscapeVisualizationResult && (
+        {/* Processing Status - only show when generating */}
+        {isGenerating && (
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6">
-            <h3 className="text-xl font-semibold text-white mb-4 text-center">
-              Your Landscape Design
-            </h3>
-            
-            {landscapeVisualizationResult.status === "completed" &&
-            landscapeVisualizationResult.generatedImageUrl ? (
-              <div className="space-y-6">
-                {/* Generated Image Display */}
-                <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                  <img
-                    src={landscapeVisualizationResult.generatedImageUrl}
-                    alt="Enhanced landscape design"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = landscapeVisualizationResult.generatedImageUrl;
-                      link.download = 'landscape-design.jpg';
-                      link.click();
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                  >
-                    Download
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setUploadedImage(null);
-                      setOriginalFile(null);
-                      setLandscapeVisualizationResult(null);
-                    }}
-                    variant="outline"
-                    className="border-white text-white hover:bg-white hover:text-gray-900"
-                  >
-                    Try Another Photo
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const modal = document.createElement('div');
-                      modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4';
-                      modal.innerHTML = `
-                        <div class="relative max-w-4xl max-h-full">
-                          <img src="${uploadedImage}" alt="Original Image" class="max-w-full max-h-full object-contain rounded-lg" />
-                          <button class="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-75" onclick="this.parentElement.parentElement.remove()">×</button>
-                        </div>
-                      `;
-                      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-                      document.body.appendChild(modal);
-                    }}
-                    variant="outline"
-                    className="border-white text-white hover:bg-white hover:text-gray-900"
-                  >
-                    Original Image
-                  </Button>
-                </div>
+            <div className="w-full aspect-video bg-emerald-50 border-2 border-emerald-200 rounded-lg flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                <p className="text-emerald-600">Generating design...</p>
               </div>
-            ) : (
-              <div className="w-full aspect-video bg-emerald-50 border-2 border-emerald-200 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                  <p className="text-emerald-600">Generating design...</p>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>
