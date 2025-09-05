@@ -267,54 +267,49 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-1 h-auto p-1">
             <TabsTrigger
               value="overview"
-              className="flex items-center space-x-2"
+              className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
             >
-              <BarChart3 className="h-4 w-4" />
-              <span>Overview</span>
+              <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Overview</span>
             </TabsTrigger>
-            <TabsTrigger value="clients" className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span>Clients</span>
-            </TabsTrigger>
-            <TabsTrigger value="leads" className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span>Leads</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="visualizations"
-              className="flex items-center space-x-2"
+            <TabsTrigger 
+              value="clients" 
+              className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
             >
-              <Edit className="h-4 w-4" />
-              <span>Visualizations</span>
+              <Users className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Clients</span>
             </TabsTrigger>
-            <TabsTrigger value="embed" className="flex items-center space-x-2">
-              <Code className="h-4 w-4" />
-              <span>Embed Code</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="settings"
-              className="flex items-center space-x-2"
+            <TabsTrigger 
+              value="embed" 
+              className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
             >
-              <Settings className="h-4 w-4" />
-              <span>Settings</span>
+              <Code className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Embed</span>
             </TabsTrigger>
             <TabsTrigger
               value="analytics"
-              className="flex items-center space-x-2"
+              className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
             >
-              <BarChart3 className="h-4 w-4" />
-              <span>Analytics</span>
+              <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="settings"
+              className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
+            >
+              <Settings className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Settings</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Dashboard Overview</h2>
-              <div className="flex items-center space-x-4">
+          <TabsContent value="overview" className="space-y-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <h2 className="text-2xl md:text-3xl font-bold">Dashboard Overview</h2>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <Button 
                   onClick={() => window.location.href = '/embed-manager'}
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
@@ -323,54 +318,89 @@ export default function AdminDashboard() {
                   Manage Embeds
                 </Button>
                 <div className="flex items-center space-x-2">
-                <Label htmlFor="tenantSelector">View stats for:</Label>
-                <select
-                  id="tenantSelector"
-                  value={selectedTenantForStats || ''}
-                  onChange={(e) => setSelectedTenantForStats(e.target.value ? parseInt(e.target.value) : null)}
-                  className="px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="">All Clients</option>
-                  {allTenants.map((tenant: Tenant) => (
-                    <option key={tenant.id} value={tenant.id}>
-                      {tenant.companyName}
-                    </option>
-                  ))}
-                </select>
+                  <Label htmlFor="tenantSelector" className="text-sm whitespace-nowrap">View stats for:</Label>
+                  <select
+                    id="tenantSelector"
+                    value={selectedTenantForStats || ''}
+                    onChange={(e) => setSelectedTenantForStats(e.target.value ? parseInt(e.target.value) : null)}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm min-w-[150px]"
+                  >
+                    <option value="">All Clients</option>
+                    {allTenants.map((tenant: Tenant) => (
+                      <option key={tenant.id} value={tenant.id}>
+                        {tenant.companyName}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-blue-700">
+                    <Users className="h-5 w-5" />
+                    Total Clients
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-900">
+                    {allTenants.length}
+                  </div>
+                  <p className="text-blue-600 text-sm">
+                    Active clients
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-green-700">
                     <Users className="h-5 w-5" />
                     Total Leads
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">
+                  <div className="text-2xl font-bold text-green-900">
                     {selectedTenantLeads.length}
                   </div>
-                  <p className="text-muted-foreground text-sm">
-                    All time leads captured
+                  <p className="text-green-600 text-sm">
+                    Captured leads
                   </p>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-purple-700">
                     <BarChart3 className="h-5 w-5" />
-                    Total Generations
+                    Landscape Gens
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">
+                  <div className="text-2xl font-bold text-purple-900">
+                    {landscapeVisualizations.length}
+                  </div>
+                  <p className="text-purple-600 text-sm">
+                    Images processed
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-orange-700">
+                    <BarChart3 className="h-5 w-5" />
+                    Total Gens
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-900">
                     {(selectedTenantVisualizations.length + landscapeVisualizations.length + (poolVisualizations?.length || 0))}
                   </div>
-                  <p className="text-muted-foreground text-sm">
-                    Images processed
+                  <p className="text-orange-600 text-sm">
+                    All images
                   </p>
                 </CardContent>
               </Card>
@@ -378,44 +408,60 @@ export default function AdminDashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+                <CardTitle className="text-xl">Recent Activity</CardTitle>
+                <p className="text-muted-foreground">Latest leads and client activity</p>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {selectedTenantLeads.slice(0, 5).map((lead: Lead) => (
-                    <div
-                      key={lead.id}
-                      className="flex items-center justify-between p-3 bg-muted rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium">
-                          {lead.firstName} {lead.lastName}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {lead.email}
-                        </p>
+                {selectedTenantLeads.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Recent Activity</h3>
+                    <p className="text-gray-500">
+                      Leads will appear here once clients start using your visualization tools.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {selectedTenantLeads.slice(0, 5).map((lead: Lead) => (
+                      <div
+                        key={lead.id}
+                        className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:shadow-sm transition-shadow"
+                      >
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            {lead.firstName} {lead.lastName}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {lead.email}
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                          {new Date(lead.createdAt!).toLocaleDateString()}
+                        </Badge>
                       </div>
-                      <Badge variant="secondary">
-                        {new Date(lead.createdAt!).toLocaleDateString()}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Clients Tab (New) */}
-          <TabsContent value="clients" className="space-y-6">
+          {/* Clients Tab */}
+          <TabsContent value="clients" className="space-y-8">
             <Card>
-              <CardHeader>
-                <CardTitle>Client Management</CardTitle>
-                <div className="flex justify-between items-center">
-                  <p className="text-muted-foreground">
-                    Manage all your clients (tenants)
-                  </p>
-                  <Button onClick={() => setIsAddingClient(true)}>
-                    <Plus className="h-4 w-4 mr-2" /> Add Client
+              <CardHeader className="pb-6">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                  <div>
+                    <CardTitle className="text-xl">Client Management</CardTitle>
+                    <p className="text-muted-foreground mt-2">
+                      Manage all your clients and their embed configurations
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => setIsAddingClient(true)}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Add New Client
                   </Button>
                 </div>
               </CardHeader>
@@ -623,128 +669,7 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* Leads Tab */}
-          <TabsContent value="leads" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Lead Management</CardTitle>
-                <p className="text-muted-foreground">
-                  Manage and track your customer leads
-                </p>
-              </CardHeader>
-              <CardContent>
-                {leadsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                ) : selectedTenantLeads.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      No leads yet for this client. Start promoting your visualization tool!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {selectedTenantLeads.map((lead: Lead) => (
-                      <Card key={lead.id}>
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div className="space-y-2">
-                              <h4 className="font-semibold">
-                                {lead.firstName} {lead.lastName}
-                              </h4>
-                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                <div className="flex items-center">
-                                  <Mail className="h-4 w-4 mr-1" />
-                                  {lead.email}
-                                </div>
-                                {lead.phone && (
-                                  <div className="flex items-center">
-                                    <Phone className="h-4 w-4 mr-1" />
-                                    {lead.phone}
-                                  </div>
-                                )}
-                                {lead.address && (
-                                  <div className="flex items-center">
-                                    <MapPin className="h-4 w-4 mr-1" />
-                                    {lead.address}
-                                  </div>
-                                )}
-                              </div>
-                              {lead.projectDetails && (
-                                <p className="text-sm">{lead.projectDetails}</p>
-                              )}
-                              {lead.timeline && (
-                                <Badge variant="outline">{lead.timeline}</Badge>
-                              )}
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(lead.createdAt!).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Visualizations Tab */}
-          <TabsContent value="visualizations" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Visualizations</CardTitle>
-                <p className="text-muted-foreground">
-                  Manage your landscape visualizations
-                </p>
-              </CardHeader>
-              <CardContent>
-                {visualizationsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                ) : selectedTenantVisualizations.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      No visualizations yet. Upload a new one!
-                    </p>
-                    <Button className="mt-4">
-                      <Plus className="h-4 w-4 mr-2" /> Add Visualization
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid md:grid-cols-3 gap-4">
-                    {selectedTenantVisualizations.map((viz: any) => (
-                      <Card key={viz.id} className="relative group overflow-hidden">
-                        <CardContent className="p-0">
-                          <img
-                            src={viz.thumbnailUrl}
-                            alt="Visualization"
-                            className="w-full h-48 object-cover rounded-t-lg"
-                          />
-                        </CardContent>
-                        <CardHeader className="p-4">
-                          <CardTitle className="text-lg">
-                            {viz.name}
-                          </CardTitle>
-                          <CardDescription>{viz.description}</CardDescription>
-                        </CardHeader>
-                        <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                          <Button onClick={() => alert("View/Edit Visualization")}>
-                            View/Edit
-                          </Button>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+          
 
           {/* Embed Code Tab */}
           <TabsContent value="embed" className="space-y-4">
@@ -851,22 +776,22 @@ export default function AdminDashboard() {
           </TabsContent>
 
           {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-4">
+          <TabsContent value="analytics" className="space-y-8">
             <Card>
-              <CardHeader>
-                <CardTitle>Client Usage Analytics</CardTitle>
-                <p className="text-muted-foreground text-sm">
-                  Select a client to view their detailed usage statistics
+              <CardHeader className="pb-6">
+                <CardTitle className="text-xl">Usage Analytics</CardTitle>
+                <p className="text-muted-foreground">
+                  View detailed statistics and usage patterns for your clients
                 </p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="client-select">Select Client:</Label>
+              <CardContent className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <Label htmlFor="client-select" className="font-medium">Filter by client:</Label>
                   <select
                     id="client-select"
                     value={selectedTenantForStats || ''}
                     onChange={(e) => setSelectedTenantForStats(e.target.value ? parseInt(e.target.value) : null)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    className="flex h-10 w-full sm:w-auto sm:min-w-[250px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">All Clients</option>
                     {tenants.map((tenant) => (
