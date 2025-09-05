@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { useTenant } from "../hooks/use-tenant";
 import LandscapeStyleSelector from "../components/landscape-style-selector";
 import { Button } from "../components/ui/button";
-import { Upload, Sparkles, Download, Eye, Camera } from "lucide-react";
+import { Upload, Sparkles, Download, Eye, Camera, Phone } from "lucide-react";
 import { uploadLandscapeImage, checkLandscapeVisualizationStatus } from "../lib/api";
 
 interface EmbedProps {
@@ -30,6 +29,7 @@ export default function EmbedPage() {
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [landscapeVisualizationResult, setLandscapeVisualizationResult] = useState<any>(null);
+  const [showingOriginal, setShowingOriginal] = useState(false);
   
   const [selectedLandscapeStyles, setSelectedLandscapeStyles] = useState({
     curbing: "",
@@ -119,82 +119,91 @@ export default function EmbedPage() {
             <div className="space-y-4">
               <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden">
                 <img
-                  src={landscapeVisualizationResult?.status === "completed" && landscapeVisualizationResult?.generatedImageUrl ? landscapeVisualizationResult.generatedImageUrl : uploadedImage}
-                  alt={landscapeVisualizationResult?.status === "completed" ? "Enhanced landscape design" : "Uploaded property"}
+                  src={landscapeVisualizationResult?.status === "completed" && landscapeVisualizationResult?.generatedImageUrl ? 
+                    (showingOriginal ? uploadedImage : landscapeVisualizationResult.generatedImageUrl) : 
+                    uploadedImage}
+                  alt={landscapeVisualizationResult?.status === "completed" ? 
+                    (showingOriginal ? "Original photo" : "Enhanced landscape design") : 
+                    "Uploaded property"}
                   className="w-full h-full object-cover"
                 />
               </div>
               
               {/* Show buttons only after generation is complete */}
               {landscapeVisualizationResult?.status === "completed" && landscapeVisualizationResult?.generatedImageUrl ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Button
-                    size="lg"
-                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
-                    onClick={() => {
-                      const img = document.createElement("img");
-                      img.crossOrigin = "anonymous";
-                      img.onload = function () {
-                        const canvas = document.createElement("canvas");
-                        const ctx = canvas.getContext("2d");
-                        if (ctx) {
-                          canvas.width = img.width;
-                          canvas.height = img.height;
-                          ctx.drawImage(img, 0, 0);
-                          canvas.toBlob(
-                            (blob) => {
-                              if (blob) {
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement("a");
-                                a.href = url;
-                                a.download = "landscape-design.jpg";
-                                a.click();
-                                URL.revokeObjectURL(url);
-                              }
-                            },
-                            "image/jpeg",
-                            0.9,
-                          );
-                        }
-                      };
-                      img.src = landscapeVisualizationResult.generatedImageUrl;
-                    }}
-                  >
-                    <Download className="h-5 w-5 mr-2" />
-                    Download Image
-                  </Button>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      onClick={() => {
+                        const img = document.createElement("img");
+                        img.crossOrigin = "anonymous";
+                        img.onload = function () {
+                          const canvas = document.createElement("canvas");
+                          const ctx = canvas.getContext("2d");
+                          if (ctx) {
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            ctx.drawImage(img, 0, 0);
+                            canvas.toBlob(
+                              (blob) => {
+                                if (blob) {
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement("a");
+                                  a.href = url;
+                                  a.download = "landscape-design.jpg";
+                                  a.click();
+                                  URL.revokeObjectURL(url);
+                                }
+                              },
+                              "image/jpeg",
+                              0.9,
+                            );
+                          }
+                        };
+                        img.src = landscapeVisualizationResult.generatedImageUrl;
+                      }}
+                    >
+                      <Download className="h-5 w-5 mr-2" />
+                      Download Image
+                    </Button>
 
-                  <Button
-                    size="lg"
-                    className="bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
-                    onClick={() => {
-                      const modal = document.createElement('div');
-                      modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4';
-                      modal.innerHTML = `
-                        <div class="relative max-w-4xl max-h-full">
-                          <img src="${uploadedImage}" alt="Original Image" class="max-w-full max-h-full object-contain rounded-lg" />
-                          <button class="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-75" onclick="this.parentElement.parentElement.remove()">×</button>
-                        </div>
-                      `;
-                      modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-                      document.body.appendChild(modal);
-                    }}
-                  >
-                    <Eye className="h-5 w-5 mr-2" />
-                    View Original Photo
-                  </Button>
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      onClick={() => setShowingOriginal(!showingOriginal)}
+                    >
+                      <Eye className="h-5 w-5 mr-2" />
+                      {showingOriginal ? "View Landscape Design" : "View Original Photo"}
+                    </Button>
 
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      onClick={() => {
+                        setUploadedImage(null);
+                        setOriginalFile(null);
+                        setLandscapeVisualizationResult(null);
+                        setShowingOriginal(false);
+                      }}
+                    >
+                      <Camera className="h-5 w-5 mr-2" />
+                      Try Another Photo
+                    </Button>
+                  </div>
+                  
+                  {/* Get Free Quote button */}
                   <Button
                     size="lg"
-                    className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                    className="w-full bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-700 hover:via-teal-600 hover:to-emerald-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
                     onClick={() => {
-                      setUploadedImage(null);
-                      setOriginalFile(null);
-                      setLandscapeVisualizationResult(null);
+                      // Handle quote request - could show a form or redirect
+                      alert('Contact form would appear here for quote request');
                     }}
                   >
-                    <Camera className="h-5 w-5 mr-2" />
-                    Try Another Photo
+                    <Phone className="h-5 w-5 mr-2" />
+                    Get Free Quote
                   </Button>
                 </div>
               ) : (
