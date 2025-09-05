@@ -14,7 +14,7 @@ interface EmbedCodeGeneratorProps {
 export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) {
   const [config, setConfig] = useState({
     width: "100%",
-    height: "800px",
+    height: "100%",
     showHeader: true,
     primaryColor: tenant.primaryColor || "#10b981",
     secondaryColor: tenant.secondaryColor || "#059669",
@@ -103,7 +103,7 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
               id="height"
               value={config.height}
               onChange={(e) => setConfig({ ...config, height: e.target.value })}
-              placeholder="800px"
+              placeholder="100% or 800px"
             />
           </div>
           
