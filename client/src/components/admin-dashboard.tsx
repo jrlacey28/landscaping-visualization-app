@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
-  const [selectedTenantForStats, setSelectedTenantForStats] = useState<number>(1); // Default to mockTenantId
+  const [selectedTenantForStats, setSelectedTenantForStats] = useState<number | null>(null);
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [editingClient, setEditingClient] = useState<Tenant | null>(null);
   const [newClientData, setNewClientData] = useState({
@@ -44,7 +44,7 @@ export default function AdminDashboard() {
   // For demo purposes, we'll use a mock tenant ID
   const mockTenantId = 1;
 
-  const { data: allTenants = [] } = useQuery<Tenant[]>({
+  const { data: allTenants = [] as Tenant[] } = useQuery<Tenant[]>({
     queryKey: ["/api/tenants"],
   });
 
@@ -214,6 +214,9 @@ export default function AdminDashboard() {
   const selectedTenantLeads = leads;
   const selectedTenantVisualizations = visualizations;
 
+  // Renamed from allTenants to tenants for clarity in the analytics tab
+  const tenants = allTenants;
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -283,6 +286,13 @@ export default function AdminDashboard() {
               <Settings className="h-4 w-4" />
               <span>Settings</span>
             </TabsTrigger>
+            <TabsTrigger
+              value="analytics"
+              className="flex items-center space-x-2"
+            >
+              <BarChart3 className="h-4 w-4" />
+              <span>Analytics</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -293,10 +303,11 @@ export default function AdminDashboard() {
                 <Label htmlFor="tenantSelector">View stats for:</Label>
                 <select
                   id="tenantSelector"
-                  value={selectedTenantForStats}
-                  onChange={(e) => setSelectedTenantForStats(parseInt(e.target.value))}
+                  value={selectedTenantForStats || ''}
+                  onChange={(e) => setSelectedTenantForStats(e.target.value ? parseInt(e.target.value) : null)}
                   className="px-3 py-2 border border-gray-300 rounded-md"
                 >
+                  <option value="">All Clients</option>
                   {allTenants.map((tenant: Tenant) => (
                     <option key={tenant.id} value={tenant.id}>
                       {tenant.companyName}
@@ -741,6 +752,152 @@ export default function AdminDashboard() {
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Client Usage Analytics</CardTitle>
+                <CardDescription>
+                  Select a client to view their detailed usage statistics
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="client-select">Select Client:</Label>
+                  <select
+                    id="client-select"
+                    value={selectedTenantForStats || ''}
+                    onChange={(e) => setSelectedTenantForStats(e.target.value ? parseInt(e.target.value) : null)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                  >
+                    <option value="">All Clients</option>
+                    {tenants.map((tenant) => (
+                      <option key={tenant.id} value={tenant.id}>
+                        {tenant.companyName} ({tenant.slug})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Total Clients
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{tenants.length}</div>
+                  <p className="text-muted-foreground text-sm">
+                    Active clients
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    {selectedTenantForStats ? 'Client Leads' : 'Total Leads'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{selectedTenantLeads.length}</div>
+                  <p className="text-muted-foreground text-sm">
+                    {selectedTenantForStats ? 'From this client' : 'All leads collected'}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Landscape Generations
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">
+                    {landscapeVisualizations.length}
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    Landscape images processed
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Roofing Generations
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">
+                    {selectedTenantVisualizations.length}
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    Roofing images processed
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {selectedTenantForStats && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Client Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const selectedTenant = tenants.find(t => t.id === selectedTenantForStats);
+                    return selectedTenant ? (
+                      <div className="space-y-2">
+                        <p><strong>Company:</strong> {selectedTenant.companyName}</p>
+                        <p><strong>Slug:</strong> {selectedTenant.slug}</p>
+                        <p><strong>Email:</strong> {selectedTenant.email}</p>
+                        <p><strong>Phone:</strong> {selectedTenant.phone}</p>
+                        <p><strong>Embed URL:</strong> 
+                          <code className="ml-2 text-sm bg-gray-100 px-2 py-1 rounded">
+                            {window.location.origin}/embed?tenant={selectedTenant.slug}
+                          </code>
+                        </p>
+                      </div>
+                    ) : null;
+                  })()}
+                </CardContent>
+              </Card>
+            )}
+
+            {usageStats && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Usage Statistics (Last 30 Days)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{usageStats.totals.totalGenerations}</div>
+                      <p className="text-sm text-muted-foreground">Total Generations</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{usageStats.totals.landscapeGenerations}</div>
+                      <p className="text-sm text-muted-foreground">Landscape</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{usageStats.totals.imageGenerations}</div>
+                      <p className="text-sm text-muted-foreground">Roofing/Siding</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>
