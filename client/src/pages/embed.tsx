@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useTenant } from "../hooks/use-tenant";
 import LandscapeStyleSelector from "../components/landscape-style-selector";
 import { Button } from "../components/ui/button";
-import { Upload, Sparkles, Download, Eye, Camera, Phone, Save } from "lucide-react";
+import { Upload, Sparkles, Download, Eye, Camera, Phone } from "lucide-react";
 import { SparklesText } from "@/components/ui/sparkles-text";
 import { uploadLandscapeImage, checkLandscapeVisualizationStatus } from "../lib/api";
 
@@ -19,22 +19,10 @@ interface EmbedProps {
 export default function EmbedPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const tenantSlug = urlParams.get('tenant') || 'demo';
-  
-  // Check for saved colors first, then fall back to URL params
-  const savedColors = JSON.parse(localStorage.getItem(`embed-colors-${tenantSlug}`) || '{}');
-  const [primaryColor, setPrimaryColor] = useState(savedColors.primaryColor || urlParams.get('primaryColor') || '#10b981');
-  const [secondaryColor, setSecondaryColor] = useState(savedColors.secondaryColor || urlParams.get('secondaryColor') || '#059669');
-  
+  const primaryColor = urlParams.get('primaryColor') || '#10b981';
+  const secondaryColor = urlParams.get('secondaryColor') || '#059669';
   const companyName = urlParams.get('companyName') || '';
   const showHeader = urlParams.get('showHeader') !== 'false';
-  
-  // Save colors to localStorage
-  const saveColors = () => {
-    localStorage.setItem(`embed-colors-${tenantSlug}`, JSON.stringify({
-      primaryColor,
-      secondaryColor
-    }));
-  };
   
   const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant(tenantSlug);
   
@@ -103,41 +91,6 @@ export default function EmbedPage() {
             </p>
           </div>
         )}
-
-        {/* Color Customization */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 mb-4">
-          <h2 className="text-lg font-semibold text-white mb-3">Customize Colors</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Primary Color</label>
-              <input
-                type="color"
-                value={primaryColor}
-                onChange={(e) => setPrimaryColor(e.target.value)}
-                className="w-full h-10 rounded-md border-0 cursor-pointer"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Secondary Color</label>
-              <input
-                type="color"
-                value={secondaryColor}
-                onChange={(e) => setSecondaryColor(e.target.value)}
-                className="w-full h-10 rounded-md border-0 cursor-pointer"
-              />
-            </div>
-            <Button
-              onClick={saveColors}
-              className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
-              style={{ 
-                background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`
-              }}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Colors
-            </Button>
-          </div>
-        </div>
 
         {/* Image Upload */}
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 mb-4">
