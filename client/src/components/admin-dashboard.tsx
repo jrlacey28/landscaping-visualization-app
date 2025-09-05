@@ -29,6 +29,17 @@ export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [selectedTenantForStats, setSelectedTenantForStats] = useState<number>(1); // Default to mockTenantId
+  const [isAddingClient, setIsAddingClient] = useState(false);
+  const [editingClient, setEditingClient] = useState<Tenant | null>(null);
+  const [newClientData, setNewClientData] = useState({
+    companyName: "",
+    slug: "",
+    email: "",
+    phone: "",
+    description: "",
+    primaryColor: "#2563EB",
+    secondaryColor: "#059669"
+  });
 
   // For demo purposes, we'll use a mock tenant ID
   const mockTenantId = 1;
@@ -61,14 +72,15 @@ export default function AdminDashboard() {
 
   const updateTenantMutation = useMutation({
     mutationFn: async (data: Partial<Tenant>) => {
-      return apiRequest("PATCH", `/api/tenants/${selectedTenantForStats}`, data);
+      return apiRequest("PATCH", `/api/tenants/${mockTenantId}`, data);
     },
     onSuccess: () => {
       toast({
         title: "Settings Updated",
         description: "Your branding and settings have been saved successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/tenant/${selectedTenantForStats}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/tenant/${mockTenantId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
     },
     onError: (error: any) => {
       toast({
@@ -79,9 +91,60 @@ export default function AdminDashboard() {
     },
   });
 
+  const createTenantMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/tenants", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Client Created",
+        description: "New client has been added successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
+      setIsAddingClient(false);
+      setNewClientData({
+        companyName: "",
+        slug: "",
+        email: "",
+        phone: "",
+        description: "",
+        primaryColor: "#2563EB",
+        secondaryColor: "#059669"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create client.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateClientMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<Tenant> }) => {
+      return apiRequest("PATCH", `/api/tenants/${id}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Client Updated",
+        description: "Client has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
+      setEditingClient(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update client.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Load current tenant data
   const { data: currentTenant } = useQuery<Tenant>({
-    queryKey: [`/api/tenant/${selectedTenantForStats}`],
+    queryKey: [`/api/tenant/${mockTenantId}`],
   });
 
   const [tenantSettings, setTenantSettings] = useState({
@@ -119,6 +182,30 @@ export default function AdminDashboard() {
 
   const handleSaveSettings = () => {
     updateTenantMutation.mutate(tenantSettings);
+  };
+
+  const handleCreateClient = () => {
+    if (!newClientData.companyName || !newClientData.slug || !newClientData.email) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields (Company Name, Slug, Email).",
+        variant: "destructive",
+      });
+      return;
+    }
+    createTenantMutation.mutate(newClientData);
+  };
+
+  const handleEditClient = (tenant: Tenant) => {
+    setEditingClient(tenant);
+  };
+
+  const handleSaveClient = () => {
+    if (!editingClient) return;
+    updateClientMutation.mutate({ 
+      id: editingClient.id, 
+      data: editingClient 
+    });
   };
 
   // For the embed code generator, we need the tenant data to generate the correct embed URL.
@@ -292,12 +379,141 @@ export default function AdminDashboard() {
                   <p className="text-muted-foreground">
                     Manage all your clients (tenants)
                   </p>
-                  <Button onClick={() => alert("Add New Client")}>
+                  <Button onClick={() => setIsAddingClient(true)}>
                     <Plus className="h-4 w-4 mr-2" /> Add Client
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
+                {/* Add New Client Form */}
+                {isAddingClient && (
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle>Add New Client</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="newCompanyName">Company Name *</Label>
+                          <Input
+                            id="newCompanyName"
+                            value={newClientData.companyName}
+                            onChange={(e) => setNewClientData(prev => ({ ...prev, companyName: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="newSlug">Slug (URL identifier) *</Label>
+                          <Input
+                            id="newSlug"
+                            value={newClientData.slug}
+                            onChange={(e) => setNewClientData(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
+                            placeholder="company-name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="newEmail">Email *</Label>
+                          <Input
+                            id="newEmail"
+                            type="email"
+                            value={newClientData.email}
+                            onChange={(e) => setNewClientData(prev => ({ ...prev, email: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="newPhone">Phone</Label>
+                          <Input
+                            id="newPhone"
+                            value={newClientData.phone}
+                            onChange={(e) => setNewClientData(prev => ({ ...prev, phone: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="newDescription">Description</Label>
+                        <Textarea
+                          id="newDescription"
+                          value={newClientData.description}
+                          onChange={(e) => setNewClientData(prev => ({ ...prev, description: e.target.value }))}
+                          rows={2}
+                        />
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button onClick={handleCreateClient} disabled={createTenantMutation.isPending}>
+                          {createTenantMutation.isPending ? "Creating..." : "Create Client"}
+                        </Button>
+                        <Button variant="outline" onClick={() => setIsAddingClient(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Edit Client Form */}
+                {editingClient && (
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle>Edit Client: {editingClient.companyName}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="editCompanyName">Company Name</Label>
+                          <Input
+                            id="editCompanyName"
+                            value={editingClient.companyName}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, companyName: e.target.value }) : null)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editEmail">Email</Label>
+                          <Input
+                            id="editEmail"
+                            type="email"
+                            value={editingClient.email || ""}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, email: e.target.value }) : null)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editPhone">Phone</Label>
+                          <Input
+                            id="editPhone"
+                            value={editingClient.phone || ""}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, phone: e.target.value }) : null)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editPrimaryColor">Primary Color</Label>
+                          <Input
+                            id="editPrimaryColor"
+                            type="color"
+                            value={editingClient.primaryColor || "#2563EB"}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, primaryColor: e.target.value }) : null)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="editDescription">Description</Label>
+                        <Textarea
+                          id="editDescription"
+                          value={editingClient.description || ""}
+                          onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, description: e.target.value }) : null)}
+                          rows={2}
+                        />
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button onClick={handleSaveClient} disabled={updateClientMutation.isPending}>
+                          {updateClientMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                        <Button variant="outline" onClick={() => setEditingClient(null)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Clients List */}
                 {allTenants.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">
@@ -312,17 +528,11 @@ export default function AdminDashboard() {
                           <div>
                             <h4 className="font-semibold">{tenant.companyName}</h4>
                             <p className="text-sm text-muted-foreground">{tenant.email}</p>
+                            <p className="text-xs text-muted-foreground">Slug: {tenant.slug}</p>
                           </div>
                           <div className="flex space-x-2">
-                            <Button variant="outline" size="sm" onClick={() => alert(`Edit ${tenant.companyName}`)}>
+                            <Button variant="outline" size="sm" onClick={() => handleEditClient(tenant)}>
                               <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => alert(`Delete ${tenant.companyName}`)}>
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 6h18"></path>
-                                <path d="M19 6v14c0-1 0-2-1-2H6c-1 0-1-1-1-2V6"></path>
-                                <path d="M9 6V4c0-1 1-2 2-2h2c1 0 2 1 2 2v2"></path>
-                              </svg>
                             </Button>
                           </div>
                         </CardContent>
