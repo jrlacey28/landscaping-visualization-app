@@ -144,18 +144,20 @@ export default function LandscapeStyleSelector({
     <div className="space-y-6">
       <div className="grid md:grid-cols-3 gap-4">
         {/* Curbing Card */}
-        <div className="rounded-xl border-2 p-6 transition-all"
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.curbing ? primaryColor : `${primaryColor}cc`,
                background: activeToggles.curbing 
                  ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
                  : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
-             }}>
+             }}
+             onClick={() => handleToggleChange('curbing', !activeToggles.curbing)}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Curbing</h3>
             <Switch
               checked={activeToggles.curbing}
               onCheckedChange={(checked) => handleToggleChange('curbing', checked)}
+              onClick={(e) => e.stopPropagation()}
               className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
             />
           </div>
@@ -197,18 +199,20 @@ export default function LandscapeStyleSelector({
         </div>
 
         {/* Landscaping Card */}
-        <div className="rounded-xl border-2 p-6 transition-all"
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.landscape ? secondaryColor : `${secondaryColor}cc`,
                background: activeToggles.landscape 
                  ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
                  : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
-             }}>
+             }}
+             onClick={() => handleToggleChange('landscape', !activeToggles.landscape)}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Landscaping</h3>
             <Switch
               checked={activeToggles.landscape}
               onCheckedChange={(checked) => handleToggleChange('landscape', checked)}
+              onClick={(e) => e.stopPropagation()}
               className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
             />
           </div>
@@ -233,18 +237,20 @@ export default function LandscapeStyleSelector({
         </div>
 
         {/* Concrete Patios Card */}
-        <div className="rounded-xl border-2 p-6 transition-all"
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.patios ? primaryColor : `${primaryColor}cc`,
                background: activeToggles.patios 
                  ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
                  : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
-             }}>
+             }}
+             onClick={() => handleToggleChange('patios', !activeToggles.patios)}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Concrete Patios</h3>
             <Switch
               checked={activeToggles.patios}
               onCheckedChange={(checked) => handleToggleChange('patios', checked)}
+              onClick={(e) => e.stopPropagation()}
               className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
             />
           </div>

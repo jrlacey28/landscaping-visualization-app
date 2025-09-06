@@ -270,6 +270,8 @@ export default function Landscape() {
                   <LandscapeStyleSelector
                     selectedStyles={selectedLandscapeStyles}
                     onStyleChange={setSelectedLandscapeStyles}
+                    primaryColor="#10b981"
+                    secondaryColor="#14b8a6"
                   />
 
                   <Button

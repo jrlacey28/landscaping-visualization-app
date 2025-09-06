@@ -84,18 +84,20 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Pool Type Card */}
-        <div className="rounded-xl border-2 p-6 transition-all"
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.poolType ? primaryColor : `${primaryColor}cc`,
                background: activeToggles.poolType 
                  ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
                  : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
-             }}>
+             }}
+             onClick={() => handleToggleChange('poolType', !activeToggles.poolType)}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Pool Type</h3>
             <Switch
               checked={activeToggles.poolType}
               onCheckedChange={(checked) => handleToggleChange('poolType', checked)}
+              onClick={(e) => e.stopPropagation()}
               className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
             />
           </div>
@@ -120,18 +122,20 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
         </div>
 
         {/* Pool Size Card */}
-        <div className="rounded-xl border-2 p-6 transition-all"
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.poolSize ? secondaryColor : `${secondaryColor}cc`,
                background: activeToggles.poolSize 
                  ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
                  : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
-             }}>
+             }}
+             onClick={() => handleToggleChange('poolSize', !activeToggles.poolSize)}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Pool Size</h3>
             <Switch
               checked={activeToggles.poolSize}
               onCheckedChange={(checked) => handleToggleChange('poolSize', checked)}
+              onClick={(e) => e.stopPropagation()}
               className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
             />
           </div>
@@ -156,18 +160,20 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
         </div>
 
         {/* Decking Card */}
-        <div className="rounded-xl border-2 p-6 transition-all"
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.decking ? primaryColor : `${primaryColor}cc`,
                background: activeToggles.decking 
                  ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
                  : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
-             }}>
+             }}
+             onClick={() => handleToggleChange('decking', !activeToggles.decking)}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Pool Decking</h3>
             <Switch
               checked={activeToggles.decking}
               onCheckedChange={(checked) => handleToggleChange('decking', checked)}
+              onClick={(e) => e.stopPropagation()}
               className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
             />
           </div>
@@ -192,18 +198,20 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
         </div>
 
         {/* Landscaping Card */}
-        <div className="rounded-xl border-2 p-6 transition-all"
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.landscaping ? secondaryColor : `${secondaryColor}cc`,
                background: activeToggles.landscaping 
                  ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
                  : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
-             }}>
+             }}
+             onClick={() => handleToggleChange('landscaping', !activeToggles.landscaping)}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Landscaping</h3>
             <Switch
               checked={activeToggles.landscaping}
               onCheckedChange={(checked) => handleToggleChange('landscaping', checked)}
+              onClick={(e) => e.stopPropagation()}
               className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
             />
           </div>
@@ -228,18 +236,20 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
         </div>
 
         {/* Features Card */}
-        <div className="rounded-xl border-2 p-6 transition-all"
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.features ? primaryColor : `${primaryColor}cc`,
                background: activeToggles.features 
                  ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor})` 
                  : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
-             }}>
+             }}
+             onClick={() => handleToggleChange('features', !activeToggles.features)}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Special Features</h3>
             <Switch
               checked={activeToggles.features}
               onCheckedChange={(checked) => handleToggleChange('features', checked)}
+              onClick={(e) => e.stopPropagation()}
               className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
             />
           </div>
