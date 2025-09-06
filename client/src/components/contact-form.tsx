@@ -59,8 +59,10 @@ export default function ContactForm({
         phone: "",
         businessName: ""
       })
-      // Invalidate leads query to refresh admin dashboard
-      queryClient.invalidateQueries({ queryKey: ["/api/leads"] })
+      // Invalidate leads queries to refresh admin dashboard for all tenants
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/tenants/${tenantId}/leads`] 
+      })
     },
     onError: (error) => {
       console.error("Contact form error:", error)
