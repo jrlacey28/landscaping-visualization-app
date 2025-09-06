@@ -21,7 +21,7 @@ export default function ContactPage() {
       
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         {/* Hero Section */}
-        <section className="text-center py-20">
+        <section className="text-center pt-32 pb-16">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Get In Touch
           </h1>
@@ -37,7 +37,7 @@ export default function ContactPage() {
             <ContactForm 
               tenantId={tenant.id}
               title="Start Your Project"
-              description="Tell us about your business and project needs. We'll get back to you within 24 hours."
+              description="We'll get back to you within 24 hours."
             />
           </div>
         </section>
