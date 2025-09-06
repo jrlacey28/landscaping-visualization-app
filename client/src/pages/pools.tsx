@@ -276,6 +276,8 @@ export default function Pools() {
                   <PoolStyleSelector
                     selectedStyles={selectedPoolStyles}
                     onStyleChange={setSelectedPoolStyles}
+                    primaryColor="#3b82f6"
+                    secondaryColor="#06b6d4"
                   />
 
                   <Button
