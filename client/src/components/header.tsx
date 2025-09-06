@@ -149,8 +149,15 @@ export default function Header({ tenant }: HeaderProps) {
                 <DropdownMenuItem>
                   <a href="#gallery" className="w-full">Gallery</a>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <a href="#contact" className="w-full">Contact</a>
+                <DropdownMenuItem asChild>
+                  <Link href="/pricing" className="flex items-center px-3 py-2 hover:bg-slate-100">
+                    Pricing
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/contact" className="flex items-center px-3 py-2 hover:bg-slate-100">
+                    Contact
+                  </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
