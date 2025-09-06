@@ -10,8 +10,8 @@ import { uploadImage, checkVisualizationStatus } from "../lib/api";
 export default function EmbedRoofingPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const tenantSlug = urlParams.get('tenant') || 'demo';
-  const primaryColor = urlParams.get('primaryColor') || '#10b981';
-  const secondaryColor = urlParams.get('secondaryColor') || '#059669';
+  const primaryColor = urlParams.get('primaryColor') || '#475569';
+  const secondaryColor = urlParams.get('secondaryColor') || '#64748b';
   const companyName = urlParams.get('companyName') || '';
   const showHeader = urlParams.get('showHeader') !== 'false';
   const contactType = urlParams.get('contactType') || 'phone';

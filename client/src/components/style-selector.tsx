@@ -75,14 +75,34 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
   const [selectedSidingColor, setSelectedSidingColor] = useState("");
 
   const handleToggleChange = (category: 'roof' | 'siding' | 'surpriseMe', enabled: boolean) => {
-    setActiveToggles(prev => ({ ...prev, [category]: enabled }));
-    
-    if (!enabled) {
-      // If toggling off, clear the selection
+    // Handle mutual exclusivity between surprise me and other options
+    if (category === 'surpriseMe' && enabled) {
+      // If enabling surprise me, disable roof and siding
+      setActiveToggles({ roof: false, siding: false, surpriseMe: true });
+      onStyleChange({
+        roof: "",
+        siding: "",
+        surpriseMe: selectedStyles.surpriseMe || "random_roof_and_siding",
+      });
+    } else if ((category === 'roof' || category === 'siding') && enabled && activeToggles.surpriseMe) {
+      // If enabling roof or siding while surprise me is active, disable surprise me
+      setActiveToggles(prev => ({ ...prev, [category]: enabled, surpriseMe: false }));
       onStyleChange({
         ...selectedStyles,
-        [category]: "",
+        [category]: selectedStyles[category],
+        surpriseMe: "",
       });
+    } else {
+      // Normal toggle behavior
+      setActiveToggles(prev => ({ ...prev, [category]: enabled }));
+      
+      if (!enabled) {
+        // If toggling off, clear the selection
+        onStyleChange({
+          ...selectedStyles,
+          [category]: "",
+        });
+      }
     }
   };
 
@@ -98,18 +118,20 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
 
       <div className="grid md:grid-cols-3 gap-4">
         {/* Roof Card */}
-        <div className="rounded-xl border-2 p-6 transition-all"
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.roof ? primaryColor : `${primaryColor}cc`,
                background: activeToggles.roof 
                  ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
                  : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
-             }}>
+             }}
+             onClick={() => handleToggleChange('roof', !activeToggles.roof)}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Roof</h3>
             <Switch
               checked={activeToggles.roof}
               onCheckedChange={(checked) => handleToggleChange('roof', checked)}
+              onClick={(e) => e.stopPropagation()}
               className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
             />
           </div>
@@ -169,18 +191,20 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
         </div>
 
         {/* Siding Card */}
-        <div className="rounded-xl border-2 p-6 transition-all"
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.siding ? secondaryColor : `${secondaryColor}cc`,
                background: activeToggles.siding 
                  ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
                  : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
-             }}>
+             }}
+             onClick={() => handleToggleChange('siding', !activeToggles.siding)}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Siding</h3>
             <Switch
               checked={activeToggles.siding}
               onCheckedChange={(checked) => handleToggleChange('siding', checked)}
+              onClick={(e) => e.stopPropagation()}
               className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
             />
           </div>
@@ -240,13 +264,14 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
         </div>
 
         {/* Surprise Me Card */}
-        <div className="rounded-xl border-2 p-6 transition-all"
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.surpriseMe ? primaryColor : `${primaryColor}cc`,
                background: activeToggles.surpriseMe 
                  ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor})` 
                  : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
-             }}>
+             }}
+             onClick={() => handleToggleChange('surpriseMe', !activeToggles.surpriseMe)}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white drop-shadow-sm">Surprise Me!</h3>
             <Switch
@@ -257,6 +282,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                   handleOptionSelect('surpriseMe', 'random_roof_and_siding');
                 }
               }}
+              onClick={(e) => e.stopPropagation()}
               className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
             />
           </div>
