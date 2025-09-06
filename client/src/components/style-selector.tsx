@@ -62,7 +62,7 @@ const sidingColors = [
   { value: "savannah_wicker", label: "Savannah Wicker", hex: "#D8CAB1" },
 ];
 
-export default function StyleSelector({ selectedStyles, onStyleChange, primaryColor = "#10b981", secondaryColor = "#059669" }: StyleSelectorProps) {
+export default function StyleSelector({ selectedStyles, onStyleChange, primaryColor = "#475569", secondaryColor = "#64748b" }: StyleSelectorProps) {
   const [activeToggles, setActiveToggles] = useState({
     roof: !!selectedStyles.roof,
     siding: !!selectedStyles.siding,
