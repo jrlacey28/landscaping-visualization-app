@@ -65,8 +65,7 @@ export default function AdminDashboard() {
   });
 
   const { data: leads = [], isLoading: leadsLoading } = useQuery<Lead[]>({
-    queryKey: [`/api/tenants/${selectedTenantForStats}/leads`],
-    enabled: !!selectedTenantForStats,
+    queryKey: [`/api/tenants/${mockTenantId}/leads`],
   });
 
   const { data: visualizations = [], isLoading: visualizationsLoading } =
@@ -896,47 +895,18 @@ export default function AdminDashboard() {
           <TabsContent value="leads" className="space-y-8">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
               <h2 className="text-2xl md:text-3xl font-bold">Leads Management</h2>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="leadsSelector" className="text-sm whitespace-nowrap">View leads for:</Label>
-                  <select
-                    id="leadsSelector"
-                    value={selectedTenantForStats || ''}
-                    onChange={(e) => setSelectedTenantForStats(e.target.value ? parseInt(e.target.value) : null)}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm min-w-[150px]"
-                  >
-                    <option value="">Select a Client</option>
-                    {allTenants.map((tenant: Tenant) => (
-                      <option key={tenant.id} value={tenant.id}>
-                        {tenant.companyName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
             </div>
 
-            {!selectedTenantForStats ? (
-              <Card>
-                <CardContent className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 text-lg mb-2">Select a client to view their leads</p>
-                    <p className="text-gray-500 text-sm">Choose a client from the dropdown above to see all form submissions</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Mail className="h-5 w-5" />
-                    Leads for {allTenants.find(t => t.id === selectedTenantForStats)?.companyName}
-                  </CardTitle>
-                  <CardDescription>
-                    All contact form submissions from your website
-                  </CardDescription>
-                </CardHeader>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Website Leads
+                </CardTitle>
+                <CardDescription>
+                  All contact form submissions from your website
+                </CardDescription>
+              </CardHeader>
                 <CardContent>
                   {leadsLoading ? (
                     <div className="flex items-center justify-center py-8">
@@ -1017,9 +987,8 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           
