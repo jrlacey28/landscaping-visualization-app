@@ -164,14 +164,14 @@ export default function PricingPage() {
       <section id="contact" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-semibold text-white mb-8">FAQ</h2>
+            <h2 className="text-4xl font-semibold text-white mb-8">Frequently Asked Questions</h2>
           </div>
           
           <div className="max-w-4xl mx-auto">
             <Accordion type="single" collapsible className="bg-transparent p-8">
               {faqItems.map((item, index) => (
-                <AccordionItem key={index} value={`item-${index}`} className="border-b border-white/20 last:border-b-0">
-                  <AccordionTrigger className="text-white text-left hover:no-underline hover:text-blue-300 py-4 text-xl font-medium">
+                <AccordionItem key={index} value={`item-${index}`} className="border-none">
+                  <AccordionTrigger className="text-white text-left hover:no-underline hover:text-blue-300 py-4 text-2xl font-medium [&>svg]:text-white">
                     {item.question}
                   </AccordionTrigger>
                   <AccordionContent className="text-slate-300 pb-4">
