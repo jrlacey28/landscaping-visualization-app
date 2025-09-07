@@ -10,7 +10,7 @@ import {
   Camera,
   FileImage,
   Facebook,
-  Twitter,
+  Youtube,
   Instagram,
   Edit,
 } from "lucide-react";
@@ -590,7 +590,7 @@ export default function Home() {
       {/* Simplified Footer */}
       <footer className="bg-slate-900/50 border-t border-slate-700">
         <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col space-y-6 md:grid md:grid-cols-3 md:items-center md:space-y-0">
+          <div className="flex flex-col space-y-6 md:flex md:flex-row md:justify-between md:items-center md:space-y-0">
             {/* Left side - Logo and company */}
             <div className="flex items-center justify-center space-x-3 md:justify-start">
               <svg
@@ -609,19 +609,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Center - Business Info */}
-            <div className="flex flex-col items-center space-y-2 text-center md:flex-row md:justify-center md:space-y-0 md:space-x-6">
-              {tenant.address && (
-                <p className="text-slate-300 text-sm">
-                  {tenant.address}
-                </p>
-              )}
-              {tenant.phone && (
-                <p className="text-slate-300 text-sm">
-                  {tenant.phone}
-                </p>
-              )}
-            </div>
 
             {/* Right side - Social icons */}
             <div className="flex items-center justify-center space-x-4 md:justify-end">
@@ -633,9 +620,9 @@ export default function Home() {
               </a>
               <a
                 href="#"
-                className="text-slate-400 hover:text-blue-400 transition-colors"
+                className="text-slate-400 hover:text-red-400 transition-colors"
               >
-                <Twitter className="h-5 w-5" />
+                <Youtube className="h-5 w-5" />
               </a>
               <a
                 href="#"
