@@ -21,21 +21,22 @@ interface PricingCardProps {
 }
 
 export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
-  const isYearly = paymentFrequency.toLowerCase().includes("yearly")
+  const isYearly = paymentFrequency.toLowerCase() === "yearly"
   const price = isYearly ? tier.yearlyPrice : tier.monthlyPrice
   const monthlyPrice = isYearly ? Math.round(tier.yearlyPrice / 12) : tier.monthlyPrice
   
   return (
     <Card className={cn(
-      "relative h-full flex flex-col",
+      "relative h-full",
       tier.popular && "border-primary shadow-lg scale-105"
     )}>
+      {tier.popular && (
+        <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary">
+          Most Popular
+        </Badge>
+      )}
+      
       <CardHeader className="text-center pb-8">
-        {tier.popular && (
-          <Badge className="mb-4 w-fit mx-auto bg-primary">
-            Most Popular
-          </Badge>
-        )}
         <CardTitle className="text-xl">{tier.name}</CardTitle>
         <CardDescription className="text-sm text-muted-foreground">
           {tier.description}
@@ -54,7 +55,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-4 flex-grow">
+      <CardContent className="space-y-4">
         <ul className="space-y-3">
           {tier.features.map((feature, index) => (
             <li key={index} className="flex items-start gap-3">
@@ -65,7 +66,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
         </ul>
       </CardContent>
       
-      <CardFooter className="mt-auto">
+      <CardFooter>
         <Button 
           className={cn(
             "w-full",
