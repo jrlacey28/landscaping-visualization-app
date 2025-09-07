@@ -36,7 +36,7 @@ function PricingSection({
               text={freq}
               selected={selectedFrequency === freq}
               setSelected={setSelectedFrequency}
-              discount={freq === "yearly"}
+              discount={freq.toLowerCase().includes("yearly")}
             />
           ))}
         </div>
@@ -69,8 +69,7 @@ export default function PricingPage() {
         "Basic AI-powered design suggestions",
         "Email support",
         "Standard templates",
-        "Basic analytics",
-        "Mobile responsive embed"
+        "Basic analytics"
       ],
       cta: "Get Started",
       ctaLink: "#contact"
@@ -86,10 +85,7 @@ export default function PricingPage() {
         "Advanced AI design engine",
         "Priority email & chat support",
         "Custom branding options",
-        "Advanced analytics & reporting",
-        "API access",
-        "Custom integrations",
-        "Lead capture forms"
+        "Advanced analytics & reporting"
       ],
       cta: "Start Free Trial",
       ctaLink: "#contact"
@@ -104,11 +100,7 @@ export default function PricingPage() {
         "White-label solution",
         "Dedicated account manager",
         "24/7 phone & email support",
-        "Custom AI model training",
-        "Advanced security features",
-        "Custom integrations",
-        "SLA guarantee",
-        "On-premise deployment option"
+        "Custom AI model training"
       ],
       cta: "Contact Sales",
       ctaLink: "#contact"
@@ -134,7 +126,7 @@ export default function PricingPage() {
           title="Choose Your Plan"
           subtitle="Select the perfect plan for your business needs. All plans include our core AI visualization features."
           tiers={pricingTiers}
-          frequencies={["monthly", "yearly"]}
+          frequencies={["Monthly", "Yearly (Save 20%)"]}
         />
       </main>
 

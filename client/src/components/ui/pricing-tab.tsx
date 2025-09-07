@@ -19,11 +19,6 @@ export function Tab({ text, selected, setSelected, discount }: TabProps) {
       onClick={() => setSelected(text)}
     >
       {text}
-      {discount && (
-        <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
-          -20%
-        </span>
-      )}
     </button>
   )
 }
