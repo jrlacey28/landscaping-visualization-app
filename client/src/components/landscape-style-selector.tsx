@@ -264,6 +264,7 @@ export default function LandscapeStyleSelector({
                 <select
                   value={patioSelection.style}
                   onChange={(e) => updatePatioSelection('style', e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
                   className="w-full px-3 py-2 text-sm bg-white/20 border border-white/30 rounded-md text-white placeholder-white/70 focus:ring-2 focus:ring-white focus:border-transparent"
                 >
                   {patioStyles.map((style) => (
@@ -280,6 +281,7 @@ export default function LandscapeStyleSelector({
                 <select
                   value={patioSelection.shape}
                   onChange={(e) => updatePatioSelection('shape', e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
                   className="w-full px-3 py-2 text-sm bg-white/20 border border-white/30 rounded-md text-white placeholder-white/70 focus:ring-2 focus:ring-white focus:border-transparent"
                 >
                   {patioShapes.map((shape) => (
@@ -297,6 +299,7 @@ export default function LandscapeStyleSelector({
                   <select
                     value={patioSelection.size}
                     onChange={(e) => updatePatioSelection('size', e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
                     className="w-full px-3 py-2 text-sm bg-white/20 border border-white/30 rounded-md text-white placeholder-white/70 focus:ring-2 focus:ring-white focus:border-transparent"
                   >
                     {patioSizes.map((size) => (
