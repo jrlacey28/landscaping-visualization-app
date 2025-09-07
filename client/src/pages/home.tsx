@@ -523,55 +523,6 @@ export default function Home() {
 
               {visualizationResult.status === "completed" && (
                 <div className="text-center mt-6">
-                  <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-700">
-                      Applied styles:{" "}
-                      {(() => {
-                        const appliedStyles = [];
-                        if (
-                          selectedStyles.roof.enabled &&
-                          selectedStyles.roof.type
-                        ) {
-                          appliedStyles.push(
-                            "Roof: " + selectedStyles.roof.type
-                              .replace(/_/g, " ")
-                              .replace(/\b\w/g, (l) => l.toUpperCase()),
-                          );
-                        }
-                        if (
-                          selectedStyles.siding.enabled &&
-                          selectedStyles.siding.type
-                        ) {
-                          appliedStyles.push(
-                            "Siding: " + selectedStyles.siding.type
-                              .replace(/_/g, " ")
-                              .replace(/\b\w/g, (l) => l.toUpperCase()),
-                          );
-                        }
-                        if (
-                          selectedStyles.surpriseMe.enabled &&
-                          selectedStyles.surpriseMe.type
-                        ) {
-                          appliedStyles.push(
-                            "Surprise Me: Random roof and siding selection"
-                          );
-                        }
-                        return appliedStyles.length > 0
-                          ? appliedStyles.join(", ")
-                          : "No styles applied";
-                      })()}
-                    </p>
-                    {visualizationResult.prompt && (
-                      <details className="mt-2">
-                        <summary className="text-xs text-blue-600 cursor-pointer">
-                          View Prompt Details
-                        </summary>
-                        <p className="text-xs text-blue-600 mt-1 whitespace-pre-wrap">
-                          {visualizationResult.prompt}
-                        </p>
-                      </details>
-                    )}
-                  </div>
                   <Button
                     size="lg"
                     className="bg-gradient-to-r from-[#718ae1] via-[#dc6d73] to-[#718ae1] hover:from-[#8299e8] hover:via-[#e67d84] hover:to-[#8299e8] text-white font-semibold py-4 px-8 shadow-lg hover:shadow-xl transition-all"
