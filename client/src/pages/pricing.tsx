@@ -67,7 +67,7 @@ const faqItems = [
   },
   {
     question: 'How long does it take to generate a visualization?',
-    answer: 'Most visualizations are generated within 30-60 seconds. Processing time may vary based on image complexity and current system load.',
+    answer: 'Most visualizations are generated within 10-30 seconds. Processing time may vary based on image complexity, current system load, and signal strength.',
   },
   {
     question: 'Can I cancel my subscription anytime?',
@@ -87,9 +87,8 @@ export default function PricingPage() {
       features: [
         "Up to 50 visualizations per month",
         "Basic AI-powered design suggestions",
-        "Email support",
         "Standard templates",
-        "Basic analytics"
+        "Standard sharing options"
       ],
       cta: "Get Started",
       ctaLink: "#contact"
@@ -101,11 +100,11 @@ export default function PricingPage() {
       yearlyPrice: 960,
       popular: true,
       features: [
+        "Everything in Basic, plus:",
         "Up to 200 visualizations per month",
         "Advanced AI design engine",
-        "Priority email & chat support",
-        "Custom branding options",
-        "Advanced analytics & reporting"
+        "Custom branding widget",
+        "Call-To-Action (CTA) button"
       ],
       cta: "Get Started",
       ctaLink: "#contact"
@@ -113,14 +112,14 @@ export default function PricingPage() {
     {
       name: "Enterprise",
       description: "For large organizations with custom needs",
-      monthlyPrice: 350,
+      monthlyPrice: 500,
       yearlyPrice: 3360,
       features: [
+        "Everything in Pro, plus:",
         "Unlimited visualizations",
-        "White-label solution",
-        "Dedicated account manager",
-        "24/7 phone & email support",
-        "Custom AI model training"
+        "White-label website widget",
+        "White-label mobile app",
+        "Custom AI model training",
       ],
       cta: "Contact Sales",
       ctaLink: "#contact"
