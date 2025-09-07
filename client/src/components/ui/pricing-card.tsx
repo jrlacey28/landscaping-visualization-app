@@ -27,28 +27,28 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
   
   return (
     <Card className={cn(
-      "relative h-full",
-      tier.popular && "border-primary shadow-lg scale-105"
+      "relative h-full bg-white/10 backdrop-blur-md border-white/20",
+      tier.popular && "border-primary shadow-lg"
     )}>
       {tier.popular && (
-        <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary">
-          Most Popular
-        </Badge>
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-sm text-slate-300">
+          Best value for money!
+        </div>
       )}
       
       <CardHeader className="text-center pb-8">
-        <CardTitle className="text-xl">{tier.name}</CardTitle>
-        <CardDescription className="text-sm text-muted-foreground">
+        <CardTitle className="text-xl text-white">{tier.name}</CardTitle>
+        <CardDescription className="text-sm text-slate-300">
           {tier.description}
         </CardDescription>
         
         <div className="mt-4">
           <div className="flex items-baseline justify-center">
-            <span className="text-4xl font-bold">${monthlyPrice}</span>
-            <span className="text-muted-foreground ml-1">/month</span>
+            <span className="text-4xl font-bold text-white">${monthlyPrice}</span>
+            <span className="text-slate-300 ml-1">/month</span>
           </div>
           {isYearly && (
-            <div className="text-sm text-muted-foreground mt-1">
+            <div className="text-sm text-slate-300 mt-1">
               ${price} billed annually
             </div>
           )}
@@ -59,8 +59,8 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
         <ul className="space-y-3">
           {tier.features.map((feature, index) => (
             <li key={index} className="flex items-start gap-3">
-              <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-              <span className="text-sm">{feature}</span>
+              <Check className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+              <span className="text-sm text-slate-200">{feature}</span>
             </li>
           ))}
         </ul>
