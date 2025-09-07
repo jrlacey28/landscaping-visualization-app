@@ -184,6 +184,7 @@ export default function LandscapeStyleSelector({
                   <select
                     value={curbingSelection.color}
                     onChange={(e) => handleCurbingColorChange(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
                     className="w-full px-3 py-2 text-sm bg-white/20 border border-white/30 rounded-md text-white placeholder-white/70 focus:ring-2 focus:ring-white focus:border-transparent"
                   >
                     {curbingColors.map((color) => (
