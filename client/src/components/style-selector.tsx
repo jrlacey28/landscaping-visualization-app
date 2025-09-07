@@ -107,6 +107,9 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
   };
 
   const handleOptionSelect = (category: 'roof' | 'siding' | 'surpriseMe', value: string) => {
+    // Ensure the toggle stays active when making a selection
+    setActiveToggles(prev => ({ ...prev, [category]: true }));
+    
     onStyleChange({
       ...selectedStyles,
       [category]: value,
@@ -152,6 +155,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                         onChange={() => {
                           setSelectedRoofStyle(style.value);
                           setSelectedRoofColor(""); // Reset color when style changes
+                          setActiveToggles(prev => ({ ...prev, roof: true }));
                           handleOptionSelect('roof', '');
                         }}
                         className="w-4 h-4 text-white border-white/30 focus:ring-white"
@@ -170,6 +174,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                     value={selectedRoofColor}
                     onValueChange={(value) => {
                       setSelectedRoofColor(value);
+                      setActiveToggles(prev => ({ ...prev, roof: true }));
                       handleOptionSelect('roof', `${selectedRoofStyle}_${value}`);
                     }}
                   >
@@ -225,6 +230,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                         onChange={() => {
                           setSelectedSidingStyle(style.value);
                           setSelectedSidingColor(""); // Reset color when style changes
+                          setActiveToggles(prev => ({ ...prev, siding: true }));
                           handleOptionSelect('siding', '');
                         }}
                         className="w-4 h-4 text-white border-white/30 focus:ring-white"
@@ -243,6 +249,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                     value={selectedSidingColor}
                     onValueChange={(value) => {
                       setSelectedSidingColor(value);
+                      setActiveToggles(prev => ({ ...prev, siding: true }));
                       handleOptionSelect('siding', `${selectedSidingStyle}_${value}`);
                     }}
                   >
