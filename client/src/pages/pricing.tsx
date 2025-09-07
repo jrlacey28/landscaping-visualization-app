@@ -93,7 +93,7 @@ export default function PricingPage() {
       name: "Basic",
       description: "Perfect for small businesses getting started",
       monthlyPrice: 50,
-      yearlyPrice: 500,
+      yearlyPrice: 480,
       features: [
         "Up to 50 visualizations per month",
         "Basic AI-powered design suggestions",
@@ -108,7 +108,7 @@ export default function PricingPage() {
       name: "Pro",
       description: "Ideal for growing businesses",
       monthlyPrice: 100,
-      yearlyPrice: 1000,
+      yearlyPrice: 960,
       popular: true,
       features: [
         "Up to 200 visualizations per month",
@@ -124,7 +124,7 @@ export default function PricingPage() {
       name: "Enterprise",
       description: "For large organizations with custom needs",
       monthlyPrice: 350,
-      yearlyPrice: 3500,
+      yearlyPrice: 3360,
       features: [
         "Unlimited visualizations",
         "White-label solution",
