@@ -29,14 +29,14 @@ function PricingSection({
           <h1 className="text-4xl font-medium md:text-5xl text-white">{title}</h1>
           <p className="text-slate-300">{subtitle}</p>
         </div>
-        <div className="mx-auto flex w-fit rounded-full bg-transparent p-1">
+        <div className="mx-auto flex w-fit rounded-full bg-transparent border border-slate-600 p-1">
           {frequencies.map((freq) => (
             <Tab
               key={freq}
               text={freq}
               selected={selectedFrequency === freq}
               setSelected={setSelectedFrequency}
-              discount={freq === "yearly"}
+              discount={freq === "Yearly (Save 20%)"}
             />
           ))}
         </div>
@@ -126,7 +126,7 @@ export default function PricingPage() {
           title="Choose Your Plan"
           subtitle="Select the perfect plan for your business needs. All plans include our core AI visualization features."
           tiers={pricingTiers}
-          frequencies={["Monthly", "Yearly"]}
+          frequencies={["Monthly", "Yearly (Save 20%)"]}
         />
       </main>
 
