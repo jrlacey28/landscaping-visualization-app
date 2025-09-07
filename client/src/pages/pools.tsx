@@ -491,9 +491,9 @@ export default function Pools() {
       {/* Footer */}
       <footer className="bg-slate-900/50 border-t border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col space-y-6 md:grid md:grid-cols-3 md:items-center md:space-y-0">
-            {/* Left side - Logo and company */}
-            <div className="flex items-center justify-center space-x-3 md:justify-start -ml-40">
+          <div className="flex flex-col space-y-6 md:flex md:flex-row md:justify-between md:items-center md:space-y-0">
+            {/* Center - Logo and company */}
+            <div className="flex items-center justify-center space-x-3 md:flex-1">
               <svg
                 className="w-10 h-10 text-white"
                 viewBox="0 0 128.37 135.86"
@@ -508,20 +508,6 @@ export default function Pools() {
                   Powered by Solst LLC
                 </p>
               </div>
-            </div>
-
-            {/* Center - Business Info */}
-            <div className="flex flex-col items-center space-y-2 text-center md:flex-row md:justify-center md:space-y-0 md:space-x-6">
-              {tenant.address && (
-                <p className="text-slate-300 text-sm">
-                  {tenant.address}
-                </p>
-              )}
-              {tenant.phone && (
-                <p className="text-slate-300 text-sm">
-                  {tenant.phone}
-                </p>
-              )}
             </div>
 
             {/* Right side - Social icons */}

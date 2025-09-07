@@ -591,8 +591,8 @@ export default function Home() {
       <footer className="bg-slate-900/50 border-t border-slate-700">
         <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col space-y-6 md:flex md:flex-row md:justify-between md:items-center md:space-y-0">
-            {/* Left side - Logo and company */}
-            <div className="flex items-center justify-center space-x-3 md:justify-start">
+            {/* Center - Logo and company */}
+            <div className="flex items-center justify-center space-x-3 md:flex-1">
               <svg
                 className="w-10 h-10 text-white"
                 viewBox="0 0 128.37 135.86"
