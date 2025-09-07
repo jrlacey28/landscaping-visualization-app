@@ -36,7 +36,6 @@ function PricingSection({
               text={freq}
               selected={selectedFrequency === freq}
               setSelected={setSelectedFrequency}
-              discount={freq === "Yearly (Save 20%)"}
             />
           ))}
         </div>
