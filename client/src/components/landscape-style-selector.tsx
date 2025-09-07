@@ -174,9 +174,9 @@ export default function LandscapeStyleSelector({
         {/* Curbing Card */}
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
-               borderColor: activeToggles.curbing ? primaryColor : `${primaryColor}cc`,
+               borderColor: activeToggles.curbing ? '#ffffff' : `${primaryColor}cc`,
                background: activeToggles.curbing 
-                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
+                 ? `linear-gradient(to bottom right, #10b981, #06b6d4)` 
                  : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
              }}
              onClick={() => handleToggleChange('curbing', !activeToggles.curbing)}>
@@ -230,9 +230,9 @@ export default function LandscapeStyleSelector({
         {/* Landscaping Card */}
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
-               borderColor: activeToggles.landscape ? secondaryColor : `${secondaryColor}cc`,
+               borderColor: activeToggles.landscape ? '#ffffff' : `${secondaryColor}cc`,
                background: activeToggles.landscape 
-                 ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
+                 ? `linear-gradient(to bottom right, #f59e0b, #ef4444)` 
                  : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
              }}
              onClick={() => handleToggleChange('landscape', !activeToggles.landscape)}>
@@ -268,9 +268,9 @@ export default function LandscapeStyleSelector({
         {/* Concrete Patios Card */}
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
-               borderColor: activeToggles.patios ? primaryColor : `${primaryColor}cc`,
+               borderColor: activeToggles.patios ? '#ffffff' : `${primaryColor}cc`,
                background: activeToggles.patios 
-                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
+                 ? `linear-gradient(to bottom right, #8b5cf6, #ec4899)` 
                  : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
              }}
              onClick={() => handleToggleChange('patios', !activeToggles.patios)}>
