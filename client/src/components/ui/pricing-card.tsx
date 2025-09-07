@@ -27,7 +27,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
   
   return (
     <Card className={cn(
-      "relative h-full bg-white/8 backdrop-blur-xl border-white/10 min-h-[500px] flex flex-col",
+      "relative h-full bg-white/8 backdrop-blur-xl border-white/10 min-h-[500px] flex flex-col shadow-[0_0_15px_rgba(255,255,255,0.1)]",
       tier.popular && "border-primary/30 bg-white/5 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
     )}>
       {tier.popular && (
@@ -36,14 +36,14 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
         </div>
       )}
       
-      <CardHeader className="text-center pb-8">
+      <CardHeader className="text-left pb-6">
         <CardTitle className="text-3xl font-bold text-white">{tier.name}</CardTitle>
         <CardDescription className="text-sm text-slate-300">
           {tier.description}
         </CardDescription>
         
         <div className="mt-4">
-          <div className="flex items-baseline justify-center">
+          <div className="flex items-baseline">
             <span className="text-6xl font-bold text-white">${monthlyPrice}</span>
             <span className="text-slate-300 ml-1">/month</span>
           </div>
@@ -52,10 +52,14 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
               ${price} billed annually
             </div>
           )}
+          <hr className="border-white/20 mt-4 mb-4" />
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-4 flex-grow">
+      <CardContent className="space-y-4 flex-grow text-left">
+        <div className="mb-4">
+          <h4 className="text-lg font-semibold text-white mb-3">What You Get</h4>
+        </div>
         <ul className="space-y-3">
           {tier.features.map((feature, index) => (
             <li key={index} className="flex items-start gap-3">

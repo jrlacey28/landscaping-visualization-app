@@ -6,7 +6,6 @@ import { Tab } from "@/components/ui/pricing-tab"
 import { useTenant } from "@/hooks/use-tenant"
 import { cn } from "@/lib/utils"
 import Header from "@/components/header"
-import ContactForm from "@/components/contact-form"
 
 interface PricingSectionProps {
   title: string
@@ -42,13 +41,13 @@ function PricingSection({
         </div>
       </div>
 
-      <div className="flex w-full max-w-7xl gap-6 justify-center items-stretch">
+      <div className="flex flex-col lg:flex-row w-full max-w-7xl gap-6 justify-center items-stretch">
         {tiers.map((tier, index) => (
           <div 
             key={tier.name}
             className={cn(
-              "flex-shrink-0",
-              tier.popular ? "w-[35%]" : "w-[32.5%]"
+              "flex-shrink-0 w-full",
+              "lg:" + (tier.popular ? "w-[35%]" : "w-[32.5%]")
             )}
           >
             <PricingCard
@@ -61,6 +60,29 @@ function PricingSection({
     </section>
   )
 }
+
+const faqItems = [
+  {
+    question: 'How does the AI visualization work?',
+    answer: 'Our AI technology analyzes your uploaded property image and applies the selected design styles using advanced machine learning algorithms to create realistic visualizations.',
+  },
+  {
+    question: 'Can I try the service before purchasing?',
+    answer: 'Yes! We offer a free trial that allows you to generate up to 3 visualizations so you can experience the quality of our AI-powered design tools.',
+  },
+  {
+    question: 'What image formats do you support?',
+    answer: 'We support JPG, PNG, and HEIC formats. For best results, use high-resolution images taken in good lighting conditions.',
+  },
+  {
+    question: 'How long does it take to generate a visualization?',
+    answer: 'Most visualizations are generated within 30-60 seconds. Processing time may vary based on image complexity and current system load.',
+  },
+  {
+    question: 'Can I cancel my subscription anytime?',
+    answer: 'Yes, you can cancel your subscription at any time. You will continue to have access to your plan features until the end of your billing cycle.',
+  },
+]
 
 export default function PricingPage() {
   const { tenant } = useTenant()
@@ -94,7 +116,7 @@ export default function PricingPage() {
         "Custom branding options",
         "Advanced analytics & reporting"
       ],
-      cta: "Start Free Trial",
+      cta: "Get Started",
       ctaLink: "#contact"
     },
     {
@@ -137,22 +159,33 @@ export default function PricingPage() {
         />
       </main>
 
-      {/* Contact Section */}
+      {/* FAQ Section */}
       <section id="contact" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">Ready to Get Started?</h2>
+            <h2 className="text-4xl font-semibold text-white mb-4">Frequently Asked Questions</h2>
             <p className="text-slate-300 mb-8">
-              Contact us today to discuss your needs and get a custom quote.
+              Discover quick and comprehensive answers to common questions about our platform, services, and features.
             </p>
           </div>
           
-          <div className="max-w-2xl mx-auto">
-            <ContactForm 
-              tenantId={tenant.id}
-              title="Get Your Quote"
-              description="Tell us about your business and we'll reach out with pricing details."
-            />
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-8">
+              <div className="space-y-6">
+                {faqItems.map((item, index) => (
+                  <div key={index} className="border-b border-white/20 last:border-b-0 pb-6 last:pb-0">
+                    <h3 className="text-lg font-semibold text-white mb-3">{item.question}</h3>
+                    <p className="text-slate-300">{item.answer}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <p className="text-slate-300 mt-6 text-center">
+              Can't find what you're looking for? Contact our{' '}
+              <a href="mailto:support@company.com" className="text-blue-400 font-medium hover:underline">
+                customer support team
+              </a>
+            </p>
           </div>
         </div>
       </section>
