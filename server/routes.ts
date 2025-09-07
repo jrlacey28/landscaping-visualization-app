@@ -51,6 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const adminPassword = process.env.ADMIN_PASSWORD;
     
     if (!adminPassword) {
+      console.error("ADMIN_PASSWORD environment variable not found");
       return res.status(500).json({ error: "Admin password not configured" });
     }
     
