@@ -93,6 +93,25 @@ export default function LandscapeStyleSelector({
         ...selectedStyles,
         [category]: "",
       });
+    } else {
+      // If toggling on, set the initial selection
+      if (category === 'curbing') {
+        // Set the default curbing selection with type and color
+        const fullCurbingId = curbingSelection.type === 'natural_stone_curbing' 
+          ? `${curbingSelection.type}_${curbingSelection.color}` 
+          : curbingSelection.type;
+        onStyleChange({
+          ...selectedStyles,
+          curbing: fullCurbingId,
+        });
+      } else if (category === 'patios') {
+        // Set the default patio selection
+        const patioSpec = `${patioSelection.style}|${patioSelection.shape}|${patioSelection.size}`;
+        onStyleChange({
+          ...selectedStyles,
+          patios: patioSpec,
+        });
+      }
     }
   };
 
