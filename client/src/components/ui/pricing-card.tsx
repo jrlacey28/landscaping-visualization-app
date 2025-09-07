@@ -28,16 +28,16 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
   return (
     <Card className={cn(
       "relative h-full bg-white/8 backdrop-blur-xl border-white/10 min-h-[500px] flex flex-col",
-      tier.popular && "border-primary/30 bg-white/5 shadow-[0_0_30px_rgba(59,130,246,0.3)]"
+      tier.popular && "border-primary/30 bg-white/5 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
     )}>
       {tier.popular && (
-        <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-t-lg text-sm text-white font-medium">
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-sm text-white font-medium">
           Most Popular
         </div>
       )}
       
       <CardHeader className="text-center pb-8">
-        <CardTitle className="text-2xl font-bold text-white">{tier.name}</CardTitle>
+        <CardTitle className="text-3xl font-bold text-white">{tier.name}</CardTitle>
         <CardDescription className="text-sm text-slate-300">
           {tier.description}
         </CardDescription>
