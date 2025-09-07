@@ -145,7 +145,7 @@ export default function PricingPage() {
           title="Pricing"
           subtitle="Select the perfect plan for your business needs. All plans include our core AI visualization features."
           tiers={pricingTiers}
-frequencies={["Monthly"]}
+          frequencies={["Monthly"]}
         />
       </main>
 
