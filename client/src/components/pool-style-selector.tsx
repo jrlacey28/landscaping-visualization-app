@@ -105,7 +105,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
           {activeToggles.poolType && (
             <div className="space-y-3">
               {poolTypes.map((option) => (
-                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
                     name="poolType"
@@ -143,7 +143,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
           {activeToggles.poolSize && (
             <div className="space-y-3">
               {poolSizes.map((option) => (
-                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
                     name="poolSize"
@@ -181,7 +181,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
           {activeToggles.decking && (
             <div className="space-y-3">
               {deckingOptions.map((option) => (
-                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
                     name="decking"
@@ -219,7 +219,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
           {activeToggles.landscaping && (
             <div className="space-y-3">
               {landscapingOptions.map((option) => (
-                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
                     name="landscaping"
@@ -257,7 +257,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
           {activeToggles.features && (
             <div className="space-y-3">
               {featureOptions.map((option) => (
-                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
                     name="features"

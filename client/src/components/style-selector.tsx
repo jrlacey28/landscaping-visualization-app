@@ -143,7 +143,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                 <p className="text-sm text-white/80 mb-2">Choose Style:</p>
                 <div className="space-y-3">
                   {roofStyles.map((style) => (
-                    <label key={style.value} className="flex items-center space-x-3 cursor-pointer">
+                    <label key={style.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="radio"
                         name="roofStyle"
@@ -166,24 +166,26 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
               {selectedRoofStyle && (
                 <div>
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
-                  <Select
-                    value={selectedRoofColor}
-                    onValueChange={(value) => {
-                      setSelectedRoofColor(value);
-                      handleOptionSelect('roof', `${selectedRoofStyle}_${value}`);
-                    }}
-                  >
-                    <SelectTrigger className="bg-white/90 border-white/30 text-slate-800">
-                      <SelectValue placeholder="Select a color" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roofColors.map((color) => (
-                        <SelectItem key={color.value} value={color.value}>
-                          {color.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Select
+                      value={selectedRoofColor}
+                      onValueChange={(value) => {
+                        setSelectedRoofColor(value);
+                        handleOptionSelect('roof', `${selectedRoofStyle}_${value}`);
+                      }}
+                    >
+                      <SelectTrigger className="bg-white/90 border-white/30 text-slate-800">
+                        <SelectValue placeholder="Select a color" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roofColors.map((color) => (
+                          <SelectItem key={color.value} value={color.value}>
+                            {color.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               )}
             </div>
@@ -216,7 +218,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                 <p className="text-sm text-white/80 mb-2">Choose Style:</p>
                 <div className="space-y-3">
                   {sidingStyles.map((style) => (
-                    <label key={style.value} className="flex items-center space-x-3 cursor-pointer">
+                    <label key={style.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="radio"
                         name="sidingStyle"
@@ -239,13 +241,14 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
               {selectedSidingStyle && (
                 <div>
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
-                  <Select
-                    value={selectedSidingColor}
-                    onValueChange={(value) => {
-                      setSelectedSidingColor(value);
-                      handleOptionSelect('siding', `${selectedSidingStyle}_${value}`);
-                    }}
-                  >
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Select
+                      value={selectedSidingColor}
+                      onValueChange={(value) => {
+                        setSelectedSidingColor(value);
+                        handleOptionSelect('siding', `${selectedSidingStyle}_${value}`);
+                      }}
+                    >
                     <SelectTrigger className="bg-white/90 border-white/30 text-slate-800">
                       <SelectValue placeholder="Select a color" />
                     </SelectTrigger>
@@ -256,7 +259,8 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                         </SelectItem>
                       ))}
                     </SelectContent>
-                  </Select>
+                    </Select>
+                  </div>
                 </div>
               )}
             </div>

@@ -165,7 +165,7 @@ export default function LandscapeStyleSelector({
           {activeToggles.curbing && (
             <div className="space-y-4">
               {curbingOptions.map((option) => (
-                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
                     name="curbing"
@@ -220,7 +220,7 @@ export default function LandscapeStyleSelector({
           {activeToggles.landscape && (
             <div className="space-y-3">
               {landscapeOptions.map((option) => (
-                <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
                     name="landscape"
