@@ -176,7 +176,7 @@ export default function LandscapeStyleSelector({
              style={{
                borderColor: activeToggles.curbing ? '#ffffff' : `${primaryColor}cc`,
                background: activeToggles.curbing 
-                 ? `linear-gradient(to bottom right, #10b981, #06b6d4)` 
+                 ? `linear-gradient(to bottom right, #10b981, #14b8a6)` 
                  : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
              }}
              onClick={() => handleToggleChange('curbing', !activeToggles.curbing)}>
@@ -232,7 +232,7 @@ export default function LandscapeStyleSelector({
              style={{
                borderColor: activeToggles.landscape ? '#ffffff' : `${secondaryColor}cc`,
                background: activeToggles.landscape 
-                 ? `linear-gradient(to bottom right, #f59e0b, #ef4444)` 
+                 ? `linear-gradient(to bottom right, #059669, #0d9488)` 
                  : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
              }}
              onClick={() => handleToggleChange('landscape', !activeToggles.landscape)}>
@@ -270,7 +270,7 @@ export default function LandscapeStyleSelector({
              style={{
                borderColor: activeToggles.patios ? '#ffffff' : `${primaryColor}cc`,
                background: activeToggles.patios 
-                 ? `linear-gradient(to bottom right, #8b5cf6, #ec4899)` 
+                 ? `linear-gradient(to bottom right, #047857, #065f46)` 
                  : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
              }}
              onClick={() => handleToggleChange('patios', !activeToggles.patios)}>
