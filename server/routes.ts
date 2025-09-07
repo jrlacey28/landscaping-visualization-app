@@ -5,6 +5,7 @@ import multer from "multer";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
+import session from "express-session";
 
 import { storage } from "./storage";
 import { insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertTenantSchema } from "@shared/schema";
@@ -24,11 +25,63 @@ if (!fs.existsSync(uploadsDir)) {
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure session middleware
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+      secure: false, // Set to true in production with HTTPS
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
+
+  // Admin authentication middleware
+  const requireAdminAuth = (req: any, res: any, next: any) => {
+    if (req.session?.isAdmin) {
+      next();
+    } else {
+      res.status(401).json({ error: "Admin authentication required" });
+    }
+  };
+
+  // Admin login endpoint
+  app.post("/api/admin/login", (req, res) => {
+    const { password } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    
+    if (!adminPassword) {
+      return res.status(500).json({ error: "Admin password not configured" });
+    }
+    
+    if (password === adminPassword) {
+      req.session.isAdmin = true;
+      res.json({ success: true, message: "Authenticated successfully" });
+    } else {
+      res.status(401).json({ error: "Invalid password" });
+    }
+  });
+
+  // Admin logout endpoint
+  app.post("/api/admin/logout", (req, res) => {
+    req.session.destroy((err: any) => {
+      if (err) {
+        return res.status(500).json({ error: "Could not log out" });
+      }
+      res.json({ success: true, message: "Logged out successfully" });
+    });
+  });
+
+  // Check admin auth status
+  app.get("/api/admin/status", (req, res) => {
+    res.json({ isAuthenticated: !!req.session?.isAdmin });
+  });
+
   // Serve static files from uploads directory
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
   // Get all tenants (admin only)
-  app.get("/api/tenants", async (req, res) => {
+  app.get("/api/tenants", requireAdminAuth, async (req, res) => {
     try {
       const allTenants = await storage.getAllTenants();
       res.json(allTenants);
@@ -67,7 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create tenant (admin only)
-  app.post("/api/tenants", async (req, res) => {
+  app.post("/api/tenants", requireAdminAuth, async (req, res) => {
     try {
       const tenantData = insertTenantSchema.parse(req.body);
       const tenant = await storage.createTenant(tenantData);
@@ -82,7 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update tenant
-  app.patch("/api/tenants/:id", async (req, res) => {
+  app.patch("/api/tenants/:id", requireAdminAuth, async (req, res) => {
     try {
       const { id } = req.params;
       // Convert string dates to Date objects before validation
@@ -252,7 +305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get leads for tenant (admin)
-  app.get("/api/tenants/:tenantId/leads", async (req, res) => {
+  app.get("/api/tenants/:tenantId/leads", requireAdminAuth, async (req, res) => {
     try {
       const { tenantId } = req.params;
       const leads = await storage.getLeadsByTenant(parseInt(tenantId));
@@ -264,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete lead (admin)
-  app.delete("/api/leads/:id", async (req, res) => {
+  app.delete("/api/leads/:id", requireAdminAuth, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deleteLead(parseInt(id));

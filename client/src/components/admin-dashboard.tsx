@@ -33,6 +33,7 @@ import {
   CheckCircle,
   XCircle,
   Trash2,
+  LogOut
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -322,13 +323,21 @@ export default function AdminDashboard() {
   // Renamed from allTenants to tenants for clarity in the analytics tab
   const tenants = allTenants;
 
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/admin/logout", { method: "POST" });
+      window.location.reload(); // Refresh to trigger auth check
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
                 <svg
@@ -347,9 +356,11 @@ export default function AdminDashboard() {
             </div>
             <Button
               variant="outline"
-              onClick={() => (window.location.href = "/")}
+              onClick={handleLogout}
+              className="flex items-center space-x-2"
             >
-              Back to Site
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
             </Button>
           </div>
         </div>
@@ -418,7 +429,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
                 <CardHeader className="pb-2">
@@ -534,7 +545,7 @@ export default function AdminDashboard() {
                         {allTenants.map((tenant: Tenant) => {
                           const usagePercent = Math.min((tenant.currentMonthGenerations || 0) / (tenant.monthlyGenerationLimit || 100) * 100, 100);
                           const isOverLimit = (tenant.currentMonthGenerations || 0) > (tenant.monthlyGenerationLimit || 100);
-                          
+
                           return (
                             <tr key={tenant.id} className="border-b hover:bg-gray-50">
                               <td className="py-4 px-2">
@@ -571,7 +582,7 @@ export default function AdminDashboard() {
                                   onClick={() => {
                                     // Reset generation count
                                     updateClientMutation.mutate({
-                                      id: tenant.id,
+                                      id: tenant.id, 
                                       data: { 
                                         currentMonthGenerations: 0, 
                                         lastResetDate: new Date(),
@@ -885,7 +896,7 @@ export default function AdminDashboard() {
                                 <span>Delete</span>
                               </Button>
                             </div>
-                            
+
                             <Button
                               variant={tenant.active ? "destructive" : "default"}
                               size="sm"
@@ -1029,7 +1040,7 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          
+
 
           {/* Embed Code Tab */}
           <TabsContent value="embed" className="space-y-4">
