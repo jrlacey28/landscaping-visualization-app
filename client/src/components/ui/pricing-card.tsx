@@ -33,9 +33,6 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
       
       <CardHeader className="text-left pb-6">
         <CardTitle className="text-3xl font-bold text-white">{tier.name}</CardTitle>
-        <CardDescription className="text-sm text-slate-300">
-          {tier.description}
-        </CardDescription>
         
         <div className="mt-4">
           <div className="flex items-baseline">
@@ -48,6 +45,9 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
             </div>
           )}
           <hr className="border-white/20 mt-4 mb-4" />
+          <CardDescription className="text-sm text-slate-300 mb-0">
+            {tier.description}
+          </CardDescription>
         </div>
       </CardHeader>
       
