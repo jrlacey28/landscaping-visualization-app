@@ -3,6 +3,7 @@
 import * as React from "react"
 import { PricingCard, type PricingTier } from "@/components/ui/pricing-card"
 import { Tab } from "@/components/ui/pricing-tab"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useTenant } from "@/hooks/use-tenant"
 import { cn } from "@/lib/utils"
 import Header from "@/components/header"
@@ -163,23 +164,22 @@ export default function PricingPage() {
       <section id="contact" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-semibold text-white mb-4">Frequently Asked Questions</h2>
-            <p className="text-slate-300 mb-8">
-              Discover quick and comprehensive answers to common questions about our platform, services, and features.
-            </p>
+            <h2 className="text-4xl font-semibold text-white mb-8">FAQ</h2>
           </div>
           
           <div className="max-w-4xl mx-auto">
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-8">
-              <div className="space-y-6">
-                {faqItems.map((item, index) => (
-                  <div key={index} className="border-b border-white/20 last:border-b-0 pb-6 last:pb-0">
-                    <h3 className="text-lg font-semibold text-white mb-3">{item.question}</h3>
-                    <p className="text-slate-300">{item.answer}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Accordion type="single" collapsible className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-8">
+              {faqItems.map((item, index) => (
+                <AccordionItem key={index} value={`item-${index}`} className="border-b border-white/20 last:border-b-0">
+                  <AccordionTrigger className="text-white text-left hover:no-underline hover:text-blue-300 py-4">
+                    {item.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-slate-300 pb-4">
+                    {item.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
             <p className="text-slate-300 mt-6 text-center">
               Can't find what you're looking for? Contact our{' '}
               <a href="mailto:support@company.com" className="text-blue-400 font-medium hover:underline">

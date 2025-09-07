@@ -30,11 +30,6 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
       "relative h-full bg-white/8 backdrop-blur-xl border-white/10 min-h-[500px] flex flex-col shadow-[0_0_15px_rgba(255,255,255,0.1)]",
       tier.popular && "border-primary/30 bg-white/5 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
     )}>
-      {tier.popular && (
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-sm text-white font-medium">
-          Most Popular
-        </div>
-      )}
       
       <CardHeader className="text-left pb-6">
         <CardTitle className="text-3xl font-bold text-white">{tier.name}</CardTitle>
