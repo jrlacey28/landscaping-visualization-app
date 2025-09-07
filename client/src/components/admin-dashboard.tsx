@@ -47,6 +47,7 @@ export default function AdminDashboard() {
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [editingClient, setEditingClient] = useState<Tenant | null>(null);
   const [deletingClient, setDeletingClient] = useState<Tenant | null>(null);
+  const [deletingLead, setDeletingLead] = useState<Lead | null>(null);
   const [newClientData, setNewClientData] = useState({
     companyName: "",
     slug: "",
@@ -215,6 +216,27 @@ export default function AdminDashboard() {
     },
   });
 
+  const deleteLeadMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/leads/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Lead Deleted",
+        description: "Lead has been permanently removed.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/tenants/${mockTenantId}/leads`] });
+      setDeletingLead(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete lead.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Load current tenant data
   const { data: currentTenant } = useQuery<Tenant>({
     queryKey: [`/api/tenant/${mockTenantId}`],
@@ -284,6 +306,11 @@ export default function AdminDashboard() {
   const handleDeleteClient = () => {
     if (!deletingClient) return;
     deleteClientMutation.mutate(deletingClient.id);
+  };
+
+  const handleDeleteLead = () => {
+    if (!deletingLead) return;
+    deleteLeadMutation.mutate(deletingLead.id);
   };
 
   // For the embed code generator, we need the tenant data to generate the correct embed URL.
@@ -934,6 +961,7 @@ export default function AdminDashboard() {
                               <th className="text-left p-3 font-medium text-gray-700">Email</th>
                               <th className="text-left p-3 font-medium text-gray-700">Phone</th>
                               <th className="text-left p-3 font-medium text-gray-700">Date</th>
+                              <th className="text-left p-3 font-medium text-gray-700">Actions</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -979,6 +1007,16 @@ export default function AdminDashboard() {
                                       'Date not available'
                                     )}
                                   </div>
+                                </td>
+                                <td className="p-3">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setDeletingLead(lead)}
+                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
                                 </td>
                               </tr>
                             ))}
@@ -1123,6 +1161,34 @@ export default function AdminDashboard() {
                 className="bg-red-600 hover:bg-red-700"
               >
                 {deleteClientMutation.isPending ? "Deleting..." : "Delete Permanently"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete Lead Confirmation Dialog */}
+        <AlertDialog open={!!deletingLead} onOpenChange={() => setDeletingLead(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Lead</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete the lead for <strong>{deletingLead?.firstName} {deletingLead?.lastName}</strong>? 
+                This action cannot be undone and will permanently remove:
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>Contact information ({deletingLead?.email})</li>
+                  <li>Business details and notes</li>
+                  <li>All submission data</li>
+                </ul>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteLead}
+                disabled={deleteLeadMutation.isPending}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {deleteLeadMutation.isPending ? "Deleting..." : "Delete Lead"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -263,6 +263,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete lead (admin)
+  app.delete("/api/leads/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteLead(parseInt(id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting lead:", error);
+      res.status(500).json({ error: "Failed to delete lead" });
+    }
+  });
+
   // Get visualizations for tenant
   app.get("/api/tenants/:tenantId/visualizations", async (req, res) => {
     try {

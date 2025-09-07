@@ -18,6 +18,7 @@ export interface IStorage {
   getLead(id: number): Promise<Lead | undefined>;
   getLeadsByTenant(tenantId: number): Promise<Lead[]>;
   createLead(lead: InsertLead): Promise<Lead>;
+  deleteLead(id: number): Promise<void>;
 
   // Visualization methods
   getVisualization(id: number): Promise<Visualization | undefined>;
@@ -99,6 +100,10 @@ export class DatabaseStorage implements IStorage {
       .values(insertLead)
       .returning();
     return lead;
+  }
+
+  async deleteLead(id: number): Promise<void> {
+    await this.db.delete(leads).where(eq(leads.id, id));
   }
 
   async getVisualization(id: number): Promise<Visualization | undefined> {
