@@ -27,7 +27,7 @@ function PricingSection({
     <section className="flex flex-col items-center gap-16 py-10">
       <div className="space-y-7 text-center">
         <div className="space-y-4">
-          <h1 className="text-4xl font-medium md:text-5xl text-white">{title}</h1>
+          <h1 className="text-4xl font-semibold text-white">{title}</h1>
           <p className="text-slate-300">{subtitle}</p>
         </div>
       </div>
