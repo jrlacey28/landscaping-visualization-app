@@ -116,6 +116,9 @@ export default function LandscapeStyleSelector({
   };
 
   const handleOptionSelect = (category: 'curbing' | 'landscape' | 'patios', value: string) => {
+    // Ensure the toggle stays active when making a selection
+    setActiveToggles(prev => ({ ...prev, [category]: true }));
+    
     if (category === 'curbing') {
       const newSelection = { ...curbingSelection, type: value };
       setCurbingSelection(newSelection);
@@ -135,6 +138,9 @@ export default function LandscapeStyleSelector({
   };
 
   const handleCurbingColorChange = (color: string) => {
+    // Ensure the curbing toggle stays active when changing color
+    setActiveToggles(prev => ({ ...prev, curbing: true }));
+    
     const newSelection = { ...curbingSelection, color };
     setCurbingSelection(newSelection);
     const fullCurbingId = curbingSelection.type === 'natural_stone_curbing' 
@@ -147,6 +153,9 @@ export default function LandscapeStyleSelector({
   };
 
   const updatePatioSelection = (field: keyof PatioSelection, value: string) => {
+    // Ensure the patios toggle stays active when updating selection
+    setActiveToggles(prev => ({ ...prev, patios: true }));
+    
     const newSelection = { ...patioSelection, [field]: value };
     setPatioSelection(newSelection);
     
