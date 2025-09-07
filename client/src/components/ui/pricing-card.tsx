@@ -27,8 +27,8 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
   
   return (
     <Card className={cn(
-      "relative h-full bg-white/10 backdrop-blur-md border-white/20",
-      tier.popular && "border-primary shadow-lg"
+      "relative h-full bg-white/5 backdrop-blur-xl border-white/10 min-h-[500px]",
+      tier.popular && "border-primary/30 shadow-2xl bg-white/8"
     )}>
       {tier.popular && (
         <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-sm text-slate-300">
@@ -44,7 +44,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
         
         <div className="mt-4">
           <div className="flex items-baseline justify-center">
-            <span className="text-4xl font-bold text-white">${monthlyPrice}</span>
+            <span className="text-6xl font-bold text-white">${monthlyPrice}</span>
             <span className="text-slate-300 ml-1">/month</span>
           </div>
           {isYearly && (

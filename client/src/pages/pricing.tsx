@@ -4,6 +4,7 @@ import * as React from "react"
 import { PricingCard, type PricingTier } from "@/components/ui/pricing-card"
 import { Tab } from "@/components/ui/pricing-tab"
 import { useTenant } from "@/hooks/use-tenant"
+import { cn } from "@/lib/utils"
 import Header from "@/components/header"
 import ContactForm from "@/components/contact-form"
 
@@ -23,7 +24,7 @@ function PricingSection({
   const [selectedFrequency, setSelectedFrequency] = React.useState(frequencies[0])
 
   return (
-    <section className="flex flex-col items-center gap-10 py-10">
+    <section className="flex flex-col items-center gap-16 py-10">
       <div className="space-y-7 text-center">
         <div className="space-y-4">
           <h1 className="text-4xl font-medium md:text-5xl text-white">{title}</h1>
@@ -41,13 +42,20 @@ function PricingSection({
         </div>
       </div>
 
-      <div className="grid w-full max-w-6xl gap-6 sm:grid-cols-2 xl:grid-cols-3">
-        {tiers.map((tier) => (
-          <PricingCard
+      <div className="flex w-full max-w-7xl gap-6 justify-center items-stretch">
+        {tiers.map((tier, index) => (
+          <div 
             key={tier.name}
-            tier={tier}
-            paymentFrequency={selectedFrequency}
-          />
+            className={cn(
+              "flex-shrink-0",
+              tier.popular ? "w-[40%]" : "w-[30%]"
+            )}
+          >
+            <PricingCard
+              tier={tier}
+              paymentFrequency={selectedFrequency}
+            />
+          </div>
         ))}
       </div>
     </section>
