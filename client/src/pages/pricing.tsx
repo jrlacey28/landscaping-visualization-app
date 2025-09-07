@@ -168,10 +168,10 @@ export default function PricingPage() {
           </div>
           
           <div className="max-w-4xl mx-auto">
-            <Accordion type="single" collapsible className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-8">
+            <Accordion type="single" collapsible className="bg-transparent border border-white/10 rounded-xl p-8">
               {faqItems.map((item, index) => (
                 <AccordionItem key={index} value={`item-${index}`} className="border-b border-white/20 last:border-b-0">
-                  <AccordionTrigger className="text-white text-left hover:no-underline hover:text-blue-300 py-4">
+                  <AccordionTrigger className="text-white text-left hover:no-underline hover:text-blue-300 py-4 text-xl font-medium">
                     {item.question}
                   </AccordionTrigger>
                   <AccordionContent className="text-slate-300 pb-4">

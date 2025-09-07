@@ -52,8 +52,8 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
       </CardHeader>
       
       <CardContent className="space-y-4 flex-grow text-left">
-        <div className="mb-4">
-          <h4 className="text-lg font-semibold text-white mb-3">What You Get</h4>
+        <div className="mb-2">
+          <h4 className="text-lg font-semibold text-white mb-2">What You Get</h4>
         </div>
         <ul className="space-y-3">
           {tier.features.map((feature, index) => (
