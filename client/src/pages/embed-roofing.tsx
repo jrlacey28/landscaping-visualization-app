@@ -270,8 +270,24 @@ export default function EmbedRoofingPage() {
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 mb-4">
             <h2 className="text-xl font-semibold text-white mb-4">Choose Your Style</h2>
             <StyleSelector
-              selectedStyles={selectedStyles}
-              onStyleChange={setSelectedStyles}
+              selectedStyles={{
+                roof: selectedStyles.roof.type,
+                siding: selectedStyles.siding.type,
+                surpriseMe: selectedStyles.surpriseMe.type,
+              }}
+              onStyleChange={(styles) => {
+                setSelectedStyles({
+                  roof: {
+                    enabled: !!styles.roof,
+                    type: styles.roof,
+                  },
+                  siding: {
+                    enabled: !!styles.siding,
+                    type: styles.siding,
+                  },
+                  surpriseMe: { enabled: !!styles.surpriseMe, type: styles.surpriseMe },
+                });
+              }}
               primaryColor={primaryColor}
               secondaryColor={secondaryColor}
             />
