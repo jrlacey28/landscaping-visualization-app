@@ -27,8 +27,8 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
   
   return (
     <Card className={cn(
-      "relative h-full bg-white/5 backdrop-blur-xl border-white/10 min-h-[500px]",
-      tier.popular && "border-primary/30 shadow-2xl bg-white/8"
+      "relative h-full bg-white/8 backdrop-blur-xl border-white/10 min-h-[500px] flex flex-col",
+      tier.popular && "border-primary/30 shadow-2xl bg-white/5"
     )}>
       {tier.popular && (
         <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-sm text-slate-300">
@@ -37,7 +37,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
       )}
       
       <CardHeader className="text-center pb-8">
-        <CardTitle className="text-xl text-white">{tier.name}</CardTitle>
+        <CardTitle className="text-2xl font-bold text-white">{tier.name}</CardTitle>
         <CardDescription className="text-sm text-slate-300">
           {tier.description}
         </CardDescription>
@@ -55,7 +55,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 flex-grow">
         <ul className="space-y-3">
           {tier.features.map((feature, index) => (
             <li key={index} className="flex items-start gap-3">
@@ -66,7 +66,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
         </ul>
       </CardContent>
       
-      <CardFooter>
+      <CardFooter className="mt-auto">
         <Button 
           className={cn(
             "w-full",

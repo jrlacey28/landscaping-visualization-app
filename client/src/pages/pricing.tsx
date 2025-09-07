@@ -48,7 +48,7 @@ function PricingSection({
             key={tier.name}
             className={cn(
               "flex-shrink-0",
-              tier.popular ? "w-[40%]" : "w-[30%]"
+              tier.popular ? "w-[35%]" : "w-[32.5%]"
             )}
           >
             <PricingCard
