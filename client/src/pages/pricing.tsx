@@ -29,7 +29,7 @@ function PricingSection({
           <h1 className="text-4xl font-medium md:text-5xl text-white">{title}</h1>
           <p className="text-slate-300">{subtitle}</p>
         </div>
-        <div className="mx-auto flex w-fit rounded-full bg-muted p-1">
+        <div className="mx-auto flex w-fit rounded-full bg-transparent p-1">
           {frequencies.map((freq) => (
             <Tab
               key={freq}
@@ -62,15 +62,14 @@ export default function PricingPage() {
     {
       name: "Basic",
       description: "Perfect for small businesses getting started",
-      monthlyPrice: 49,
-      yearlyPrice: 470,
+      monthlyPrice: 50,
+      yearlyPrice: 500,
       features: [
         "Up to 50 visualizations per month",
         "Basic AI-powered design suggestions",
         "Email support",
         "Standard templates",
-        "Basic analytics",
-        "Mobile responsive embed"
+        "Basic analytics"
       ],
       cta: "Get Started",
       ctaLink: "#contact"
@@ -78,18 +77,15 @@ export default function PricingPage() {
     {
       name: "Pro",
       description: "Ideal for growing businesses",
-      monthlyPrice: 99,
-      yearlyPrice: 950,
+      monthlyPrice: 100,
+      yearlyPrice: 1000,
       popular: true,
       features: [
         "Up to 200 visualizations per month",
         "Advanced AI design engine",
         "Priority email & chat support",
         "Custom branding options",
-        "Advanced analytics & reporting",
-        "API access",
-        "Custom integrations",
-        "Lead capture forms"
+        "Advanced analytics & reporting"
       ],
       cta: "Start Free Trial",
       ctaLink: "#contact"
@@ -97,18 +93,14 @@ export default function PricingPage() {
     {
       name: "Enterprise",
       description: "For large organizations with custom needs",
-      monthlyPrice: 249,
-      yearlyPrice: 2390,
+      monthlyPrice: 350,
+      yearlyPrice: 3500,
       features: [
         "Unlimited visualizations",
         "White-label solution",
         "Dedicated account manager",
         "24/7 phone & email support",
-        "Custom AI model training",
-        "Advanced security features",
-        "Custom integrations",
-        "SLA guarantee",
-        "On-premise deployment option"
+        "Custom AI model training"
       ],
       cta: "Contact Sales",
       ctaLink: "#contact"
@@ -134,7 +126,7 @@ export default function PricingPage() {
           title="Choose Your Plan"
           subtitle="Select the perfect plan for your business needs. All plans include our core AI visualization features."
           tiers={pricingTiers}
-          frequencies={["monthly", "yearly"]}
+          frequencies={["Monthly", "Yearly"]}
         />
       </main>
 
