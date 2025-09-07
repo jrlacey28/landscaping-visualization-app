@@ -1113,6 +1113,7 @@ export default function AdminDashboard() {
                         showPricing: checked,
                       }))
                     }
+                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
                   />
                 </div>
 
@@ -1131,6 +1132,7 @@ export default function AdminDashboard() {
                         requirePhone: checked,
                       }))
                     }
+                    className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
                   />
                 </div>
 

@@ -98,7 +98,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
               checked={activeToggles.poolType}
               onCheckedChange={(checked) => handleToggleChange('poolType', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
           
@@ -136,7 +136,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
               checked={activeToggles.poolSize}
               onCheckedChange={(checked) => handleToggleChange('poolSize', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
           
@@ -174,7 +174,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
               checked={activeToggles.decking}
               onCheckedChange={(checked) => handleToggleChange('decking', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
           
@@ -212,7 +212,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
               checked={activeToggles.landscaping}
               onCheckedChange={(checked) => handleToggleChange('landscaping', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
           
@@ -250,7 +250,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
               checked={activeToggles.features}
               onCheckedChange={(checked) => handleToggleChange('features', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
           

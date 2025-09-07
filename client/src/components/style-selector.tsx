@@ -135,7 +135,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
               checked={activeToggles.roof}
               onCheckedChange={(checked) => handleToggleChange('roof', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
           
@@ -210,7 +210,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
               checked={activeToggles.siding}
               onCheckedChange={(checked) => handleToggleChange('siding', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
           
@@ -290,7 +290,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
           

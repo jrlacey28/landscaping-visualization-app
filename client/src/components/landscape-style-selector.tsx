@@ -186,7 +186,7 @@ export default function LandscapeStyleSelector({
               checked={activeToggles.curbing}
               onCheckedChange={(checked) => handleToggleChange('curbing', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
           
@@ -242,7 +242,7 @@ export default function LandscapeStyleSelector({
               checked={activeToggles.landscape}
               onCheckedChange={(checked) => handleToggleChange('landscape', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
           
@@ -280,7 +280,7 @@ export default function LandscapeStyleSelector({
               checked={activeToggles.patios}
               onCheckedChange={(checked) => handleToggleChange('patios', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-white data-[state=unchecked]:bg-white/30"
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
           
