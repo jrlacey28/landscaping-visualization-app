@@ -521,18 +521,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {visualizationResult.status === "completed" && (
-                <div className="text-center mt-6">
-                  <Button
-                    size="lg"
-                    className="bg-gradient-to-r from-[#718ae1] via-[#dc6d73] to-[#718ae1] hover:from-[#8299e8] hover:via-[#e67d84] hover:to-[#8299e8] text-white font-semibold py-4 px-8 shadow-lg hover:shadow-xl transition-all"
-                    onClick={() => setShowLeadForm(true)}
-                  >
-                    <Phone className="h-5 w-5 mr-2" />
-                    Get Free Quote for This Design
-                  </Button>
-                </div>
-              )}
             </div>
           )}
         </div>
