@@ -168,7 +168,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
               
               {/* Roof Color Selection */}
               {selectedRoofStyle && (
-                <div>
+                <div onClick={(e) => e.stopPropagation()}>
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
                   <Select
                     value={selectedRoofColor}
@@ -181,9 +181,9 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                     <SelectTrigger className="bg-white/90 border-white/30 text-slate-800" onClick={(e) => e.stopPropagation()}>
                       <SelectValue placeholder="Select a color" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent onClick={(e) => e.stopPropagation()}>
                       {roofColors.map((color) => (
-                        <SelectItem key={color.value} value={color.value}>
+                        <SelectItem key={color.value} value={color.value} onClick={(e) => e.stopPropagation()}>
                           {color.label}
                         </SelectItem>
                       ))}
@@ -243,7 +243,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
               
               {/* Siding Color Selection */}
               {selectedSidingStyle && (
-                <div>
+                <div onClick={(e) => e.stopPropagation()}>
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
                   <Select
                     value={selectedSidingColor}
@@ -256,9 +256,9 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                     <SelectTrigger className="bg-white/90 border-white/30 text-slate-800" onClick={(e) => e.stopPropagation()}>
                       <SelectValue placeholder="Select a color" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent onClick={(e) => e.stopPropagation()}>
                       {sidingColors.map((color) => (
-                        <SelectItem key={color.value} value={color.value}>
+                        <SelectItem key={color.value} value={color.value} onClick={(e) => e.stopPropagation()}>
                           {color.label}
                         </SelectItem>
                       ))}
