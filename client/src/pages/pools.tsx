@@ -415,61 +415,6 @@ export default function Pools() {
             </Card>
           )}
 
-          {/* Render pool visualization results */}
-          {poolVisualizationResult && (
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold mb-4 text-center text-white">
-                Your Pool Design
-              </h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="text-sm font-medium mb-2 text-white">
-                    Original
-                  </h4>
-                  <img
-                    src={uploadedImage || ""}
-                    alt="Original"
-                    className="w-full h-auto rounded-lg shadow-md"
-                  />
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium mb-2 text-white">
-                    Pool Design
-                  </h4>
-                  {poolVisualizationResult.status === "completed" &&
-                  poolVisualizationResult.generatedImageUrl ? (
-                    <img
-                      src={poolVisualizationResult.generatedImageUrl}
-                      alt="Enhanced pool design"
-                      className="w-full h-auto rounded-lg shadow-md"
-                      onError={(e) => {
-                        console.error(
-                          "Image failed to load:",
-                          poolVisualizationResult.generatedImageUrl,
-                        );
-                        e.currentTarget.style.display = "none";
-                        const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
-                        if (nextElement) nextElement.style.display = "flex";
-                      }}
-                    />
-                  ) : poolVisualizationResult.status === "failed" ? (
-                    <div className="w-full h-64 bg-red-50 border-2 border-red-200 rounded-lg flex items-center justify-center">
-                      <p className="text-red-600">
-                        Pool design generation failed
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="w-full h-64 bg-blue-50 border-2 border-blue-200 rounded-lg flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                        <p className="text-blue-600">Generating pool design...</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </main>
 
