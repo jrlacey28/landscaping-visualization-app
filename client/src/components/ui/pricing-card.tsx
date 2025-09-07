@@ -27,12 +27,14 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
   
   return (
     <Card className={cn(
-      "relative h-full bg-white/8 backdrop-blur-xl border-white/10 min-h-[500px] flex flex-col",
-      tier.popular && "border-primary/30 shadow-2xl bg-white/5"
+      "relative h-full backdrop-blur-2xl border border-white/20 min-h-[500px] flex flex-col",
+      "bg-gradient-to-br from-white/10 via-white/5 to-transparent",
+      "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]",
+      tier.popular && "border-primary/50 shadow-[0_0_30px_rgba(59,130,246,0.5)] bg-gradient-to-br from-white/15 via-white/8 to-transparent"
     )}>
       {tier.popular && (
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-sm text-slate-300">
-          Best value for money!
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-sm text-white bg-primary/20 backdrop-blur-sm border border-primary/30 px-3 py-1 rounded-full">
+          Most Popular
         </div>
       )}
       
@@ -59,7 +61,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
         <ul className="space-y-3">
           {tier.features.map((feature, index) => (
             <li key={index} className="flex items-start gap-3">
-              <Check className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+              <Check className="h-5 w-5 text-white mt-0.5 flex-shrink-0" />
               <span className="text-sm text-slate-200">{feature}</span>
             </li>
           ))}
@@ -68,11 +70,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
       
       <CardFooter className="mt-auto">
         <Button 
-          className={cn(
-            "w-full",
-            tier.popular && "bg-primary hover:bg-primary/90"
-          )}
-          variant={tier.popular ? "default" : "outline"}
+          className="w-full bg-transparent border border-white/30 text-white hover:bg-white/10 hover:border-white/50 backdrop-blur-sm"
           asChild
         >
           <a href={tier.ctaLink}>{tier.cta}</a>
