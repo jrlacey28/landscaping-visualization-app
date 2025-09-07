@@ -143,7 +143,7 @@ export default function PricingPage() {
       
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         <PricingSection
-          title="Choose Your Plan"
+          title="Pricing"
           subtitle="Select the perfect plan for your business needs. All plans include our core AI visualization features."
           tiers={pricingTiers}
 frequencies={["Monthly"]}
