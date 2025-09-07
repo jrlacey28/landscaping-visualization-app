@@ -170,6 +170,101 @@ export default function EmbedPage() {
                 )}
               </div>
               
+              {/* Action buttons when generation is complete */}
+              {landscapeVisualizationResult?.status === "completed" && landscapeVisualizationResult?.generatedImageUrl && (
+                <div className="space-y-4 mt-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button
+                      size="lg"
+                      className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      style={{ 
+                        background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`
+                      }}
+                      onClick={() => {
+                        const img = document.createElement("img");
+                        img.crossOrigin = "anonymous";
+                        img.onload = function () {
+                          const canvas = document.createElement("canvas");
+                          const ctx = canvas.getContext("2d");
+                          if (ctx) {
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            ctx.drawImage(img, 0, 0);
+                            canvas.toBlob(
+                              (blob) => {
+                                if (blob) {
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement("a");
+                                  a.href = url;
+                                  a.download = "landscape-design.jpg";
+                                  a.click();
+                                  URL.revokeObjectURL(url);
+                                }
+                              },
+                              "image/jpeg",
+                              0.9,
+                            );
+                          }
+                        };
+                        img.src = landscapeVisualizationResult.generatedImageUrl;
+                      }}
+                    >
+                      <Download className="h-5 w-5 mr-2" />
+                      Download Image
+                    </Button>
+
+                    <Button
+                      size="lg"
+                      className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      style={{ 
+                        background: `linear-gradient(to right, #64748b, #475569)`
+                      }}
+                      onClick={() => setShowingOriginal(!showingOriginal)}
+                    >
+                      <Eye className="h-5 w-5 mr-2" />
+                      {showingOriginal ? "View Landscape Design" : "View Original Photo"}
+                    </Button>
+                  </div>
+                  
+                  <div className="w-full">
+                    <Button
+                      size="lg"
+                      className="w-full text-white font-semibold shadow-md hover:shadow-lg transition-all py-3"
+                      style={{ 
+                        background: `linear-gradient(to right, ${secondaryColor}, ${primaryColor})`
+                      }}
+                      onClick={() => {
+                        setUploadedImage(null);
+                        setOriginalFile(null);
+                        setLandscapeVisualizationResult(null);
+                        setShowingOriginal(false);
+                      }}
+                    >
+                      <Camera className="h-5 w-5 mr-2" />
+                      Try Another Photo
+                    </Button>
+                  </div>
+                  
+                  {/* Get Free Quote button */}
+                  <Button
+                    size="lg"
+                    className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
+                    style={{ 
+                      background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
+                    }}
+                    onClick={() => {
+                      if (contactType === 'email' && contactLink) {
+                        window.open(contactLink, '_blank');
+                      } else if (tenant?.phone) {
+                        window.open(`tel:${tenant.phone.replace(/[\(\)\-\s]/g, '')}`, '_self');
+                      }
+                    }}
+                  >
+                    <Phone className="h-5 w-5 mr-2" />
+                    Get Free Quote
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
