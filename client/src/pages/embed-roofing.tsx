@@ -52,9 +52,9 @@ export default function EmbedRoofingPage() {
   const [showingOriginal, setShowingOriginal] = useState(false);
   
   const [selectedStyles, setSelectedStyles] = useState({
-    roof: "",
-    siding: "",
-    surpriseMe: "",
+    roof: { enabled: false, type: "" },
+    siding: { enabled: false, type: "" },
+    surpriseMe: { enabled: false, type: "" },
   });
 
   // Apply custom branding
@@ -229,6 +229,11 @@ export default function EmbedRoofingPage() {
                         setOriginalFile(null);
                         setVisualizationResult(null);
                         setShowingOriginal(false);
+                        setSelectedStyles({
+                          roof: { enabled: false, type: "" },
+                          siding: { enabled: false, type: "" },
+                          surpriseMe: { enabled: false, type: "" },
+                        });
                       }}
                     >
                       <Camera className="h-5 w-5 mr-2" />
@@ -285,9 +290,9 @@ export default function EmbedRoofingPage() {
               disabled={
                 isGenerating ||
                 !(
-                  selectedStyles.roof ||
-                  selectedStyles.siding ||
-                  selectedStyles.surpriseMe
+                  selectedStyles.roof.enabled ||
+                  selectedStyles.siding.enabled ||
+                  selectedStyles.surpriseMe.enabled
                 )
               }
               onClick={async () => {
