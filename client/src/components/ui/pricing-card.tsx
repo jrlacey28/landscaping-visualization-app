@@ -21,7 +21,7 @@ interface PricingCardProps {
 }
 
 export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
-  const isYearly = paymentFrequency.toLowerCase() === "yearly"
+  const isYearly = paymentFrequency.toLowerCase().includes("yearly")
   const price = isYearly ? tier.yearlyPrice : tier.monthlyPrice
   const monthlyPrice = isYearly ? Math.round(tier.yearlyPrice / 12) : tier.monthlyPrice
   
