@@ -21,9 +21,7 @@ interface PricingCardProps {
 }
 
 export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
-  const isYearly = paymentFrequency.toLowerCase().includes("yearly")
-  const price = isYearly ? tier.yearlyPrice : tier.monthlyPrice
-  const monthlyPrice = isYearly ? Math.round(tier.yearlyPrice / 12) : tier.monthlyPrice
+  const monthlyPrice = tier.monthlyPrice
   
   return (
     <Card className={cn(
@@ -39,11 +37,6 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
             <span className="text-6xl font-bold text-white">${monthlyPrice}</span>
             <span className="text-slate-300 ml-1">/month</span>
           </div>
-          {isYearly && (
-            <div className="text-sm text-slate-300 mt-1">
-              ${price} billed annually
-            </div>
-          )}
           <hr className="border-white/20 mt-4 mb-4" />
           <CardDescription className="text-sm text-slate-300 mb-0">
             {tier.description}
