@@ -120,6 +120,101 @@ export default function Pools() {
                 />
               </CardContent>
             </Card>
+          ) : generatedImage ? (
+            <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
+              <CardContent className="p-8">
+                <div className="mb-6">
+                  <img
+                    src={showingOriginal ? uploadedImage : generatedImage}
+                    alt={
+                      showingOriginal
+                        ? "Original photo"
+                        : "AI Generated pool design"
+                    }
+                    className="w-full aspect-video object-cover rounded-xl shadow-lg"
+                  />
+                </div>
+
+                {/* Top row with three buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                    onClick={() => {
+                      const img = document.createElement("img");
+                      img.crossOrigin = "anonymous";
+                      img.onload = function () {
+                        const canvas = document.createElement("canvas");
+                        const ctx = canvas.getContext("2d");
+                        if (ctx) {
+                          canvas.width = img.width;
+                          canvas.height = img.height;
+                          ctx.drawImage(img, 0, 0);
+                          canvas.toBlob(
+                            (blob) => {
+                              if (blob) {
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = "pool-design.jpg";
+                                a.click();
+                                URL.revokeObjectURL(url);
+                              }
+                            },
+                            "image/jpeg",
+                            0.9,
+                          );
+                        }
+                      };
+                      img.src = generatedImage;
+                    }}
+                  >
+                    <Download className="h-5 w-5 mr-2" />
+                    Download Image
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                    onClick={() => setShowingOriginal(!showingOriginal)}
+                  >
+                    <Eye className="h-5 w-5 mr-2" />
+                    {showingOriginal
+                      ? "View Pool Design"
+                      : "View Original Photo"}
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                    onClick={() => {
+                      setUploadedImage(null);
+                      setGeneratedImage(null);
+                      setSelectedPoolStyles({
+                        poolType: "",
+                        poolSize: "",
+                        decking: "",
+                        landscaping: "",
+                        features: "",
+                      });
+                    }}
+                  >
+                    <Camera className="h-5 w-5 mr-2" />
+                    Try Another Photo
+                  </Button>
+                </div>
+
+                {/* Get Free Quote button */}
+                <Button
+                  size="lg"
+                  className="w-full bg-gradient-to-r from-blue-600 via-green-500 to-blue-600 hover:from-blue-700 hover:via-green-600 hover:to-blue-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
+                  onClick={() => setShowLeadForm(true)}
+                >
+                  <Phone className="h-5 w-5 mr-2" />
+                  Get Free Quote
+                </Button>
+              </CardContent>
+            </Card>
           ) : (
             <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
               <CardContent className="p-8">
