@@ -114,7 +114,7 @@ export default function PricingPage() {
       description: "For large organizations with custom needs",
       monthlyPrice: 750,
       yearlyPrice: 3360,
-      priceNote: "(1 time set up fee)",
+      priceNote: "(plus set up fee)",
       features: [
         "Everything in Pro, plus:",
         "Unlimited visualizations",
