@@ -41,17 +41,6 @@ export default function Pools() {
   const [poolVisualizationResult, setPoolVisualizationResult] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  if (tenantLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Create fallback tenant if API call fails
   const effectiveTenant = tenant || {
     id: 1,
@@ -78,6 +67,17 @@ export default function Pools() {
     "--primary": effectiveTenant.primaryColor,
     "--secondary": effectiveTenant.secondaryColor,
   } as React.CSSProperties), [effectiveTenant.primaryColor, effectiveTenant.secondaryColor]);
+
+  if (tenantLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
