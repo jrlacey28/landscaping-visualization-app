@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,10 +74,10 @@ export default function Pools() {
     createdAt: new Date(),
   };
 
-  const brandColors = {
+  const brandColors = useMemo(() => ({
     "--primary": effectiveTenant.primaryColor,
     "--secondary": effectiveTenant.secondaryColor,
-  } as React.CSSProperties;
+  } as React.CSSProperties), [effectiveTenant.primaryColor, effectiveTenant.secondaryColor]);
 
   return (
     <div
@@ -136,6 +136,9 @@ export default function Pools() {
                         : "AI Generated pool design"
                     }
                     className="w-full aspect-video object-cover rounded-xl shadow-lg"
+                    loading="lazy"
+                    decoding="async"
+                    style={{ willChange: 'transform' }}
                   />
                 </div>
 
@@ -230,6 +233,9 @@ export default function Pools() {
                         src={uploadedImage}
                         alt="Uploaded backyard photo"
                         className="w-full aspect-video object-cover shadow-lg transition-all duration-300"
+                        loading="lazy"
+                        decoding="async"
+                        style={{ willChange: 'transform' }}
                       />
                       {isGenerating && (
                         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl flex items-center justify-center">

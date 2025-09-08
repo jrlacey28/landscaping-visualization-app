@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Performance optimizations */
+img {
+  content-visibility: auto;
+}
+
+.bg-gradient-to-br,
+.bg-gradient-to-r {
+  will-change: auto;
+}
+
+/* Reduce layout shifts */
+.aspect-video {
+  contain: layout style paint;
+}
+
 :root {
   --color-1: 0 100% 63%;
   --color-2: 270 100% 63%;

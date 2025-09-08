@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 
 interface PoolStyleSelectorProps {
@@ -9,13 +9,7 @@ interface PoolStyleSelectorProps {
     landscaping: string;
     features: string;
   };
-  onStyleChange: (styles: { 
-    poolType: string; 
-    poolSize: string; 
-    decking: string; 
-    landscaping: string; 
-    features: string; 
-  }) => void;
+  onStyleChange: (styles: any) => void;
   primaryColor?: string;
   secondaryColor?: string;
 }
@@ -51,7 +45,7 @@ const featureOptions = [
   { value: "pool_with_lighting", label: "Pool with LED Lighting" },
 ];
 
-export default function PoolStyleSelector({ selectedStyles, onStyleChange, primaryColor = "#10b981", secondaryColor = "#059669" }: PoolStyleSelectorProps) {
+const PoolStyleSelector = React.memo(function PoolStyleSelector({ selectedStyles, onStyleChange, primaryColor = "#10b981", secondaryColor = "#059669" }: PoolStyleSelectorProps) {
   const [activeToggles, setActiveToggles] = useState({
     poolType: !!selectedStyles.poolType,
     poolSize: !!selectedStyles.poolSize,
@@ -62,7 +56,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
 
   const handleToggleChange = (category: 'poolType' | 'poolSize' | 'decking' | 'landscaping' | 'features', enabled: boolean) => {
     setActiveToggles(prev => ({ ...prev, [category]: enabled }));
-    
+
     if (!enabled) {
       // If toggling off, clear the selection
       onStyleChange({
@@ -101,7 +95,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
               className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
-          
+
           {activeToggles.poolType && (
             <div className="space-y-3">
               {poolTypes.map((option) => (
@@ -139,7 +133,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
               className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
-          
+
           {activeToggles.poolSize && (
             <div className="space-y-3">
               {poolSizes.map((option) => (
@@ -177,7 +171,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
               className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
-          
+
           {activeToggles.decking && (
             <div className="space-y-3">
               {deckingOptions.map((option) => (
@@ -215,7 +209,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
               className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
-          
+
           {activeToggles.landscaping && (
             <div className="space-y-3">
               {landscapingOptions.map((option) => (
@@ -253,7 +247,7 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
               className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
-          
+
           {activeToggles.features && (
             <div className="space-y-3">
               {featureOptions.map((option) => (
@@ -275,4 +269,6 @@ export default function PoolStyleSelector({ selectedStyles, onStyleChange, prima
       </div>
     </div>
   );
-}
+});
+
+export default PoolStyleSelector;

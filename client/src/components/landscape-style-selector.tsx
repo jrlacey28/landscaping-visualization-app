@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 
 interface LandscapeStyleSelectorProps {
@@ -7,11 +7,7 @@ interface LandscapeStyleSelectorProps {
     landscape: string;
     patios: string;
   };
-  onStyleChange: (styles: {
-    curbing: string;
-    landscape: string;
-    patios: string;
-  }) => void;
+  onStyleChange: (styles: any) => void;
   primaryColor?: string;
   secondaryColor?: string;
 }
@@ -61,7 +57,7 @@ const patioSizes = [
   { value: "large", label: "Large" },
 ];
 
-export default function LandscapeStyleSelector({
+const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
   selectedStyles,
   onStyleChange,
   primaryColor = "#10b981",
@@ -86,7 +82,7 @@ export default function LandscapeStyleSelector({
 
   const handleToggleChange = (category: 'curbing' | 'landscape' | 'patios', enabled: boolean) => {
     setActiveToggles(prev => ({ ...prev, [category]: enabled }));
-    
+
     if (!enabled) {
       // If toggling off, clear the selection
       onStyleChange({
@@ -118,7 +114,7 @@ export default function LandscapeStyleSelector({
   const handleOptionSelect = (category: 'curbing' | 'landscape' | 'patios', value: string) => {
     // Ensure the toggle stays active when making a selection
     setActiveToggles(prev => ({ ...prev, [category]: true }));
-    
+
     if (category === 'curbing') {
       const newSelection = { ...curbingSelection, type: value };
       setCurbingSelection(newSelection);
@@ -140,7 +136,7 @@ export default function LandscapeStyleSelector({
   const handleCurbingColorChange = (color: string) => {
     // Ensure the curbing toggle stays active when changing color
     setActiveToggles(prev => ({ ...prev, curbing: true }));
-    
+
     const newSelection = { ...curbingSelection, color };
     setCurbingSelection(newSelection);
     const fullCurbingId = curbingSelection.type === 'natural_stone_curbing' 
@@ -155,13 +151,13 @@ export default function LandscapeStyleSelector({
   const updatePatioSelection = (field: keyof PatioSelection, value: string) => {
     // Ensure the patios toggle stays active when updating selection
     setActiveToggles(prev => ({ ...prev, patios: true }));
-    
+
     const newSelection = { ...patioSelection, [field]: value };
     setPatioSelection(newSelection);
-    
+
     // Create a combined patio specification that preserves the style
     const patioSpec = `${newSelection.style}|${newSelection.shape}|${newSelection.size}`;
-    
+
     onStyleChange({
       ...selectedStyles,
       patios: patioSpec,
@@ -189,7 +185,7 @@ export default function LandscapeStyleSelector({
               className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
-          
+
           {activeToggles.curbing && (
             <div className="space-y-4">
               {curbingOptions.map((option) => (
@@ -205,7 +201,7 @@ export default function LandscapeStyleSelector({
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
               ))}
-              
+
               {curbingSelection.type === 'natural_stone_curbing' && (
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Color</label>
@@ -245,7 +241,7 @@ export default function LandscapeStyleSelector({
               className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
-          
+
           {activeToggles.landscape && (
             <div className="space-y-3">
               {landscapeOptions.map((option) => (
@@ -283,7 +279,7 @@ export default function LandscapeStyleSelector({
               className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
             />
           </div>
-          
+
           {activeToggles.patios && (
             <div className="space-y-4">
               {/* Patio Style */}
@@ -344,4 +340,6 @@ export default function LandscapeStyleSelector({
       </div>
     </div>
   );
-}
+});
+
+export default LandscapeStyleSelector;
