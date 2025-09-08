@@ -13,6 +13,7 @@ export interface PricingTier {
   popular?: boolean
   cta: string
   ctaLink: string
+  priceNote?: string
 }
 
 interface PricingCardProps {
@@ -37,6 +38,9 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
             <span className="text-6xl font-bold text-white">${monthlyPrice}</span>
             <span className="text-slate-300 ml-1">/month</span>
           </div>
+          {tier.priceNote && (
+            <p className="text-xs text-slate-400 mt-1">{tier.priceNote}</p>
+          )}
           <hr className="border-white/20 mt-4 mb-4" />
           <CardDescription className="text-sm text-slate-300 mb-0">
             {tier.description}

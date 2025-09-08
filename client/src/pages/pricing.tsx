@@ -102,7 +102,7 @@ export default function PricingPage() {
       features: [
         "Everything in Basic, plus:",
         "Up to 200 visualizations per month",
-        "Advanced AI design engine",
+        "Advanced AI design templates",
         "Custom branding widget",
         "Call-To-Action (CTA) button"
       ],
@@ -112,13 +112,16 @@ export default function PricingPage() {
     {
       name: "Enterprise",
       description: "For large organizations with custom needs",
-      monthlyPrice: 500,
+      monthlyPrice: 750,
       yearlyPrice: 3360,
+      priceNote: "(1 time set up fee)",
       features: [
         "Everything in Pro, plus:",
         "Unlimited visualizations",
         "White-label website widget",
         "White-label mobile app",
+        "Customized design categories",
+        "Advanced after image touch up",
         "Custom AI model training",
       ],
       cta: "Contact Sales",
