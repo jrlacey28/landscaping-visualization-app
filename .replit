@@ -8,8 +8,8 @@ packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["npm", "run", "build"]
-run = ["sh", "-c", "sh -c \"cp -r dist/public server/ && npm start\""]
+build = ["sh", "-c", "npm run build"]
+run = ["sh", "-c", "npm start"]
 
 [[ports]]
 localPort = 5000

@@ -109,7 +109,7 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
     id: "new_grass",
     name: "New Grass",
     prompt:
-      "Install fresh, lush green sod or seed to create beautiful new grass areas where appropriate. Add vibrant, healthy grass to enhance the existing lawn areas or create new grassy sections that complement the landscape design. The new grass should appear thick, green, and professionally maintained. Only add grass in logical areas while preserving all existing plants, trees, bed borders, house structure, and hardscaping unchanged.",
+      "Install fresh, lush green sod or seed to create beautiful new grass areas where appropriate. Add vibrant, healthy grass to enhance the existing lawn areas or create new grassy sections that complement the landscape design. The new grass should appear thick, green, and professionally maintained. Only add grass in logical areas while preserving all existing plants, trees, bed borders, house structure, and hardscaping unchanged. Get rid of any weeds or other excess plants that shouldn't be there for the new grass.",
     referenceImageUrl: "https://mycdn.com/new-grass.jpg",
     category: "landscape",
     regionType: "garden",
