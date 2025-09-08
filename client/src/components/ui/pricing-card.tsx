@@ -39,7 +39,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
             <span className="text-slate-300 ml-1">
               /month
               {tier.priceNote && (
-                <span className="text-xs text-slate-400 ml-1">{tier.priceNote}</span>
+                <span className="text-slate-300 ml-1">{tier.priceNote}</span>
               )}
             </span>
           </div>
