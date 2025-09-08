@@ -24,7 +24,8 @@ import {
 } from "@/lib/api";
 
 export default function Pools() {
-  const { tenant, isLoading: tenantLoading } = useTenant();
+  try {
+    const { tenant, isLoading: tenantLoading } = useTenant();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -491,4 +492,23 @@ export default function Pools() {
       </footer>
     </div>
   );
+  } catch (error) {
+    console.error('Error in Pools component:', error);
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-800 via-cyan-700 to-green-700">
+        <div className="text-center p-8 max-w-md">
+          <h1 className="text-2xl font-bold text-white mb-4">Pools Page Error</h1>
+          <p className="text-white/80 mb-6">
+            We're sorry, but the pools page encountered an error. Please try refreshing the page.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-white text-blue-900 px-6 py-2 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 }
