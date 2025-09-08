@@ -57,10 +57,11 @@ export default function Pools() {
     id: 1,
     slug: "demo",
     companyName: "DreamBuilder",
-    logoUrl: "",
+    logoUrl: null,
     primaryColor: "#2563EB", 
     secondaryColor: "#059669",
     phone: "(555) 123-4567",
+    contactPhone: null,
     email: "info@dreambuilder.com",
     address: "123 Main St, Anytown USA",
     description: "Professional AI-powered landscaping visualization services",
@@ -69,6 +70,7 @@ export default function Pools() {
     active: true,
     monthlyGenerationLimit: 1000,
     currentMonthGenerations: 0,
+    lastResetDate: null,
     createdAt: new Date(),
   };
 
@@ -311,7 +313,7 @@ export default function Pools() {
                         // Upload image and generate pool AI visualization
                         const result = await uploadPoolImage(
                           originalFile,
-                          tenant.id,
+                          effectiveTenant.id,
                           selectedPoolStyles,
                         );
 
@@ -425,7 +427,7 @@ export default function Pools() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <LeadCaptureForm
-              tenant={tenant}
+              tenant={effectiveTenant}
               originalImageUrl={uploadedImage}
               generatedImageUrl={generatedImage}
               selectedStyles={selectedPoolStyles}
@@ -450,7 +452,7 @@ export default function Pools() {
                 <path fill="#fff" d="M102.82,0c-2.69,20.69-4.87,22.87-25.55,25.55,20.69,2.69,22.87,4.87,25.55,25.55,2.69-20.69,4.87-22.87,25.55-25.55-20.69-2.69-22.87-4.87-25.55-25.55Z"/>
               </svg>
               <div>
-                <p className="text-white font-semibold">{tenant.companyName}</p>
+                <p className="text-white font-semibold">{effectiveTenant.companyName}</p>
                 <p className="text-slate-400 text-sm">
                   Powered by Solst LLC
                 </p>
