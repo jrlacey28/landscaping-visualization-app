@@ -7,7 +7,8 @@ export function useTenant(slug?: string) {
 
   const { data: tenant, isLoading, error } = useQuery<Tenant>({
     queryKey: [`/api/tenant/${tenantSlug}`],
-    retry: false,
+    retry: 3, // Retry up to 3 times for network issues
+    retryDelay: 1000, // Wait 1 second between retries
   });
 
   return {
