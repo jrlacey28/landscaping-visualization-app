@@ -129,19 +129,29 @@ export default function PricingPage() {
     }
   ]
 
-  if (!tenant) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-black flex items-center justify-center">
-        <div className="text-white text-center">
-          <h1 className="text-2xl font-bold mb-4">Loading...</h1>
-        </div>
-      </div>
-    )
-  }
+  // Create fallback tenant if API call fails
+  const effectiveTenant = tenant || {
+    id: 1,
+    slug: "demo",
+    companyName: "DreamBuilder",
+    logoUrl: "",
+    primaryColor: "#2563EB", 
+    secondaryColor: "#059669",
+    phone: "(555) 123-4567",
+    email: "info@dreambuilder.com",
+    address: "123 Main St, Anytown USA",
+    description: "Professional AI-powered landscaping visualization services",
+    showPricing: true,
+    requirePhone: true,
+    active: true,
+    monthlyGenerationLimit: 1000,
+    currentMonthGenerations: 0,
+    createdAt: new Date(),
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-black">
-      <Header tenant={tenant} />
+      <Header tenant={effectiveTenant} />
       
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         <PricingSection

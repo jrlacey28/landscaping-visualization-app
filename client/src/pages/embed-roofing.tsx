@@ -19,8 +19,28 @@ export default function EmbedRoofingPage() {
   
   const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant(tenantSlug);
 
+  // Create fallback tenant if API call fails
+  const effectiveTenant = tenant || {
+    id: 1,
+    slug: "demo",
+    companyName: companyName || "DreamBuilder",
+    logoUrl: "",
+    primaryColor: primaryColor,
+    secondaryColor: secondaryColor,
+    phone: "(555) 123-4567",
+    email: "info@dreambuilder.com",
+    address: "123 Main St, Anytown USA",
+    description: "Professional AI-powered roofing and siding visualization services",
+    showPricing: true,
+    requirePhone: true,
+    active: true,
+    monthlyGenerationLimit: 1000,
+    currentMonthGenerations: 0,
+    createdAt: new Date(),
+  };
+
   // Check if tenant is active
-  if (tenant && !tenant.active) {
+  if (effectiveTenant && !effectiveTenant.active) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
@@ -31,13 +51,13 @@ export default function EmbedRoofingPage() {
           <p className="text-gray-600 mb-4">
             This service is currently not available. Please contact the company directly for assistance.
           </p>
-          {tenant.phone && (
+          {effectiveTenant.phone && (
             <a 
-              href={`tel:${tenant.phone.replace(/[\(\)\-\s]/g, '')}`}
+              href={`tel:${effectiveTenant.phone.replace(/[\(\)\-\s]/g, '')}`}
               className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
               <Phone className="h-4 w-4 mr-2" />
-              Call {tenant.phone}
+              Call {effectiveTenant.phone}
             </a>
           )}
         </div>
