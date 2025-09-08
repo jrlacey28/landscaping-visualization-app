@@ -92,7 +92,7 @@ export default function Home() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900"
+      className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 flex flex-col"
       style={brandColors}
     >
       {/* Header with Services Menu */}
@@ -111,7 +111,7 @@ export default function Home() {
       </section>
 
       {/* Main Application - Integrated Content */}
-      <main className="pb-20">
+      <main className="flex-1 pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {!uploadedImage ? (
             <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">

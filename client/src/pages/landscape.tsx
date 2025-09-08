@@ -79,7 +79,7 @@ export default function Landscape() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-green-800 via-emerald-700 to-teal-700"
+      className="min-h-screen bg-gradient-to-br from-green-800 via-emerald-700 to-teal-700 flex flex-col"
       style={brandColors}
     >
       {/* Header with Services Menu */}
@@ -98,7 +98,7 @@ export default function Landscape() {
       </section>
 
       {/* Main Application - Integrated Content */}
-      <main className="pb-20">
+      <main className="flex-1 pb-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {!uploadedImage ? (
             <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
