@@ -26,7 +26,7 @@ import {
 export default function Landscape() {
   try {
     const { tenant, isLoading: tenantLoading } = useTenant();
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+    const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
