@@ -24,9 +24,8 @@ import {
 } from "@/lib/api";
 
 export default function Landscape() {
-  try {
-    const { tenant, isLoading: tenantLoading } = useTenant();
-    const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const { tenant, isLoading: tenantLoading } = useTenant();
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -487,23 +486,4 @@ export default function Landscape() {
       </footer>
     </div>
   );
-  } catch (error) {
-    console.error('Error in Landscape component:', error);
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-800 via-emerald-700 to-teal-700">
-        <div className="text-center p-8 max-w-md">
-          <h1 className="text-2xl font-bold text-white mb-4">Landscape Page Error</h1>
-          <p className="text-white/80 mb-6">
-            We're sorry, but the landscape page encountered an error. Please try refreshing the page.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-white text-green-900 px-6 py-2 rounded-lg font-semibold hover:bg-green-50 transition-colors"
-          >
-            Refresh Page
-          </button>
-        </div>
-      </div>
-    );
-  }
 }
