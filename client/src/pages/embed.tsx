@@ -175,6 +175,9 @@ export default function EmbedPage() {
                     (showingOriginal ? "Original photo" : "Enhanced landscape design") : 
                     "Uploaded property"}
                   className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  style={{ willChange: 'transform' }}
                 />
                 {isGenerating && (
                   <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
