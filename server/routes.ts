@@ -256,8 +256,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateVisualization(visualization.id, {
           status: "failed",
         });
+        
+        // Check if this is a Google service error
+        const isGoogleServiceError = geminiError.message && 
+          (geminiError.message.includes('Internal error encountered') || 
+           geminiError.message.includes('500') ||
+           geminiError.status === 500);
+        
+        const errorMessage = isGoogleServiceError 
+          ? "Google's AI service is temporarily unavailable. Please try again in a few minutes."
+          : "AI processing failed. Please try again.";
+        
         res.status(500).json({ 
-          error: "AI processing failed. Please try again.",
+          error: errorMessage,
           details: geminiError.message 
         });
       }
@@ -451,8 +462,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updatePoolVisualization(poolVisualization.id, {
           status: "failed",
         });
+        
+        // Check if this is a Google service error
+        const isGoogleServiceError = geminiError.message && 
+          (geminiError.message.includes('Internal error encountered') || 
+           geminiError.message.includes('500') ||
+           geminiError.status === 500);
+        
+        const errorMessage = isGoogleServiceError 
+          ? "Google's AI service is temporarily unavailable. Please try again in a few minutes."
+          : "AI pool processing failed. Please try again.";
+        
         res.status(500).json({ 
-          error: "AI pool processing failed. Please try again.",
+          error: errorMessage,
           details: geminiError.message 
         });
       }
