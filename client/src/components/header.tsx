@@ -4,17 +4,22 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Home, Waves, TreePine } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ChevronDown, Home, Waves, TreePine, User, LogOut } from "lucide-react";
 import type { Tenant } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
 
 interface HeaderProps {
   tenant: Tenant;
 }
 
 export default function Header({ tenant }: HeaderProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { user, logout } = useAuth();
   const currentService = location === "/pools" ? "pools" : "roofing";
 
   return (
@@ -111,6 +116,43 @@ export default function Header({ tenant }: HeaderProps) {
             >
               Contact
             </a>
+            
+            {/* Auth Section */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="text-slate-300 hover:text-blue-400 flex items-center space-x-2">
+                    <User className="h-4 w-4" />
+                    <span>{user.user.firstName}</span>
+                    {user.usage && (
+                      <Badge variant="secondary" className="ml-1 bg-blue-600 text-white">
+                        {user.usage.planName}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-white/95 backdrop-blur-md border border-slate-200 shadow-lg">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setLocation('/dashboard')}>
+                    <User className="mr-2 h-4 w-4" />
+                    Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button 
+                variant="ghost" 
+                className="text-slate-300 hover:text-blue-400"
+                onClick={() => setLocation('/auth')}
+              >
+                Sign In
+              </Button>
+            )}
           </nav>
 
           {/* Mobile menu button - simplified for now */}
