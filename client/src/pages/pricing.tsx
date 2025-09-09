@@ -82,7 +82,7 @@ export default function PricingPage() {
     {
       name: "Basic",
       description: "Perfect for small businesses getting started",
-      monthlyPrice: 50,
+      monthlyPrice: 20,
       yearlyPrice: 480,
       features: [
         "Up to 50 visualizations per month",
