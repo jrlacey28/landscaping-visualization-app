@@ -527,6 +527,29 @@ export class DatabaseStorage implements IStorage {
     // TODO: Implement proper usage stats when usageStats table is created
     return Promise.resolve([]);
   }
+
+  // Admin methods
+  async getAllUsersWithUsage(): Promise<Array<User & { usage?: UserUsage; subscription?: Subscription }>> {
+    const allUsers = await this.db.select().from(users);
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    
+    const usersWithData = await Promise.all(allUsers.map(async (user) => {
+      const [usage, subscription] = await Promise.all([
+        this.getUserUsage(user.id, month, year),
+        this.getUserActiveSubscription(user.id)
+      ]);
+      
+      return {
+        ...user,
+        usage: usage || undefined,
+        subscription: subscription || undefined
+      };
+    }));
+    
+    return usersWithData;
+  }
 }
 
 export const storage = new DatabaseStorage();
