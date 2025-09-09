@@ -75,8 +75,238 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // Assuming 'db' is initialized and available within the class scope
   private db = db;
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await this.db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await this.db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async getUserByEmailVerificationToken(token: string): Promise<User | undefined> {
+    const [user] = await this.db.select().from(users).where(eq(users.emailVerificationToken, token));
+    return user || undefined;
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const [user] = await this.db.select().from(users).where(eq(users.resetPasswordToken, token));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await this.db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: number, insertUser: Partial<InsertUser>): Promise<User> {
+    const [user] = await this.db
+      .update(users)
+      .set({...insertUser, updatedAt: new Date()})
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  // Subscription methods
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return await this.db.select().from(subscriptionPlans).where(eq(subscriptionPlans.active, true));
+  }
+
+  async getSubscriptionPlan(id: string): Promise<SubscriptionPlan | undefined> {
+    const [plan] = await this.db.select().from(subscriptionPlans).where(eq(subscriptionPlans.id, id));
+    return plan || undefined;
+  }
+
+  async getUserActiveSubscription(userId: number): Promise<Subscription | undefined> {
+    const [subscription] = await this.db
+      .select()
+      .from(subscriptions)
+      .where(and(eq(subscriptions.userId, userId), eq(subscriptions.status, 'active')))
+      .orderBy(desc(subscriptions.createdAt));
+    return subscription || undefined;
+  }
+
+  async getUserSubscriptions(userId: number): Promise<Subscription[]> {
+    return await this.db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.userId, userId))
+      .orderBy(desc(subscriptions.createdAt));
+  }
+
+  async createSubscription(insertSubscription: InsertSubscription): Promise<Subscription> {
+    const [subscription] = await this.db
+      .insert(subscriptions)
+      .values(insertSubscription)
+      .returning();
+    return subscription;
+  }
+
+  async updateSubscription(id: number, insertSubscription: Partial<InsertSubscription>): Promise<Subscription> {
+    const [subscription] = await this.db
+      .update(subscriptions)
+      .set({...insertSubscription, updatedAt: new Date()})
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return subscription;
+  }
+
+  async updateSubscriptionByStripeId(stripeSubscriptionId: string, insertSubscription: Partial<InsertSubscription>): Promise<Subscription> {
+    const [subscription] = await this.db
+      .update(subscriptions)
+      .set({...insertSubscription, updatedAt: new Date()})
+      .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId))
+      .returning();
+    return subscription;
+  }
+
+  // Usage tracking
+  async getUserUsage(userId: number, month: number, year: number): Promise<UserUsage | undefined> {
+    const [usage] = await this.db
+      .select()
+      .from(userUsage)
+      .where(and(
+        eq(userUsage.userId, userId),
+        eq(userUsage.month, month),
+        eq(userUsage.year, year)
+      ));
+    return usage || undefined;
+  }
+
+  async createOrUpdateUserUsage(userId: number, type: 'visualization' | 'landscape' | 'pool'): Promise<UserUsage> {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+
+    // Try to get existing usage record
+    const existingUsage = await this.getUserUsage(userId, month, year);
+
+    if (existingUsage) {
+      // Update existing record
+      const updates: Partial<InsertUserUsage> = {
+        totalCount: existingUsage.totalCount + 1,
+        updatedAt: now,
+      };
+
+      if (type === 'visualization') {
+        updates.visualizationCount = existingUsage.visualizationCount + 1;
+      } else if (type === 'landscape') {
+        updates.landscapeCount = existingUsage.landscapeCount + 1;
+      } else if (type === 'pool') {
+        updates.poolCount = existingUsage.poolCount + 1;
+      }
+
+      const [updatedUsage] = await this.db
+        .update(userUsage)
+        .set(updates)
+        .where(eq(userUsage.id, existingUsage.id))
+        .returning();
+      return updatedUsage;
+    } else {
+      // Create new record
+      const newUsage: InsertUserUsage = {
+        userId,
+        month,
+        year,
+        totalCount: 1,
+        visualizationCount: type === 'visualization' ? 1 : 0,
+        landscapeCount: type === 'landscape' ? 1 : 0,
+        poolCount: type === 'pool' ? 1 : 0,
+      };
+
+      const [usage] = await this.db
+        .insert(userUsage)
+        .values(newUsage)
+        .returning();
+      return usage;
+    }
+  }
+
+  async checkUsageLimits(userId: number): Promise<{ canUse: boolean; currentUsage: number; limit: number; planName: string }> {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+
+    // Get user's current usage
+    const usage = await this.getUserUsage(userId, month, year);
+    const currentUsage = usage ? usage.totalCount : 0;
+
+    // Get user's subscription
+    const subscription = await this.getUserActiveSubscription(userId);
+    
+    if (!subscription) {
+      // No subscription - they get 5 free visualizations
+      return {
+        canUse: currentUsage < 5,
+        currentUsage,
+        limit: 5,
+        planName: 'Free'
+      };
+    }
+
+    // Get plan details
+    const plan = await this.getSubscriptionPlan(subscription.planId);
+    if (!plan) {
+      return {
+        canUse: false,
+        currentUsage,
+        limit: 0,
+        planName: 'Unknown'
+      };
+    }
+
+    // Check limit (-1 means unlimited)
+    const canUse = plan.visualizationLimit === -1 || currentUsage < plan.visualizationLimit;
+    
+    return {
+      canUse,
+      currentUsage,
+      limit: plan.visualizationLimit,
+      planName: plan.name
+    };
+  }
+
+  // Lead methods with user support
+  async getLeadsByUser(userId: number): Promise<Lead[]> {
+    return await this.db
+      .select()
+      .from(leads)
+      .where(eq(leads.userId, userId))
+      .orderBy(desc(leads.createdAt));
+  }
+
+  // Visualization methods with user support
+  async getVisualizationsByUser(userId: number): Promise<Visualization[]> {
+    return await this.db
+      .select()
+      .from(visualizations)
+      .where(eq(visualizations.userId, userId))
+      .orderBy(desc(visualizations.createdAt));
+  }
+
+  async getPoolVisualizationsByUser(userId: number): Promise<PoolVisualization[]> {
+    return await this.db
+      .select()
+      .from(poolVisualizations)
+      .where(eq(poolVisualizations.userId, userId))
+      .orderBy(desc(poolVisualizations.createdAt));
+  }
+
+  async getLandscapeVisualizationsByUser(userId: number): Promise<LandscapeVisualization[]> {
+    return await this.db
+      .select()
+      .from(landscapeVisualizations)
+      .where(eq(landscapeVisualizations.userId, userId))
+      .orderBy(desc(landscapeVisualizations.createdAt));
+  }
 
   async getTenant(id: number): Promise<Tenant | undefined> {
     const [tenant] = await this.db.select().from(tenants).where(eq(tenants.id, id));
