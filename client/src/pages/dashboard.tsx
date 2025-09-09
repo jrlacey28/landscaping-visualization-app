@@ -69,24 +69,24 @@ export default function Dashboard() {
   const planStatus = getPlanStatus();
 
   return (
-    <div className=\"min-h-screen bg-gray-50\">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className=\"bg-white shadow\">
-        <div className=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8\">
-          <div className=\"flex justify-between items-center py-6\">
+      <div className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className=\"text-2xl font-bold text-gray-900\">Dashboard</h1>
-              <p className=\"text-gray-600\">Welcome back, {user.user.firstName}!</p>
+              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-gray-600">Welcome back, {user.user.firstName}!</p>
             </div>
-            <div className=\"flex items-center space-x-4\">
+            <div className="flex items-center space-x-4">
               <Button 
-                variant=\"outline\" 
+                variant="outline" 
                 onClick={() => setLocation('/')}
               >
                 View Tools
               </Button>
               <Button 
-                variant=\"ghost\" 
+                variant="ghost" 
                 onClick={logout}
               >
                 Sign Out

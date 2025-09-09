@@ -80,52 +80,50 @@ export default function PricingPage() {
 
   const pricingTiers: PricingTier[] = [
     {
+      name: "Free",
+      description: "Try our service with no commitment",
+      monthlyPrice: 0,
+      yearlyPrice: 0,
+      features: [
+        "5 visualizations per month",
+        "All AI-powered design tools",
+        "Basic templates",
+        "Standard sharing options"
+      ],
+      cta: "Start Free Trial",
+      ctaLink: "/auth"
+    },
+    {
       name: "Basic",
       description: "Perfect for small businesses getting started",
-      monthlyPrice: 20,
-      yearlyPrice: 480,
+      monthlyPrice: 29,
+      yearlyPrice: 348,
       features: [
-        "Up to 50 visualizations per month",
-        "Basic AI-powered design suggestions",
-        "Standard templates",
+        "50 visualizations per month",
+        "All AI-powered design tools",
+        "Premium templates", 
+        "Email support",
         "Standard sharing options"
       ],
       cta: "Get Started",
-      ctaLink: "#contact"
+      ctaLink: "/auth?plan=price_1S5X1sBY2SPm2HvOuDHNzsIp"
     },
     {
       name: "Pro",
       description: "Ideal for growing businesses",
-      monthlyPrice: 100,
-      yearlyPrice: 960,
+      monthlyPrice: 99,
+      yearlyPrice: 1188,
       popular: true,
       features: [
         "Everything in Basic, plus:",
-        "Up to 200 visualizations per month",
-        "Advanced AI design templates",
-        "Custom branding widget",
-        "Call-To-Action (CTA) button"
+        "Unlimited visualizations",
+        "Custom embed widgets",
+        "White-label branding",
+        "Priority support",
+        "Advanced customization"
       ],
       cta: "Get Started",
-      ctaLink: "#contact"
-    },
-    {
-      name: "Enterprise",
-      description: "For large organizations with custom needs",
-      monthlyPrice: 750,
-      yearlyPrice: 3360,
-      priceNote: "(plus set up fee)",
-      features: [
-        "Everything in Pro, plus:",
-        "Unlimited visualizations",
-        "White-label website widget",
-        "White-label mobile app",
-        "Customized design categories",
-        "Advanced after image touch up",
-        "Custom AI model training",
-      ],
-      cta: "Contact Sales",
-      ctaLink: "#contact"
+      ctaLink: "/auth?plan=price_1S5X2XBY2SPm2HvO2he9Unto"
     }
   ]
 
