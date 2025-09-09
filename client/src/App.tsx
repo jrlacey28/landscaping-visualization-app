@@ -18,7 +18,7 @@ import EmbedManager from "@/pages/embed-manager";
 import PricingPage from "@/pages/pricing";
 import ContactPage from "@/pages/contact";
 import AuthPage from "@/pages/auth";
-import Dashboard from "@/pages/dashboard";
+import Dashboard from "@/pages/dashboard-simple";
 import NotFound from "@/pages/not-found";
 
 // Wrap components with error boundaries for better error handling

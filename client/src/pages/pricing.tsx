@@ -96,8 +96,8 @@ export default function PricingPage() {
     {
       name: "Basic",
       description: "Perfect for small businesses getting started",
-      monthlyPrice: 29,
-      yearlyPrice: 348,
+      monthlyPrice: 20,
+      yearlyPrice: 240,
       features: [
         "50 visualizations per month",
         "All AI-powered design tools",
@@ -111,8 +111,8 @@ export default function PricingPage() {
     {
       name: "Pro",
       description: "Ideal for growing businesses",
-      monthlyPrice: 99,
-      yearlyPrice: 1188,
+      monthlyPrice: 100,
+      yearlyPrice: 1200,
       popular: true,
       features: [
         "Everything in Basic, plus:",
