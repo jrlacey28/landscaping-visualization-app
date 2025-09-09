@@ -1,0 +1,137 @@
+2025-09-09 12:07:01.39
+a9ddccee
+User
+5:07:01 PM [express] GET /api/tenant/demo 404 in 461ms :: {"error":"Tenant not found"}
+2025-09-09 12:07:02.51
+a9ddccee
+User
+5:07:02 PM [express] GET /api/tenant/demo 404 in 27ms :: {"error":"Tenant not found"}
+2025-09-09 12:07:02.83
+a9ddccee
+User
+5:07:02 PM [express] GET /api/tenant/demo 404 in 25ms :: {"error":"Tenant not found"}
+2025-09-09 12:07:03.90
+a9ddccee
+User
+5:07:03 PM [express] GET /api/tenant/demo 404 in 27ms :: {"error":"Tenant not found"}
+2025-09-09 12:07:04.98
+a9ddccee
+User
+5:07:04 PM [express] GET /api/tenant/demo 404 in 25ms :: {"error":"Tenant not found"}
+2025-09-09 12:07:06.06
+a9ddccee
+User
+5:07:06 PM [express] GET /api/tenant/demo 404 in 26ms :: {"error":"Tenant not found"}
+2025-09-09 12:07:14.11
+a9ddccee
+User
+🌿 Processing landscape with Gemini: { curbing: undefined, landscape: 'new_grass', patios: undefined }
+2025-09-09 12:07:14.66
+a9ddccee
+User
+🌿 PROCESSING LANDSCAPE STYLES: { curbing: undefined, landscape: 'new_grass', patios: undefined }
+2025-09-09 12:07:14.66
+a9ddccee
+User
+✓ Found landscape style: New Grass
+2025-09-09 12:07:14.66
+a9ddccee
+User
+✓ Using 1 landscape style prompts
+2025-09-09 12:07:14.66
+a9ddccee
+User
+🌿 LANDSCAPE GEMINI PROMPT BEING SENT:
+2025-09-09 12:07:14.66
+a9ddccee
+User
+=====================================
+2025-09-09 12:07:14.66
+a9ddccee
+User
+LANDSCAPE TRANSFORMATION INSTRUCTIONS:
+2025-09-09 12:07:14.66
+a9ddccee
+User
+2025-09-09 12:07:14.66
+a9ddccee
+User
+Install fresh, lush green sod or seed to create beautiful new grass areas where appropriate. Add vibrant, healthy grass to enhance the existing lawn areas or create new grassy sections that complement the landscape design. The new grass should appear thick, green, and professionally maintained. Only add grass in logical areas while preserving all existing plants, trees, bed borders, house structure, and hardscaping unchanged. Get rid of any weeds or other excess plants that shouldn't be there for the new grass.
+2025-09-09 12:07:14.66
+a9ddccee
+User
+2025-09-09 12:07:14.66
+a9ddccee
+User
+CRITICAL PRESERVATION RULES:
+2025-09-09 12:07:14.66
+a9ddccee
+User
+- Keep the house structure, windows, doors, and all architecture exactly the same
+2025-09-09 12:07:14.66
+a9ddccee
+User
+- Preserve all existing trees, large shrubs, and established landscaping not being modified
+2025-09-09 12:07:14.66
+a9ddccee
+User
+- Maintain the exact driveway, walkways, and existing hardscaping unless adding patios
+2025-09-09 12:07:14.66
+a9ddccee
+User
+- Keep the same property layout and overall yard design
+2025-09-09 12:07:14.66
+a9ddccee
+User
+- Only add or modify the specific landscape features listed above
+2025-09-09 12:07:14.66
+a9ddccee
+User
+- Maintain original lighting, shadows, and perspective
+2025-09-09 12:07:14.66
+a9ddccee
+User
+- Keep image dimensions at 1920x1080 pixels
+2025-09-09 12:07:14.66
+a9ddccee
+User
+- Result must look natural and professionally installed
+2025-09-09 12:07:14.66
+a9ddccee
+User
+- Landscape changes should enhance the existing property
+2025-09-09 12:07:14.66
+a9ddccee
+User
+2025-09-09 12:07:14.66
+a9ddccee
+User
+Apply ONLY the landscape modifications specified above. Do not redesign the entire yard or dramatically alter existing features.
+2025-09-09 12:07:14.66
+a9ddccee
+User
+=====================================
+2025-09-09 12:07:14.66
+a9ddccee
+User
+🌿 Gemini API attempt 1/3
+2025-09-09 12:07:22.62
+a9ddccee
+User
+✓ Gemini API succeeded on attempt 1
+2025-09-09 12:07:22.62
+a9ddccee
+User
+🌿 Resizing landscape image to match original: 1440x1080
+2025-09-09 12:07:22.75
+a9ddccee
+User
+✓ Gemini generated and resized landscape image successfully
+2025-09-09 12:07:23.09
+a9ddccee
+User
+Usage tracked for tenant 1, type: landscape
+2025-09-09 12:07:23.11
+a9ddccee
+User
+5:07:23 PM [express] POST /api/landscape/upload 200 in 9806ms :: {"landscapeVisualizationId":9,"gene…
