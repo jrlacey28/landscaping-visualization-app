@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { registerAuthRoutes } from "./auth-routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import compression from "compression";
@@ -70,6 +71,9 @@ async function initializeDatabase() {
 (async () => {
   await initializeDatabase();
 
+  // Register authentication routes first (includes Stripe webhook)
+  registerAuthRoutes(app);
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

@@ -69,6 +69,9 @@ export interface IStorage {
   createLandscapeVisualization(landscapeVisualization: InsertLandscapeVisualization): Promise<LandscapeVisualization>;
   updateLandscapeVisualization(id: number, landscapeVisualization: Partial<InsertLandscapeVisualization>): Promise<LandscapeVisualization>;
 
+  // Admin methods
+  getAllUsersWithUsage(): Promise<Array<User & { usage?: UserUsage; subscription?: Subscription }>>;
+
   // Legacy tenant usage stats methods
   trackUsage(tenantId: number, type: 'visualization' | 'landscape' | 'pool'): Promise<void>;
   getUsageStats(tenantId: number, days?: number): Promise<any[]>;
