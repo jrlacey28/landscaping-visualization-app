@@ -1,4 +1,9 @@
-import { tenants, leads, visualizations, poolVisualizations, landscapeVisualizations, type Tenant, type InsertTenant, type Lead, type InsertLead, type Visualization, type InsertVisualization, type PoolVisualization, type InsertPoolVisualization, type LandscapeVisualization, type InsertLandscapeVisualization } from "@shared/schema";
+import { 
+  users, subscriptions, subscriptionPlans, userUsage, tenants, leads, visualizations, poolVisualizations, landscapeVisualizations,
+  type User, type InsertUser, type Subscription, type InsertSubscription, type SubscriptionPlan, type UserUsage, type InsertUserUsage,
+  type Tenant, type InsertTenant, type Lead, type InsertLead, type Visualization, type InsertVisualization, 
+  type PoolVisualization, type InsertPoolVisualization, type LandscapeVisualization, type InsertLandscapeVisualization 
+} from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte } from "drizzle-orm";
 
@@ -7,7 +12,29 @@ import { eq, desc, and, gte } from "drizzle-orm";
 
 
 export interface IStorage {
-  // Tenant methods
+  // User methods
+  getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByEmailVerificationToken(token: string): Promise<User | undefined>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User>;
+
+  // Subscription methods
+  getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
+  getSubscriptionPlan(id: string): Promise<SubscriptionPlan | undefined>;
+  getUserActiveSubscription(userId: number): Promise<Subscription | undefined>;
+  getUserSubscriptions(userId: number): Promise<Subscription[]>;
+  createSubscription(subscription: InsertSubscription): Promise<Subscription>;
+  updateSubscription(id: number, subscription: Partial<InsertSubscription>): Promise<Subscription>;
+  updateSubscriptionByStripeId(stripeSubscriptionId: string, subscription: Partial<InsertSubscription>): Promise<Subscription>;
+
+  // Usage tracking
+  getUserUsage(userId: number, month: number, year: number): Promise<UserUsage | undefined>;
+  createOrUpdateUserUsage(userId: number, type: 'visualization' | 'landscape' | 'pool'): Promise<UserUsage>;
+  checkUsageLimits(userId: number): Promise<{ canUse: boolean; currentUsage: number; limit: number; planName: string }>;
+
+  // Tenant methods (for white-label customers)
   getTenant(id: number): Promise<Tenant | undefined>;
   getTenantBySlug(slug: string): Promise<Tenant | undefined>;
   getAllTenants(): Promise<Tenant[]>;
@@ -17,28 +44,32 @@ export interface IStorage {
   // Lead methods
   getLead(id: number): Promise<Lead | undefined>;
   getLeadsByTenant(tenantId: number): Promise<Lead[]>;
+  getLeadsByUser(userId: number): Promise<Lead[]>;
   createLead(lead: InsertLead): Promise<Lead>;
   deleteLead(id: number): Promise<void>;
 
   // Visualization methods
   getVisualization(id: number): Promise<Visualization | undefined>;
   getVisualizationsByTenant(tenantId: number): Promise<Visualization[]>;
+  getVisualizationsByUser(userId: number): Promise<Visualization[]>;
   createVisualization(visualization: InsertVisualization): Promise<Visualization>;
   updateVisualization(id: number, visualization: Partial<InsertVisualization>): Promise<Visualization>;
 
   // Pool Visualization methods
   getPoolVisualization(id: number): Promise<PoolVisualization | undefined>;
   getPoolVisualizationsByTenant(tenantId: number): Promise<PoolVisualization[]>;
+  getPoolVisualizationsByUser(userId: number): Promise<PoolVisualization[]>;
   createPoolVisualization(poolVisualization: InsertPoolVisualization): Promise<PoolVisualization>;
   updatePoolVisualization(id: number, poolVisualization: Partial<InsertPoolVisualization>): Promise<PoolVisualization>;
 
   // Landscape Visualization methods
   getLandscapeVisualization(id: number): Promise<LandscapeVisualization | undefined>;
   getLandscapeVisualizationsByTenant(tenantId: number): Promise<LandscapeVisualization[]>;
+  getLandscapeVisualizationsByUser(userId: number): Promise<LandscapeVisualization[]>;
   createLandscapeVisualization(landscapeVisualization: InsertLandscapeVisualization): Promise<LandscapeVisualization>;
   updateLandscapeVisualization(id: number, landscapeVisualization: Partial<InsertLandscapeVisualization>): Promise<LandscapeVisualization>;
 
-  // Usage stats methods
+  // Legacy tenant usage stats methods
   trackUsage(tenantId: number, type: 'visualization' | 'landscape' | 'pool'): Promise<void>;
   getUsageStats(tenantId: number, days?: number): Promise<any[]>;
 }
