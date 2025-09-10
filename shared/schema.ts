@@ -7,7 +7,9 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
+  passwordHash: text("password_hash"), // Made optional for Google OAuth users
+  googleId: text("google_id"),
+  profileImageUrl: text("profile_image_url"),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   businessName: text("business_name"),

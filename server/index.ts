@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { registerAuthRoutes } from "./auth-routes";
+import { setupGoogleAuth } from "./google-auth";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import compression from "compression";
@@ -71,8 +72,11 @@ async function initializeDatabase() {
 (async () => {
   await initializeDatabase();
 
-  // Register authentication routes first (includes Stripe webhook)
+  // Register authentication routes first (includes Stripe webhook and sets up sessions)
   registerAuthRoutes(app);
+  
+  // Setup Google OAuth after session middleware is configured
+  setupGoogleAuth(app);
   
   const server = await registerRoutes(app);
 
