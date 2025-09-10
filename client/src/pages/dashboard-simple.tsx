@@ -160,8 +160,8 @@ export default function Dashboard() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Current Plan</CardTitle>
-                <CardDescription>Your subscription details</CardDescription>
+                <CardTitle>Current Plan & Usage</CardTitle>
+                <CardDescription>Your subscription and monthly usage details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -177,32 +177,29 @@ export default function Dashboard() {
                     </p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Usage This Month</CardTitle>
-                <CardDescription>
-                  {user.usage.limit === -1 
-                    ? 'Unlimited visualizations' 
-                    : `${user.usage.currentUsage} of ${user.usage.limit} visualizations used`
-                  }
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {user.usage.limit !== -1 && (
-                  <div>
-                    <Progress value={getUsagePercentage()} className="w-full" />
-                    <div className="flex justify-between text-sm text-gray-500 mt-2">
-                      <span>{user.usage.currentUsage} used</span>
-                      <span>{user.usage.limit} total</span>
+                <div className="border-t pt-4">
+                  <label className="text-sm font-medium text-gray-500">Usage This Month</label>
+                  <p className="text-sm text-gray-600 mb-3">
+                    {user.usage.limit === -1 
+                      ? 'Unlimited visualizations' 
+                      : `${user.usage.currentUsage} of ${user.usage.limit} visualizations used`
+                    }
+                  </p>
+                  
+                  {user.usage.limit !== -1 && (
+                    <div>
+                      <Progress value={getUsagePercentage()} className="w-full" />
+                      <div className="flex justify-between text-sm text-gray-500 mt-2">
+                        <span>{user.usage.currentUsage} used</span>
+                        <span>{user.usage.limit} total</span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
                 
                 {!user.subscription && (
-                  <div className="space-y-3">
+                  <div className="space-y-3 border-t pt-4">
                     <p className="text-sm text-gray-600">
                       You're on the free plan. Upgrade for more visualizations and features!
                     </p>
@@ -227,7 +224,7 @@ export default function Dashboard() {
                 )}
 
                 {user.subscription?.planId === 'price_1S5X1sBY2SPm2HvOuDHNzsIp' && (
-                  <div className="space-y-3">
+                  <div className="space-y-3 border-t pt-4">
                     <p className="text-sm text-gray-600">
                       Upgrade to Pro for unlimited visualizations and embed features!
                     </p>
