@@ -29,10 +29,10 @@ export function setupGoogleAuth(app: Express) {
     clientID: GOOGLE_CLIENT_ID,
     clientSecret: GOOGLE_CLIENT_SECRET,
     callbackURL: process.env.NODE_ENV === 'production' 
-      ? `https://${process.env.REPL_SLUG}.replit.app/api/auth/google/callback`
+      ? 'https://dreambuilderai.replit.app/api/auth/google/callback'
       : 'http://localhost:5000/api/auth/google/callback'
   },
-  async (accessToken, refreshToken, profile, done) => {
+  async (accessToken: string, refreshToken: string, profile: any, done: any) => {
     try {
       const email = profile.emails?.[0]?.value;
       if (!email) {
@@ -59,7 +59,7 @@ export function setupGoogleAuth(app: Express) {
           lastName: profile.name?.familyName || 'User',
           profileImageUrl: profile.photos?.[0]?.value || null,
           emailVerified: true, // Google accounts are pre-verified
-          passwordHash: '', // No password for Google auth users
+          passwordHash: null, // No password for Google auth users
         };
 
         user = await storage.createUser(userData);
