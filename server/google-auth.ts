@@ -27,7 +27,7 @@ export function setupGoogleAuth(app: Express) {
   // Configure Google OAuth strategy
   passport.use(new GoogleStrategy({
     clientID: GOOGLE_CLIENT_ID,
-    clientSecret: GOOGLE_CLIENT_SECRET,
+    clientSecret: GOOGLE_CLIENT_SECRET!,
     callbackURL: process.env.REPLIT_DOMAINS 
       ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}/api/auth/google/callback`
       : 'http://localhost:5000/api/auth/google/callback'
@@ -73,13 +73,15 @@ export function setupGoogleAuth(app: Express) {
   }));
 
   // Google OAuth routes
-  app.get('/api/auth/google',
-    passport.authenticate('google', { scope: ['profile', 'email'] })
-  );
+  app.get('/api/auth/google', (req, res, next) => {
+    console.log('🔑 Google OAuth initiated');
+    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+  });
 
-  app.get('/api/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/auth?error=google_auth_failed' }),
-    async (req, res) => {
+  app.get('/api/auth/google/callback', (req, res, next) => {
+    console.log('🔄 Google OAuth callback received');
+    passport.authenticate('google', { failureRedirect: '/auth?error=google_auth_failed' })(req, res, next);
+  }, async (req, res) => {
       try {
         const user = req.user as any;
         if (!user) {
