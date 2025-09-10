@@ -28,8 +28,8 @@ export function setupGoogleAuth(app: Express) {
   passport.use(new GoogleStrategy({
     clientID: GOOGLE_CLIENT_ID,
     clientSecret: GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.NODE_ENV === 'production' 
-      ? 'https://dreambuilderai.replit.app/api/auth/google/callback'
+    callbackURL: process.env.REPLIT_DOMAINS 
+      ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}/api/auth/google/callback`
       : 'http://localhost:5000/api/auth/google/callback'
   },
   async (accessToken: string, refreshToken: string, profile: any, done: any) => {
