@@ -7,12 +7,15 @@ import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { useTenant } from '@/hooks/use-tenant';
+import EmbedCodeGenerator from '@/components/embed-code-generator';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const { tenant } = useTenant("demo");
 
   if (!user) {
     setLocation('/auth');
@@ -137,22 +140,26 @@ export default function Dashboard() {
                 <CardDescription>Add visualization tools to your website</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center space-y-4">
-                  <div className="text-6xl opacity-50">🔒</div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Pro Feature Required</h3>
-                    <p className="text-gray-600 text-sm mb-4">
-                      Embed our visualization tools directly on your website to provide your customers with an interactive design experience.
-                    </p>
-                    <Button 
-                      onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
-                      disabled={loading}
-                      className="w-full max-w-xs"
-                    >
-                      Upgrade to Pro for this Feature
-                    </Button>
+                {user.hasEmbedAccess && tenant ? (
+                  <EmbedCodeGenerator tenant={tenant} />
+                ) : (
+                  <div className="text-center space-y-4">
+                    <div className="text-6xl opacity-50">🔒</div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-2">Pro Feature Required</h3>
+                      <p className="text-gray-600 text-sm mb-4">
+                        Embed our visualization tools directly on your website to provide your customers with an interactive design experience.
+                      </p>
+                      <Button 
+                        onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
+                        disabled={loading}
+                        className="w-full max-w-xs"
+                      >
+                        Upgrade to Pro for this Feature
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>

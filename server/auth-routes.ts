@@ -165,6 +165,13 @@ export function registerAuthRoutes(app: Express) {
       const subscription = await storage.getUserActiveSubscription(user.id);
       const usageCheck = await storage.checkUsageLimits(user.id);
       
+      // Check embed access based on subscription plan
+      let hasEmbedAccess = false;
+      if (subscription) {
+        const plan = await storage.getSubscriptionPlan(subscription.planId);
+        hasEmbedAccess = plan?.embedAccess || false;
+      }
+      
       res.json({
         success: true,
         data: {
@@ -181,7 +188,8 @@ export function registerAuthRoutes(app: Express) {
             status: subscription.status,
             currentPeriodEnd: subscription.currentPeriodEnd,
           } : null,
-          usage: usageCheck
+          usage: usageCheck,
+          hasEmbedAccess
         }
       });
     } catch (error: any) {
