@@ -1,25 +1,15 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Sparkles, Facebook, Youtube, Instagram } from "lucide-react";
+import { Facebook, Youtube, Instagram } from "lucide-react";
 import Header from "@/components/header";
 import { useTenant } from "@/hooks/use-tenant";
-import { useLocation, Link } from "wouter";
+import { Link } from "wouter";
 import homepageVideoPath from "@assets/AI Visualizer homepage video_1757535237826.mp4";
 
 export default function Home() {
   const { tenant, isLoading: tenantLoading } = useTenant();
-  const [, setLocation] = useLocation();
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
-  const [hoverText, setHoverText] = useState("Visualize");
   
   const animatedTexts = ["Roof", "Siding", "Landscape", "Patio", "Pool"];
-  const hoverTexts = [
-    "A new pool",
-    "Different color siding", 
-    "Beautiful curbing",
-    "Stunning landscape",
-    "Modern patio"
-  ];
 
   // Cycle through animated texts
   useEffect(() => {
@@ -28,15 +18,6 @@ export default function Home() {
     }, 1200);
     return () => clearInterval(interval);
   }, []);
-
-  const handleRandomHover = () => {
-    const randomText = hoverTexts[Math.floor(Math.random() * hoverTexts.length)];
-    setHoverText(randomText);
-  };
-
-  const handleMouseLeave = () => {
-    setHoverText("Visualize");
-  };
 
   if (tenantLoading) {
     return (
@@ -105,8 +86,8 @@ export default function Home() {
       </section>
 
       {/* Video Demo Section */}
-      <section className="py-0">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section className="py-0 pb-12">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="aspect-video overflow-hidden rounded-xl">
             <video 
               className="w-full h-full object-cover"
@@ -119,22 +100,6 @@ export default function Home() {
               Your browser does not support the video tag.
             </video>
           </div>
-        </div>
-      </section>
-      
-      {/* CTA Section */}
-      <section className="py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Button
-            size="lg"
-            className="text-2xl px-20 py-6 w-full max-w-md bg-gradient-to-r from-blue-500 via-purple-600 to-red-500 hover:from-blue-600 hover:via-purple-700 hover:to-red-600 text-white font-bold shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300"
-            onMouseEnter={handleRandomHover}
-            onMouseLeave={handleMouseLeave}
-            onClick={() => setLocation('/pricing')}
-          >
-            <Sparkles className="h-6 w-6 mr-3" />
-            {hoverText}
-          </Button>
         </div>
       </section>
 
