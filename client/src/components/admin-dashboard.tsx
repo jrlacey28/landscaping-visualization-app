@@ -9,6 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -33,7 +40,8 @@ import {
   CheckCircle,
   XCircle,
   Trash2,
-  LogOut
+  LogOut,
+  UserCheck
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -43,6 +51,27 @@ import EmbedCodeGenerator from "./embed-code-generator";
 export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Mutation for updating user plans (admin only)
+  const updateUserPlanMutation = useMutation({
+    mutationFn: async ({ userId, planId }: { userId: number; planId: string }) => {
+      return apiRequest("POST", "/api/admin/update-user-plan", { userId, planId });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Plan Updated",
+        description: "User plan has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user plan.",
+        variant: "destructive",
+      });
+    },
+  });
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [selectedTenantForStats, setSelectedTenantForStats] = useState<number | null>(null); // No default - requires selection
   const [isAddingClient, setIsAddingClient] = useState(false);
@@ -678,6 +707,7 @@ export default function AdminDashboard() {
                           <th className="text-left py-3 px-2">Usage</th>
                           <th className="text-left py-3 px-2">Status</th>
                           <th className="text-left py-3 px-2">Joined</th>
+                          <th className="text-left py-3 px-2">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -748,6 +778,29 @@ export default function AdminDashboard() {
                                 <span className="text-sm text-gray-600">
                                   {new Date(user.createdAt).toLocaleDateString()}
                                 </span>
+                              </td>
+                              <td className="py-4 px-2">
+                                <div className="flex items-center gap-2">
+                                  <Select
+                                    value={user.usage?.planName || 'Free'}
+                                    onValueChange={(planId) => {
+                                      updateUserPlanMutation.mutate({ userId: user.id, planId });
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-24 h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Free">Free</SelectItem>
+                                      <SelectItem value="Basic">Basic</SelectItem>
+                                      <SelectItem value="Pro">Pro</SelectItem>
+                                      <SelectItem value="Enterprise">Enterprise</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {updateUserPlanMutation.isPending && (
+                                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           );

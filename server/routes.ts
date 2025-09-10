@@ -78,6 +78,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ isAuthenticated: !!req.session?.isAdmin });
   });
 
+  // Admin: Update user plan
+  app.post("/api/admin/update-user-plan", requireAdminAuth, async (req, res) => {
+    try {
+      const { userId, planId } = req.body;
+      
+      if (!userId || !planId) {
+        return res.status(400).json({ error: "User ID and Plan ID are required" });
+      }
+
+      // End any existing active subscriptions for this user
+      const existingSubscription = await storage.getUserActiveSubscription(userId);
+      if (existingSubscription) {
+        await storage.updateSubscription(existingSubscription.id, {
+          status: 'inactive',
+          cancelAtPeriodEnd: true
+        });
+      }
+
+      // Create new subscription based on plan
+      let newSubscription;
+      if (planId === 'Free') {
+        newSubscription = await storage.createFreeSubscription(userId);
+      } else {
+        // Create admin-managed subscription for paid plans
+        const now = new Date();
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        
+        newSubscription = await storage.createSubscription({
+          userId,
+          stripeCustomerId: `admin_${userId}_${Date.now()}`, // Admin-managed subscription
+          planId: planId.toLowerCase(),
+          status: 'active',
+          currentPeriodStart: now,
+          currentPeriodEnd: endOfMonth,
+          cancelAtPeriodEnd: false,
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        message: `User plan updated to ${planId}`,
+        subscription: newSubscription 
+      });
+    } catch (error) {
+      console.error("Error updating user plan:", error);
+      res.status(500).json({ error: "Failed to update user plan" });
+    }
+  });
+
   // Serve static files from uploads directory
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
