@@ -24,13 +24,7 @@ export default function AuthPage() {
 
   // Handle Google OAuth callback
   useEffect(() => {
-    console.log('🔍 Auth page useEffect triggered');
-    console.log('  Token from URL:', token);
-    console.log('  Error from URL:', error);
-    console.log('  Plan ID from URL:', planId);
-    
     if (token) {
-      console.log('✅ Found token in URL, storing and refreshing user...');
       // Store the token and refresh user data
       localStorage.setItem('auth_token', token);
       
@@ -68,7 +62,7 @@ export default function AuthPage() {
         variant: 'destructive',
       });
     }
-  }, [token, error, planId, setLocation, toast, refreshUser]);
+  }, [token, error, planId]); // Removed setLocation, toast, refreshUser to prevent infinite re-renders
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -111,23 +111,16 @@ export function setupGoogleAuth(app: Express) {
     })(req, res, next);
   }, async (req, res) => {
       try {
-        console.log('🚀 Google OAuth callback handler executing...');
         const user = req.user as any;
-        console.log('  User from req.user:', user ? `${user.email} (ID: ${user.id})` : 'null');
-        
         if (!user) {
-          console.log('❌ No user found in req.user, redirecting to error');
           return res.redirect('/auth?error=authentication_failed');
         }
 
         // Generate JWT token for the user
         const token = AuthService.generateToken(user);
-        console.log('✅ Generated JWT token for user:', user.email);
         
         // Redirect to frontend auth page with token
-        const redirectUrl = `/auth?token=${encodeURIComponent(token)}`;
-        console.log('🔄 Redirecting to:', redirectUrl);
-        res.redirect(redirectUrl);
+        res.redirect(`/auth?token=${encodeURIComponent(token)}`);
       } catch (error) {
         console.error('Google callback error:', error);
         res.redirect('/auth?error=callback_failed');
