@@ -11,7 +11,7 @@ export default function Home() {
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   const [hoverText, setHoverText] = useState("Visualize");
   
-  const animatedTexts = ["roof", "siding", "landscape", "patio", "pool"];
+  const animatedTexts = ["ROOF", "SIDING", "LANDSCAPE", "PATIO", "POOL"];
   const hoverTexts = [
     "a new pool",
     "different color siding", 
@@ -24,7 +24,7 @@ export default function Home() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTextIndex((prev) => (prev + 1) % animatedTexts.length);
-    }, 2000);
+    }, 1200);
     return () => clearInterval(interval);
   }, []);
 
@@ -105,15 +105,15 @@ export default function Home() {
 
       {/* Video Demo Section */}
       <section className="py-0">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="bg-slate-800 rounded-2xl p-8 border border-slate-700">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
             <div className="aspect-video bg-slate-700 rounded-xl flex items-center justify-center text-slate-400">
               <div className="text-center">
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-600 flex items-center justify-center">
-                  <Sparkles className="h-10 w-10" />
+                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-600 flex items-center justify-center">
+                  <Sparkles className="h-8 w-8" />
                 </div>
-                <p className="text-lg font-semibold">Demo video coming soon</p>
-                <p className="text-sm opacity-75">Watch AI transform homes in seconds</p>
+                <p className="text-base font-semibold">Demo video coming soon</p>
+                <p className="text-xs opacity-75">Watch AI transform homes in seconds</p>
               </div>
             </div>
           </div>
