@@ -133,34 +133,25 @@ export default function Dashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>Jump back to creating visualizations</CardDescription>
+                <CardTitle>Embed Tools</CardTitle>
+                <CardDescription>Add visualization tools to your website</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <Button 
-                    onClick={() => setLocation('/pools')} 
-                    className="h-20 flex flex-col items-center justify-center"
-                  >
-                    <span className="text-2xl mb-1">🏊</span>
-                    Pool Design
-                  </Button>
-                  <Button 
-                    onClick={() => setLocation('/landscape')} 
-                    className="h-20 flex flex-col items-center justify-center"
-                    variant="outline"
-                  >
-                    <span className="text-2xl mb-1">🌿</span>
-                    Landscape
-                  </Button>
-                  <Button 
-                    onClick={() => setLocation('/')} 
-                    className="h-20 flex flex-col items-center justify-center"
-                    variant="outline"
-                  >
-                    <span className="text-2xl mb-1">🏠</span>
-                    Roofing
-                  </Button>
+                <div className="text-center space-y-4">
+                  <div className="text-6xl opacity-50">🔒</div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2">Pro Feature Required</h3>
+                    <p className="text-gray-600 text-sm mb-4">
+                      Embed our visualization tools directly on your website to provide your customers with an interactive design experience.
+                    </p>
+                    <Button 
+                      onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
+                      disabled={loading}
+                      className="w-full max-w-xs"
+                    >
+                      Upgrade to Pro for this Feature
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
