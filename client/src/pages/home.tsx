@@ -106,20 +106,18 @@ export default function Home() {
 
       {/* Video Demo Section */}
       <section className="py-0">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
-            <div className="aspect-video bg-slate-700 rounded-xl overflow-hidden">
-              <video 
-                className="w-full h-full object-cover"
-                autoPlay
-                loop
-                muted
-                playsInline
-              >
-                <source src={homepageVideoPath} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-            </div>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="aspect-video overflow-hidden rounded-xl">
+            <video 
+              className="w-full h-full object-cover"
+              autoPlay
+              loop
+              muted
+              playsInline
+            >
+              <source src={homepageVideoPath} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
           </div>
         </div>
       </section>
@@ -132,7 +130,7 @@ export default function Home() {
             className="text-2xl px-20 py-6 w-full max-w-md bg-gradient-to-r from-blue-500 via-purple-600 to-red-500 hover:from-blue-600 hover:via-purple-700 hover:to-red-600 text-white font-bold shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300"
             onMouseEnter={handleRandomHover}
             onMouseLeave={handleMouseLeave}
-            onClick={() => setLocation('/roofing-siding')}
+            onClick={() => setLocation('/pricing')}
           >
             <Sparkles className="h-6 w-6 mr-3" />
             {hoverText}
