@@ -15,6 +15,7 @@ export default function AuthPage() {
   const { login, register, loading, refreshUser } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [tokenProcessed, setTokenProcessed] = useState(false);
 
   // Get plan from URL params for direct checkout
   const urlParams = new URLSearchParams(window.location.search);
@@ -24,10 +25,12 @@ export default function AuthPage() {
 
   // Handle Google OAuth callback
   useEffect(() => {
-    console.log('🔍 Auth useEffect triggered - Token:', token, 'Error:', error);
+    console.log('🔍 Auth useEffect triggered - Token:', token, 'Error:', error, 'Processed:', tokenProcessed);
     
-    if (token) {
+    if (token && !tokenProcessed) {
       console.log('✅ Found token, processing...');
+      setTokenProcessed(true); // Prevent multiple executions
+      
       // Store the token and refresh user data
       localStorage.setItem('auth_token', token);
       
@@ -65,7 +68,7 @@ export default function AuthPage() {
         variant: 'destructive',
       });
     }
-  }, [token, error, planId]); // Removed setLocation, toast, refreshUser to prevent infinite re-renders
+  }, [token, error, planId, tokenProcessed]); // Added tokenProcessed to dependencies
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
