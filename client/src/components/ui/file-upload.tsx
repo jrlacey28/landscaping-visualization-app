@@ -89,7 +89,7 @@ export default function FileUpload({ onFileSelect, uploadedImage, theme = "defau
   return (
     <>
       <div
-        className={`border-3 border-dashed rounded-2xl p-12 text-center transition-all cursor-pointer min-h-[400px] flex items-center justify-center ${
+        className={`border-3 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer min-h-[280px] flex items-center justify-center ${
           isDragging 
             ? 'border-primary bg-gradient-to-br from-primary/20 to-secondary/10 scale-105' 
             : 'border-primary/40 hover:border-primary hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/5 hover:scale-102'
@@ -99,13 +99,13 @@ export default function FileUpload({ onFileSelect, uploadedImage, theme = "defau
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
       >
-        <div className="space-y-6">
-          <div className="w-24 h-24 bg-gradient-to-br from-stone-600 to-stone-800 rounded-full flex items-center justify-center mx-auto shadow-xl">
-            <Camera className="h-12 w-12 text-white" />
+        <div className="space-y-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-stone-600 to-stone-800 rounded-full flex items-center justify-center mx-auto shadow-xl">
+            <Camera className="h-8 w-8 text-white" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-stone-800 mb-2">Drop your photo here</p>
-            <p className="text-lg text-stone-600 mb-4">or click to browse files</p>
+            <p className="text-xl font-bold text-stone-800 mb-2">Drop your photo here</p>
+            <p className="text-base text-stone-600 mb-4">or click to browse files</p>
             <StarBorder className={`mt-4 ${
               theme === "pool" 
                 ? "bg-gradient-to-r from-blue-600 via-green-500 to-blue-600 hover:from-blue-700 hover:via-green-600 hover:to-blue-700"
