@@ -554,21 +554,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Admin methods
-  async getAllUsersWithUsage(): Promise<Array<User & { usage?: UserUsage; subscription?: Subscription }>> {
+  async getAllUsersWithUsage(): Promise<Array<User & { usage?: any; subscription?: Subscription }>> {
     const allUsers = await this.db.select().from(users);
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const year = now.getFullYear();
     
     const usersWithData = await Promise.all(allUsers.map(async (user) => {
-      const [usage, subscription] = await Promise.all([
-        this.getUserUsage(user.id, month, year),
+      const [usageLimits, subscription] = await Promise.all([
+        this.checkUsageLimits(user.id),
         this.getUserActiveSubscription(user.id)
       ]);
       
       return {
         ...user,
-        usage: usage || undefined,
+        usage: usageLimits,
         subscription: subscription || undefined
       };
     }));
