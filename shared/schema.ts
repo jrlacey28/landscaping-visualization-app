@@ -88,6 +88,9 @@ export const tenants = pgTable("tenants", {
   embedCtaUrl: text("embed_cta_url"),
   embedPrimaryColor: text("embed_primary_color").default("#2563EB"),
   embedSecondaryColor: text("embed_secondary_color").default("#059669"),
+  monthlyGenerationLimit: integer("monthly_generation_limit").default(100),
+  currentMonthGenerations: integer("current_month_generations").default(0),
+  lastResetDate: timestamp("last_reset_date").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
