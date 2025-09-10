@@ -96,10 +96,9 @@ export default function PricingPage() {
       monthlyPrice: 20,
       yearlyPrice: 240,
       features: [
-        "50 visualizations per month",
+        "100 visualizations per month",
         "All AI-powered design tools",
-        "Premium templates", 
-        "Email support",
+        "Premium templates",
         "Standard sharing options"
       ],
       cta: "Get Started",
@@ -113,10 +112,8 @@ export default function PricingPage() {
       popular: true,
       features: [
         "Everything in Basic, plus:",
-        "Unlimited visualizations",
+        "200 visualizations per month",
         "Custom embed widgets",
-        "White-label branding",
-        "Priority support",
         "Advanced customization"
       ],
       cta: "Get Started",
@@ -131,11 +128,9 @@ export default function PricingPage() {
       features: [
         "Everything in Pro, plus:",
         "Custom white-label website",
-        "Dedicated mobile app",
+        "Dedicated mobile app", 
         "Custom AI model training",
-        "Advanced integrations",
-        "Dedicated support team",
-        "Custom contract terms"
+        "Advanced integrations"
       ],
       cta: "Contact Sales",
       ctaLink: "/contact"
