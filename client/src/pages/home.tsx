@@ -106,7 +106,7 @@ export default function Home() {
 
       {/* Video Demo Section */}
       <section className="py-0">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="aspect-video overflow-hidden rounded-xl">
             <video 
               className="w-full h-full object-cover"
