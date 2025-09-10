@@ -121,7 +121,7 @@ export default function Header({ tenant }: HeaderProps) {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="text-slate-300 hover:text-blue-400 flex items-center space-x-2">
+                  <Button variant="ghost" className="text-slate-300 hover:bg-white hover:text-slate-800 flex items-center space-x-2 rounded-xl transition-colors">
                     <User className="h-4 w-4" />
                     <span>{user.user.firstName}</span>
                     {user.usage && (
