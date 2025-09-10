@@ -31,7 +31,7 @@ export default function AuthPage() {
       if (planId) {
         redirectToCheckout(planId);
       } else {
-        setLocation('/dashboard');
+        setLocation('/admin');
       }
       
       toast({
@@ -68,7 +68,7 @@ export default function AuthPage() {
       if (planId) {
         await redirectToCheckout(planId);
       } else {
-        setLocation('/dashboard');
+        setLocation('/admin');
       }
       
       toast({
@@ -107,7 +107,7 @@ export default function AuthPage() {
       if (planId) {
         await redirectToCheckout(planId);
       } else {
-        setLocation('/dashboard');
+        setLocation('/admin');
       }
       
       toast({
