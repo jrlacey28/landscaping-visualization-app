@@ -70,6 +70,15 @@ export function setupGoogleAuth(app: Express) {
         };
 
         user = await storage.createUser(userData);
+        
+        // Auto-assign free plan to new Google OAuth users
+        try {
+          await storage.createFreeSubscription(user.id);
+          console.log('✅ Assigned free plan to new Google OAuth user:', user.email);
+        } catch (subError) {
+          console.error('⚠️ Failed to assign free plan to user:', subError);
+          // Don't fail authentication, just log the error
+        }
       }
 
       return done(null, user);

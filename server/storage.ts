@@ -26,6 +26,7 @@ export interface IStorage {
   getUserActiveSubscription(userId: number): Promise<Subscription | undefined>;
   getUserSubscriptions(userId: number): Promise<Subscription[]>;
   createSubscription(subscription: InsertSubscription): Promise<Subscription>;
+  createFreeSubscription(userId: number): Promise<Subscription>;
   updateSubscription(id: number, subscription: Partial<InsertSubscription>): Promise<Subscription>;
   updateSubscriptionByStripeId(stripeSubscriptionId: string, subscription: Partial<InsertSubscription>): Promise<Subscription>;
 
@@ -149,6 +150,27 @@ export class DatabaseStorage implements IStorage {
     const [subscription] = await this.db
       .insert(subscriptions)
       .values(insertSubscription)
+      .returning();
+    return subscription;
+  }
+
+  async createFreeSubscription(userId: number): Promise<Subscription> {
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    
+    const freeSubscription: InsertSubscription = {
+      userId,
+      stripeCustomerId: `free_${userId}_${Date.now()}`, // Unique identifier for free plan
+      planId: 'free',
+      status: 'active',
+      currentPeriodStart: now,
+      currentPeriodEnd: endOfMonth,
+      cancelAtPeriodEnd: false,
+    };
+
+    const [subscription] = await this.db
+      .insert(subscriptions)
+      .values(freeSubscription)
       .returning();
     return subscription;
   }
