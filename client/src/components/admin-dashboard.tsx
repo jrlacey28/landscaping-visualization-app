@@ -102,6 +102,34 @@ export default function AdminDashboard() {
     enabled: !!selectedTenantForStats,
   });
 
+  // Get all registered users for admin management
+  const { data: allUsersData, isLoading: usersLoading } = useQuery<{
+    success: boolean;
+    data: Array<{
+      id: number;
+      email: string;
+      firstName: string;
+      lastName: string;
+      businessName?: string;
+      phone?: string;
+      emailVerified: boolean;
+      createdAt: string;
+      usage?: {
+        planName: string;
+        currentUsage: number;
+        limit: number;
+        canUse: boolean;
+      };
+      subscription?: {
+        status: string;
+        planId: string;
+        currentPeriodEnd: string;
+      };
+    }>;
+  }>({
+    queryKey: ["/api/customers"],
+  });
+
   const updateTenantMutation = useMutation({
     mutationFn: async (data: Partial<Tenant>) => {
       return apiRequest("PATCH", `/api/tenants/${mockTenantId}`, data);
@@ -368,13 +396,20 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 lg:grid-cols-5 gap-1 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 lg:grid-cols-6 gap-1 h-auto p-1">
             <TabsTrigger
               value="overview"
               className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
             >
               <BarChart3 className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="users" 
+              className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
+            >
+              <Users className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Users</span>
             </TabsTrigger>
             <TabsTrigger 
               value="clients" 
@@ -604,6 +639,125 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <h2 className="text-2xl md:text-3xl font-bold">User Management</h2>
+              <div className="text-sm text-gray-600">
+                Total Users: {allUsersData?.data?.length || 0}
+              </div>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Registered Users</CardTitle>
+                <CardDescription>All users who have signed up for your platform</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {usersLoading ? (
+                  <div className="text-center py-8">
+                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading users...</p>
+                  </div>
+                ) : allUsersData?.data?.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Users Yet</h3>
+                    <p className="text-gray-500">New user signups will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-2">User</th>
+                          <th className="text-left py-3 px-2">Business</th>
+                          <th className="text-left py-3 px-2">Plan</th>
+                          <th className="text-left py-3 px-2">Usage</th>
+                          <th className="text-left py-3 px-2">Status</th>
+                          <th className="text-left py-3 px-2">Joined</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allUsersData?.data?.map((user) => {
+                          const usagePercent = user.usage?.limit === -1 ? 0 : 
+                            Math.min((user.usage?.currentUsage || 0) / (user.usage?.limit || 5) * 100, 100);
+                          const isOverLimit = user.usage?.limit !== -1 && 
+                            (user.usage?.currentUsage || 0) > (user.usage?.limit || 5);
+
+                          return (
+                            <tr key={user.id} className="border-b hover:bg-gray-50">
+                              <td className="py-4 px-2">
+                                <div>
+                                  <p className="font-medium">{user.firstName} {user.lastName}</p>
+                                  <p className="text-sm text-gray-500">{user.email}</p>
+                                </div>
+                              </td>
+                              <td className="py-4 px-2">
+                                <div>
+                                  <p className="text-sm">{user.businessName || 'Personal'}</p>
+                                  {user.phone && (
+                                    <p className="text-xs text-gray-500">{user.phone}</p>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-4 px-2">
+                                <Badge variant={user.subscription?.status === 'active' ? 'default' : 'outline'}>
+                                  {user.usage?.planName || 'Free'}
+                                </Badge>
+                              </td>
+                              <td className="py-4 px-2">
+                                {user.usage?.limit === -1 ? (
+                                  <span className="text-sm text-green-600">Unlimited</span>
+                                ) : (
+                                  <div>
+                                    <span className={`font-mono text-sm ${isOverLimit ? 'text-red-600' : ''}`}>
+                                      {user.usage?.currentUsage || 0}/{user.usage?.limit || 5}
+                                    </span>
+                                    <div className="w-16 mt-1">
+                                      <div className="bg-gray-200 rounded-full h-1">
+                                        <div 
+                                          className={`h-1 rounded-full ${isOverLimit ? 'bg-red-500' : usagePercent > 80 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                                          style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-4 px-2">
+                                <div className="space-y-1">
+                                  <Badge variant={user.emailVerified ? 'default' : 'destructive'}>
+                                    {user.emailVerified ? 'Verified' : 'Unverified'}
+                                  </Badge>
+                                  {user.subscription && (
+                                    <div>
+                                      <Badge variant={
+                                        user.subscription.status === 'active' ? 'default' : 
+                                        user.subscription.status === 'past_due' ? 'destructive' : 'secondary'
+                                      }>
+                                        {user.subscription.status}
+                                      </Badge>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-4 px-2">
+                                <span className="text-sm text-gray-600">
+                                  {new Date(user.createdAt).toLocaleDateString()}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Clients Tab */}
