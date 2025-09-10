@@ -146,11 +146,11 @@ export default function Header({ tenant }: HeaderProps) {
               </DropdownMenu>
             ) : (
               <Button 
-                variant="ghost" 
-                className="text-slate-300 hover:text-blue-400"
+                variant="outline" 
+                className="px-6 py-2 border-2 border-slate-300 text-slate-300 hover:border-blue-400 hover:text-blue-400 rounded-xl bg-transparent transition-colors font-medium"
                 onClick={() => setLocation('/auth')}
               >
-                Sign In
+                Start Free Trial
               </Button>
             )}
           </nav>
