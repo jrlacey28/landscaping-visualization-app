@@ -12,7 +12,7 @@ import { apiRequest } from '@/lib/queryClient';
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
-  const { login, register, loading } = useAuth();
+  const { login, register, loading, refreshUser } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -25,18 +25,28 @@ export default function AuthPage() {
   // Handle Google OAuth callback
   useEffect(() => {
     if (token) {
-      // Store the token and redirect to dashboard
+      // Store the token and refresh user data
       localStorage.setItem('auth_token', token);
       
-      if (planId) {
-        redirectToCheckout(planId);
-      } else {
-        setLocation('/dashboard');
-      }
-      
-      toast({
-        title: 'Success',
-        description: 'Signed in with Google successfully!',
+      // Refresh user data from auth context
+      refreshUser().then(() => {
+        if (planId) {
+          redirectToCheckout(planId);
+        } else {
+          setLocation('/dashboard');
+        }
+        
+        toast({
+          title: 'Success',
+          description: 'Signed in with Google successfully!',
+        });
+      }).catch((error) => {
+        console.error('Failed to refresh user after OAuth:', error);
+        toast({
+          title: 'Error',
+          description: 'Authentication failed. Please try signing in again.',
+          variant: 'destructive',
+        });
       });
     } else if (error) {
       let errorMessage = 'Authentication failed';
@@ -52,7 +62,7 @@ export default function AuthPage() {
         variant: 'destructive',
       });
     }
-  }, [token, error, planId, setLocation, toast]);
+  }, [token, error, planId, setLocation, toast, refreshUser]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
