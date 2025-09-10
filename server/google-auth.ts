@@ -87,7 +87,15 @@ export function setupGoogleAuth(app: Express) {
 
   app.get('/api/auth/google/callback', (req, res, next) => {
     console.log('🔄 Google OAuth callback received');
-    console.log('  Query params:', req.query);
+    console.log('  Query params:', JSON.stringify(req.query, null, 2));
+    console.log('  Headers host:', req.headers.host);
+    
+    if (req.query.error) {
+      console.log('❌ Google sent error:', req.query.error);
+      console.log('  Error description:', req.query.error_description);
+      return res.redirect('/auth?error=google_oauth_error');
+    }
+    
     passport.authenticate('google', { 
       failureRedirect: '/auth?error=google_auth_failed',
       session: true 
