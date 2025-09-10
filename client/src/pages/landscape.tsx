@@ -98,7 +98,7 @@ export default function Landscape() {
       </section>
 
       {/* Main Application - Integrated Content */}
-      <main className="flex-1 pb-8">
+      <main className="flex-1 pb-32">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {!uploadedImage ? (
             <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
