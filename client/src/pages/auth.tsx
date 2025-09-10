@@ -24,36 +24,25 @@ export default function AuthPage() {
   const error = urlParams.get('error');
 
   // Handle Google OAuth callback
-  useEffect(() => {
-    console.log('🔍 Auth useEffect triggered - Token:', token, 'Error:', error, 'Processed:', tokenProcessed);
-    
+  useEffect(() => {    
     if (token && !tokenProcessed) {
-      console.log('✅ Found token, processing...');
       setTokenProcessed(true); // Prevent multiple executions
       
-      // Store the token and refresh user data
+      // Store the token immediately
       localStorage.setItem('auth_token', token);
       
-      // Refresh user data from auth context
-      refreshUser().then(() => {
-        if (planId) {
-          redirectToCheckout(planId);
-        } else {
-          setLocation('/dashboard');
-        }
-        
-        toast({
-          title: 'Success',
-          description: 'Signed in with Google successfully!',
-        });
-      }).catch((error) => {
-        console.error('Failed to refresh user after OAuth:', error);
-        toast({
-          title: 'Error',
-          description: 'Authentication failed. Please try signing in again.',
-          variant: 'destructive',
-        });
+      // Show success message
+      toast({
+        title: 'Success',
+        description: 'Signed in with Google successfully!',
       });
+      
+      // Redirect immediately - let AuthProvider handle token validation
+      if (planId) {
+        redirectToCheckout(planId);
+      } else {
+        setLocation('/dashboard');
+      }
     } else if (error) {
       let errorMessage = 'Authentication failed';
       if (error === 'google_auth_failed') {

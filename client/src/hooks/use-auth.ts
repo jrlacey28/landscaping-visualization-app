@@ -70,12 +70,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check if user is authenticated on mount
   useEffect(() => {
-    const token = getToken();
-    if (token) {
-      fetchUser();
-    } else {
-      setLoading(false);
-    }
+    const checkAuth = async () => {
+      const token = getToken();
+      if (token) {
+        await fetchUser();
+      } else {
+        setLoading(false);
+      }
+    };
+    
+    checkAuth();
   }, []);
 
   const fetchUser = async () => {
