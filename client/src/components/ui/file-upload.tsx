@@ -89,7 +89,7 @@ export default function FileUpload({ onFileSelect, uploadedImage, theme = "defau
   return (
     <>
       <div
-        className={`border-3 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer min-h-[400px] flex items-end justify-center ${
+        className={`border-3 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer min-h-[320px] flex flex-col justify-between ${
           isDragging 
             ? 'border-primary bg-gradient-to-br from-primary/20 to-secondary/10 scale-105' 
             : 'border-primary/40 hover:border-primary hover:bg-gradient-to-br hover:from-primary/10 hover:to-secondary/5 hover:scale-102'
@@ -99,13 +99,13 @@ export default function FileUpload({ onFileSelect, uploadedImage, theme = "defau
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
       >
-        <div className="space-y-6 pb-8 w-full">
-          <div className="w-24 h-24 bg-gradient-to-br from-stone-600 to-stone-800 rounded-full flex items-center justify-center mx-auto shadow-xl">
-            <Camera className="h-12 w-12 text-white" />
+        <div className="flex-1 flex flex-col justify-center space-y-4">
+          <div className="w-20 h-20 bg-gradient-to-br from-stone-600 to-stone-800 rounded-full flex items-center justify-center mx-auto shadow-xl">
+            <Camera className="h-10 w-10 text-white" />
           </div>
           <div>
             <p className="text-xl font-bold text-stone-800 mb-2">Drop your photo here</p>
-            <p className="text-base text-stone-600 mb-6">or click to browse files</p>
+            <p className="text-base text-stone-600 mb-4">or click to browse files</p>
             <StarBorder className={`mt-4 ${
               theme === "pool" 
                 ? "bg-gradient-to-r from-blue-600 via-green-500 to-blue-600 hover:from-blue-700 hover:via-green-600 hover:to-blue-700"
@@ -117,15 +117,15 @@ export default function FileUpload({ onFileSelect, uploadedImage, theme = "defau
               Upload
             </StarBorder>
           </div>
-          <div className="flex justify-center space-x-4 text-sm text-muted-foreground">
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-primary rounded-full"></div>
-              <span>Clear and well-lit images of house work best</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-secondary rounded-full"></div>
-            
-            </div>
+        </div>
+        <div className="flex justify-center space-x-4 text-sm text-muted-foreground pt-4">
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-primary rounded-full"></div>
+            <span>Clear and well-lit images of house work best</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-secondary rounded-full"></div>
+          
           </div>
         </div>
       </div>
