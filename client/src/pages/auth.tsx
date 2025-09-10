@@ -24,7 +24,10 @@ export default function AuthPage() {
 
   // Handle Google OAuth callback
   useEffect(() => {
+    console.log('🔍 Auth useEffect triggered - Token:', token, 'Error:', error);
+    
     if (token) {
+      console.log('✅ Found token, processing...');
       // Store the token and refresh user data
       localStorage.setItem('auth_token', token);
       
