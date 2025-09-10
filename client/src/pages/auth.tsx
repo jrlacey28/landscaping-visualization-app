@@ -209,13 +209,14 @@ export default function AuthPage() {
           <CardContent>
             {/* Google OAuth Button */}
             <div className="space-y-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full flex items-center justify-center gap-2 py-2"
-                onClick={handleGoogleSignIn}
-                disabled={isLoading || loading}
-              >
+              <div className="p-4 border-2 border-gray-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-transparent hover:bg-gray-50 border-2 border-gray-300 hover:border-gray-400 transition-colors"
+                  onClick={handleGoogleSignIn}
+                  disabled={isLoading || loading}
+                >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
@@ -235,7 +236,8 @@ export default function AuthPage() {
                   />
                 </svg>
                 Continue with Google
-              </Button>
+                </Button>
+              </div>
               
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
