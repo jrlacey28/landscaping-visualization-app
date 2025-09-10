@@ -96,6 +96,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Map display names to actual database plan IDs
+      const planMapping: Record<string, string> = {
+        'Free': 'free',
+        'Basic': 'price_1S5X1sBY2SPm2HvOuDHNzsIp',
+        'Pro': 'price_1S5X2XBY2SPm2HvO2he9Unto',
+        'Enterprise': 'enterprise'
+      };
+
+      const actualPlanId = planMapping[planId];
+      if (!actualPlanId) {
+        return res.status(400).json({ error: "Invalid plan ID" });
+      }
+
       // Create new subscription based on plan
       let newSubscription;
       if (planId === 'Free') {
@@ -108,7 +121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newSubscription = await storage.createSubscription({
           userId,
           stripeCustomerId: `admin_${userId}_${Date.now()}`, // Admin-managed subscription
-          planId: planId.toLowerCase(),
+          planId: actualPlanId,
           status: 'active',
           currentPeriodStart: now,
           currentPeriodEnd: endOfMonth,
