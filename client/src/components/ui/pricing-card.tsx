@@ -36,13 +36,11 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
         <div className="mt-4">
           <div className="flex items-baseline">
             <span className="text-6xl font-bold text-white">${monthlyPrice}</span>
-            <span className="text-slate-300 ml-1">
-              /month
-              {tier.priceNote && (
-                <span className="text-slate-300 ml-1">{tier.priceNote}</span>
-              )}
-            </span>
+            <span className="text-slate-300 ml-1">/month</span>
           </div>
+          {tier.priceNote && (
+            <p className="text-xs text-slate-400 mt-2 mb-2">{tier.priceNote}</p>
+          )}
           <hr className="border-white/20 mt-4 mb-4" />
           <CardDescription className="text-sm text-slate-300 mb-0">
             {tier.description}
