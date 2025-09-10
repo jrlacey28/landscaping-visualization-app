@@ -91,7 +91,15 @@ export function setupGoogleAuth(app: Express) {
   // Google OAuth routes
   app.get('/api/auth/google', (req, res, next) => {
     console.log('🔑 Google OAuth initiated');
-    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+    console.log('  Plan parameter:', req.query.plan);
+    
+    // Create state parameter with plan info if provided
+    const state = req.query.plan ? JSON.stringify({ planId: req.query.plan }) : undefined;
+    
+    passport.authenticate('google', { 
+      scope: ['profile', 'email'],
+      state: state
+    })(req, res, next);
   });
 
   app.get('/api/auth/google/callback', (req, res, next) => {
@@ -119,8 +127,16 @@ export function setupGoogleAuth(app: Express) {
         // Generate JWT token for the user
         const token = AuthService.generateToken(user);
         
-        // Redirect to frontend auth page with token
-        res.redirect(`/auth?token=${encodeURIComponent(token)}`);
+        // Check if there's a plan parameter from the original OAuth request
+        const planId = req.query.state ? JSON.parse(decodeURIComponent(req.query.state as string)).planId : null;
+        
+        // Redirect to frontend auth page with token and plan if applicable
+        const redirectUrl = planId 
+          ? `/auth?token=${encodeURIComponent(token)}&plan=${encodeURIComponent(planId)}`
+          : `/auth?token=${encodeURIComponent(token)}`;
+        
+        console.log('🔄 Redirecting to:', redirectUrl);
+        res.redirect(redirectUrl);
       } catch (error) {
         console.error('Google callback error:', error);
         res.redirect('/auth?error=callback_failed');

@@ -28,21 +28,39 @@ export default function AuthPage() {
     if (token && !tokenProcessed) {
       setTokenProcessed(true); // Prevent multiple executions
       
-      // Store the token immediately
-      localStorage.setItem('auth_token', token);
+      const handleGoogleAuth = async () => {
+        try {
+          // Store the token immediately
+          localStorage.setItem('auth_token', token);
+          
+          // Refresh user data to validate token
+          await refreshUser();
+          
+          // Show success message
+          toast({
+            title: 'Success',
+            description: 'Signed in with Google successfully!',
+          });
+          
+          // Small delay to ensure auth state is updated
+          setTimeout(() => {
+            if (planId) {
+              redirectToCheckout(planId);
+            } else {
+              setLocation('/dashboard');
+            }
+          }, 100);
+        } catch (error) {
+          console.error('Google auth token processing error:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to complete Google sign-in. Please try again.',
+            variant: 'destructive',
+          });
+        }
+      };
       
-      // Show success message
-      toast({
-        title: 'Success',
-        description: 'Signed in with Google successfully!',
-      });
-      
-      // Redirect immediately - let AuthProvider handle token validation
-      if (planId) {
-        redirectToCheckout(planId);
-      } else {
-        setLocation('/dashboard');
-      }
+      handleGoogleAuth();
     } else if (error) {
       let errorMessage = 'Authentication failed';
       if (error === 'google_auth_failed') {
