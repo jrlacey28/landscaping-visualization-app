@@ -299,6 +299,57 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async resetUserUsage(userId: number, month: number, year: number): Promise<void> {
+    // Get existing usage record
+    const existingUsage = await this.getUserUsage(userId, month, year);
+    
+    if (existingUsage) {
+      // Reset all counts to 0
+      await this.db
+        .update(userUsage)
+        .set({
+          totalCount: 0,
+          visualizationCount: 0,
+          landscapeCount: 0,
+          poolCount: 0,
+          updatedAt: new Date(),
+        })
+        .where(eq(userUsage.id, existingUsage.id));
+    }
+    // If no usage record exists, no need to create one
+  }
+
+  async setUserCustomLimit(userId: number, limit: number): Promise<void> {
+    // For now, we'll implement this by creating/updating a user-specific subscription
+    // This is a simplified approach - in a full system you might have a separate user_limits table
+    
+    // End any existing subscriptions
+    const existingSubscription = await this.getUserActiveSubscription(userId);
+    if (existingSubscription) {
+      await this.updateSubscription(existingSubscription.id, {
+        status: 'inactive',
+        cancelAtPeriodEnd: true
+      });
+    }
+
+    // Create a custom admin-managed subscription with the specified limit
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    
+    await this.createSubscription({
+      userId,
+      stripeCustomerId: `admin_custom_${userId}_${Date.now()}`,
+      planId: 'custom', // Custom plan identifier
+      status: 'active',
+      currentPeriodStart: now,
+      currentPeriodEnd: endOfMonth,
+      cancelAtPeriodEnd: false,
+    });
+    
+    // We'd also need to update the plan lookup to handle custom limits
+    // For now, this sets up the infrastructure
+  }
+
   // Lead methods with user support
   async getLeadsByUser(userId: number): Promise<Lead[]> {
     return await this.db

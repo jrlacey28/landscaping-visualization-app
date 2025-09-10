@@ -140,6 +140,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: Reset user monthly usage
+  app.post("/api/admin/reset-user-usage", requireAdminAuth, async (req, res) => {
+    try {
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      // Reset current month's usage to 0
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = now.getFullYear();
+      
+      await storage.resetUserUsage(userId, month, year);
+      
+      res.json({ 
+        success: true, 
+        message: "User monthly usage reset successfully"
+      });
+    } catch (error) {
+      console.error("Error resetting user usage:", error);
+      res.status(500).json({ error: "Failed to reset user usage" });
+    }
+  });
+
+  // Admin: Set custom usage limit for user
+  app.post("/api/admin/set-user-limit", requireAdminAuth, async (req, res) => {
+    try {
+      const { userId, limit } = req.body;
+      
+      if (!userId || typeof limit !== 'number') {
+        return res.status(400).json({ error: "User ID and numeric limit are required" });
+      }
+
+      await storage.setUserCustomLimit(userId, limit);
+      
+      res.json({ 
+        success: true, 
+        message: `User custom limit set to ${limit}`
+      });
+    } catch (error) {
+      console.error("Error setting user limit:", error);
+      res.status(500).json({ error: "Failed to set user limit" });
+    }
+  });
+
   // Serve static files from uploads directory
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 

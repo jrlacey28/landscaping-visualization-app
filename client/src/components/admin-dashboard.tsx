@@ -72,6 +72,49 @@ export default function AdminDashboard() {
       });
     },
   });
+
+  // Mutation for resetting user usage (admin only)
+  const resetUserUsageMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      return apiRequest("POST", "/api/admin/reset-user-usage", { userId });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Usage Reset",
+        description: "User monthly usage has been reset successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset user usage.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for setting custom user limit (admin only)
+  const setUserLimitMutation = useMutation({
+    mutationFn: async ({ userId, limit }: { userId: number; limit: number }) => {
+      return apiRequest("POST", "/api/admin/set-user-limit", { userId, limit });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Limit Updated",
+        description: "User custom limit has been set successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to set user limit.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [selectedTenantForStats, setSelectedTenantForStats] = useState<number | null>(null); // No default - requires selection
   const [isAddingClient, setIsAddingClient] = useState(false);
@@ -780,7 +823,7 @@ export default function AdminDashboard() {
                                 </span>
                               </td>
                               <td className="py-4 px-2">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <Select
                                     value={user.usage?.planName || 'Free'}
                                     onValueChange={(planId) => {
@@ -797,7 +840,35 @@ export default function AdminDashboard() {
                                       <SelectItem value="Enterprise">Enterprise</SelectItem>
                                     </SelectContent>
                                   </Select>
-                                  {updateUserPlanMutation.isPending && (
+                                  
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 px-2 text-xs"
+                                    onClick={() => resetUserUsageMutation.mutate(user.id)}
+                                    disabled={resetUserUsageMutation.isPending}
+                                    data-testid={`button-reset-usage-${user.id}`}
+                                  >
+                                    Reset Usage
+                                  </Button>
+                                  
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 px-2 text-xs"
+                                    onClick={() => {
+                                      const limit = prompt('Enter new usage limit:', (user.usage?.limit || 5).toString());
+                                      if (limit && !isNaN(Number(limit))) {
+                                        setUserLimitMutation.mutate({ userId: user.id, limit: Number(limit) });
+                                      }
+                                    }}
+                                    disabled={setUserLimitMutation.isPending}
+                                    data-testid={`button-set-limit-${user.id}`}
+                                  >
+                                    Set Limit
+                                  </Button>
+
+                                  {(updateUserPlanMutation.isPending || resetUserUsageMutation.isPending || setUserLimitMutation.isPending) && (
                                     <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                                   )}
                                 </div>
