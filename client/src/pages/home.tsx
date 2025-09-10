@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Facebook, Youtube, Instagram } from "lucide-react";
 import Header from "@/components/header";
 import { useTenant } from "@/hooks/use-tenant";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 
 export default function Home() {
   const { tenant, isLoading: tenantLoading } = useTenant();
@@ -87,29 +87,25 @@ export default function Home() {
       <Header tenant={effectiveTenant} />
       
       {/* Hero Section */}
-      <section className="py-20">
+      <section className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-8">
-            Visualize your new{' '}
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-2">
+            Visualize your new...
+          </h1>
+          <div className="h-16 flex items-center justify-center mb-4">
             <span 
-              className="text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-red-400 bg-clip-text transition-all duration-500"
+              className="text-4xl md:text-6xl font-bold text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-red-400 bg-clip-text animate-slide-down"
               key={currentTextIndex}
             >
               {animatedTexts[currentTextIndex]}
             </span>
-          </h1>
-          <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-16">
-            Transform your home with AI-powered visualizations. See your dream upgrades before you build.
-          </p>
+          </div>
         </div>
       </section>
 
       {/* Video Demo Section */}
-      <section className="py-20">
+      <section className="py-0">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-8">
-            See the Magic in Action
-          </h2>
           <div className="bg-slate-800 rounded-2xl p-8 border border-slate-700">
             <div className="aspect-video bg-slate-700 rounded-xl flex items-center justify-center text-slate-400">
               <div className="text-center">
@@ -125,11 +121,11 @@ export default function Home() {
       </section>
       
       {/* CTA Section */}
-      <section className="py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section className="py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Button
             size="lg"
-            className="text-2xl px-12 py-6 bg-gradient-to-r from-blue-500 via-purple-600 to-red-500 hover:from-blue-600 hover:via-purple-700 hover:to-red-600 text-white font-bold shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300"
+            className="text-2xl px-20 py-6 w-full max-w-md bg-gradient-to-r from-blue-500 via-purple-600 to-red-500 hover:from-blue-600 hover:via-purple-700 hover:to-red-600 text-white font-bold shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300"
             onMouseEnter={handleRandomHover}
             onMouseLeave={handleMouseLeave}
             onClick={() => setLocation('/roofing-siding')}
@@ -145,7 +141,10 @@ export default function Home() {
         <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col space-y-6 md:flex md:flex-row md:justify-between md:items-center md:space-y-0">
             {/* Left side - Logo and company */}
-            <div className="flex items-center justify-center md:justify-start space-x-3">
+            <Link 
+              href="/"
+              className="flex items-center justify-center md:justify-start space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
+            >
               <svg
                 className="w-10 h-10 text-white"
                 viewBox="0 0 128.37 135.86"
@@ -160,7 +159,7 @@ export default function Home() {
                 Powered by Solst LLC
                 </p>
               </div>
-            </div>
+            </Link>
 
 
             {/* Right side - Social icons */}

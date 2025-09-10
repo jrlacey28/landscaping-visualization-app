@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
 import {
   Eye,
   Phone,
@@ -459,7 +460,10 @@ export default function RoofingSiding() {
         <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col space-y-6 md:flex md:flex-row md:justify-between md:items-center md:space-y-0">
             {/* Left side - Logo and company */}
-            <div className="flex items-center justify-center md:justify-start space-x-3">
+            <Link 
+              href="/"
+              className="flex items-center justify-center md:justify-start space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
+            >
               <svg
                 className="w-10 h-10 text-white"
                 viewBox="0 0 128.37 135.86"
@@ -474,7 +478,7 @@ export default function RoofingSiding() {
                 Powered by Solst LLC
                 </p>
               </div>
-            </div>
+            </Link>
 
 
             {/* Right side - Social icons */}

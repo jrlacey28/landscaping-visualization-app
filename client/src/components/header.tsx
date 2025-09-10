@@ -26,7 +26,7 @@ export default function Header({ tenant }: HeaderProps) {
     <header className="relative z-50">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-6">
-          <div className="flex items-center space-x-3">
+          <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer">
             {/* Logo */}
             <svg
               className="w-12 h-12 text-white"
@@ -42,7 +42,7 @@ export default function Header({ tenant }: HeaderProps) {
               </h1>
               <p className="text-sm text-slate-300">Powered by Solst LLC</p>
             </div>
-          </div>
+          </Link>
           <nav className="hidden md:flex items-center space-x-8">
             {/* Services Dropdown */}
             <DropdownMenu>
