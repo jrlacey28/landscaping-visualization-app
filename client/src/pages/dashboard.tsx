@@ -83,7 +83,7 @@ export default function Dashboard() {
                 variant="outline" 
                 onClick={() => setLocation('/')}
               >
-                View Tools
+                Return to site
               </Button>
               <Button 
                 variant="ghost" 
@@ -105,8 +105,8 @@ export default function Dashboard() {
                 <CardTitle>Account Information</CardTitle>
                 <CardDescription>Your account details and preferences</CardDescription>
               </CardHeader>
-              <CardContent className=\"space-y-4\">
-                <div className=\"grid grid-cols-2 gap-4\">
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className=\"text-sm font-medium text-gray-500\">Name</label>
                     <p className=\"text-gray-900\">{user.user.firstName} {user.user.lastName}</p>

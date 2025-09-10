@@ -233,8 +233,8 @@ export function registerAuthRoutes(app: Express) {
           quantity: 1,
         }],
         mode: 'subscription',
-        success_url: `${req.headers.origin}/dashboard?success=true`,
-        cancel_url: `${req.headers.origin}/pricing?canceled=true`,
+        success_url: `${process.env.REPLIT_DEV_DOMAIN || req.headers.origin || 'http://localhost:5000'}/dashboard?success=true`,
+        cancel_url: `${process.env.REPLIT_DEV_DOMAIN || req.headers.origin || 'http://localhost:5000'}/pricing?canceled=true`,
         metadata: {
           userId: user.id.toString(),
           planId: planId,
@@ -245,6 +245,38 @@ export function registerAuthRoutes(app: Express) {
     } catch (error: any) {
       console.error('Checkout error:', error);
       res.status(500).json({ error: 'Failed to create checkout session' });
+    }
+  });
+
+  app.post('/api/subscription/cancel', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const user = req.user!;
+      
+      // Get user's active subscription
+      const subscription = await storage.getUserActiveSubscription(user.id);
+      if (!subscription) {
+        return res.status(404).json({ error: 'No active subscription found' });
+      }
+
+      // Cancel subscription in Stripe (at period end)
+      if (subscription.stripeSubscriptionId) {
+        await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+          cancel_at_period_end: true
+        });
+      }
+
+      // Update local subscription record
+      await storage.updateSubscription(subscription.id, {
+        cancelAtPeriodEnd: true
+      });
+
+      res.json({ 
+        success: true, 
+        message: 'Subscription will be canceled at the end of the current billing period' 
+      });
+    } catch (error: any) {
+      console.error('Cancel subscription error:', error);
+      res.status(500).json({ error: 'Failed to cancel subscription' });
     }
   });
 

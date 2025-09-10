@@ -52,6 +52,41 @@ export default function Dashboard() {
     }
   };
 
+  const handleCancel = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('auth_token');
+      const response = await apiRequest('POST', '/api/subscription/cancel', 
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      const data = await response.json();
+      if (data.success) {
+        toast({
+          title: 'Subscription Canceled',
+          description: 'Your subscription will be canceled at the end of the current billing period.',
+        });
+        // Refresh user data to reflect changes
+        window.location.reload();
+      } else {
+        throw new Error(data.error || 'Failed to cancel subscription');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to cancel subscription',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getUsagePercentage = () => {
     if (user.usage.limit === -1) return 0; // Unlimited
     return (user.usage.currentUsage / user.usage.limit) * 100;
@@ -85,7 +120,7 @@ export default function Dashboard() {
                 variant="outline" 
                 onClick={() => setLocation('/')}
               >
-                View Tools
+                Return to site
               </Button>
               <Button 
                 variant="ghost" 
@@ -230,20 +265,49 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {user.subscription?.planId === 'price_1S5X1sBY2SPm2HvOuDHNzsIp' && (
+                {user.subscription?.planId === 'price_1S5X1sBY2SPm2HvOuDHNzsIp' && user.subscription?.status === 'active' && (
                   <div className="space-y-3 border-t pt-4">
                     <p className="text-sm text-gray-600">
                       Upgrade to Pro for unlimited visualizations and embed features!
                     </p>
-                    <Button 
-                      onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
-                      disabled={loading}
-                      className="w-full"
-                    >
-                      Upgrade to Pro ($100/mo)
-                    </Button>
+                    <div className="space-y-2">
+                      <Button 
+                        onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
+                        disabled={loading}
+                        className="w-full"
+                      >
+                        Upgrade to Pro ($100/mo)
+                      </Button>
+                      <Button 
+                        onClick={handleCancel}
+                        disabled={loading}
+                        className="w-full"
+                        variant="destructive"
+                      >
+                        Cancel Plan
+                      </Button>
+                    </div>
                   </div>
                 )}
+
+                {user.subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto' && user.subscription?.status === 'active' && (
+                  <div className="space-y-3 border-t pt-4">
+                    <p className="text-sm text-gray-600">
+                      You're on the Pro plan with unlimited visualizations!
+                    </p>
+                    <div className="space-y-2">
+                      <Button 
+                        onClick={handleCancel}
+                        disabled={loading}
+                        className="w-full"
+                        variant="destructive"
+                      >
+                        Cancel Plan
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
               </CardContent>
             </Card>
 
