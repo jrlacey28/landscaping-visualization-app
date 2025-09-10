@@ -59,7 +59,6 @@ export function setupGoogleAuth(app: Express) {
           lastName: profile.name?.familyName || 'User',
           profileImageUrl: profile.photos?.[0]?.value || null,
           emailVerified: true, // Google accounts are pre-verified
-          passwordHash: undefined, // No password for Google auth users
         };
 
         user = await storage.createUser(userData);

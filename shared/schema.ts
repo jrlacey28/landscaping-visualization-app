@@ -264,6 +264,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
   emailVerificationToken: true,
   resetPasswordToken: true,
   resetPasswordExpires: true,
+}).partial({
+  passwordHash: true, // Make passwordHash optional for Google OAuth users
 });
 
 export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({
