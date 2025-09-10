@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 
 // Regular imports for instant page navigation
 import Home from "@/pages/home";
+import RoofingSiding from "@/pages/roofing-siding";
 import Pools from "@/pages/pools";
 import Landscape from "@/pages/landscape";
 import Admin from "@/pages/admin";
@@ -38,6 +39,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/roofing-siding" component={RoofingSiding} />
       <Route path="/landscape" component={SafeLandscape} />
       <Route path="/pools" component={SafePools} />
       <Route path="/admin" component={Admin} />
