@@ -291,6 +291,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to check tenant usage limits
+  async function checkTenantUsageLimits(tenantId: number) {
+    const tenant = await storage.getTenant(tenantId);
+    if (!tenant) {
+      throw new Error('Tenant not found');
+    }
+
+    // Check if tenant is active
+    if (!tenant.active) {
+      throw new Error('Account is suspended. Please contact support.');
+    }
+
+    // Check monthly generation limits
+    const limit = tenant.monthlyGenerationLimit || 100;
+    const currentUsage = tenant.currentMonthGenerations || 0;
+    
+    if (currentUsage >= limit) {
+      throw new Error(`Monthly generation limit of ${limit} visualizations exceeded. Please upgrade your plan.`);
+    }
+
+    return tenant;
+  }
+
   // Gemini-powered landscape editing workflow
   app.post("/api/upload", upload.single("image"), async (req, res) => {
     try {
@@ -302,6 +325,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!tenantId) {
         return res.status(400).json({ error: "Tenant ID is required" });
+      }
+
+      // Check usage limits before processing
+      try {
+        await checkTenantUsageLimits(parseInt(tenantId));
+      } catch (limitError: any) {
+        return res.status(429).json({ error: limitError.message });
       }
 
       // Process image with size constraints (max 1920x1080)
@@ -474,6 +504,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!tenantId) {
         return res.status(400).json({ error: "Tenant ID is required" });
+      }
+
+      // Check usage limits before processing
+      try {
+        await checkTenantUsageLimits(parseInt(tenantId));
+      } catch (limitError: any) {
+        return res.status(429).json({ error: limitError.message });
       }
 
       // Process image with size constraints (max 1920x1080)
@@ -686,6 +723,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!tenantId) {
         return res.status(400).json({ error: "Tenant ID is required" });
+      }
+
+      // Check usage limits before processing
+      try {
+        await checkTenantUsageLimits(parseInt(tenantId));
+      } catch (limitError: any) {
+        return res.status(429).json({ error: limitError.message });
       }
 
       // Process image with size constraints (max 1920x1080)
