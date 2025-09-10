@@ -11,13 +11,13 @@ export default function Home() {
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   const [hoverText, setHoverText] = useState("Visualize");
   
-  const animatedTexts = ["ROOF", "SIDING", "LANDSCAPE", "PATIO", "POOL"];
+  const animatedTexts = ["Roof", "Siding", "Landscape", "Patio", "Pool"];
   const hoverTexts = [
-    "a new pool",
-    "different color siding", 
-    "beautiful curbing",
-    "stunning landscape",
-    "modern patio"
+    "A new pool",
+    "Different color siding", 
+    "Beautiful curbing",
+    "Stunning landscape",
+    "Modern patio"
   ];
 
   // Cycle through animated texts
@@ -87,12 +87,12 @@ export default function Home() {
       <Header tenant={effectiveTenant} />
       
       {/* Hero Section */}
-      <section className="py-12">
+      <section className="py-12 pb-2">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-2">
             Visualize your new...
           </h1>
-          <div className="h-16 flex items-center justify-center mb-4">
+          <div className="h-16 flex items-center justify-center mb-2">
             <span 
               className="text-4xl md:text-6xl font-bold text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-red-400 bg-clip-text animate-slide-down"
               key={currentTextIndex}
