@@ -105,8 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const planMapping: Record<string, string> = {
         'Free': 'free',
         'Basic': 'price_1S5X1sBY2SPm2HvOuDHNzsIp',
-        'Pro': 'price_1S5X2XBY2SPm2HvO2he9Unto',
-        'Enterprise': 'enterprise'
+        'Pro': 'price_1S5X2XBY2SPm2HvO2he9Unto'
       };
 
       const actualPlanId = planMapping[planId];
