@@ -315,14 +315,129 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  // Customer management routes (admin only - would need admin middleware)
-  app.get('/api/customers', async (req, res) => {
+  // Define admin auth middleware
+  const requireAdminAuth = (req: any, res: any, next: any) => {
+    if (req.session?.isAdmin) {
+      next();
+    } else {
+      res.status(401).json({ error: "Admin authentication required" });
+    }
+  };
+
+  // Customer management routes (admin only)
+  app.get('/api/customers', requireAdminAuth, async (req, res) => {
     try {
       const users = await storage.getAllUsersWithUsage();
       res.json({ success: true, data: users });
     } catch (error: any) {
       console.error('Get customers error:', error);
       res.status(500).json({ error: 'Failed to get customers' });
+    }
+  });
+
+  // Admin: Update user plan
+  app.post("/api/admin/update-user-plan", requireAdminAuth, async (req, res) => {
+    try {
+      const { userId, planId } = req.body;
+      
+      if (!userId || !planId) {
+        return res.status(400).json({ error: "User ID and Plan ID are required" });
+      }
+
+      // End any existing active subscriptions for this user
+      const existingSubscription = await storage.getUserActiveSubscription(userId);
+      if (existingSubscription) {
+        await storage.updateSubscription(existingSubscription.id, {
+          status: 'inactive',
+          cancelAtPeriodEnd: true
+        });
+      }
+
+      // Map display names to actual database plan IDs
+      const planMapping: Record<string, string> = {
+        'Free': 'free',
+        'Basic': 'price_1S5X1sBY2SPm2HvOuDHNzsIp',
+        'Pro': 'price_1S5X2XBY2SPm2HvO2he9Unto',
+        'Enterprise': 'enterprise'
+      };
+
+      const actualPlanId = planMapping[planId] || planId;
+
+      // Create new subscription based on plan
+      let newSubscription;
+      if (planId === 'Free' || actualPlanId === 'free') {
+        newSubscription = await storage.createFreeSubscription(userId);
+      } else {
+        // Create admin-managed subscription for paid plans
+        const now = new Date();
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        
+        newSubscription = await storage.createSubscription({
+          userId,
+          stripeCustomerId: `admin_${userId}_${Date.now()}`,
+          planId: actualPlanId,
+          status: 'active',
+          currentPeriodStart: now,
+          currentPeriodEnd: endOfMonth,
+          cancelAtPeriodEnd: false,
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        message: `User plan updated to ${planId}`,
+        subscription: newSubscription 
+      });
+    } catch (error) {
+      console.error("Error updating user plan:", error);
+      res.status(500).json({ error: "Failed to update user plan" });
+    }
+  });
+
+  // Admin: Reset user monthly usage
+  app.post("/api/admin/reset-user-usage", requireAdminAuth, async (req, res) => {
+    try {
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      // Reset current month's usage to 0
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = now.getFullYear();
+      
+      await storage.resetUserUsage(userId, month, year);
+      
+      res.json({ 
+        success: true, 
+        message: "User monthly usage reset successfully"
+      });
+    } catch (error) {
+      console.error("Error resetting user usage:", error);
+      res.status(500).json({ error: "Failed to reset user usage" });
+    }
+  });
+
+  // Admin: Set custom usage limit for user
+  app.post("/api/admin/set-user-limit", requireAdminAuth, async (req, res) => {
+    try {
+      const { userId, limit } = req.body;
+      
+      if (!userId || typeof limit !== 'number') {
+        return res.status(400).json({ error: "User ID and numeric limit are required" });
+      }
+
+      await storage.setUserCustomLimit(userId, limit);
+      
+      res.json({ 
+        success: true, 
+        message: `User custom limit set to ${limit}`
+      });
+    } catch (error) {
+      console.error("Error setting user limit:", error);
+      res.status(500).json({ error: "Failed to set user limit" });
     }
   });
 
