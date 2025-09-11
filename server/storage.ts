@@ -217,16 +217,15 @@ export class DatabaseStorage implements IStorage {
     if (existingUsage) {
       // Update existing record
       const updates: Partial<InsertUserUsage> = {
-        totalCount: existingUsage.totalCount + 1,
-        updatedAt: now,
+        totalCount: (existingUsage.totalCount || 0) + 1,
       };
 
       if (type === 'visualization') {
-        updates.visualizationCount = existingUsage.visualizationCount + 1;
+        updates.visualizationCount = (existingUsage.visualizationCount || 0) + 1;
       } else if (type === 'landscape') {
-        updates.landscapeCount = existingUsage.landscapeCount + 1;
+        updates.landscapeCount = (existingUsage.landscapeCount || 0) + 1;
       } else if (type === 'pool') {
-        updates.poolCount = existingUsage.poolCount + 1;
+        updates.poolCount = (existingUsage.poolCount || 0) + 1;
       }
 
       const [updatedUsage] = await this.db
@@ -262,7 +261,7 @@ export class DatabaseStorage implements IStorage {
 
     // Get user's current usage
     const usage = await this.getUserUsage(userId, month, year);
-    const currentUsage = usage ? usage.totalCount : 0;
+    const currentUsage = usage ? (usage.totalCount || 0) : 0;
 
     // Get user's subscription
     const subscription = await this.getUserActiveSubscription(userId);
@@ -289,12 +288,13 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Check limit (-1 means unlimited)
-    const canUse = plan.visualizationLimit === -1 || currentUsage < plan.visualizationLimit;
+    const planLimit = plan.visualizationLimit || 0;
+    const canUse = planLimit === -1 || currentUsage < planLimit;
     
     return {
       canUse,
       currentUsage,
-      limit: plan.visualizationLimit,
+      limit: plan.visualizationLimit || 0,
       planName: plan.name
     };
   }
@@ -350,24 +350,6 @@ export class DatabaseStorage implements IStorage {
     // For now, this sets up the infrastructure
   }
 
-  // Subscription plan management methods
-  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
-    return await this.db
-      .select()
-      .from(subscriptionPlans)
-      .where(eq(subscriptionPlans.active, true))
-      .orderBy(subscriptionPlans.price);
-  }
-
-  async getSubscriptionPlan(id: string): Promise<SubscriptionPlan | null> {
-    const plans = await this.db
-      .select()
-      .from(subscriptionPlans)
-      .where(eq(subscriptionPlans.id, id))
-      .limit(1);
-    
-    return plans[0] || null;
-  }
 
   async createSubscriptionPlan(planData: any): Promise<SubscriptionPlan> {
     const [plan] = await this.db
@@ -508,7 +490,9 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     // Increment the tenant's generation count
-    await this.incrementTenantGenerations(insertVisualization.tenantId);
+    if (insertVisualization.tenantId) {
+      await this.incrementTenantGenerations(insertVisualization.tenantId);
+    }
     
     return visualization;
   }
@@ -581,8 +565,10 @@ export class DatabaseStorage implements IStorage {
       .values(insertPoolVisualization)
       .returning();
     
-    // Increment the tenant's generation count
-    await this.incrementTenantGenerations(insertPoolVisualization.tenantId);
+    // Increment the tenant's generation count  
+    if (insertPoolVisualization.tenantId) {
+      await this.incrementTenantGenerations(insertPoolVisualization.tenantId);
+    }
     
     return poolVisualization;
   }
@@ -616,7 +602,9 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     // Increment the tenant's generation count
-    await this.incrementTenantGenerations(insertLandscapeVisualization.tenantId);
+    if (insertLandscapeVisualization.tenantId) {
+      await this.incrementTenantGenerations(insertLandscapeVisualization.tenantId);
+    }
     
     return landscapeVisualization;
   }
@@ -629,7 +617,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     // Track usage when landscape generation completes
-    if (updates.status === 'completed') {
+    if (updates.status === 'completed' && updated.tenantId) {
       await this.trackUsage(updated.tenantId, 'landscape');
     }
 
