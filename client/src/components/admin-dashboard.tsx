@@ -130,17 +130,6 @@ export default function AdminDashboard() {
     primaryColor: "#2563EB",
     secondaryColor: "#059669"
   });
-  const [editingPlan, setEditingPlan] = useState<any>(null);
-  const [isAddingPlan, setIsAddingPlan] = useState(false);
-  const [newPlanData, setNewPlanData] = useState({
-    id: "",
-    name: "",
-    description: "",
-    price: 0,
-    interval: "month",
-    visualizationLimit: 5,
-    embedAccess: false
-  });
 
   // For demo purposes, we'll use a mock tenant ID
   const mockTenantId = 1;
@@ -213,23 +202,6 @@ export default function AdminDashboard() {
     queryKey: ["/api/customers"],
   });
 
-  // Get subscription plans
-  const { data: subscriptionPlansData, isLoading: plansLoading } = useQuery<{
-    success: boolean;
-    data: Array<{
-      id: string;
-      name: string;
-      description: string;
-      price: number;
-      interval: string;
-      visualizationLimit: number;
-      embedAccess: boolean;
-      active: boolean;
-      createdAt: string;
-    }>;
-  }>({
-    queryKey: ["/api/subscription/plans"],
-  });
 
   const updateTenantMutation = useMutation({
     mutationFn: async (data: Partial<Tenant>) => {
@@ -367,76 +339,8 @@ export default function AdminDashboard() {
     },
   });
 
-  const createPlanMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/admin/plans", data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Plan Created",
-        description: "New subscription plan has been added successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/subscription/plans"] });
-      setIsAddingPlan(false);
-      setNewPlanData({
-        id: "",
-        name: "",
-        description: "",
-        price: 0,
-        interval: "month",
-        visualizationLimit: 5,
-        embedAccess: false
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create plan.",
-        variant: "destructive",
-      });
-    },
-  });
 
-  const updatePlanMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      return apiRequest("PATCH", `/api/admin/plans/${id}`, data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Plan Updated",
-        description: "Subscription plan has been updated successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/subscription/plans"] });
-      setEditingPlan(null);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update plan.",
-        variant: "destructive",
-      });
-    },
-  });
 
-  const deletePlanMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/admin/plans/${id}`);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Plan Deleted",
-        description: "Subscription plan has been deleted successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/subscription/plans"] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete plan.",
-        variant: "destructive",
-      });
-    },
-  });
 
   // Load current tenant data
   const { data: currentTenant } = useQuery<Tenant>({
@@ -568,7 +472,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 lg:grid-cols-7 gap-1 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 lg:grid-cols-6 gap-1 h-auto p-1">
             <TabsTrigger
               value="overview"
               className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
@@ -582,13 +486,6 @@ export default function AdminDashboard() {
             >
               <Users className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Users</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="plans" 
-              className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
-            >
-              <Settings className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">Plans</span>
             </TabsTrigger>
             <TabsTrigger 
               value="clients" 
@@ -820,94 +717,92 @@ export default function AdminDashboard() {
             )}
           </TabsContent>
 
-          {/* Subscription Plans Tab */}
-          <TabsContent value="plans" className="space-y-8">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-              <h2 className="text-2xl md:text-3xl font-bold">Subscription Plans</h2>
-              <Button 
-                onClick={() => setIsAddingPlan(true)}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-              >
-                <Plus className="h-4 w-4 mr-2" /> Add New Plan
-              </Button>
-            </div>
 
+          {/* Clients Tab */}
+          <TabsContent value="clients" className="space-y-8">
             <Card>
-              <CardHeader>
-                <CardTitle>Manage Subscription Plans</CardTitle>
-                <CardDescription>Create and edit subscription plans for your users</CardDescription>
+              <CardHeader className="pb-6">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                  <div>
+                    <CardTitle className="text-xl">Client Management</CardTitle>
+                    <p className="text-muted-foreground mt-2">
+                      Manage all your clients and their embed configurations
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => window.location.href = '/embed-manager'}
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                    >
+                      <Settings className="h-4 w-4 mr-2" /> Manage Embeds
+                    </Button>
+                    <Button 
+                      onClick={() => setIsAddingClient(true)}
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" /> Add New Client
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {/* Add New Plan Form */}
-                {isAddingPlan && (
+                {/* Add New Client Form */}
+                {isAddingClient && (
                   <Card className="mb-6">
                     <CardHeader>
-                      <CardTitle>Add New Plan</CardTitle>
+                      <CardTitle>Add New Client</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="newPlanId">Plan ID *</Label>
+                          <Label htmlFor="newCompanyName">Company Name *</Label>
                           <Input
-                            id="newPlanId"
-                            value={newPlanData.id}
-                            onChange={(e) => setNewPlanData(prev => ({ ...prev, id: e.target.value }))}
-                            placeholder="plan-id or stripe price id"
+                            id="newCompanyName"
+                            value={newClientData.companyName}
+                            onChange={(e) => setNewClientData(prev => ({ ...prev, companyName: e.target.value }))}
                           />
                         </div>
                         <div>
-                          <Label htmlFor="newPlanName">Name *</Label>
+                          <Label htmlFor="newSlug">Slug (URL identifier) *</Label>
                           <Input
-                            id="newPlanName"
-                            value={newPlanData.name}
-                            onChange={(e) => setNewPlanData(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="Plan Name"
+                            id="newSlug"
+                            value={newClientData.slug}
+                            onChange={(e) => setNewClientData(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
+                            placeholder="company-name"
                           />
                         </div>
                         <div>
-                          <Label htmlFor="newPlanPrice">Price (cents) *</Label>
+                          <Label htmlFor="newEmail">Email *</Label>
                           <Input
-                            id="newPlanPrice"
-                            type="number"
-                            value={newPlanData.price}
-                            onChange={(e) => setNewPlanData(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
+                            id="newEmail"
+                            type="email"
+                            value={newClientData.email}
+                            onChange={(e) => setNewClientData(prev => ({ ...prev, email: e.target.value }))}
                           />
                         </div>
                         <div>
-                          <Label htmlFor="newPlanLimit">Visualization Limit *</Label>
+                          <Label htmlFor="newPhone">Phone</Label>
                           <Input
-                            id="newPlanLimit"
-                            type="number"
-                            value={newPlanData.visualizationLimit}
-                            onChange={(e) => setNewPlanData(prev => ({ ...prev, visualizationLimit: parseInt(e.target.value) || 5 }))}
-                            placeholder="-1 for unlimited"
+                            id="newPhone"
+                            value={newClientData.phone}
+                            onChange={(e) => setNewClientData(prev => ({ ...prev, phone: e.target.value }))}
                           />
                         </div>
                       </div>
                       <div>
-                        <Label htmlFor="newPlanDescription">Description</Label>
+                        <Label htmlFor="newDescription">Description</Label>
                         <Textarea
-                          id="newPlanDescription"
-                          value={newPlanData.description}
-                          onChange={(e) => setNewPlanData(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Plan description"
+                          id="newDescription"
+                          value={newClientData.description}
+                          onChange={(e) => setNewClientData(prev => ({ ...prev, description: e.target.value }))}
+                          rows={2}
                         />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          checked={newPlanData.embedAccess}
-                          onCheckedChange={(checked) => setNewPlanData(prev => ({ ...prev, embedAccess: checked }))}
-                        />
-                        <Label>Embed Access</Label>
                       </div>
                       <div className="flex space-x-2">
-                        <Button 
-                          onClick={() => createPlanMutation.mutate(newPlanData)} 
-                          disabled={createPlanMutation.isPending}
-                        >
-                          {createPlanMutation.isPending ? "Creating..." : "Create Plan"}
+                        <Button onClick={handleCreateClient} disabled={createTenantMutation.isPending}>
+                          {createTenantMutation.isPending ? "Creating..." : "Create Client"}
                         </Button>
-                        <Button variant="outline" onClick={() => setIsAddingPlan(false)}>
+                        <Button variant="outline" onClick={() => setIsAddingClient(false)}>
                           Cancel
                         </Button>
                       </div>
@@ -915,64 +810,88 @@ export default function AdminDashboard() {
                   </Card>
                 )}
 
-                {/* Edit Plan Form */}
-                {editingPlan && (
+                {/* Edit Client Form */}
+                {editingClient && (
                   <Card className="mb-6">
                     <CardHeader>
-                      <CardTitle>Edit Plan: {editingPlan.name}</CardTitle>
+                      <CardTitle>Edit Client: {editingClient.companyName}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="editPlanName">Name</Label>
+                          <Label htmlFor="editCompanyName">Company Name</Label>
                           <Input
-                            id="editPlanName"
-                            value={editingPlan.name}
-                            onChange={(e) => setEditingPlan(prev => ({ ...prev, name: e.target.value }))}
+                            id="editCompanyName"
+                            value={editingClient.companyName}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, companyName: e.target.value }) : null)}
                           />
                         </div>
                         <div>
-                          <Label htmlFor="editPlanPrice">Price (cents)</Label>
+                          <Label htmlFor="editEmail">Email</Label>
                           <Input
-                            id="editPlanPrice"
-                            type="number"
-                            value={editingPlan.price}
-                            onChange={(e) => setEditingPlan(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
+                            id="editEmail"
+                            type="email"
+                            value={editingClient.email || ""}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, email: e.target.value }) : null)}
                           />
                         </div>
                         <div>
-                          <Label htmlFor="editPlanLimit">Visualization Limit</Label>
+                          <Label htmlFor="editPhone">Phone</Label>
                           <Input
-                            id="editPlanLimit"
-                            type="number"
-                            value={editingPlan.visualizationLimit}
-                            onChange={(e) => setEditingPlan(prev => ({ ...prev, visualizationLimit: parseInt(e.target.value) || 5 }))}
+                            id="editPhone"
+                            value={editingClient.phone || ""}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, phone: e.target.value }) : null)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editPrimaryColor">Primary Color</Label>
+                          <Input
+                            id="editPrimaryColor"
+                            type="color"
+                            value={editingClient.primaryColor || "#2563EB"}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, primaryColor: e.target.value }) : null)}
                           />
                         </div>
                       </div>
                       <div>
-                        <Label htmlFor="editPlanDescription">Description</Label>
+                        <Label htmlFor="editDescription">Description</Label>
                         <Textarea
-                          id="editPlanDescription"
-                          value={editingPlan.description || ""}
-                          onChange={(e) => setEditingPlan(prev => ({ ...prev, description: e.target.value }))}
+                          id="editDescription"
+                          value={editingClient.description || ""}
+                          onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, description: e.target.value }) : null)}
+                          rows={2}
                         />
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          checked={editingPlan.embedAccess}
-                          onCheckedChange={(checked) => setEditingPlan(prev => ({ ...prev, embedAccess: checked }))}
-                        />
-                        <Label>Embed Access</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="editMonthlyLimit">Monthly Generation Limit</Label>
+                          <Input
+                            id="editMonthlyLimit"
+                            type="number"
+                            min="0"
+                            value={editingClient.monthlyGenerationLimit || 100}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, monthlyGenerationLimit: parseInt(e.target.value) }) : null)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editCurrentGenerations">Current Month Usage</Label>
+                          <Input
+                            id="editCurrentGenerations"
+                            type="number"
+                            min="0"
+                            value={editingClient.currentMonthGenerations || 0}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, currentMonthGenerations: parseInt(e.target.value) }) : null)}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Set to 0 to reset usage count
+                          </p>
+                        </div>
                       </div>
                       <div className="flex space-x-2">
-                        <Button 
-                          onClick={() => updatePlanMutation.mutate({ id: editingPlan.id, data: editingPlan })} 
-                          disabled={updatePlanMutation.isPending}
-                        >
-                          {updatePlanMutation.isPending ? "Saving..." : "Save Changes"}
+                        <Button onClick={handleSaveClient} disabled={updateClientMutation.isPending}>
+                          {updateClientMutation.isPending ? "Saving..." : "Save Changes"}
                         </Button>
-                        <Button variant="outline" onClick={() => setEditingPlan(null)}>
+                        <Button variant="outline" onClick={() => setEditingClient(null)}>
                           Cancel
                         </Button>
                       </div>
@@ -980,88 +899,154 @@ export default function AdminDashboard() {
                   </Card>
                 )}
 
-                {/* Plans List */}
-                {plansLoading ? (
-                  <div className="text-center py-8">
-                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading plans...</p>
-                  </div>
-                ) : subscriptionPlansData?.data?.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Plans Yet</h3>
-                    <p className="text-gray-500">Create your first subscription plan to get started.</p>
+                {/* Clients Grid */}
+                {allTenants.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No clients yet</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Add your first client to start managing their visualizer embeds
+                    </p>
+                    <Button 
+                      onClick={() => setIsAddingClient(true)}
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" /> Add Your First Client
+                    </Button>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-2">Plan</th>
-                          <th className="text-left py-3 px-2">Price</th>
-                          <th className="text-left py-3 px-2">Limit</th>
-                          <th className="text-left py-3 px-2">Features</th>
-                          <th className="text-left py-3 px-2">Status</th>
-                          <th className="text-left py-3 px-2">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {subscriptionPlansData?.data?.map((plan) => (
-                          <tr key={plan.id} className="border-b hover:bg-gray-50">
-                            <td className="py-4 px-2">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {allTenants.map((tenant: Tenant) => (
+                      <Card key={tenant.id} className={`transition-all hover:shadow-lg ${!tenant.active ? 'opacity-75 border-red-200' : 'border-green-200'}`}>
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-3 h-3 rounded-full ${tenant.active ? 'bg-green-500' : 'bg-red-500'}`} />
                               <div>
-                                <p className="font-medium">{plan.name}</p>
-                                <p className="text-sm text-gray-500">{plan.description}</p>
-                                <p className="text-xs text-gray-400">{plan.id}</p>
+                                <CardTitle className="text-lg">{tenant.companyName}</CardTitle>
+                                <p className="text-sm text-muted-foreground">/{tenant.slug}</p>
                               </div>
-                            </td>
-                            <td className="py-4 px-2">
-                              <span className="font-mono">
-                                ${(plan.price / 100).toFixed(2)}/{plan.interval}
-                              </span>
-                            </td>
-                            <td className="py-4 px-2">
-                              <span className={plan.visualizationLimit === -1 ? 'text-green-600' : ''}>
-                                {plan.visualizationLimit === -1 ? 'Unlimited' : plan.visualizationLimit}
-                              </span>
-                            </td>
-                            <td className="py-4 px-2">
-                              <div className="flex flex-wrap gap-1">
-                                {plan.embedAccess && (
-                                  <Badge variant="default">Embed Access</Badge>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-4 px-2">
-                              <Badge variant={plan.active ? 'default' : 'destructive'}>
-                                {plan.active ? 'Active' : 'Inactive'}
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant={tenant.active ? "default" : "destructive"}>
+                                {tenant.active ? "Active" : "Inactive"}
                               </Badge>
-                            </td>
-                            <td className="py-4 px-2">
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setEditingPlan(plan)}
-                                  className="text-xs"
-                                >
-                                  Edit
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => deletePlanMutation.mutate(plan.id)}
-                                  disabled={deletePlanMutation.isPending}
-                                  className="text-xs"
-                                >
-                                  Delete
-                                </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {/* Client Info */}
+                          <div className="space-y-2">
+                            {tenant.email && (
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <Mail className="h-4 w-4 mr-2" />
+                                {tenant.email}
                               </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            )}
+                            {tenant.phone && (
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <Phone className="h-4 w-4 mr-2" />
+                                {tenant.phone}
+                              </div>
+                            )}
+                            {tenant.description && (
+                              <p className="text-sm text-muted-foreground">{tenant.description}</p>
+                            )}
+                          </div>
+
+                          {/* Usage Stats */}
+                          <div className="bg-gray-50 rounded-lg p-3">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium">Generation Usage</span>
+                              <span className="text-xs text-muted-foreground">
+                                {tenant.currentMonthGenerations || 0}/{tenant.monthlyGenerationLimit || 100}
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full ${
+                                  (tenant.currentMonthGenerations || 0) > (tenant.monthlyGenerationLimit || 100) 
+                                    ? 'bg-red-500' 
+                                    : (tenant.currentMonthGenerations || 0) / (tenant.monthlyGenerationLimit || 100) > 0.8
+                                    ? 'bg-yellow-500'
+                                    : 'bg-green-500'
+                                }`}
+                                style={{ 
+                                  width: `${Math.min(
+                                    ((tenant.currentMonthGenerations || 0) / (tenant.monthlyGenerationLimit || 100)) * 100, 
+                                    100
+                                  )}%` 
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditClient(tenant)}
+                              className="flex-1 min-w-[100px]"
+                            >
+                              <Edit className="h-3 w-3 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={tenant.active ? "secondary" : "default"}
+                              onClick={() => 
+                                toggleClientStatusMutation.mutate({ 
+                                  id: tenant.id, 
+                                  active: !tenant.active 
+                                })
+                              }
+                              disabled={toggleClientStatusMutation.isPending}
+                              className="flex-1 min-w-[100px]"
+                            >
+                              {tenant.active ? (
+                                <>
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                  Suspend
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Activate
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => setDeletingClient(tenant)}
+                              className="flex-1 min-w-[100px]"
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Delete
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // Reset generation count
+                                updateClientMutation.mutate({
+                                  id: tenant.id, 
+                                  data: { 
+                                    currentMonthGenerations: 0, 
+                                    lastResetDate: new Date(),
+                                    active: true // Reactivate if suspended
+                                  }
+                                });
+                              }}
+                              className="text-xs"
+                            >
+                              Reset
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 )}
               </CardContent>
