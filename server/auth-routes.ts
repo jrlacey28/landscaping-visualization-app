@@ -441,6 +441,28 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
+  // Admin: Set user plan by Stripe price ID
+  app.post("/api/admin/set-user-plan-stripe", requireAdminAuth, async (req, res) => {
+    try {
+      const { userId, stripePriceId } = req.body;
+      
+      if (!userId || !stripePriceId) {
+        return res.status(400).json({ error: "User ID and Stripe price ID are required" });
+      }
+
+      const subscription = await storage.setUserPlanByStripeId(userId, stripePriceId);
+      
+      res.json({ 
+        success: true, 
+        message: `User plan set to ${stripePriceId}`,
+        subscription
+      });
+    } catch (error) {
+      console.error("Error setting user plan by Stripe ID:", error);
+      res.status(500).json({ error: "Failed to set user plan" });
+    }
+  });
+
   // Helper functions for Stripe webhooks
   async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     const userId = session.metadata?.userId;

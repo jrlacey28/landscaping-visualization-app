@@ -42,7 +42,7 @@ export const subscriptions = pgTable("subscriptions", {
   userId: integer("user_id").notNull().references(() => users.id),
   stripeSubscriptionId: text("stripe_subscription_id").unique(),
   stripeCustomerId: text("stripe_customer_id").notNull(),
-  planId: text("plan_id").notNull().references(() => subscriptionPlans.id),
+  planId: text("plan_id").notNull().references(() => subscriptionPlans.id, { onDelete: "restrict", onUpdate: "cascade" }),
   status: text("status").notNull(), // active, past_due, canceled, incomplete
   currentPeriodStart: timestamp("current_period_start").notNull(),
   currentPeriodEnd: timestamp("current_period_end").notNull(),

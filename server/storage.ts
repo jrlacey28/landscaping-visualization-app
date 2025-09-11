@@ -72,6 +72,7 @@ export interface IStorage {
 
   // Admin methods
   getAllUsersWithUsage(): Promise<Array<User & { usage?: UserUsage; subscription?: Subscription }>>;
+  setUserPlanByStripeId(userId: number, stripePriceId: string): Promise<Subscription>;
 
   // Legacy tenant usage stats methods
   trackUsage(tenantId: number, type: 'visualization' | 'landscape' | 'pool'): Promise<void>;
@@ -157,7 +158,7 @@ export class DatabaseStorage implements IStorage {
   async createFreeSubscription(userId: number): Promise<Subscription> {
     const now = new Date();
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-    
+
     const freeSubscription: InsertSubscription = {
       userId,
       stripeCustomerId: `free_${userId}_${Date.now()}`, // Unique identifier for free plan
@@ -265,7 +266,7 @@ export class DatabaseStorage implements IStorage {
 
     // Get user's subscription
     const subscription = await this.getUserActiveSubscription(userId);
-    
+
     if (!subscription) {
       // No subscription - they get 5 free visualizations
       return {
@@ -290,7 +291,7 @@ export class DatabaseStorage implements IStorage {
     // Check limit (-1 means unlimited)
     const planLimit = plan.visualizationLimit || 0;
     const canUse = planLimit === -1 || currentUsage < planLimit;
-    
+
     return {
       canUse,
       currentUsage,
@@ -302,7 +303,7 @@ export class DatabaseStorage implements IStorage {
   async resetUserUsage(userId: number, month: number, year: number): Promise<void> {
     // Get existing usage record
     const existingUsage = await this.getUserUsage(userId, month, year);
-    
+
     if (existingUsage) {
       // Reset all counts to 0
       await this.db
@@ -320,22 +321,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setUserCustomLimit(userId: number, limit: number): Promise<void> {
-    // For now, we'll implement this by creating/updating a user-specific subscription
-    // This is a simplified approach - in a full system you might have a separate user_limits table
-    
-    // End any existing subscriptions
-    const existingSubscription = await this.getUserActiveSubscription(userId);
-    if (existingSubscription) {
-      await this.updateSubscription(existingSubscription.id, {
-        status: 'inactive',
-        cancelAtPeriodEnd: true
-      });
-    }
-
     // Create a custom admin-managed subscription with the specified limit
     const now = new Date();
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-    
+
     await this.createSubscription({
       userId,
       stripeCustomerId: `admin_custom_${userId}_${Date.now()}`,
@@ -345,9 +334,61 @@ export class DatabaseStorage implements IStorage {
       currentPeriodEnd: endOfMonth,
       cancelAtPeriodEnd: false,
     });
-    
+
     // We'd also need to update the plan lookup to handle custom limits
     // For now, this sets up the infrastructure
+  }
+
+  async setUserPlanByStripeId(userId: number, stripePriceId: string): Promise<Subscription> {
+    // Check if the plan exists, if not create it with default values
+    let plan = await this.db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.id, stripePriceId))
+      .limit(1)
+      .then(rows => rows[0]);
+
+    if (!plan) {
+      // Create the plan with default values
+      [plan] = await this.db
+        .insert(subscriptionPlans)
+        .values({
+          id: stripePriceId,
+          name: 'Temp Plan',
+          description: 'Temporary plan created by admin',
+          price: 0,
+          interval: 'month',
+          visualizationLimit: 100,
+          embedAccess: false,
+          active: true
+        })
+        .returning();
+    }
+
+    // End any existing active subscriptions for this user
+    const existingSubscription = await this.getUserActiveSubscription(userId);
+    if (existingSubscription) {
+      await this.updateSubscription(existingSubscription.id, {
+        status: 'inactive',
+        cancelAtPeriodEnd: true
+      });
+    }
+
+    // Create new subscription with the Stripe price ID
+    const now = new Date();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const newSubscription = await this.createSubscription({
+      userId,
+      stripeCustomerId: `admin_${userId}_${Date.now()}`,
+      planId: stripePriceId,
+      status: 'active',
+      currentPeriodStart: now,
+      currentPeriodEnd: endOfMonth,
+      cancelAtPeriodEnd: false,
+    });
+
+    return newSubscription;
   }
 
 
@@ -356,7 +397,7 @@ export class DatabaseStorage implements IStorage {
       .insert(subscriptionPlans)
       .values(planData)
       .returning();
-    
+
     return plan;
   }
 
@@ -366,7 +407,7 @@ export class DatabaseStorage implements IStorage {
       .set(planData)
       .where(eq(subscriptionPlans.id, id))
       .returning();
-    
+
     return plan;
   }
 
@@ -488,12 +529,12 @@ export class DatabaseStorage implements IStorage {
       .insert(visualizations)
       .values(insertVisualization)
       .returning();
-    
+
     // Increment the tenant's generation count
     if (insertVisualization.tenantId) {
       await this.incrementTenantGenerations(insertVisualization.tenantId);
     }
-    
+
     return visualization;
   }
 
@@ -507,7 +548,7 @@ export class DatabaseStorage implements IStorage {
     // Check if we need to reset the monthly count (start of new month)
     const now = new Date();
     const lastReset = new Date(tenant.lastResetDate || tenant.createdAt || now);
-    
+
     let shouldReset = false;
     if (lastReset.getMonth() !== now.getMonth() || lastReset.getFullYear() !== now.getFullYear()) {
       shouldReset = true;
@@ -515,7 +556,7 @@ export class DatabaseStorage implements IStorage {
 
     const newCount = shouldReset ? 1 : (tenant.currentMonthGenerations || 0) + 1;
     const limit = tenant.monthlyGenerationLimit || 100;
-    
+
     // Update the generation count and reset date if needed
     const updateData: any = {
       currentMonthGenerations: newCount,
@@ -564,12 +605,12 @@ export class DatabaseStorage implements IStorage {
       .insert(poolVisualizations)
       .values(insertPoolVisualization)
       .returning();
-    
+
     // Increment the tenant's generation count  
     if (insertPoolVisualization.tenantId) {
       await this.incrementTenantGenerations(insertPoolVisualization.tenantId);
     }
-    
+
     return poolVisualization;
   }
 
@@ -600,12 +641,12 @@ export class DatabaseStorage implements IStorage {
       .insert(landscapeVisualizations)
       .values(insertLandscapeVisualization)
       .returning();
-    
+
     // Increment the tenant's generation count
     if (insertLandscapeVisualization.tenantId) {
       await this.incrementTenantGenerations(insertLandscapeVisualization.tenantId);
     }
-    
+
     return landscapeVisualization;
   }
 
@@ -640,20 +681,20 @@ export class DatabaseStorage implements IStorage {
   // Admin methods
   async getAllUsersWithUsage(): Promise<Array<User & { usage?: any; subscription?: Subscription }>> {
     const allUsers = await this.db.select().from(users);
-    
+
     const usersWithData = await Promise.all(allUsers.map(async (user) => {
       const [usageLimits, subscription] = await Promise.all([
         this.checkUsageLimits(user.id),
         this.getUserActiveSubscription(user.id)
       ]);
-      
+
       return {
         ...user,
         usage: usageLimits,
         subscription: subscription || undefined
       };
     }));
-    
+
     return usersWithData;
   }
 }
