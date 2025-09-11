@@ -1,0 +1,170 @@
+Task: Fix foreign key constraint error and add admin functionality to change user plans
+Please help me implement the following steps to fix the database error and add admin functionality:
+Step 1: Check and populate the subscription_plans table
+Create a new file called seedPlans.js in the root directory with the following code to seed the subscription plans:
+javascriptconst seedPlans = async (db) => {
+  const plans = [
+    {
+      id: 'free',
+      name: 'Free',
+      price: 0,
+      features: JSON.stringify(['Basic features']),
+      stripe_price_id: null
+    },
+    {
+      id: 'basic',
+      name: 'Basic',
+      price: 9.99,
+      features: JSON.stringify(['Feature 1', 'Feature 2']),
+      stripe_price_id: 'price_xxxxx'
+    },
+    {
+      id: 'premium',
+      name: 'Premium',
+      price: 19.99,
+      features: JSON.stringify(['All features']),
+      stripe_price_id: 'price_yyyyy'
+    },
+    {
+      id: 'custom',
+      name: 'Custom',
+      price: 0,
+      features: JSON.stringify(['Custom limit']),
+      stripe_price_id: null
+    }
+  ];
+
+  for (const plan of plans) {
+    await db.query(
+      `INSERT INTO subscription_plans (id, name, price, features, stripe_price_id) 
+       VALUES ($1, $2, $3, $4, $5) 
+       ON CONFLICT (id) DO UPDATE 
+       SET name = $2, price = $3, features = $4, stripe_price_id = $5`,
+      [plan.id, plan.name, plan.price, plan.features, plan.stripe_price_id]
+    );
+  }
+  console.log('Plans seeded successfully');
+};
+Step 2: Run the seed function on startup
+In the main index.js file, add this code after the database connection is established:
+javascript// Add this after your database is connected
+const initializePlans = async () => {
+  try {
+    // Check if plans exist
+    const result = await db.query('SELECT COUNT(*) FROM subscription_plans');
+    if (result.rows[0].count === '0') {
+      console.log('Seeding subscription plans...');
+      await seedPlans(db);
+    }
+  } catch (error) {
+    console.error('Error initializing plans:', error);
+  }
+};
+
+// Call this function when the server starts
+initializePlans();
+Step 3: Add admin endpoints
+Add these new API endpoints to the main server file for admin functionality:
+javascript// Debug endpoint to view all plans
+app.get('/api/admin/plans', async (req, res) => {
+  try {
+    const plans = await db.query('SELECT * FROM subscription_plans');
+    res.json(plans.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Admin endpoint to change user plan without Stripe
+app.post('/api/admin/change-user-plan', async (req, res) => {
+  try {
+    const { userId, planId } = req.body;
+    
+    // Verify the plan exists
+    const planExists = await db.query(
+      'SELECT id FROM subscription_plans WHERE id = $1',
+      [planId]
+    );
+    
+    if (planExists.rows.length === 0) {
+      return res.status(400).json({ error: 'Invalid plan ID. Available plans: free, basic, premium, custom' });
+    }
+    
+    // Update or insert subscription
+    await db.query(
+      `INSERT INTO subscriptions (user_id, plan_id, status, current_period_start, current_period_end) 
+       VALUES ($1, $2, 'active', NOW(), NOW() + INTERVAL '30 days')
+       ON CONFLICT (user_id) 
+       DO UPDATE SET 
+         plan_id = $2,
+         status = 'active',
+         current_period_start = NOW(),
+         current_period_end = NOW() + INTERVAL '30 days',
+         updated_at = NOW()`,
+      [userId, planId]
+    );
+    
+    res.json({ 
+      success: true, 
+      message: `User ${userId} plan changed to ${planId}` 
+    });
+  } catch (error) {
+    console.error('Error changing user plan:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get user's current subscription
+app.get('/api/admin/user-subscription/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await db.query(
+      `SELECT s.*, sp.name as plan_name, sp.price 
+       FROM subscriptions s
+       JOIN subscription_plans sp ON s.plan_id = sp.id
+       WHERE s.user_id = $1`,
+      [userId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No subscription found for this user' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+Step 4: Fix the DatabaseStorage class
+In the DatabaseStorage class file (/dist/index.js or wherever it's located), update the setUserCustomLimit method:
+javascriptasync setUserCustomLimit(userId, limit) {
+  // Use 'custom' plan which we added in the seed
+  await this.query(
+    `INSERT INTO subscriptions (user_id, plan_id, custom_limit, status) 
+     VALUES ($1, 'custom', $2, 'active')
+     ON CONFLICT (user_id) 
+     DO UPDATE SET 
+       plan_id = 'custom',
+       custom_limit = $2,
+       status = 'active'`,
+    [userId, limit]
+  );
+}
+Step 5: Test the implementation
+After implementing the above changes:
+
+Restart the server to run the seed function
+Test the admin endpoints using these curl commands or through your API client:
+
+bash# View all plans
+GET /api/admin/plans
+
+# Change a user's plan
+POST /api/admin/change-user-plan
+Body: {
+  "userId": "USER_ID_HERE",
+  "planId": "premium"
+}
+
+# Check user's subscription
+GET /api/admin/user-subscription/USER_ID_HERE

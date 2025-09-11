@@ -208,6 +208,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to view all plans (as requested in task)
+  app.get('/api/admin/plans', requireAdminAuth, async (req, res) => {
+    try {
+      const plans = await storage.getSubscriptionPlans();
+      res.json(plans);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get user's current subscription (as requested in task)
+  app.get('/api/admin/user-subscription/:userId', requireAdminAuth, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const subscription = await storage.getUserActiveSubscription(parseInt(userId));
+      
+      if (!subscription) {
+        return res.status(404).json({ error: 'No subscription found for this user' });
+      }
+
+      // Get plan details
+      const plan = await storage.getSubscriptionPlan(subscription.planId);
+      
+      res.json({
+        ...subscription,
+        plan_name: plan?.name,
+        price: plan?.price
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Serve static files from uploads directory
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 

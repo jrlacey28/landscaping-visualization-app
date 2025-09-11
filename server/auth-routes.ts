@@ -14,7 +14,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY environment variable is required');
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-08-27.basil',
 });
 
 export function registerAuthRoutes(app: Express) {
@@ -159,9 +159,9 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  app.get('/api/auth/me', authenticateToken, async (req: AuthRequest, res) => {
+  app.get('/api/auth/me', authenticateToken, async (req, res) => {
     try {
-      const user = req.user!;
+      const user = (req as any).user!;
       const subscription = await storage.getUserActiveSubscription(user.id);
       const usageCheck = await storage.checkUsageLimits(user.id);
 
@@ -209,10 +209,10 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  app.post('/api/subscription/checkout', authenticateToken, async (req: AuthRequest, res) => {
+  app.post('/api/subscription/checkout', authenticateToken, async (req, res) => {
     try {
       const { planId } = req.body;
-      const user = req.user!;
+      const user = (req as any).user!;
 
       if (!planId) {
         return res.status(400).json({ error: 'Plan ID is required' });
@@ -227,7 +227,6 @@ export function registerAuthRoutes(app: Express) {
       // Create Stripe checkout session
       const session = await stripe.checkout.sessions.create({
         customer_email: user.email,
-        payment_method_types: ['card'],
         line_items: [{
           price: planId, // Using Stripe Price ID directly
           quantity: 1,
@@ -248,9 +247,9 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  app.post('/api/subscription/cancel', authenticateToken, async (req: AuthRequest, res) => {
+  app.post('/api/subscription/cancel', authenticateToken, async (req, res) => {
     try {
-      const user = req.user!;
+      const user = (req as any).user!;
 
       // Get user's active subscription
       const subscription = await storage.getUserActiveSubscription(user.id);
@@ -281,10 +280,10 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // Usage tracking middleware
-  app.use('/api/usage/track', authenticateToken, async (req: AuthRequest, res) => {
+  app.use('/api/usage/track', authenticateToken, async (req, res) => {
     try {
       const { type } = req.body;
-      const user = req.user!;
+      const user = (req as any).user!;
 
       if (!type || !['visualization', 'landscape', 'pool'].includes(type)) {
         return res.status(400).json({ error: 'Valid usage type is required' });
