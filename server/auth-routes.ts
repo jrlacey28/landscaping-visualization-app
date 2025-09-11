@@ -353,11 +353,15 @@ export function registerAuthRoutes(app: Express) {
       }
 
       // Map display names to actual database plan IDs
+      // 🧪 TESTING MODE - Using test price IDs
       const planMapping: Record<string, string> = {
         'Free': 'free',
-        'Basic': 'price_1S5X1sBY2SPm2HvOuDHNzsIp',
-        'Pro': 'price_1S5X2XBY2SPm2HvO2he9Unto',
+        'Basic': 'price_1S6DdkBY2SPm2HvOxI9yuZdg', // TEST Basic price ID
+        'Pro': 'price_1S6De0BY2SPm2HvOX1t23IUg',     // TEST Pro price ID
         'Enterprise': 'enterprise'
+        // PRODUCTION IDs (restore later):
+        // 'Basic': 'price_1S5X1sBY2SPm2HvOuDHNzsIp'
+        // 'Pro': 'price_1S5X2XBY2SPm2HvO2he9Unto'
       };
 
       const actualPlanId = planMapping[planId] || planId;
