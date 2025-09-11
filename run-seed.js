@@ -1,6 +1,7 @@
 
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
+import { subscriptionPlans } from './shared/schema.js';
 import ws from "ws";
 
 neonConfig.webSocketConstructor = ws;
@@ -34,22 +35,78 @@ async function seedSubscriptionPlans() {
     const pool = new Pool({ connectionString: getDatabaseUrl() });
     const db = drizzle({ client: pool });
     
-    // Insert subscription plans directly
-    const insertStatement = `
-      INSERT OR REPLACE INTO subscription_plans (id, name, description, price, interval, visualization_limit, embed_access, active) VALUES
-      ('free', 'Free', 'Free plan with limited visualizations', 0, 'month', 5, 0, 1),
-      ('price_1S5X1sBY2SPm2HvOuDHNzsIp', 'Basic', 'Basic plan with more visualizations', 2500, 'month', 50, 0, 1),
-      ('price_1S5X2XBY2SPm2HvO2he9Unto', 'Pro', 'Pro plan with unlimited visualizations', 10000, 'month', -1, 1, 1),
-      ('enterprise', 'Enterprise', 'Enterprise plan with custom features', 25000, 'month', -1, 1, 1),
-      ('custom', 'Custom', 'Admin-managed custom plan', 0, 'month', 100, 0, 1)
-    `;
-    
-    await db.execute(insertStatement);
+    // Define the subscription plans with correct pricing
+    const plans = [
+      {
+        id: 'free',
+        name: 'Free',
+        description: 'Free plan with limited visualizations',
+        price: 0, // $0
+        interval: 'month',
+        visualizationLimit: 5,
+        embedAccess: false,
+        active: true
+      },
+      {
+        id: 'price_1S5X1sBY2SPm2HvOuDHNzsIp',
+        name: 'Basic',
+        description: 'Basic plan with more visualizations',
+        price: 2000, // $20 in cents
+        interval: 'month',
+        visualizationLimit: 100, // 100 visualizations
+        embedAccess: false,
+        active: true
+      },
+      {
+        id: 'price_1S5X2XBY2SPm2HvO2he9Unto',
+        name: 'Pro',
+        description: 'Pro plan with premium features',
+        price: 10000, // $100 in cents
+        interval: 'month',
+        visualizationLimit: 200, // 200 visualizations
+        embedAccess: true,
+        active: true
+      },
+      {
+        id: 'custom',
+        name: 'Custom',
+        description: 'Admin-managed custom plan',
+        price: 0,
+        interval: 'month',
+        visualizationLimit: 100,
+        embedAccess: false,
+        active: true
+      }
+    ];
+
+    // Insert or update each plan
+    for (const plan of plans) {
+      await db.insert(subscriptionPlans)
+        .values(plan)
+        .onConflictDoUpdate({
+          target: subscriptionPlans.id,
+          set: {
+            name: plan.name,
+            description: plan.description,
+            price: plan.price,
+            interval: plan.interval,
+            visualizationLimit: plan.visualizationLimit,
+            embedAccess: plan.embedAccess,
+            active: plan.active
+          }
+        });
+    }
+
     console.log('✅ Subscription plans seeded successfully!');
+    console.log('Plans created:');
+    plans.forEach(plan => {
+      console.log(`  - ${plan.name}: $${plan.price/100}/month, ${plan.visualizationLimit === -1 ? 'unlimited' : plan.visualizationLimit} visualizations`);
+    });
     
     await pool.end();
   } catch (error) {
     console.error('❌ Error seeding subscription plans:', error);
+    process.exit(1);
   }
 }
 
