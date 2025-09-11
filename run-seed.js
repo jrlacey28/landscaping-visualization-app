@@ -1,13 +1,40 @@
 
-import fs from 'fs';
-import path from 'path';
-import { db } from './server/db.ts';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from "ws";
+
+neonConfig.webSocketConstructor = ws;
+
+// Handle both development and production database connections
+function getDatabaseUrl() {
+  // In production, check /tmp/replitdb first, then fall back to DATABASE_URL
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      const fs = await import('fs');
+      if (fs.existsSync('/tmp/replitdb')) {
+        const dbUrl = fs.readFileSync('/tmp/replitdb', 'utf-8').trim();
+        if (dbUrl) return dbUrl;
+      }
+    } catch (error) {
+      console.log('Could not read /tmp/replitdb, falling back to DATABASE_URL');
+    }
+  }
+  
+  if (!process.env.DATABASE_URL) {
+    throw new Error(
+      "DATABASE_URL must be set. Did you forget to provision a database?",
+    );
+  }
+  
+  return process.env.DATABASE_URL;
+}
 
 async function seedSubscriptionPlans() {
   try {
-    const sqlContent = fs.readFileSync('seed-subscription-plans.sql', 'utf8');
+    const pool = new Pool({ connectionString: getDatabaseUrl() });
+    const db = drizzle({ client: pool });
     
-    // Extract the INSERT statement from the SQL file
+    // Insert subscription plans directly
     const insertStatement = `
       INSERT OR REPLACE INTO subscription_plans (id, name, description, price, interval, visualization_limit, embed_access, active) VALUES
       ('free', 'Free', 'Free plan with limited visualizations', 0, 'month', 5, 0, 1),
@@ -17,8 +44,10 @@ async function seedSubscriptionPlans() {
       ('custom', 'Custom', 'Admin-managed custom plan', 0, 'month', 100, 0, 1)
     `;
     
-    await db.exec(insertStatement);
+    await db.execute(insertStatement);
     console.log('✅ Subscription plans seeded successfully!');
+    
+    await pool.end();
   } catch (error) {
     console.error('❌ Error seeding subscription plans:', error);
   }
