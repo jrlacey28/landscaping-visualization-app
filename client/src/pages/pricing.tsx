@@ -118,22 +118,6 @@ export default function PricingPage() {
       ],
       cta: "Get Started",
       ctaLink: "/auth?plan=price_1S5X2XBY2SPm2HvO2he9Unto"
-    },
-    {
-      name: "Enterprise",
-      description: "For large organizations with custom needs",
-      monthlyPrice: 750,
-      yearlyPrice: 9000,
-      priceNote: "(plus setup fee)",
-      features: [
-        "Everything in Pro, plus:",
-        "Custom white-label website",
-        "Dedicated mobile app", 
-        "Custom AI model training",
-        "Advanced integrations"
-      ],
-      cta: "Contact Sales",
-      ctaLink: "/contact"
     }
   ]
 

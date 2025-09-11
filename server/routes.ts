@@ -109,10 +109,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const actualPlanId = planMapping[planId];
-      console.log(`[ADMIN] Plan mapping - input: ${planId}, mapped: ${actualPlanId}`);
       
       if (!actualPlanId) {
-        console.log(`[ADMIN] Invalid plan ID received: ${planId}. Valid options: ${Object.keys(planMapping).join(', ')}`);
         return res.status(400).json({ 
           error: "Invalid plan ID", 
           received: planId, 
@@ -128,16 +126,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create admin-managed subscription for paid plans
         const now = new Date();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-        
-        console.log(`[ADMIN] Creating subscription with planId: "${actualPlanId}" (length: ${actualPlanId.length})`);
-        
-        // Double check the plan exists before creating subscription
-        const planExists = await storage.getSubscriptionPlan(actualPlanId);
-        console.log(`[ADMIN] Plan exists check:`, planExists);
-        
-        if (!planExists) {
-          throw new Error(`Plan with ID "${actualPlanId}" does not exist in database`);
-        }
         
         newSubscription = await storage.createSubscription({
           userId,
@@ -914,7 +902,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For now, we'll just update the tenant record
       
       const subscription = {
-        plan: plan, // 'basic', 'pro', 'enterprise'
+        plan: plan, // 'basic', 'pro'
         status: 'active',
         billingEmail: billingEmail,
         createdAt: new Date(),
