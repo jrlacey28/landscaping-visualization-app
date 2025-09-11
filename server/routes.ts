@@ -130,6 +130,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const now = new Date();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
         
+        console.log(`[ADMIN] Creating subscription with planId: "${actualPlanId}" (length: ${actualPlanId.length})`);
+        
+        // Double check the plan exists before creating subscription
+        const planExists = await storage.getSubscriptionPlan(actualPlanId);
+        console.log(`[ADMIN] Plan exists check:`, planExists);
+        
+        if (!planExists) {
+          throw new Error(`Plan with ID "${actualPlanId}" does not exist in database`);
+        }
+        
         newSubscription = await storage.createSubscription({
           userId,
           stripeCustomerId: `admin_${userId}_${Date.now()}`, // Admin-managed subscription
