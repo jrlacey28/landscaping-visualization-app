@@ -418,6 +418,57 @@ export class DatabaseStorage implements IStorage {
       .where(eq(subscriptionPlans.id, id));
   }
 
+  // Admin function to set user plan by Stripe price ID
+  async setUserPlanByStripeId(userId: number, stripePriceId: string): Promise<void> {
+    // First, ensure the plan exists, if not create it with default values
+    let plan = await this.db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.id, stripePriceId))
+      .limit(1);
+
+    if (plan.length === 0) {
+      // Create the plan with default values
+      await this.db
+        .insert(subscriptionPlans)
+        .values({
+          id: stripePriceId,
+          name: "Temp Plan",
+          description: "Temporary plan created automatically",
+          price: 0,
+          interval: "month",
+          visualizationLimit: 0,
+          embedAccess: false,
+          active: true
+        });
+    }
+
+    // End any existing active subscriptions for this user
+    const existingSubscription = await this.getUserActiveSubscription(userId);
+    if (existingSubscription) {
+      await this.updateSubscription(existingSubscription.id, {
+        status: 'canceled',
+        cancelAtPeriodEnd: true
+      });
+    }
+
+    // Create new subscription with the Stripe price ID
+    const now = new Date();
+    const oneMonthLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    await this.db
+      .insert(subscriptions)
+      .values({
+        userId: userId,
+        stripeCustomerId: `admin_managed_${userId}`,
+        planId: stripePriceId,
+        status: 'active',
+        currentPeriodStart: now,
+        currentPeriodEnd: oneMonthLater,
+        cancelAtPeriodEnd: false
+      });
+  }
+
   // Lead methods with user support
   async getLeadsByUser(userId: number): Promise<Lead[]> {
     return await this.db

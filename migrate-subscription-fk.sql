@@ -1,6 +1,12 @@
 
--- Migration to add foreign key constraint for subscriptions.plan_id
--- Drop existing constraint if it exists (in case it was created without proper options)
+-- Migration to ensure proper schema for Stripe price IDs
+-- Ensure subscription_plans.id is TEXT (should already be)
+ALTER TABLE subscription_plans ALTER COLUMN id TYPE TEXT;
+
+-- Ensure subscriptions.plan_id is TEXT (should already be)  
+ALTER TABLE subscriptions ALTER COLUMN plan_id TYPE TEXT;
+
+-- Drop existing constraint if it exists
 ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS subscriptions_plan_id_fkey;
 
 -- Add the foreign key constraint with proper options
@@ -8,6 +14,9 @@ ALTER TABLE subscriptions
 ADD CONSTRAINT subscriptions_plan_id_fkey 
 FOREIGN KEY (plan_id) REFERENCES subscription_plans(id) 
 ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- Clean up any invalid data
+DELETE FROM subscriptions WHERE plan_id NOT IN (SELECT id FROM subscription_plans);
 
 -- Verify the constraint exists
 SELECT 

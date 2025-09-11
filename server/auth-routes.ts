@@ -79,7 +79,7 @@ export function registerAuthRoutes(app: Express) {
       if (!token) {
         return res.redirect('/auth?error=no_token');
       }
-      
+
       // Redirect to frontend with token
       res.redirect(`/auth/success?token=${encodeURIComponent(token)}`);
     } catch (error) {
@@ -109,7 +109,7 @@ export function registerAuthRoutes(app: Express) {
       }
 
       const { user, token } = await AuthService.register(validationResult.data);
-      
+
       res.status(201).json({
         success: true,
         data: {
@@ -138,7 +138,7 @@ export function registerAuthRoutes(app: Express) {
       }
 
       const { user, token } = await AuthService.login(email, password);
-      
+
       res.json({
         success: true,
         data: {
@@ -164,14 +164,14 @@ export function registerAuthRoutes(app: Express) {
       const user = req.user!;
       const subscription = await storage.getUserActiveSubscription(user.id);
       const usageCheck = await storage.checkUsageLimits(user.id);
-      
+
       // Check embed access based on subscription plan
       let hasEmbedAccess = false;
       if (subscription) {
         const plan = await storage.getSubscriptionPlan(subscription.planId);
         hasEmbedAccess = plan?.embedAccess || false;
       }
-      
+
       res.json({
         success: true,
         data: {
@@ -213,7 +213,7 @@ export function registerAuthRoutes(app: Express) {
     try {
       const { planId } = req.body;
       const user = req.user!;
-      
+
       if (!planId) {
         return res.status(400).json({ error: 'Plan ID is required' });
       }
@@ -251,7 +251,7 @@ export function registerAuthRoutes(app: Express) {
   app.post('/api/subscription/cancel', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const user = req.user!;
-      
+
       // Get user's active subscription
       const subscription = await storage.getUserActiveSubscription(user.id);
       if (!subscription) {
@@ -285,7 +285,7 @@ export function registerAuthRoutes(app: Express) {
     try {
       const { type } = req.body;
       const user = req.user!;
-      
+
       if (!type || !['visualization', 'landscape', 'pool'].includes(type)) {
         return res.status(400).json({ error: 'Valid usage type is required' });
       }
@@ -298,10 +298,10 @@ export function registerAuthRoutes(app: Express) {
           details: usageCheck
         });
       }
-      
+
       // Track the usage
       const updatedUsage = await storage.createOrUpdateUserUsage(user.id, type as any);
-      
+
       res.json({ 
         success: true, 
         data: { 
@@ -339,7 +339,7 @@ export function registerAuthRoutes(app: Express) {
   app.post("/api/admin/update-user-plan", requireAdminAuth, async (req, res) => {
     try {
       const { userId, planId } = req.body;
-      
+
       if (!userId || !planId) {
         return res.status(400).json({ error: "User ID and Plan ID are required" });
       }
@@ -371,7 +371,7 @@ export function registerAuthRoutes(app: Express) {
         // Create admin-managed subscription for paid plans
         const now = new Date();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-        
+
         newSubscription = await storage.createSubscription({
           userId,
           stripeCustomerId: `admin_${userId}_${Date.now()}`,
@@ -398,7 +398,7 @@ export function registerAuthRoutes(app: Express) {
   app.post("/api/admin/reset-user-usage", requireAdminAuth, async (req, res) => {
     try {
       const { userId } = req.body;
-      
+
       if (!userId) {
         return res.status(400).json({ error: "User ID is required" });
       }
@@ -407,9 +407,9 @@ export function registerAuthRoutes(app: Express) {
       const now = new Date();
       const month = now.getMonth() + 1;
       const year = now.getFullYear();
-      
+
       await storage.resetUserUsage(userId, month, year);
-      
+
       res.json({ 
         success: true, 
         message: "User monthly usage reset successfully"
@@ -424,13 +424,13 @@ export function registerAuthRoutes(app: Express) {
   app.post("/api/admin/set-user-limit", requireAdminAuth, async (req, res) => {
     try {
       const { userId, limit } = req.body;
-      
+
       if (!userId || typeof limit !== 'number') {
         return res.status(400).json({ error: "User ID and numeric limit are required" });
       }
 
       await storage.setUserCustomLimit(userId, limit);
-      
+
       res.json({ 
         success: true, 
         message: `User custom limit set to ${limit}`
@@ -445,13 +445,13 @@ export function registerAuthRoutes(app: Express) {
   app.post("/api/admin/set-user-plan-stripe", requireAdminAuth, async (req, res) => {
     try {
       const { userId, stripePriceId } = req.body;
-      
+
       if (!userId || !stripePriceId) {
         return res.status(400).json({ error: "User ID and Stripe price ID are required" });
       }
 
       const subscription = await storage.setUserPlanByStripeId(userId, stripePriceId);
-      
+
       res.json({ 
         success: true, 
         message: `User plan set to ${stripePriceId}`,
@@ -467,7 +467,7 @@ export function registerAuthRoutes(app: Express) {
   async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     const userId = session.metadata?.userId;
     const planId = session.metadata?.planId;
-    
+
     if (!userId || !planId) {
       console.error('Missing metadata in checkout session');
       return;
