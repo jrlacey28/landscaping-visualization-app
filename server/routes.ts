@@ -80,7 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ isAuthenticated: !!req.session?.isAdmin });
   });
 
-  // Admin: Update user plan
+  // Admin: Update user plan by Stripe price ID
   app.post("/api/admin/update-user-plan", requireAdminAuth, async (req, res) => {
     try {
       const { userId, planId } = req.body;
@@ -91,52 +91,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "User ID and Plan ID are required" });
       }
 
-      // End any existing active subscriptions for this user
-      const existingSubscription = await storage.getUserActiveSubscription(userId);
-      if (existingSubscription) {
-        console.log(`[ADMIN] Ending existing subscription: ${existingSubscription.id}`);
-        await storage.updateSubscription(existingSubscription.id, {
-          status: 'inactive',
-          cancelAtPeriodEnd: true
-        });
-      }
-
-      // Map display names to actual database plan IDs
+      // Map display names to Stripe price IDs for backwards compatibility
       const planMapping: Record<string, string> = {
         'Free': 'free',
-        'Basic': 'price_1S5X1sBY2SPm2HvOuDHNzsIp',
+        'Basic': 'price_1S5X1sBY2SPm2HvOuDHNzsIp', 
         'Pro': 'price_1S5X2XBY2SPm2HvO2he9Unto'
       };
 
-      const actualPlanId = planMapping[planId];
-      
-      if (!actualPlanId) {
-        return res.status(400).json({ 
-          error: "Invalid plan ID", 
-          received: planId, 
-          validOptions: Object.keys(planMapping) 
-        });
-      }
+      // Use the mapping if it's a display name, otherwise assume it's already a Stripe price ID
+      const stripePriceId = planMapping[planId] || planId;
+      console.log(`[ADMIN] Using Stripe price ID: ${stripePriceId}`);
 
-      // Create new subscription based on plan
-      let newSubscription;
-      if (planId === 'Free') {
-        newSubscription = await storage.createFreeSubscription(userId);
-      } else {
-        // Create admin-managed subscription for paid plans
-        const now = new Date();
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-        
-        newSubscription = await storage.createSubscription({
-          userId,
-          stripeCustomerId: `admin_${userId}_${Date.now()}`, // Admin-managed subscription
-          planId: actualPlanId,
-          status: 'active',
-          currentPeriodStart: now,
-          currentPeriodEnd: endOfMonth,
-          cancelAtPeriodEnd: false,
-        });
-      }
+      // Use the new admin function that auto-creates plans if they don't exist
+      const newSubscription = await storage.setUserPlanByStripeId(userId, stripePriceId);
 
       res.json({ 
         success: true, 
