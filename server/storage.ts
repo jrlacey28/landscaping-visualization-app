@@ -340,7 +340,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setUserPlanByStripeId(userId: number, stripePriceId: string): Promise<Subscription> {
-    // Check if the plan exists, if not create it with default values
+    // Handle special "free" plan case
+    if (stripePriceId === 'free') {
+      // For free plan, use the existing createFreeSubscription method
+      // First deactivate any existing active subscription
+      const existingSubscription = await this.getUserActiveSubscription(userId);
+      if (existingSubscription) {
+        await this.updateSubscription(existingSubscription.id, {
+          status: 'canceled',
+          cancelAtPeriodEnd: false
+        });
+      }
+
+      return await this.createFreeSubscription(userId);
+    }
+
+    // Check if the plan exists, if not create it with proper default values
     let plan = await this.db
       .select()
       .from(subscriptionPlans)
@@ -349,32 +364,32 @@ export class DatabaseStorage implements IStorage {
       .then(rows => rows[0]);
 
     if (!plan) {
-      // Create the plan with default values
+      // Auto-create missing subscription plan with all required defaults
       [plan] = await this.db
         .insert(subscriptionPlans)
         .values({
           id: stripePriceId,
-          name: 'Temp Plan',
-          description: 'Temporary plan created by admin',
-          price: 0,
+          name: `Plan ${stripePriceId}`,
+          description: `Plan created for Stripe price ID: ${stripePriceId}`,
+          price: 2000, // Default $20.00 in cents
           interval: 'month',
-          visualizationLimit: 100,
+          visualizationLimit: 100, // Default limit
           embedAccess: false,
           active: true
         })
         .returning();
     }
 
-    // End any existing active subscriptions for this user
+    // Properly deactivate any existing active subscription for this user
     const existingSubscription = await this.getUserActiveSubscription(userId);
     if (existingSubscription) {
       await this.updateSubscription(existingSubscription.id, {
-        status: 'inactive',
-        cancelAtPeriodEnd: true
+        status: 'canceled',
+        cancelAtPeriodEnd: false
       });
     }
 
-    // Create new subscription with the Stripe price ID
+    // Create new subscription using the createSubscription method for consistency
     const now = new Date();
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
