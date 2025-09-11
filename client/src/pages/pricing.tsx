@@ -125,8 +125,9 @@ export default function PricingPage() {
   const effectiveTenant = tenant || {
     id: 1,
     slug: "demo",
+    userId: null,
     companyName: "DreamBuilder",
-    logoUrl: "",
+    logoUrl: null,
     primaryColor: "#2563EB", 
     secondaryColor: "#059669",
     phone: "(555) 123-4567",
@@ -138,6 +139,15 @@ export default function PricingPage() {
     active: true,
     monthlyGenerationLimit: 1000,
     currentMonthGenerations: 0,
+    contactPhone: "(555) 123-4567",
+    embedEnabled: false,
+    embedCtaText: "Get Started",
+    embedCtaPhone: "(555) 123-4567",
+    embedCtaUrl: "/contact",
+    embedPrimaryColor: "#2563EB",
+    embedSecondaryColor: "#059669",
+    embedCustomizations: null,
+    lastResetDate: null,
     createdAt: new Date(),
   };
 
