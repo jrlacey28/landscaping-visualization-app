@@ -46,7 +46,7 @@ async function seedSubscriptionPlans() {
         active: true
       },
       {
-        id: 'price_1S5X1sBY2SPm2HvOuDHNzsIp',
+        id: 'basic',
         name: 'Basic',
         description: 'Basic plan with more visualizations',
         price: 2000, // $20 in cents
@@ -56,7 +56,7 @@ async function seedSubscriptionPlans() {
         active: true
       },
       {
-        id: 'price_1S5X2XBY2SPm2HvO2he9Unto',
+        id: 'pro',
         name: 'Pro',
         description: 'Pro plan with premium features',
         price: 10000, // $100 in cents
@@ -73,6 +73,26 @@ async function seedSubscriptionPlans() {
         interval: 'month',
         visualization_limit: 100,
         embed_access: false,
+        active: true
+      },
+      {
+        id: 'price_1S5X1sBY2SPm2HvOuDHNzsIp',
+        name: 'Basic (Stripe)',
+        description: 'Basic plan with Stripe integration',
+        price: 2000, // $20 in cents
+        interval: 'month',
+        visualization_limit: 100,
+        embed_access: false,
+        active: true
+      },
+      {
+        id: 'price_1S5X2XBY2SPm2HvO2he9Unto',
+        name: 'Pro (Stripe)',
+        description: 'Pro plan with Stripe integration',
+        price: 10000, // $100 in cents
+        interval: 'month',
+        visualization_limit: 200,
+        embed_access: true,
         active: true
       }
     ];
