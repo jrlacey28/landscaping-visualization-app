@@ -130,6 +130,17 @@ export default function AdminDashboard() {
     primaryColor: "#2563EB",
     secondaryColor: "#059669"
   });
+  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [isAddingPlan, setIsAddingPlan] = useState(false);
+  const [newPlanData, setNewPlanData] = useState({
+    id: "",
+    name: "",
+    description: "",
+    price: 0,
+    interval: "month",
+    visualizationLimit: 5,
+    embedAccess: false
+  });
 
   // For demo purposes, we'll use a mock tenant ID
   const mockTenantId = 1;
@@ -200,6 +211,24 @@ export default function AdminDashboard() {
     }>;
   }>({
     queryKey: ["/api/customers"],
+  });
+
+  // Get subscription plans
+  const { data: subscriptionPlansData, isLoading: plansLoading } = useQuery<{
+    success: boolean;
+    data: Array<{
+      id: string;
+      name: string;
+      description: string;
+      price: number;
+      interval: string;
+      visualizationLimit: number;
+      embedAccess: boolean;
+      active: boolean;
+      createdAt: string;
+    }>;
+  }>({
+    queryKey: ["/api/subscription/plans"],
   });
 
   const updateTenantMutation = useMutation({
@@ -338,6 +367,77 @@ export default function AdminDashboard() {
     },
   });
 
+  const createPlanMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/admin/plans", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Plan Created",
+        description: "New subscription plan has been added successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription/plans"] });
+      setIsAddingPlan(false);
+      setNewPlanData({
+        id: "",
+        name: "",
+        description: "",
+        price: 0,
+        interval: "month",
+        visualizationLimit: 5,
+        embedAccess: false
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create plan.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePlanMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      return apiRequest("PATCH", `/api/admin/plans/${id}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Plan Updated",
+        description: "Subscription plan has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription/plans"] });
+      setEditingPlan(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update plan.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deletePlanMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/admin/plans/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Plan Deleted",
+        description: "Subscription plan has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription/plans"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete plan.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Load current tenant data
   const { data: currentTenant } = useQuery<Tenant>({
     queryKey: [`/api/tenant/${mockTenantId}`],
@@ -468,7 +568,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 lg:grid-cols-6 gap-1 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 lg:grid-cols-7 gap-1 h-auto p-1">
             <TabsTrigger
               value="overview"
               className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
@@ -482,6 +582,13 @@ export default function AdminDashboard() {
             >
               <Users className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Users</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="plans" 
+              className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
+            >
+              <Settings className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Plans</span>
             </TabsTrigger>
             <TabsTrigger 
               value="clients" 
@@ -711,6 +818,254 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Subscription Plans Tab */}
+          <TabsContent value="plans" className="space-y-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <h2 className="text-2xl md:text-3xl font-bold">Subscription Plans</h2>
+              <Button 
+                onClick={() => setIsAddingPlan(true)}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Add New Plan
+              </Button>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Subscription Plans</CardTitle>
+                <CardDescription>Create and edit subscription plans for your users</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Add New Plan Form */}
+                {isAddingPlan && (
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle>Add New Plan</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="newPlanId">Plan ID *</Label>
+                          <Input
+                            id="newPlanId"
+                            value={newPlanData.id}
+                            onChange={(e) => setNewPlanData(prev => ({ ...prev, id: e.target.value }))}
+                            placeholder="plan-id or stripe price id"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="newPlanName">Name *</Label>
+                          <Input
+                            id="newPlanName"
+                            value={newPlanData.name}
+                            onChange={(e) => setNewPlanData(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="Plan Name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="newPlanPrice">Price (cents) *</Label>
+                          <Input
+                            id="newPlanPrice"
+                            type="number"
+                            value={newPlanData.price}
+                            onChange={(e) => setNewPlanData(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="newPlanLimit">Visualization Limit *</Label>
+                          <Input
+                            id="newPlanLimit"
+                            type="number"
+                            value={newPlanData.visualizationLimit}
+                            onChange={(e) => setNewPlanData(prev => ({ ...prev, visualizationLimit: parseInt(e.target.value) || 5 }))}
+                            placeholder="-1 for unlimited"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="newPlanDescription">Description</Label>
+                        <Textarea
+                          id="newPlanDescription"
+                          value={newPlanData.description}
+                          onChange={(e) => setNewPlanData(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Plan description"
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={newPlanData.embedAccess}
+                          onCheckedChange={(checked) => setNewPlanData(prev => ({ ...prev, embedAccess: checked }))}
+                        />
+                        <Label>Embed Access</Label>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button 
+                          onClick={() => createPlanMutation.mutate(newPlanData)} 
+                          disabled={createPlanMutation.isPending}
+                        >
+                          {createPlanMutation.isPending ? "Creating..." : "Create Plan"}
+                        </Button>
+                        <Button variant="outline" onClick={() => setIsAddingPlan(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Edit Plan Form */}
+                {editingPlan && (
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle>Edit Plan: {editingPlan.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="editPlanName">Name</Label>
+                          <Input
+                            id="editPlanName"
+                            value={editingPlan.name}
+                            onChange={(e) => setEditingPlan(prev => ({ ...prev, name: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editPlanPrice">Price (cents)</Label>
+                          <Input
+                            id="editPlanPrice"
+                            type="number"
+                            value={editingPlan.price}
+                            onChange={(e) => setEditingPlan(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editPlanLimit">Visualization Limit</Label>
+                          <Input
+                            id="editPlanLimit"
+                            type="number"
+                            value={editingPlan.visualizationLimit}
+                            onChange={(e) => setEditingPlan(prev => ({ ...prev, visualizationLimit: parseInt(e.target.value) || 5 }))}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="editPlanDescription">Description</Label>
+                        <Textarea
+                          id="editPlanDescription"
+                          value={editingPlan.description || ""}
+                          onChange={(e) => setEditingPlan(prev => ({ ...prev, description: e.target.value }))}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={editingPlan.embedAccess}
+                          onCheckedChange={(checked) => setEditingPlan(prev => ({ ...prev, embedAccess: checked }))}
+                        />
+                        <Label>Embed Access</Label>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button 
+                          onClick={() => updatePlanMutation.mutate({ id: editingPlan.id, data: editingPlan })} 
+                          disabled={updatePlanMutation.isPending}
+                        >
+                          {updatePlanMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                        <Button variant="outline" onClick={() => setEditingPlan(null)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Plans List */}
+                {plansLoading ? (
+                  <div className="text-center py-8">
+                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading plans...</p>
+                  </div>
+                ) : subscriptionPlansData?.data?.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Plans Yet</h3>
+                    <p className="text-gray-500">Create your first subscription plan to get started.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-2">Plan</th>
+                          <th className="text-left py-3 px-2">Price</th>
+                          <th className="text-left py-3 px-2">Limit</th>
+                          <th className="text-left py-3 px-2">Features</th>
+                          <th className="text-left py-3 px-2">Status</th>
+                          <th className="text-left py-3 px-2">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {subscriptionPlansData?.data?.map((plan) => (
+                          <tr key={plan.id} className="border-b hover:bg-gray-50">
+                            <td className="py-4 px-2">
+                              <div>
+                                <p className="font-medium">{plan.name}</p>
+                                <p className="text-sm text-gray-500">{plan.description}</p>
+                                <p className="text-xs text-gray-400">{plan.id}</p>
+                              </div>
+                            </td>
+                            <td className="py-4 px-2">
+                              <span className="font-mono">
+                                ${(plan.price / 100).toFixed(2)}/{plan.interval}
+                              </span>
+                            </td>
+                            <td className="py-4 px-2">
+                              <span className={plan.visualizationLimit === -1 ? 'text-green-600' : ''}>
+                                {plan.visualizationLimit === -1 ? 'Unlimited' : plan.visualizationLimit}
+                              </span>
+                            </td>
+                            <td className="py-4 px-2">
+                              <div className="flex flex-wrap gap-1">
+                                {plan.embedAccess && (
+                                  <Badge variant="default">Embed Access</Badge>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-4 px-2">
+                              <Badge variant={plan.active ? 'default' : 'destructive'}>
+                                {plan.active ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </td>
+                            <td className="py-4 px-2">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingPlan(plan)}
+                                  className="text-xs"
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => deletePlanMutation.mutate(plan.id)}
+                                  disabled={deletePlanMutation.isPending}
+                                  className="text-xs"
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Users Tab */}

@@ -350,6 +350,51 @@ export class DatabaseStorage implements IStorage {
     // For now, this sets up the infrastructure
   }
 
+  // Subscription plan management methods
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return await this.db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.active, true))
+      .orderBy(subscriptionPlans.price);
+  }
+
+  async getSubscriptionPlan(id: string): Promise<SubscriptionPlan | null> {
+    const plans = await this.db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.id, id))
+      .limit(1);
+    
+    return plans[0] || null;
+  }
+
+  async createSubscriptionPlan(planData: any): Promise<SubscriptionPlan> {
+    const [plan] = await this.db
+      .insert(subscriptionPlans)
+      .values(planData)
+      .returning();
+    
+    return plan;
+  }
+
+  async updateSubscriptionPlan(id: string, planData: any): Promise<SubscriptionPlan> {
+    const [plan] = await this.db
+      .update(subscriptionPlans)
+      .set(planData)
+      .where(eq(subscriptionPlans.id, id))
+      .returning();
+    
+    return plan;
+  }
+
+  async deleteSubscriptionPlan(id: string): Promise<void> {
+    await this.db
+      .update(subscriptionPlans)
+      .set({ active: false })
+      .where(eq(subscriptionPlans.id, id));
+  }
+
   // Lead methods with user support
   async getLeadsByUser(userId: number): Promise<Lead[]> {
     return await this.db

@@ -189,6 +189,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Subscription plans management
+  app.get("/api/subscription/plans", async (req, res) => {
+    try {
+      const plans = await storage.getSubscriptionPlans();
+      res.json({ success: true, data: plans });
+    } catch (error) {
+      console.error("Error fetching subscription plans:", error);
+      res.status(500).json({ error: "Failed to fetch subscription plans" });
+    }
+  });
+
+  app.post("/api/admin/plans", requireAdminAuth, async (req, res) => {
+    try {
+      const planData = req.body;
+      const plan = await storage.createSubscriptionPlan(planData);
+      res.json({ success: true, data: plan });
+    } catch (error) {
+      console.error("Error creating subscription plan:", error);
+      res.status(500).json({ error: "Failed to create subscription plan" });
+    }
+  });
+
+  app.patch("/api/admin/plans/:id", requireAdminAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const planData = req.body;
+      const plan = await storage.updateSubscriptionPlan(id, planData);
+      res.json({ success: true, data: plan });
+    } catch (error) {
+      console.error("Error updating subscription plan:", error);
+      res.status(500).json({ error: "Failed to update subscription plan" });
+    }
+  });
+
+  app.delete("/api/admin/plans/:id", requireAdminAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteSubscriptionPlan(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting subscription plan:", error);
+      res.status(500).json({ error: "Failed to delete subscription plan" });
+    }
+  });
+
   // Serve static files from uploads directory
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
