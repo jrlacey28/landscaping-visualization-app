@@ -30,7 +30,6 @@ function getDatabaseUrl() {
 async function seedSubscriptionPlans() {
   try {
     const pool = new Pool({ connectionString: getDatabaseUrl() });
-    const db = drizzle({ client: pool });
     
     console.log('🌱 Seeding subscription plans...');
     
@@ -78,11 +77,11 @@ async function seedSubscriptionPlans() {
       }
     ];
 
-    // Use raw SQL to insert/update the plans
+    // Use raw SQL to insert/update the plans with direct client query
     for (const plan of plans) {
-      await db.execute(`
+      const query = `
         INSERT INTO subscription_plans (id, name, description, price, interval, visualization_limit, embed_access, active, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+        VALUES ('${plan.id}', '${plan.name}', '${plan.description}', ${plan.price}, '${plan.interval}', ${plan.visualization_limit}, ${plan.embed_access}, ${plan.active}, NOW())
         ON CONFLICT (id) DO UPDATE SET
           name = EXCLUDED.name,
           description = EXCLUDED.description,
@@ -91,16 +90,9 @@ async function seedSubscriptionPlans() {
           visualization_limit = EXCLUDED.visualization_limit,
           embed_access = EXCLUDED.embed_access,
           active = EXCLUDED.active
-      `, [
-        plan.id,
-        plan.name,
-        plan.description,
-        plan.price,
-        plan.interval,
-        plan.visualization_limit,
-        plan.embed_access,
-        plan.active
-      ]);
+      `;
+      
+      await pool.query(query);
     }
 
     console.log('✅ Subscription plans seeded successfully!');
