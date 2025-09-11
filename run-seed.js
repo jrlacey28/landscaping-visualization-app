@@ -11,7 +11,7 @@ function getDatabaseUrl() {
   // In production, check /tmp/replitdb first, then fall back to DATABASE_URL
   if (process.env.NODE_ENV === 'production') {
     try {
-      const fs = await import('fs');
+      const fs = require('fs');
       if (fs.existsSync('/tmp/replitdb')) {
         const dbUrl = fs.readFileSync('/tmp/replitdb', 'utf-8').trim();
         if (dbUrl) return dbUrl;
