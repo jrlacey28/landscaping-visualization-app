@@ -1180,8 +1180,9 @@ export default function AdminDashboard() {
                               <td className="py-4 px-2">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <Select
-                                    value={user.usage?.planName || 'Free'}
+                                    value={['Free', 'Basic', 'Pro', 'Enterprise'].includes(user.usage?.planName || 'Free') ? (user.usage?.planName || 'Free') : 'Free'}
                                     onValueChange={(planId) => {
+                                      console.log(`[ADMIN FRONTEND] Updating plan for user ${user.id} to: ${planId}`);
                                       updateUserPlanMutation.mutate({ userId: user.id, planId });
                                     }}
                                   >

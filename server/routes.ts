@@ -84,14 +84,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/update-user-plan", requireAdminAuth, async (req, res) => {
     try {
       const { userId, planId } = req.body;
+      console.log(`[ADMIN] Update user plan request - userId: ${userId}, planId: ${planId}`);
       
       if (!userId || !planId) {
+        console.log('[ADMIN] Missing required parameters');
         return res.status(400).json({ error: "User ID and Plan ID are required" });
       }
 
       // End any existing active subscriptions for this user
       const existingSubscription = await storage.getUserActiveSubscription(userId);
       if (existingSubscription) {
+        console.log(`[ADMIN] Ending existing subscription: ${existingSubscription.id}`);
         await storage.updateSubscription(existingSubscription.id, {
           status: 'inactive',
           cancelAtPeriodEnd: true
@@ -107,8 +110,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const actualPlanId = planMapping[planId];
+      console.log(`[ADMIN] Plan mapping - input: ${planId}, mapped: ${actualPlanId}`);
+      
       if (!actualPlanId) {
-        return res.status(400).json({ error: "Invalid plan ID" });
+        console.log(`[ADMIN] Invalid plan ID received: ${planId}. Valid options: ${Object.keys(planMapping).join(', ')}`);
+        return res.status(400).json({ 
+          error: "Invalid plan ID", 
+          received: planId, 
+          validOptions: Object.keys(planMapping) 
+        });
       }
 
       // Create new subscription based on plan
