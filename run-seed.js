@@ -1,7 +1,7 @@
 
-const fs = require('fs');
-const path = require('path');
-const { db } = require('./server/db');
+import fs from 'fs';
+import path from 'path';
+import { db } from './server/db.ts';
 
 async function seedSubscriptionPlans() {
   try {
