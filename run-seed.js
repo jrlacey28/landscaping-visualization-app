@@ -1,8 +1,7 @@
 
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { subscriptionPlans } from './shared/schema.js';
-import ws from "ws";
+const { Pool, neonConfig } = require('@neondatabase/serverless');
+const { drizzle } = require('drizzle-orm/neon-serverless');
+const ws = require("ws");
 
 neonConfig.webSocketConstructor = ws;
 
@@ -43,8 +42,8 @@ async function seedSubscriptionPlans() {
         description: 'Free plan with limited visualizations',
         price: 0, // $0
         interval: 'month',
-        visualizationLimit: 5,
-        embedAccess: false,
+        visualization_limit: 5,
+        embed_access: false,
         active: true
       },
       {
@@ -53,8 +52,8 @@ async function seedSubscriptionPlans() {
         description: 'Basic plan with more visualizations',
         price: 2000, // $20 in cents
         interval: 'month',
-        visualizationLimit: 100, // 100 visualizations
-        embedAccess: false,
+        visualization_limit: 100, // 100 visualizations
+        embed_access: false,
         active: true
       },
       {
@@ -63,8 +62,8 @@ async function seedSubscriptionPlans() {
         description: 'Pro plan with premium features',
         price: 10000, // $100 in cents
         interval: 'month',
-        visualizationLimit: 200, // 200 visualizations
-        embedAccess: true,
+        visualization_limit: 200, // 200 visualizations
+        embed_access: true,
         active: true
       },
       {
@@ -73,34 +72,41 @@ async function seedSubscriptionPlans() {
         description: 'Admin-managed custom plan',
         price: 0,
         interval: 'month',
-        visualizationLimit: 100,
-        embedAccess: false,
+        visualization_limit: 100,
+        embed_access: false,
         active: true
       }
     ];
 
-    // Insert or update each plan
+    // Use raw SQL to insert/update the plans
     for (const plan of plans) {
-      await db.insert(subscriptionPlans)
-        .values(plan)
-        .onConflictDoUpdate({
-          target: subscriptionPlans.id,
-          set: {
-            name: plan.name,
-            description: plan.description,
-            price: plan.price,
-            interval: plan.interval,
-            visualizationLimit: plan.visualizationLimit,
-            embedAccess: plan.embedAccess,
-            active: plan.active
-          }
-        });
+      await db.execute(`
+        INSERT INTO subscription_plans (id, name, description, price, interval, visualization_limit, embed_access, active, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+        ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          description = EXCLUDED.description,
+          price = EXCLUDED.price,
+          interval = EXCLUDED.interval,
+          visualization_limit = EXCLUDED.visualization_limit,
+          embed_access = EXCLUDED.embed_access,
+          active = EXCLUDED.active
+      `, [
+        plan.id,
+        plan.name,
+        plan.description,
+        plan.price,
+        plan.interval,
+        plan.visualization_limit,
+        plan.embed_access,
+        plan.active
+      ]);
     }
 
     console.log('✅ Subscription plans seeded successfully!');
     console.log('Plans created:');
     plans.forEach(plan => {
-      console.log(`  - ${plan.name}: $${plan.price/100}/month, ${plan.visualizationLimit === -1 ? 'unlimited' : plan.visualizationLimit} visualizations`);
+      console.log(`  - ${plan.name}: $${plan.price/100}/month, ${plan.visualization_limit === -1 ? 'unlimited' : plan.visualization_limit} visualizations`);
     });
     
     await pool.end();
