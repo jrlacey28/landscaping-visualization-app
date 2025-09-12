@@ -6,16 +6,46 @@ import { Progress } from '@/components/ui/progress';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTenant } from '@/hooks/use-tenant';
 import EmbedCodeGenerator from '@/components/embed-code-generator';
+import { RefreshCw } from 'lucide-react';
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const { tenant } = useTenant("demo");
+
+  // Auto-refresh user data every 30 seconds to catch plan changes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshUser();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refreshUser]);
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await refreshUser();
+      toast({
+        title: 'Success',
+        description: 'Your account information has been refreshed',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to refresh account information',
+        variant: 'destructive',
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   if (!user) {
     setLocation('/auth');
@@ -202,8 +232,22 @@ export default function Dashboard() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Current Plan & Usage</CardTitle>
-                <CardDescription>Your subscription and monthly usage details</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Current Plan & Usage</CardTitle>
+                    <CardDescription>Your subscription and monthly usage details</CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    title="Refresh account information"
+                    data-testid="button-refresh-account"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
