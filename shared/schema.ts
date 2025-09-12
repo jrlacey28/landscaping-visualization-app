@@ -34,6 +34,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   embedAccess: boolean("embed_access").default(false),
   active: boolean("active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // User subscriptions
@@ -273,6 +274,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
 
 export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({
   createdAt: true,
+  updatedAt: true,
 });
 
 export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
