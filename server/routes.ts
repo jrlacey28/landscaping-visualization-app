@@ -5,7 +5,6 @@ import multer from "multer";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
-import session from "express-session";
 
 import { storage } from "./storage";
 import { insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertTenantSchema } from "@shared/schema";
@@ -25,19 +24,6 @@ if (!fs.existsSync(uploadsDir)) {
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Configure session middleware
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { 
-      secure: process.env.NODE_ENV === 'production', // Auto-detect HTTPS in production
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      httpOnly: true, // Prevent client-side access for security
-      sameSite: 'lax' // CSRF protection
-    }
-  }));
-
   // Admin authentication middleware
   const requireAdminAuth = (req: any, res: any, next: any) => {
     if (req.session?.isAdmin) {
@@ -91,20 +77,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "User ID and Plan ID are required" });
       }
 
-      // Map display names to Stripe price IDs for backwards compatibility
-      // 🧪 TESTING MODE - Using test price IDs
+      // Check if we're in test mode based on Stripe key
+      const stripeSecretKey = process.env.STRIPE_TEST_API_KEY || process.env.STRIPE_SECRET_KEY;
+      const isTestMode = stripeSecretKey?.startsWith('sk_test_');
+
+      // Map display names to correct Stripe price IDs based on mode
       const planMapping: Record<string, string> = {
         'Free': 'free',
-        'Basic': 'price_1S6DdkBY2SPm2HvOxI9yuZdg', // TEST Basic price ID
-        'Pro': 'price_1S6De0BY2SPm2HvOX1t23IUg'     // TEST Pro price ID
-        // PRODUCTION IDs (restore later):
-        // 'Basic': 'price_1S5X1sBY2SPm2HvOuDHNzsIp'
-        // 'Pro': 'price_1S5X2XBY2SPm2HvO2he9Unto'
+        'Basic': isTestMode ? 'price_1S6DdkBY2SPm2HvOxI9yuZdg' : 'price_1S5X1sBY2SPm2HvOuDHNzsIp',
+        'Pro': isTestMode ? 'price_1S6De0BY2SPm2HvOX1t23IUg' : 'price_1S5X2XBY2SPm2HvO2he9Unto',
+        'Custom': 'custom'
       };
 
       // Use the mapping if it's a display name, otherwise assume it's already a Stripe price ID
       const stripePriceId = planMapping[planId] || planId;
-      console.log(`[ADMIN] Using Stripe price ID: ${stripePriceId}`);
+      console.log(`[ADMIN] Using Stripe price ID: ${stripePriceId} (${isTestMode ? 'TEST' : 'PRODUCTION'} mode)`);
 
       // Use the new admin function that auto-creates plans if they don't exist
       const newSubscription = await storage.setUserPlanByStripeId(userId, stripePriceId);

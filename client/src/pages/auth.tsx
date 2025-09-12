@@ -186,10 +186,6 @@ export default function AuthPage() {
   };
 
   const getPlanName = (planId: string) => {
-    // Current test price IDs
-    if (planId === 'price_1S6DdkBY2SPm2HvOxI9yuZdg') return 'Basic Plan';
-    if (planId === 'price_1S6De0BY2SPm2HvOX1t23IUg') return 'Pro Plan';
-    // Legacy production price IDs for backwards compatibility
     if (planId === 'price_1S5X1sBY2SPm2HvOuDHNzsIp') return 'Basic Plan';
     if (planId === 'price_1S5X2XBY2SPm2HvO2he9Unto') return 'Pro Plan';
     return 'Selected Plan';

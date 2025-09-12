@@ -221,7 +221,7 @@ export default function Dashboard() {
                     </p>
                     <div className="space-y-2">
                       <Button 
-                        onClick={() => handleUpgrade('price_1S6DdkBY2SPm2HvOxI9yuZdg')}
+                        onClick={() => handleUpgrade('price_1S5X1sBY2SPm2HvOuDHNzsIp')}
                         disabled={loading}
                         className="w-full"
                         variant="outline"
@@ -233,13 +233,13 @@ export default function Dashboard() {
                         disabled={loading}
                         className="w-full"
                       >
-                        Upgrade to Pro ($100/mo)
+                        Upgrade to Pro ($99/mo)
                       </Button>
                     </div>
                   </div>
                 )}
 
-                {user.subscription?.planId === 'price_1S6DdkBY2SPm2HvOxI9yuZdg' && (
+                {user.subscription?.planId === 'price_1S5X1sBY2SPm2HvOuDHNzsIp' && (
                   <div className="space-y-3">
                     <p className="text-sm text-gray-600">
                       Upgrade to Pro for unlimited visualizations and embed features!
@@ -249,7 +249,7 @@ export default function Dashboard() {
                       disabled={loading}
                       className="w-full"
                     >
-                      Upgrade to Pro ($100/mo)
+                      Upgrade to Pro ($99/mo)
                     </Button>
                   </div>
                 )}
@@ -267,7 +267,7 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <Button 
-                    onClick={() => handleUpgrade('price_1S6DdkBY2SPm2HvOxI9yuZdg')}
+                    onClick={() => handleUpgrade('price_1S5X1sBY2SPm2HvOuDHNzsIp')}
                     disabled={loading}
                     className="w-full"
                   >

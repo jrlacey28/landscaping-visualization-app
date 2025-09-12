@@ -1,6 +1,5 @@
 import type { Express } from "express";
 import express from "express";
-import session from "express-session";
 import passport from "passport";
 import Stripe from "stripe";
 import { storage } from "./storage";
@@ -20,36 +19,34 @@ const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2025-08-27.basil',
 });
 
-// Log which mode we're in
+// Detect mode and set the correct webhook secret
 const isTestMode = stripeSecretKey.startsWith('sk_test_');
-console.log(`${isTestMode ? '🧪 Stripe initialized in TEST mode' : '🚀 Stripe initialized in PRODUCTION mode'}`);
-console.log(`Using key: ${stripeSecretKey.substring(0, 12)}...`);
-console.log(`Test API key available: ${process.env.STRIPE_TEST_API_KEY ? 'YES' : 'NO'}`);
-console.log(`Production API key available: ${process.env.STRIPE_SECRET_KEY ? 'YES' : 'NO'}`);
+const stripeWebhookSecret = isTestMode 
+  ? process.env.STRIPE_TEST_WEBHOOK_SECRET 
+  : process.env.STRIPE_WEBHOOK_SECRET;
+
+// Log mode and configuration
+if (isTestMode) {
+  console.log('🧪 Stripe initialized in TEST mode');
+  console.log('🧪 Using test webhook secret:', stripeWebhookSecret ? 'configured' : 'NOT CONFIGURED');
+} else {
+  console.log('🚀 Stripe initialized in PRODUCTION mode');
+  console.log('🚀 Using live webhook secret:', stripeWebhookSecret ? 'configured' : 'NOT CONFIGURED');
+}
 
 export function registerAuthRoutes(app: Express) {
-  // Configure session middleware for passport
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false, // Set to true in production with HTTPS
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
-  }));
-
-  // Initialize passport
+  // Initialize passport (session middleware is now in index.ts)
   app.use(passport.initialize());
   app.use(passport.session());
 
   // Stripe webhook (must be before express.json middleware)
   app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const endpointSecret = stripeWebhookSecret; // Use the correct webhook secret based on mode
 
     if (!endpointSecret) {
-      console.error('Stripe webhook secret not configured');
+      console.error(`Stripe webhook secret not configured for ${isTestMode ? 'TEST' : 'LIVE'} mode`);
+      console.error(`Please set ${isTestMode ? 'STRIPE_TEST_WEBHOOK_SECRET' : 'STRIPE_WEBHOOK_SECRET'} environment variable`);
       return res.status(400).send('Webhook secret not configured');
     }
 
@@ -224,57 +221,20 @@ export function registerAuthRoutes(app: Express) {
       const { planId } = req.body;
       const user = (req as any).user!;
 
-      console.log(`🛒 Checkout request - User: ${user.id}, Plan: ${planId}`);
-
       if (!planId) {
         return res.status(400).json({ error: 'Plan ID is required' });
       }
 
       // Get plan details
       const plan = await storage.getSubscriptionPlan(planId);
-      console.log(`📋 Plan lookup result:`, plan ? `Found: ${plan.name}` : 'Not found');
-
       if (!plan) {
-        console.error(`❌ Plan not found for ID: ${planId}`);
         return res.status(404).json({ error: 'Plan not found' });
       }
 
       // Create Stripe checkout session
-      const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
-
-      console.log(`💳 Creating Stripe checkout session with price ID: ${planId}`);
-      console.log(`📧 Customer email: ${user.email}`);
-      console.log(`🌐 Base URL: ${baseUrl}`);
-
-      // First, let's verify this price exists in Stripe and list available prices
-      try {
-        const priceCheck = await stripe.prices.retrieve(planId);
-        console.log(`✅ Price verified in Stripe:`, {
-          id: priceCheck.id,
-          product: priceCheck.product,
-          unit_amount: priceCheck.unit_amount,
-          currency: priceCheck.currency,
-          active: priceCheck.active
-        });
-      } catch (priceError: any) {
-        console.error(`❌ Price ID ${planId} not found in Stripe:`, priceError.message);
-
-        // List available test prices to help debug
-        try {
-          const allPrices = await stripe.prices.list({ limit: 10, active: true });
-          console.log(`📋 Available prices in your Stripe test account:`);
-          allPrices.data.forEach(price => {
-            console.log(`  - ${price.id}: $${price.unit_amount/100}/${price.recurring?.interval} (Product: ${price.product})`);
-          });
-        } catch (listError) {
-          console.error('Could not list available prices');
-        }
-
-        return res.status(400).json({ 
-          error: 'Invalid subscription plan',
-          details: `Price ID ${planId} does not exist in your Stripe test account. Check the server logs for available price IDs.`
-        });
-      }
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+        : `https://${process.env.REPLIT_DEV_DOMAIN}`;
 
       const session = await stripe.checkout.sessions.create({
         customer_email: user.email,
@@ -291,20 +251,10 @@ export function registerAuthRoutes(app: Express) {
         },
       });
 
-      console.log(`✅ Stripe session created successfully: ${session.id}`);
       res.json({ success: true, data: { url: session.url } });
     } catch (error: any) {
-      console.error('❌ Stripe checkout error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        type: error.type,
-        code: error.code,
-        param: error.param
-      });
-      res.status(500).json({ 
-        error: 'Failed to create checkout session',
-        details: error.message 
-      });
+      console.error('Checkout error:', error);
+      res.status(500).json({ error: 'Failed to create checkout session' });
     }
   });
 
@@ -484,7 +434,7 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  // Admin: Set user usage limit for user
+  // Admin: Set custom usage limit for user
   app.post("/api/admin/set-user-limit", requireAdminAuth, async (req, res) => {
     try {
       const { userId, limit } = req.body;
@@ -560,8 +510,8 @@ export function registerAuthRoutes(app: Express) {
 
       await storage.updateSubscriptionByStripeId(subscription.id, {
         status: status,
-        currentPeriodStart: new Date(subscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+        currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
+        currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
       });
     } catch (error) {
       console.error('Error updating subscription:', error);
