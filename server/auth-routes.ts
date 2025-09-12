@@ -165,8 +165,15 @@ export function registerAuthRoutes(app: Express) {
       const subscription = await storage.getUserActiveSubscription(user.id);
       const usageCheck = await storage.checkUsageLimits(user.id);
 
-      // Use the new computeEmbedAccess method that handles overrides
-      const hasEmbedAccess = await storage.computeEmbedAccess(user.id);
+      // Simple logic: Pro users get embed access
+      let hasEmbedAccess = false;
+      if (subscription && subscription.status === 'active') {
+        // Pro plan ALWAYS gets embed access
+        if (subscription.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto' || 
+            usageCheck.planName === 'Pro') {
+          hasEmbedAccess = true;
+        }
+      }
 
       res.json({
         success: true,

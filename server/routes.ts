@@ -246,11 +246,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const usersWithData = await storage.getAllUsersWithUsage();
       
-      // Compute embed access for each user
+      // Compute embed access for each user - SIMPLE: Pro users get it
       const usersWithEmbedAccess = await Promise.all(
         usersWithData.map(async (user) => {
+          // Simple check: Pro users get embed access
           const hasEmbedAccess = await storage.computeEmbedAccess(user.id);
-          const override = await storage.getUserFeatureOverrides(user.id);
           
           return {
             id: user.id,
@@ -260,9 +260,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             businessName: user.businessName,
             subscription: user.subscription,
             hasEmbedAccess,
-            embedOverride: override?.embedOverride ?? null,
-            overrideUpdatedBy: override?.updatedBy,
-            overrideUpdatedAt: override?.updatedAt,
+            embedOverride: null, // Not using overrides anymore
+            overrideUpdatedBy: null,
+            overrideUpdatedAt: null,
           };
         })
       );

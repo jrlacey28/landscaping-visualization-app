@@ -760,32 +760,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async computeEmbedAccess(userId: number): Promise<boolean> {
-    // Step 1: Check for manual override
-    const override = await this.getUserFeatureOverrides(userId);
-    if (override && override.embedOverride !== null) {
-      console.log(`User ${userId} has embed override: ${override.embedOverride}`);
-      return override.embedOverride;
-    }
-
-    // Step 2: Check user's subscription plan
+    // SIMPLE LOGIC: Pro users get embed access, period.
     const subscription = await this.getUserActiveSubscription(userId);
+    
     if (!subscription || subscription.status !== 'active') {
-      console.log(`User ${userId} has no active subscription - embed access: false`);
       return false;
     }
 
-    // Step 3: Check if it's the Pro plan (hardcoded price ID)
+    // Pro plan (using Stripe price ID) ALWAYS gets embed access
     const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
     if (subscription.planId === PRO_PLAN_ID) {
-      console.log(`User ${userId} has Pro plan - embed access: true`);
       return true;
     }
 
-    // Step 4: Check plan's embed_access field
+    // Check if plan name is Pro (backup check)
     const plan = await this.getSubscriptionPlan(subscription.planId);
-    const embedAccess = plan?.embedAccess || false;
-    console.log(`User ${userId} has plan ${subscription.planId} - embed access: ${embedAccess}`);
-    return embedAccess;
+    if (plan && plan.name === 'Pro') {
+      return true;
+    }
+
+    // All other plans: no embed access
+    return false;
   }
 }
 
