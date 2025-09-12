@@ -224,19 +224,26 @@ export function registerAuthRoutes(app: Express) {
       const { planId } = req.body;
       const user = (req as any).user!;
 
+      console.log(`🛒 Checkout request - User: ${user.id}, Plan: ${planId}`);
+
       if (!planId) {
         return res.status(400).json({ error: 'Plan ID is required' });
       }
 
       // Get plan details
       const plan = await storage.getSubscriptionPlan(planId);
+      console.log(`📋 Plan lookup result:`, plan ? `Found: ${plan.name}` : 'Not found');
+      
       if (!plan) {
+        console.error(`❌ Plan not found for ID: ${planId}`);
         return res.status(404).json({ error: 'Plan not found' });
       }
 
       // Create Stripe checkout session
       const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
 
+      console.log(`💳 Creating Stripe checkout session with price ID: ${planId}`);
+      
       const session = await stripe.checkout.sessions.create({
         customer_email: user.email,
         line_items: [{
@@ -252,10 +259,20 @@ export function registerAuthRoutes(app: Express) {
         },
       });
 
+      console.log(`✅ Stripe session created successfully: ${session.id}`);
       res.json({ success: true, data: { url: session.url } });
     } catch (error: any) {
-      console.error('Checkout error:', error);
-      res.status(500).json({ error: 'Failed to create checkout session' });
+      console.error('❌ Stripe checkout error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        type: error.type,
+        code: error.code,
+        param: error.param
+      });
+      res.status(500).json({ 
+        error: 'Failed to create checkout session',
+        details: error.message 
+      });
     }
   });
 
