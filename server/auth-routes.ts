@@ -233,7 +233,7 @@ export function registerAuthRoutes(app: Express) {
       // Get plan details
       const plan = await storage.getSubscriptionPlan(planId);
       console.log(`📋 Plan lookup result:`, plan ? `Found: ${plan.name}` : 'Not found');
-      
+
       if (!plan) {
         console.error(`❌ Plan not found for ID: ${planId}`);
         return res.status(404).json({ error: 'Plan not found' });
@@ -243,7 +243,39 @@ export function registerAuthRoutes(app: Express) {
       const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
 
       console.log(`💳 Creating Stripe checkout session with price ID: ${planId}`);
-      
+      console.log(`📧 Customer email: ${user.email}`);
+      console.log(`🌐 Base URL: ${baseUrl}`);
+
+      // First, let's verify this price exists in Stripe and list available prices
+      try {
+        const priceCheck = await stripe.prices.retrieve(planId);
+        console.log(`✅ Price verified in Stripe:`, {
+          id: priceCheck.id,
+          product: priceCheck.product,
+          unit_amount: priceCheck.unit_amount,
+          currency: priceCheck.currency,
+          active: priceCheck.active
+        });
+      } catch (priceError: any) {
+        console.error(`❌ Price ID ${planId} not found in Stripe:`, priceError.message);
+
+        // List available test prices to help debug
+        try {
+          const allPrices = await stripe.prices.list({ limit: 10, active: true });
+          console.log(`📋 Available prices in your Stripe test account:`);
+          allPrices.data.forEach(price => {
+            console.log(`  - ${price.id}: $${price.unit_amount/100}/${price.recurring?.interval} (Product: ${price.product})`);
+          });
+        } catch (listError) {
+          console.error('Could not list available prices');
+        }
+
+        return res.status(400).json({ 
+          error: 'Invalid subscription plan',
+          details: `Price ID ${planId} does not exist in your Stripe test account. Check the server logs for available price IDs.`
+        });
+      }
+
       const session = await stripe.checkout.sessions.create({
         customer_email: user.email,
         line_items: [{
@@ -452,7 +484,7 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  // Admin: Set custom usage limit for user
+  // Admin: Set user usage limit for user
   app.post("/api/admin/set-user-limit", requireAdminAuth, async (req, res) => {
     try {
       const { userId, limit } = req.body;
