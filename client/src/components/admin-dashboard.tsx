@@ -115,6 +115,28 @@ export default function AdminDashboard() {
     },
   });
 
+  // Mutation for setting embed access override
+  const setEmbedOverrideMutation = useMutation({
+    mutationFn: async ({ userId, embedOverride }: { userId: number; embedOverride: boolean | null }) => {
+      return apiRequest("POST", `/api/admin/user/${userId}/embed-override`, { embedOverride });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Embed Access Updated",
+        description: "User embed access override has been set successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users-with-embed-access"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update embed access.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [selectedTenantForStats, setSelectedTenantForStats] = useState<number | null>(null); // No default - requires selection
   const [isAddingClient, setIsAddingClient] = useState(false);
@@ -200,6 +222,25 @@ export default function AdminDashboard() {
     }>;
   }>({
     queryKey: ["/api/customers"],
+  });
+
+  // Get users with embed access data
+  const { data: usersWithEmbedData } = useQuery<{
+    success: boolean;
+    data: Array<{
+      id: number;
+      email: string;
+      firstName: string;
+      lastName: string;
+      businessName?: string;
+      subscription?: any;
+      hasEmbedAccess: boolean;
+      embedOverride: boolean | null;
+      overrideUpdatedBy?: string;
+      overrideUpdatedAt?: string;
+    }>;
+  }>({
+    queryKey: ["/api/admin/users-with-embed-access"],
   });
 
 
@@ -1088,6 +1129,7 @@ export default function AdminDashboard() {
                           <th className="text-left py-3 px-2">Business</th>
                           <th className="text-left py-3 px-2">Plan</th>
                           <th className="text-left py-3 px-2">Usage</th>
+                          <th className="text-left py-3 px-2">Embed Access</th>
                           <th className="text-left py-3 px-2">Status</th>
                           <th className="text-left py-3 px-2">Joined</th>
                           <th className="text-left py-3 px-2">Actions</th>
@@ -1099,6 +1141,9 @@ export default function AdminDashboard() {
                             Math.min((user.usage?.currentUsage || 0) / (user.usage?.limit || 5) * 100, 100);
                           const isOverLimit = user.usage?.limit !== -1 && 
                             (user.usage?.currentUsage || 0) > (user.usage?.limit || 5);
+                          
+                          // Get embed access data for this user
+                          const embedData = usersWithEmbedData?.data?.find(u => u.id === user.id);
 
                           return (
                             <tr key={user.id} className="border-b hover:bg-gray-50">
@@ -1139,6 +1184,25 @@ export default function AdminDashboard() {
                                     </div>
                                   </div>
                                 )}
+                              </td>
+                              <td className="py-4 px-2">
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center gap-2">
+                                    {embedData?.hasEmbedAccess ? (
+                                      <CheckCircle className="h-4 w-4 text-green-500" />
+                                    ) : (
+                                      <XCircle className="h-4 w-4 text-gray-400" />
+                                    )}
+                                    <span className="text-sm">
+                                      {embedData?.hasEmbedAccess ? 'Enabled' : 'Disabled'}
+                                    </span>
+                                  </div>
+                                  {embedData?.embedOverride !== null && embedData?.embedOverride !== undefined && (
+                                    <span className="text-xs text-amber-600">
+                                      Override: {embedData.embedOverride ? 'Enabled' : 'Disabled'}
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="py-4 px-2">
                                 <div className="space-y-1">
@@ -1207,8 +1271,27 @@ export default function AdminDashboard() {
                                   >
                                     Set Limit
                                   </Button>
+                                  
+                                  <Select
+                                    value={embedData?.embedOverride === null ? 'inherit' : embedData?.embedOverride ? 'enabled' : 'disabled'}
+                                    onValueChange={(value) => {
+                                      let override: boolean | null = null;
+                                      if (value === 'enabled') override = true;
+                                      if (value === 'disabled') override = false;
+                                      setEmbedOverrideMutation.mutate({ userId: user.id, embedOverride: override });
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-8 w-32 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="inherit">Inherit</SelectItem>
+                                      <SelectItem value="enabled">Enable Embed</SelectItem>
+                                      <SelectItem value="disabled">Disable Embed</SelectItem>
+                                    </SelectContent>
+                                  </Select>
 
-                                  {(updateUserPlanMutation.isPending || resetUserUsageMutation.isPending || setUserLimitMutation.isPending) && (
+                                  {(updateUserPlanMutation.isPending || resetUserUsageMutation.isPending || setUserLimitMutation.isPending || setEmbedOverrideMutation.isPending) && (
                                     <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                                   )}
                                 </div>

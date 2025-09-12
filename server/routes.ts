@@ -241,6 +241,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin endpoints for managing embed access overrides
+  app.get('/api/admin/users-with-embed-access', requireAdminAuth, async (req, res) => {
+    try {
+      const usersWithData = await storage.getAllUsersWithUsage();
+      
+      // Compute embed access for each user
+      const usersWithEmbedAccess = await Promise.all(
+        usersWithData.map(async (user) => {
+          const hasEmbedAccess = await storage.computeEmbedAccess(user.id);
+          const override = await storage.getUserFeatureOverrides(user.id);
+          
+          return {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            businessName: user.businessName,
+            subscription: user.subscription,
+            hasEmbedAccess,
+            embedOverride: override?.embedOverride ?? null,
+            overrideUpdatedBy: override?.updatedBy,
+            overrideUpdatedAt: override?.updatedAt,
+          };
+        })
+      );
+      
+      res.json({ success: true, data: usersWithEmbedAccess });
+    } catch (error: any) {
+      console.error('Error fetching users with embed access:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/admin/user/:userId/embed-override', requireAdminAuth, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { embedOverride } = req.body; // true, false, or null
+      const adminEmail = req.session?.adminEmail || 'admin';
+      
+      const override = await storage.setUserEmbedOverride(
+        parseInt(userId),
+        embedOverride,
+        adminEmail
+      );
+      
+      // Compute new embed access
+      const hasEmbedAccess = await storage.computeEmbedAccess(parseInt(userId));
+      
+      res.json({ 
+        success: true, 
+        data: {
+          override,
+          hasEmbedAccess
+        }
+      });
+    } catch (error: any) {
+      console.error('Error setting embed override:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/admin/user/:userId/embed-status', requireAdminAuth, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const userIdNum = parseInt(userId);
+      
+      const [user, subscription, override, hasEmbedAccess] = await Promise.all([
+        storage.getUser(userIdNum),
+        storage.getUserActiveSubscription(userIdNum),
+        storage.getUserFeatureOverrides(userIdNum),
+        storage.computeEmbedAccess(userIdNum)
+      ]);
+      
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      let plan = null;
+      if (subscription) {
+        plan = await storage.getSubscriptionPlan(subscription.planId);
+      }
+      
+      res.json({
+        success: true,
+        data: {
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            businessName: user.businessName,
+          },
+          subscription: subscription ? {
+            planId: subscription.planId,
+            planName: plan?.name,
+            status: subscription.status,
+            embedAccessFromPlan: plan?.embedAccess || false,
+          } : null,
+          override: override ? {
+            embedOverride: override.embedOverride,
+            updatedBy: override.updatedBy,
+            updatedAt: override.updatedAt,
+          } : null,
+          hasEmbedAccess,
+        }
+      });
+    } catch (error: any) {
+      console.error('Error fetching embed status:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Serve static files from uploads directory
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 

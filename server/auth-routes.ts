@@ -165,21 +165,8 @@ export function registerAuthRoutes(app: Express) {
       const subscription = await storage.getUserActiveSubscription(user.id);
       const usageCheck = await storage.checkUsageLimits(user.id);
 
-      // Check embed access based on subscription plan
-      let hasEmbedAccess = false;
-      if (subscription && subscription.status === 'active') {
-        // Pro plan ALWAYS has embed access (using production Stripe price ID)
-        // This is hardcoded to ensure Pro users always get access
-        if (subscription.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto') {
-          hasEmbedAccess = true;
-          console.log(`User ${user.email} has Pro plan - embed access granted`);
-        } else {
-          // For other plans, check the database configuration
-          const plan = await storage.getSubscriptionPlan(subscription.planId);
-          hasEmbedAccess = plan?.embedAccess || false;
-          console.log(`User ${user.email} has plan ${subscription.planId} - embed access: ${hasEmbedAccess}`);
-        }
-      }
+      // Use the new computeEmbedAccess method that handles overrides
+      const hasEmbedAccess = await storage.computeEmbedAccess(user.id);
 
       res.json({
         success: true,

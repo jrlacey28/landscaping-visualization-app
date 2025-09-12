@@ -1,8 +1,10 @@
 import { 
   users, subscriptions, subscriptionPlans, userUsage, tenants, leads, visualizations, poolVisualizations, landscapeVisualizations,
+  userFeatureOverrides,
   type User, type InsertUser, type Subscription, type InsertSubscription, type SubscriptionPlan, type UserUsage, type InsertUserUsage,
   type Tenant, type InsertTenant, type Lead, type InsertLead, type Visualization, type InsertVisualization, 
-  type PoolVisualization, type InsertPoolVisualization, type LandscapeVisualization, type InsertLandscapeVisualization 
+  type PoolVisualization, type InsertPoolVisualization, type LandscapeVisualization, type InsertLandscapeVisualization,
+  type UserFeatureOverrides, type InsertUserFeatureOverrides
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte } from "drizzle-orm";
@@ -73,6 +75,11 @@ export interface IStorage {
   // Admin methods
   getAllUsersWithUsage(): Promise<Array<User & { usage?: UserUsage; subscription?: Subscription }>>;
   setUserPlanByStripeId(userId: number, stripePriceId: string): Promise<Subscription>;
+
+  // Feature override methods
+  getUserFeatureOverrides(userId: number): Promise<UserFeatureOverrides | undefined>;
+  setUserEmbedOverride(userId: number, embedOverride: boolean | null, updatedBy: string): Promise<UserFeatureOverrides>;
+  computeEmbedAccess(userId: number): Promise<boolean>;
 
   // Legacy tenant usage stats methods
   trackUsage(tenantId: number, type: 'visualization' | 'landscape' | 'pool'): Promise<void>;
@@ -712,6 +719,73 @@ export class DatabaseStorage implements IStorage {
     }));
 
     return usersWithData;
+  }
+
+  // Feature override methods
+  async getUserFeatureOverrides(userId: number): Promise<UserFeatureOverrides | undefined> {
+    const [override] = await this.db
+      .select()
+      .from(userFeatureOverrides)
+      .where(eq(userFeatureOverrides.userId, userId));
+    return override || undefined;
+  }
+
+  async setUserEmbedOverride(userId: number, embedOverride: boolean | null, updatedBy: string): Promise<UserFeatureOverrides> {
+    const existingOverride = await this.getUserFeatureOverrides(userId);
+    
+    if (existingOverride) {
+      // Update existing override
+      const [updated] = await this.db
+        .update(userFeatureOverrides)
+        .set({
+          embedOverride,
+          updatedAt: new Date(),
+          updatedBy
+        })
+        .where(eq(userFeatureOverrides.userId, userId))
+        .returning();
+      return updated;
+    } else {
+      // Create new override
+      const [created] = await this.db
+        .insert(userFeatureOverrides)
+        .values({
+          userId,
+          embedOverride,
+          updatedBy
+        })
+        .returning();
+      return created;
+    }
+  }
+
+  async computeEmbedAccess(userId: number): Promise<boolean> {
+    // Step 1: Check for manual override
+    const override = await this.getUserFeatureOverrides(userId);
+    if (override && override.embedOverride !== null) {
+      console.log(`User ${userId} has embed override: ${override.embedOverride}`);
+      return override.embedOverride;
+    }
+
+    // Step 2: Check user's subscription plan
+    const subscription = await this.getUserActiveSubscription(userId);
+    if (!subscription || subscription.status !== 'active') {
+      console.log(`User ${userId} has no active subscription - embed access: false`);
+      return false;
+    }
+
+    // Step 3: Check if it's the Pro plan (hardcoded price ID)
+    const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
+    if (subscription.planId === PRO_PLAN_ID) {
+      console.log(`User ${userId} has Pro plan - embed access: true`);
+      return true;
+    }
+
+    // Step 4: Check plan's embed_access field
+    const plan = await this.getSubscriptionPlan(subscription.planId);
+    const embedAccess = plan?.embedAccess || false;
+    console.log(`User ${userId} has plan ${subscription.planId} - embed access: ${embedAccess}`);
+    return embedAccess;
   }
 }
 

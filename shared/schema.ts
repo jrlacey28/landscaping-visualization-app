@@ -156,6 +156,16 @@ export const landscapeVisualizations = pgTable("landscape_visualizations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// User feature overrides for manual control of feature access
+export const userFeatureOverrides = pgTable("user_feature_overrides", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  embedOverride: boolean("embed_override"), // null = inherit from plan, true = force enable, false = force disable
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  updatedBy: text("updated_by"), // admin email who made the change
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   subscription: one(subscriptions),
@@ -165,6 +175,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   poolVisualizations: many(poolVisualizations),
   landscapeVisualizations: many(landscapeVisualizations),
   leads: many(leads),
+  featureOverrides: one(userFeatureOverrides),
 }));
 
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
@@ -230,6 +241,13 @@ export const landscapeVisualizationsRelations = relations(landscapeVisualization
   tenant: one(tenants, {
     fields: [landscapeVisualizations.tenantId],
     references: [tenants.id],
+  }),
+}));
+
+export const userFeatureOverridesRelations = relations(userFeatureOverrides, ({ one }) => ({
+  user: one(users, {
+    fields: [userFeatureOverrides.userId],
+    references: [users.id],
   }),
 }));
 
@@ -312,6 +330,12 @@ export const insertLandscapeVisualizationSchema = createInsertSchema(landscapeVi
   createdAt: true,
 });
 
+export const insertUserFeatureOverridesSchema = createInsertSchema(userFeatureOverrides).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -331,6 +355,8 @@ export type PoolVisualization = typeof poolVisualizations.$inferSelect;
 export type InsertPoolVisualization = z.infer<typeof insertPoolVisualizationSchema>;
 export type LandscapeVisualization = typeof landscapeVisualizations.$inferSelect;
 export type InsertLandscapeVisualization = z.infer<typeof insertLandscapeVisualizationSchema>;
+export type UserFeatureOverrides = typeof userFeatureOverrides.$inferSelect;
+export type InsertUserFeatureOverrides = z.infer<typeof insertUserFeatureOverridesSchema>;
 export type UsageStats = typeof usageStats.$inferSelect;
 
 export const insertUsageStatsSchema = createInsertSchema(usageStats).omit({
