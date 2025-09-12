@@ -165,15 +165,21 @@ export function registerAuthRoutes(app: Express) {
       const subscription = await storage.getUserActiveSubscription(user.id);
       const usageCheck = await storage.checkUsageLimits(user.id);
 
-      // Simple logic: Pro users get embed access
+      // Simple logic: Pro users get embed access - check MULTIPLE ways
       let hasEmbedAccess = false;
-      if (subscription && subscription.status === 'active') {
-        // Pro plan ALWAYS gets embed access
-        if (subscription.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto' || 
-            usageCheck.planName === 'Pro') {
+      
+      // Method 1: Check if usage says Pro (most reliable)
+      if (usageCheck.planName === 'Pro') {
+        hasEmbedAccess = true;
+      }
+      // Method 2: Check if subscription has Pro plan ID
+      else if (subscription && subscription.status === 'active') {
+        if (subscription.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto') {
           hasEmbedAccess = true;
         }
       }
+      
+      console.log(`User ${user.email} - Plan: ${usageCheck.planName}, Has Embed: ${hasEmbedAccess}`);
 
       res.json({
         success: true,

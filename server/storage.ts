@@ -760,26 +760,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async computeEmbedAccess(userId: number): Promise<boolean> {
-    // SIMPLE LOGIC: Pro users get embed access, period.
-    const subscription = await this.getUserActiveSubscription(userId);
+    // SIMPLE LOGIC: Anyone with Pro gets embed access
     
-    if (!subscription || subscription.status !== 'active') {
-      return false;
-    }
-
-    // Pro plan (using Stripe price ID) ALWAYS gets embed access
-    const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
-    if (subscription.planId === PRO_PLAN_ID) {
+    // First, check their usage/plan info - this is the most reliable
+    const usageInfo = await this.checkUsageLimits(userId);
+    if (usageInfo.planName === 'Pro') {
       return true;
     }
-
-    // Check if plan name is Pro (backup check)
-    const plan = await this.getSubscriptionPlan(subscription.planId);
-    if (plan && plan.name === 'Pro') {
-      return true;
+    
+    // Backup: Check subscription directly
+    const subscription = await this.getUserActiveSubscription(userId);
+    if (subscription && subscription.status === 'active') {
+      // Check if it's the Pro plan ID
+      const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
+      if (subscription.planId === PRO_PLAN_ID) {
+        return true;
+      }
+      
+      // Check if the plan name is Pro
+      const plan = await this.getSubscriptionPlan(subscription.planId);
+      if (plan && plan.name === 'Pro') {
+        return true;
+      }
     }
 
-    // All other plans: no embed access
+    // Not Pro = no embed access
     return false;
   }
 }
