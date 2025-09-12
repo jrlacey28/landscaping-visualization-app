@@ -93,6 +93,16 @@ async function initializeDatabase() {
 (async () => {
   await initializeDatabase();
 
+  // Health check endpoint for deployment monitoring
+  app.get('/', (_req, res) => {
+    res.status(200).json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      version: '1.0.0'
+    });
+  });
+
   // Register authentication routes first (includes Stripe webhook and sets up sessions)
   registerAuthRoutes(app);
   
