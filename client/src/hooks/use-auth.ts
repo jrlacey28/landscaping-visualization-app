@@ -27,6 +27,7 @@ interface AuthUser {
   user: User;
   subscription: Subscription | null;
   usage: UsageInfo;
+  hasEmbedAccess: boolean;
 }
 
 interface AuthContextType {
