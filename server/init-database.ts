@@ -83,7 +83,7 @@ export async function initializeDatabase() {
     }
   ];
 
-  // Insert or update each plan
+  // Insert or update each plan with enhanced error handling
   for (const plan of plans) {
     try {
       // Check if plan exists
@@ -114,7 +114,33 @@ export async function initializeDatabase() {
         console.log(`✅ Created plan: ${plan.name} (${plan.id})`);
       }
     } catch (error) {
-      console.error(`❌ Error processing plan ${plan.id}:`, error);
+      // Enhanced error handling for different types of database errors
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
+          console.warn(`⚠️  Plan ${plan.id} already exists (duplicate key), skipping...`);
+          // Try to update the existing record instead
+          try {
+            await db
+              .update(subscriptionPlans)
+              .set({
+                ...plan,
+                updatedAt: new Date()
+              })
+              .where(eq(subscriptionPlans.id, plan.id));
+            console.log(`✅ Updated existing plan after duplicate key error: ${plan.name} (${plan.id})`);
+          } catch (updateError) {
+            console.error(`❌ Failed to update plan ${plan.id} after duplicate key error:`, updateError);
+          }
+        } else if (error.message.includes('connection') || error.message.includes('network')) {
+          console.error(`🔌 Database connection error for plan ${plan.id}:`, error.message);
+          // For connection errors, we might want to retry or fail fast
+          throw error;
+        } else {
+          console.error(`❌ Unexpected error processing plan ${plan.id}:`, error.message);
+        }
+      } else {
+        console.error(`❌ Unknown error processing plan ${plan.id}:`, error);
+      }
     }
   }
 
