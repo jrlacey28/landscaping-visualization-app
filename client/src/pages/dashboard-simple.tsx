@@ -247,7 +247,7 @@ export default function Dashboard() {
                     </p>
                     <div className="space-y-2">
                       <Button 
-                        onClick={() => handleUpgrade('price_1S5X1sBY2SPm2HvOuDHNzsIp')}
+                        onClick={() => handleUpgrade('price_1S6DdkBY2SPm2HvOxI9yuZdg')}
                         disabled={loading}
                         className="w-full"
                         variant="outline"
@@ -321,7 +321,7 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <Button 
-                    onClick={() => handleUpgrade('price_1S5X1sBY2SPm2HvOuDHNzsIp')}
+                    onClick={() => handleUpgrade('price_1S6DdkBY2SPm2HvOxI9yuZdg')}
                     disabled={loading}
                     className="w-full"
                   >
