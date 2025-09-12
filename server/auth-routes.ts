@@ -225,6 +225,8 @@ export function registerAuthRoutes(app: Express) {
       }
 
       // Create Stripe checkout session
+      const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+
       const session = await stripe.checkout.sessions.create({
         customer_email: user.email,
         line_items: [{
@@ -232,8 +234,8 @@ export function registerAuthRoutes(app: Express) {
           quantity: 1,
         }],
         mode: 'subscription',
-        success_url: `${process.env.REPLIT_DEV_DOMAIN || req.headers.origin || 'http://localhost:5000'}/dashboard?success=true`,
-        cancel_url: `${process.env.REPLIT_DEV_DOMAIN || req.headers.origin || 'http://localhost:5000'}/pricing?canceled=true`,
+        success_url: `${baseUrl}/dashboard?success=true`,
+        cancel_url: `${baseUrl}/pricing?canceled=true`,
         metadata: {
           userId: user.id.toString(),
           planId: planId,
