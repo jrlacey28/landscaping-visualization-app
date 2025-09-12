@@ -1,6 +1,5 @@
 import type { Express } from "express";
 import express from "express";
-import session from "express-session";
 import passport from "passport";
 import Stripe from "stripe";
 import { storage } from "./storage";
@@ -20,36 +19,34 @@ const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2025-08-27.basil',
 });
 
-// Log if we're using test mode
-if (stripeSecretKey.startsWith('sk_test_')) {
+// Detect mode and set the correct webhook secret
+const isTestMode = stripeSecretKey.startsWith('sk_test_');
+const stripeWebhookSecret = isTestMode 
+  ? process.env.STRIPE_TEST_WEBHOOK_SECRET 
+  : process.env.STRIPE_WEBHOOK_SECRET;
+
+// Log mode and configuration
+if (isTestMode) {
   console.log('🧪 Stripe initialized in TEST mode');
+  console.log('🧪 Using test webhook secret:', stripeWebhookSecret ? 'configured' : 'NOT CONFIGURED');
 } else {
   console.log('🚀 Stripe initialized in PRODUCTION mode');
+  console.log('🚀 Using live webhook secret:', stripeWebhookSecret ? 'configured' : 'NOT CONFIGURED');
 }
 
 export function registerAuthRoutes(app: Express) {
-  // Configure session middleware for passport
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false, // Set to true in production with HTTPS
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
-  }));
-
-  // Initialize passport
+  // Initialize passport (session middleware is now in index.ts)
   app.use(passport.initialize());
   app.use(passport.session());
 
   // Stripe webhook (must be before express.json middleware)
   app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const endpointSecret = stripeWebhookSecret; // Use the correct webhook secret based on mode
 
     if (!endpointSecret) {
-      console.error('Stripe webhook secret not configured');
+      console.error(`Stripe webhook secret not configured for ${isTestMode ? 'TEST' : 'LIVE'} mode`);
+      console.error(`Please set ${isTestMode ? 'STRIPE_TEST_WEBHOOK_SECRET' : 'STRIPE_WEBHOOK_SECRET'} environment variable`);
       return res.status(400).send('Webhook secret not configured');
     }
 

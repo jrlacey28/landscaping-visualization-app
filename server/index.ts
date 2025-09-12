@@ -5,6 +5,7 @@ import { setupGoogleAuth } from "./google-auth";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import compression from "compression";
+import session from "express-session";
 
 const app = express();
 
@@ -23,6 +24,22 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// CENTRALIZED SESSION MIDDLEWARE - configured once for entire app
+// This must be before any route registration to prevent conflicts
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production', // Auto-detect HTTPS in production
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    httpOnly: true, // Prevent client-side access for security
+    sameSite: 'lax' // CSRF protection
+  },
+  proxy: process.env.NODE_ENV === 'production', // Trust proxy in production for correct secure cookie handling
+  name: 'sessionId' // Avoid default connect.sid name for security
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();
