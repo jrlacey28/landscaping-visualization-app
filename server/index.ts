@@ -117,15 +117,31 @@ async function initializeDatabase() {
       // Don't exit - continue with server startup even if DB init fails
     }
 
-    // Health check endpoint for deployment monitoring - MUST be registered FIRST
-    // to ensure it takes precedence over catch-all routes in both dev and prod
-    app.get('/', (_req, res) => {
+    // Health check endpoint with content negotiation
+    // Returns JSON for health checks, but passes through for browsers to get the app
+    app.get('/health', (_req, res) => {
       res.status(200).json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         version: '1.0.0'
       });
+    });
+    
+    // Root path content negotiation - JSON for health checks, app for browsers
+    app.get('/', (req, res, next) => {
+      // If request accepts JSON but not HTML, return health check
+      const acceptHeader = req.get('Accept') || '';
+      if (acceptHeader.includes('application/json') && !acceptHeader.includes('text/html')) {
+        return res.status(200).json({ 
+          status: 'ok', 
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          version: '1.0.0'
+        });
+      }
+      // Otherwise, pass through to serve the app
+      next();
     });
 
     // Register authentication routes first (includes Stripe webhook and sets up sessions)
