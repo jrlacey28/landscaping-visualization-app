@@ -1,5 +1,4 @@
-
--- Seed test subscription plans with correct Stripe test price IDs
+-- Seed test subscription plans with correct Stripe test price IDs and proper pricing
 INSERT INTO subscription_plans (id, name, description, price, interval, visualization_limit, embed_access, active)
 VALUES 
   ('free', 'Free Plan', 'Basic free tier with limited features', 0, 'month', 5, false, true),
