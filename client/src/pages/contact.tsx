@@ -1,6 +1,6 @@
-import { useTenant } from "@/hooks/use-tenant"
-import Header from "@/components/header"
-import ContactForm from "@/components/contact-form"
+import { useTenant } from "../hooks/use-tenant"
+import Header from "../components/header"
+import ContactForm from "../components/contact-form"
 
 export default function ContactPage() {
   const { tenant } = useTenant()

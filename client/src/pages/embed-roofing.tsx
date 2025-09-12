@@ -4,7 +4,7 @@ import { useTenant } from "../hooks/use-tenant";
 import StyleSelector from "../components/style-selector";
 import { Button } from "../components/ui/button";
 import { Upload, Sparkles, Download, Eye, Camera, Phone, XCircle } from "lucide-react";
-import { SparklesText } from "@/components/ui/sparkles-text";
+import { SparklesText } from "../components/ui/sparkles-text";
 import { uploadImage, checkVisualizationStatus } from "../lib/api";
 
 export default function EmbedRoofingPage() {

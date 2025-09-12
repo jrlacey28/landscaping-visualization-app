@@ -1,12 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { PricingCard, type PricingTier } from "@/components/ui/pricing-card"
-import { Tab } from "@/components/ui/pricing-tab"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { useTenant } from "@/hooks/use-tenant"
-import { cn } from "@/lib/utils"
-import Header from "@/components/header"
+import { PricingCard, type PricingTier } from "../components/ui/pricing-card"
+import { Tab } from "../components/ui/pricing-tab"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion"
+import { useTenant } from "../hooks/use-tenant"
+import { cn } from "../lib/utils"
+import Header from "../components/header"
 
 interface PricingSectionProps {
   title: string

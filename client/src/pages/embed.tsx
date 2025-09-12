@@ -3,7 +3,7 @@ import { useTenant } from "../hooks/use-tenant";
 import LandscapeStyleSelector from "../components/landscape-style-selector";
 import { Button } from "../components/ui/button";
 import { Upload, Sparkles, Download, Eye, Camera, Phone, XCircle } from "lucide-react";
-import { SparklesText } from "@/components/ui/sparkles-text";
+import { SparklesText } from "../components/ui/sparkles-text";
 import { uploadLandscapeImage, checkLandscapeVisualizationStatus } from "../lib/api";
 
 interface EmbedProps {

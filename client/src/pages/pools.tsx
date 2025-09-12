@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
 import {
   Eye,
   Phone,
@@ -12,16 +12,16 @@ import {
   Twitter,
   Instagram,
 } from "lucide-react";
-import FileUpload from "@/components/ui/file-upload";
-import PoolStyleSelector from "@/components/pool-style-selector";
-import LeadCaptureForm from "@/components/lead-capture-form";
-import Header from "@/components/header";
-import { SparklesText } from "@/components/ui/sparkles-text";
-import { useTenant } from "@/hooks/use-tenant";
+import FileUpload from "../components/ui/file-upload";
+import PoolStyleSelector from "../components/pool-style-selector";
+import LeadCaptureForm from "../components/lead-capture-form";
+import Header from "../components/header";
+import { SparklesText } from "../components/ui/sparkles-text";
+import { useTenant } from "../hooks/use-tenant";
 import {
   uploadPoolImage,
   checkPoolVisualizationStatus,
-} from "@/lib/api";
+} from "../lib/api";
 
 export default function Pools() {
   const { tenant, isLoading: tenantLoading } = useTenant();

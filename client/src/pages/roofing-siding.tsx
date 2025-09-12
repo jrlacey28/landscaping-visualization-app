@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
 import { Link } from "wouter";
 import {
   Eye,
@@ -15,19 +15,19 @@ import {
   Instagram,
   Edit,
 } from "lucide-react";
-import FileUpload from "@/components/ui/file-upload";
-import ImageComparison from "@/components/ui/image-comparison";
-import InpaintingCanvas from "@/components/ui/inpainting-canvas";
-import StyleSelector from "@/components/style-selector";
-import LeadCaptureForm from "@/components/lead-capture-form";
-import Header from "@/components/header";
-import { SparklesText } from "@/components/ui/sparkles-text";
-import { useTenant } from "@/hooks/use-tenant";
+import FileUpload from "../components/ui/file-upload";
+import ImageComparison from "../components/ui/image-comparison";
+import InpaintingCanvas from "../components/ui/inpainting-canvas";
+import StyleSelector from "../components/style-selector";
+import LeadCaptureForm from "../components/lead-capture-form";
+import Header from "../components/header";
+import { SparklesText } from "../components/ui/sparkles-text";
+import { useTenant } from "../hooks/use-tenant";
 import {
   uploadImage,
   checkVisualizationStatus,
   analyzeLandscapeImage,
-} from "@/lib/api";
+} from "../lib/api";
 
 export default function RoofingSiding() {
   const { tenant, isLoading: tenantLoading } = useTenant();
