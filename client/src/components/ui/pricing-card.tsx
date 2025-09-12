@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { useState } from "react"
+import { apiRequest } from "@/lib/queryClient"
+import { useToast } from "@/hooks/use-toast"
 
 export interface PricingTier {
   name: string
@@ -23,6 +26,45 @@ interface PricingCardProps {
 
 export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
   const monthlyPrice = tier.monthlyPrice
+  const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
+
+  const handleUpgrade = async (planId: string) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('auth_token');
+      
+      if (!token) {
+        // User not logged in, redirect to auth first
+        window.location.href = `/auth?plan=${planId}`;
+        return;
+      }
+
+      const response = await apiRequest('POST', '/api/subscription/checkout', 
+        { planId },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      const data = await response.json();
+      if (data.success && data.data.url) {
+        window.location.href = data.data.url;
+      } else {
+        throw new Error('Failed to create checkout session');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to start upgrade process',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   
   return (
     <Card className={cn(
@@ -68,9 +110,17 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
             "w-full bg-transparent border border-white/30 text-white hover:bg-white/10 hover:border-white/50"
           )}
           variant="outline"
-          asChild
+          onClick={() => {
+            if (tier.name === "Free") {
+              window.location.href = "/auth";
+            } else {
+              handleUpgrade(tier.ctaLink);
+            }
+          }}
+          disabled={loading}
+          data-testid={`button-${tier.name.toLowerCase()}-plan`}
         >
-          <a href={tier.ctaLink}>{tier.cta}</a>
+          {loading ? "Processing..." : tier.cta}
         </Button>
       </CardFooter>
     </Card>
