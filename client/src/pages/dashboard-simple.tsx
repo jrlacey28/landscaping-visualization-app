@@ -265,14 +265,14 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {user.subscription?.planId === 'price_1S5X1sBY2SPm2HvOuDHNzsIp' && user.subscription?.status === 'active' && (
+                {user.subscription?.planId === 'price_1S6DdkBY2SPm2HvOxI9yuZdg' && user.subscription?.status === 'active' && (
                   <div className="space-y-3 border-t pt-4">
                     <p className="text-sm text-gray-600">
                       Upgrade to Pro for unlimited visualizations and embed features!
                     </p>
                     <div className="space-y-2">
                       <Button 
-                        onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
+                        onClick={() => handleUpgrade('price_1S6De0BY2SPm2HvOX1t23IUg')}
                         disabled={loading}
                         className="w-full"
                       >
@@ -290,7 +290,7 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {user.subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto' && user.subscription?.status === 'active' && (
+                {user.subscription?.planId === 'price_1S6De0BY2SPm2HvOX1t23IUg' && user.subscription?.status === 'active' && (
                   <div className="space-y-3 border-t pt-4">
                     <p className="text-sm text-gray-600">
                       You're on the Pro plan with unlimited visualizations!
