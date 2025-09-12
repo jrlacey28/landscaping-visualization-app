@@ -117,7 +117,8 @@ async function initializeDatabase() {
       // Don't exit - continue with server startup even if DB init fails
     }
 
-    // Health check endpoint for deployment monitoring
+    // Health check endpoint for deployment monitoring - MUST be registered FIRST
+    // to ensure it takes precedence over catch-all routes in both dev and prod
     app.get('/', (_req, res) => {
       res.status(200).json({ 
         status: 'ok', 
@@ -161,6 +162,8 @@ async function initializeDatabase() {
     } else {
       serveStatic(app);
     }
+
+    // Health check endpoint is now registered at the top to take precedence
 
     // Serve the app on configurable port (default 5000)
     // this serves both the API and the client.
