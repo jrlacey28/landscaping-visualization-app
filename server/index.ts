@@ -73,6 +73,10 @@ app.use((req, res, next) => {
 
 async function initializeDatabase() {
   try {
+    // Initialize subscription plans
+    const { initializeDatabase: initPlans } = await import("./init-database");
+    await initPlans();
+
     // Ensure demo tenant has correct company name
     const demoTenant = await storage.getTenantBySlug("demo");
     if (demoTenant && demoTenant.companyName !== "DreamBuilder") {
