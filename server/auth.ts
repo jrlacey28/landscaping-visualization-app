@@ -5,8 +5,8 @@ import type { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import type { User, InsertUser } from '@shared/schema';
 
-const JWT_SECRET: string = process.env.JWT_SECRET || 'dev-secret-key-change-in-production';
-const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '7d';
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-production';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 export interface AuthRequest extends Request {
   user?: User;
@@ -33,7 +33,7 @@ export class AuthService {
 
   static verifyToken(token: string): { userId: number; email: string } | null {
     try {
-      return jwt.verify(token, JWT_SECRET as string) as { userId: number; email: string };
+      return jwt.verify(token, JWT_SECRET) as { userId: number; email: string };
     } catch {
       return null;
     }
@@ -89,10 +89,7 @@ export class AuthService {
       throw new Error('Invalid email or password');
     }
 
-    // Verify password - check if user has a password hash (required for email/password login)
-    if (!user.passwordHash) {
-      throw new Error('Invalid email or password');
-    }
+    // Verify password
     const isValidPassword = await this.verifyPassword(password, user.passwordHash);
     if (!isValidPassword) {
       throw new Error('Invalid email or password');
@@ -159,7 +156,7 @@ export class AuthService {
 }
 
 // Middleware to authenticate requests
-export const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
+export const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
@@ -179,10 +176,8 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       return res.status(403).json({ error: 'User not found' });
     }
 
-    // Cast req to AuthRequest to add user properties
-    const authReq = req as AuthRequest;
-    authReq.user = user;
-    authReq.userId = user.id;
+    req.user = user;
+    req.userId = user.id;
     next();
   } catch (error) {
     console.error('Authentication error:', error);
