@@ -10,7 +10,8 @@ import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
 
 // Initialize Stripe - handle both test and production keys
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_TEST_API_KEY;
+// Prioritize test key for safe testing
+const stripeSecretKey = process.env.STRIPE_TEST_API_KEY || process.env.STRIPE_SECRET_KEY;
 if (!stripeSecretKey) {
   throw new Error('STRIPE_SECRET_KEY or STRIPE_TEST_API_KEY environment variable is required');
 }
