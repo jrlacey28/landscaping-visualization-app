@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "./button";
 import { Brush, Eraser, RotateCcw, Download, Sparkles, Edit } from "lucide-react";
-import { runSAM2Segmentation, checkSAM2Status } from "../../lib/api";
+import { runSAM2Segmentation, checkSAM2Status } from "@/lib/api";
 
 interface InpaintingCanvasProps {
   imageUrl: string;

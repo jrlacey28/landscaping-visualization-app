@@ -34,7 +34,6 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   embedAccess: boolean("embed_access").default(false),
   active: boolean("active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // User subscriptions
@@ -264,17 +263,16 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-}).partial({
-  passwordHash: true, // Make passwordHash optional for Google OAuth users
   emailVerified: true,
   emailVerificationToken: true,
   resetPasswordToken: true,
   resetPasswordExpires: true,
+}).partial({
+  passwordHash: true, // Make passwordHash optional for Google OAuth users
 });
 
 export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({
   createdAt: true,
-  updatedAt: true,
 });
 
 export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({

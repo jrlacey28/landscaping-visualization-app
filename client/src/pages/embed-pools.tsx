@@ -4,7 +4,7 @@ import { useTenant } from "../hooks/use-tenant";
 import PoolStyleSelector from "../components/pool-style-selector";
 import { Button } from "../components/ui/button";
 import { Upload, Sparkles, Download, Eye, Camera, Phone, XCircle } from "lucide-react";
-import { SparklesText } from "../components/ui/sparkles-text";
+import { SparklesText } from "@/components/ui/sparkles-text";
 import { uploadPoolImage, checkPoolVisualizationStatus } from "../lib/api";
 
 export default function EmbedPoolsPage() {

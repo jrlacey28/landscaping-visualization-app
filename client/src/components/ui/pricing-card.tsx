@@ -1,11 +1,11 @@
 import { Check } from "lucide-react"
-import { Button } from "./button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./card"
-import { Badge } from "./badge"
-import { cn } from "../../lib/utils"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import { useState } from "react"
-import { apiRequest } from "../../lib/queryClient"
-import { useToast } from "../../hooks/use-toast"
+import { apiRequest } from "@/lib/queryClient"
+import { useToast } from "@/hooks/use-toast"
 
 export interface PricingTier {
   name: string

@@ -6,12 +6,12 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-} from "./ui/dropdown-menu";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ChevronDown, Home, Waves, TreePine, User, LogOut } from "lucide-react";
 import type { Tenant } from "@shared/schema";
-import { useAuth } from "../hooks/use-auth";
+import { useAuth } from "@/hooks/use-auth";
 
 interface HeaderProps {
   tenant: Tenant;

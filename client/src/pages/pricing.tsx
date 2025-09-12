@@ -1,12 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { PricingCard, type PricingTier } from "../components/ui/pricing-card"
-import { Tab } from "../components/ui/pricing-tab"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion"
-import { useTenant } from "../hooks/use-tenant"
-import { cn } from "../lib/utils"
-import Header from "../components/header"
+import { PricingCard, type PricingTier } from "@/components/ui/pricing-card"
+import { Tab } from "@/components/ui/pricing-tab"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { useTenant } from "@/hooks/use-tenant"
+import { cn } from "@/lib/utils"
+import Header from "@/components/header"
 
 interface PricingSectionProps {
   title: string
@@ -102,7 +102,7 @@ export default function PricingPage() {
         "Standard sharing options"
       ],
       cta: "Get Started",
-      ctaLink: "price_1S6DdkBY2SPm2HvOxI9yuZdg" // TEST Basic price ID
+      ctaLink: "price_1S5X1sBY2SPm2HvOuDHNzsIp" // Production Basic price ID
     },
     {
       name: "Pro",
@@ -117,7 +117,7 @@ export default function PricingPage() {
         "Advanced customization"
       ],
       cta: "Get Started",
-      ctaLink: "price_1S6De0BY2SPm2HvOX1t23IUg" // TEST Pro price ID
+      ctaLink: "price_1S5X2XBY2SPm2HvO2he9Unto" // Production Pro price ID
     }
   ]
 

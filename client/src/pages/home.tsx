@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Facebook, Youtube, Instagram } from "lucide-react";
-import Header from "../components/header";
-import { useTenant } from "../hooks/use-tenant";
+import Header from "@/components/header";
+import { useTenant } from "@/hooks/use-tenant";
 import { Link } from "wouter";
-import homepageVideoPath from "../../../attached_assets/AI Visualizer homepage video_1757535237826.mp4";
+import homepageVideoPath from "@assets/AI Visualizer homepage video_1757535237826.mp4";
 
 export default function Home() {
   const { tenant, isLoading: tenantLoading } = useTenant();

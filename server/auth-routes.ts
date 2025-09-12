@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import express from "express";
+import session from "express-session";
 import passport from "passport";
 import Stripe from "stripe";
 import { storage } from "./storage";
@@ -8,45 +9,37 @@ import { insertUserSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
 
-// Initialize Stripe - handle both test and production keys
-// Prioritize test key for safe testing
-const stripeSecretKey = process.env.STRIPE_TEST_API_KEY || process.env.STRIPE_SECRET_KEY;
-if (!stripeSecretKey) {
-  throw new Error('STRIPE_SECRET_KEY or STRIPE_TEST_API_KEY environment variable is required');
+// Initialize Stripe
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY environment variable is required');
 }
-
-const stripe = new Stripe(stripeSecretKey, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-08-27.basil',
 });
 
-// Detect mode and set the correct webhook secret
-const isTestMode = stripeSecretKey.startsWith('sk_test_');
-const stripeWebhookSecret = isTestMode 
-  ? process.env.STRIPE_TEST_WEBHOOK_SECRET 
-  : process.env.STRIPE_WEBHOOK_SECRET;
-
-// Log mode and configuration
-if (isTestMode) {
-  console.log('🧪 Stripe initialized in TEST mode');
-  console.log('🧪 Using test webhook secret:', stripeWebhookSecret ? 'configured' : 'NOT CONFIGURED');
-} else {
-  console.log('🚀 Stripe initialized in PRODUCTION mode');
-  console.log('🚀 Using live webhook secret:', stripeWebhookSecret ? 'configured' : 'NOT CONFIGURED');
-}
-
 export function registerAuthRoutes(app: Express) {
-  // Initialize passport (session middleware is now in index.ts)
+  // Configure session middleware for passport
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // Set to true in production with HTTPS
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
+
+  // Initialize passport
   app.use(passport.initialize());
   app.use(passport.session());
 
   // Stripe webhook (must be before express.json middleware)
   app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
-    const endpointSecret = stripeWebhookSecret; // Use the correct webhook secret based on mode
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     if (!endpointSecret) {
-      console.error(`Stripe webhook secret not configured for ${isTestMode ? 'TEST' : 'LIVE'} mode`);
-      console.error(`Please set ${isTestMode ? 'STRIPE_TEST_WEBHOOK_SECRET' : 'STRIPE_WEBHOOK_SECRET'} environment variable`);
+      console.error('Stripe webhook secret not configured');
       return res.status(400).send('Webhook secret not configured');
     }
 
@@ -232,9 +225,7 @@ export function registerAuthRoutes(app: Express) {
       }
 
       // Create Stripe checkout session
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-        : `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
 
       const session = await stripe.checkout.sessions.create({
         customer_email: user.email,
@@ -510,8 +501,8 @@ export function registerAuthRoutes(app: Express) {
 
       await storage.updateSubscriptionByStripeId(subscription.id, {
         status: status,
-        currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
-        currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
+        currentPeriodStart: new Date(subscription.current_period_start * 1000),
+        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       });
     } catch (error) {
       console.error('Error updating subscription:', error);

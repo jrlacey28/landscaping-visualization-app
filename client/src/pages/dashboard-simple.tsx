@@ -1,14 +1,14 @@
-import { useAuth } from '../hooks/use-auth';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Progress } from '../components/ui/progress';
+import { useAuth } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { useLocation } from 'wouter';
-import { apiRequest } from '../lib/queryClient';
-import { useToast } from '../hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { useTenant } from '../hooks/use-tenant';
-import EmbedCodeGenerator from '../components/embed-code-generator';
+import { useTenant } from '@/hooks/use-tenant';
+import EmbedCodeGenerator from '@/components/embed-code-generator';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -290,7 +290,7 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {user.subscription?.planId === 'price_1S6De0BY2SPm2HvOX1t23IUg' && user.subscription?.status === 'active' && (
+                {user.subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto' && user.subscription?.status === 'active' && (
                   <div className="space-y-3 border-t pt-4">
                     <p className="text-sm text-gray-600">
                       You're on the Pro plan with unlimited visualizations!
