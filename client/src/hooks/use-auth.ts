@@ -105,16 +105,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           throw new Error(data.error || 'Failed to fetch user');
         }
-      } else {
-        // Token is invalid
+      } else if (response.status === 401 || response.status === 403) {
+        // Only remove token if authentication actually failed
         removeToken();
         setUser(null);
+      } else {
+        // For other errors, don't remove the token (could be network issues)
+        console.error('Failed to fetch user, keeping token');
       }
     } catch (err: any) {
       console.error('Auth error:', err);
       setError(err.message);
-      removeToken();
-      setUser(null);
+      // Don't remove token on network errors - only on explicit auth failures
+      // This prevents logout on page refresh when API is slow
+      if (err.message?.includes('401') || err.message?.includes('403')) {
+        removeToken();
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }
