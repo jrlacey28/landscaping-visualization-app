@@ -9,13 +9,23 @@ import { insertUserSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
 
-// Initialize Stripe
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY environment variable is required');
+// Initialize Stripe - handle both test and production keys
+// Prioritize test key for safe testing
+const stripeSecretKey = process.env.STRIPE_TEST_API_KEY || process.env.STRIPE_SECRET_KEY;
+if (!stripeSecretKey) {
+  throw new Error('STRIPE_SECRET_KEY or STRIPE_TEST_API_KEY environment variable is required');
 }
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+
+const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2025-08-27.basil',
 });
+
+// Log which mode we're in
+const isTestMode = stripeSecretKey.startsWith('sk_test_');
+console.log(`${isTestMode ? '🧪 Stripe initialized in TEST mode' : '🚀 Stripe initialized in PRODUCTION mode'}`);
+console.log(`Using key: ${stripeSecretKey.substring(0, 12)}...`);
+console.log(`Test API key available: ${process.env.STRIPE_TEST_API_KEY ? 'YES' : 'NO'}`);
+console.log(`Production API key available: ${process.env.STRIPE_SECRET_KEY ? 'YES' : 'NO'}`);
 
 export function registerAuthRoutes(app: Express) {
   // Configure session middleware for passport
