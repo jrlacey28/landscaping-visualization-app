@@ -731,88 +731,70 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setUserEmbedOverride(userId: number, embedOverride: boolean | null, updatedBy: string): Promise<UserFeatureOverrides> {
-    const existingOverride = await this.getUserFeatureOverrides(userId);
-    
-    if (existingOverride) {
-      // Update existing override
-      const [updated] = await this.db
-        .update(userFeatureOverrides)
-        .set({
+    // Upsert the override
+    const [result] = await this.db
+      .insert(userFeatureOverrides)
+      .values({
+        userId,
+        embedOverride,
+        updatedBy,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: userFeatureOverrides.userId,
+        set: {
           embedOverride,
+          updatedBy,
           updatedAt: new Date(),
-          updatedBy
-        })
-        .where(eq(userFeatureOverrides.userId, userId))
-        .returning();
-      return updated;
-    } else {
-      // Create new override
-      const [created] = await this.db
-        .insert(userFeatureOverrides)
-        .values({
-          userId,
-          embedOverride,
-          updatedBy
-        })
-        .returning();
-      return created;
-    }
+        },
+      })
+      .returning();
+    
+    console.log(`[Admin] Set embed override for user ${userId}: ${embedOverride}`);
+    return result;
   }
 
   async computeEmbedAccess(userId: number): Promise<boolean> {
-    // ROBUST LOGIC: Pro and Custom plans get embed access (normalized comparison)
+    // SIMPLIFIED: Pro plan ID or Custom = embed access, plus admin overrides
     
-    // Method 1: Check usage/plan info with normalized comparison
-    const usageInfo = await this.checkUsageLimits(userId);
-    const normalizedPlanName = (usageInfo.planName || '').trim().toLowerCase();
-    console.log(`[Embed Check] User ${userId} - Usage Plan: "${usageInfo.planName}" (normalized: "${normalizedPlanName}")`);
+    // First, check for admin override
+    const [override] = await this.db
+      .select()
+      .from(userFeatureOverrides)
+      .where(eq(userFeatureOverrides.userId, userId));
     
-    if (normalizedPlanName === 'pro' || normalizedPlanName === 'custom') {
-      console.log(`[Embed Check] ✅ User ${userId} has ${usageInfo.planName} plan - EMBED ALLOWED`);
+    if (override && override.embedOverride !== null) {
+      console.log(`[Embed] User ${userId} has admin override: ${override.embedOverride}`);
+      return override.embedOverride;
+    }
+    
+    // Check active subscription
+    const subscription = await this.getUserActiveSubscription(userId);
+    if (!subscription || subscription.status !== 'active') {
+      console.log(`[Embed] User ${userId} - No active subscription`);
+      return false;
+    }
+    
+    // Simple check: Pro plan ID = embed access
+    const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
+    
+    // Direct check for Pro plan ID
+    if (subscription.planId === PRO_PLAN_ID) {
+      console.log(`[Embed] User ${userId} - Pro plan ID - ACCESS GRANTED`);
       return true;
     }
     
-    // Method 2: Check ALL active subscriptions (not just the latest)
-    const allSubscriptions = await this.db
-      .select()
-      .from(subscriptions)
-      .where(and(eq(subscriptions.userId, userId), eq(subscriptions.status, 'active')))
-      .orderBy(desc(subscriptions.createdAt));
-    
-    console.log(`[Embed Check] User ${userId} has ${allSubscriptions.length} active subscription(s)`);
-    
-    // Check each active subscription
-    for (const subscription of allSubscriptions) {
-      console.log(`[Embed Check] Checking subscription ID ${subscription.id}, plan ID: ${subscription.planId}`);
-      
-      // Get the plan details
-      const plan = await this.getSubscriptionPlan(subscription.planId);
-      if (plan) {
-        const normalizedName = (plan.name || '').trim().toLowerCase();
-        console.log(`[Embed Check] Plan name: "${plan.name}" (normalized: "${normalizedName}")`);
-        
-        // Check if it's Pro or Custom (normalized)
-        if (normalizedName === 'pro' || normalizedName === 'custom') {
-          console.log(`[Embed Check] ✅ User ${userId} has ${plan.name} plan - EMBED ALLOWED`);
-          return true;
-        }
-        
-        // Also check embedAccess field if it exists
-        if (plan.embedAccess === true) {
-          console.log(`[Embed Check] ✅ User ${userId} has plan with embedAccess=true - EMBED ALLOWED`);
-          return true;
-        }
-      }
-      
-      // Legacy check for Stripe Pro plan ID (admin-created plans won't have this)
-      const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
-      if (subscription.planId === PRO_PLAN_ID) {
-        console.log(`[Embed Check] ✅ User ${userId} has Pro via Stripe ID - EMBED ALLOWED`);
+    // Check if plan name contains Pro or Custom (case insensitive)
+    const plan = await this.getSubscriptionPlan(subscription.planId);
+    if (plan) {
+      const planName = (plan.name || '').toLowerCase().trim();
+      if (planName === 'pro' || planName === 'custom') {
+        console.log(`[Embed] User ${userId} - ${plan.name} plan - ACCESS GRANTED`);
         return true;
       }
     }
-
-    console.log(`[Embed Check] ❌ User ${userId} - No Pro/Custom plan found - NO EMBED ACCESS`);
+    
+    console.log(`[Embed] User ${userId} - No Pro/Custom plan - NO ACCESS`);
     return false;
   }
 }
