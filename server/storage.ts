@@ -760,31 +760,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   async computeEmbedAccess(userId: number): Promise<boolean> {
-    // SIMPLE LOGIC: Anyone with Pro gets embed access
+    // SIMPLE LOGIC: Pro users and custom plans get embed access
     
-    // First, check their usage/plan info - this is the most reliable
+    // Method 1: Check their usage/plan info - MOST RELIABLE
     const usageInfo = await this.checkUsageLimits(userId);
-    if (usageInfo.planName === 'Pro') {
+    console.log(`[Embed Check] User ${userId} - Usage Plan: ${usageInfo.planName}`);
+    
+    if (usageInfo.planName === 'Pro' || usageInfo.planName === 'Custom') {
+      console.log(`[Embed Check] ✅ User ${userId} has ${usageInfo.planName} plan - EMBED ALLOWED`);
       return true;
     }
     
-    // Backup: Check subscription directly
+    // Method 2: Check subscription directly (handles duplicates by taking most recent)
     const subscription = await this.getUserActiveSubscription(userId);
     if (subscription && subscription.status === 'active') {
-      // Check if it's the Pro plan ID
+      console.log(`[Embed Check] User ${userId} - Active subscription plan ID: ${subscription.planId}`);
+      
+      // Pro plan Stripe ID
       const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
       if (subscription.planId === PRO_PLAN_ID) {
+        console.log(`[Embed Check] ✅ User ${userId} has Pro via Stripe - EMBED ALLOWED`);
         return true;
       }
       
-      // Check if the plan name is Pro
+      // Check if plan is named Pro or Custom
       const plan = await this.getSubscriptionPlan(subscription.planId);
-      if (plan && plan.name === 'Pro') {
+      if (plan && (plan.name === 'Pro' || plan.name === 'Custom')) {
+        console.log(`[Embed Check] ✅ User ${userId} has ${plan.name} plan - EMBED ALLOWED`);
         return true;
       }
     }
 
-    // Not Pro = no embed access
+    console.log(`[Embed Check] ❌ User ${userId} - No Pro/Custom plan - NO EMBED ACCESS`);
     return false;
   }
 }

@@ -165,21 +165,23 @@ export function registerAuthRoutes(app: Express) {
       const subscription = await storage.getUserActiveSubscription(user.id);
       const usageCheck = await storage.checkUsageLimits(user.id);
 
-      // Simple logic: Pro users get embed access - check MULTIPLE ways
+      // Simple logic: Pro and Custom users get embed access
       let hasEmbedAccess = false;
       
-      // Method 1: Check if usage says Pro (most reliable)
-      if (usageCheck.planName === 'Pro') {
+      // Check if user has Pro or Custom plan (from usage info - most reliable)
+      if (usageCheck.planName === 'Pro' || usageCheck.planName === 'Custom') {
         hasEmbedAccess = true;
+        console.log(`✅ User ${user.email} - ${usageCheck.planName} plan - EMBED ACCESS GRANTED`);
       }
-      // Method 2: Check if subscription has Pro plan ID
+      // Fallback: Check subscription directly
       else if (subscription && subscription.status === 'active') {
         if (subscription.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto') {
           hasEmbedAccess = true;
+          console.log(`✅ User ${user.email} - Pro via Stripe - EMBED ACCESS GRANTED`);
         }
+      } else {
+        console.log(`❌ User ${user.email} - ${usageCheck.planName} plan - No embed access`);
       }
-      
-      console.log(`User ${user.email} - Plan: ${usageCheck.planName}, Has Embed: ${hasEmbedAccess}`);
 
       res.json({
         success: true,
