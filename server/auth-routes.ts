@@ -325,6 +325,49 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
+  // Subscription diagnostics endpoint for debugging
+  app.get('/api/debug/subscriptions', authenticateToken, async (req, res) => {
+    try {
+      const user = (req as any).user!;
+      
+      // Get ALL subscriptions for this user
+      const allSubscriptions = await storage.getUserSubscriptions(user.id);
+      const activeSubscription = await storage.getUserActiveSubscription(user.id);
+      const usageCheck = await storage.checkUsageLimits(user.id);
+      
+      res.json({
+        success: true,
+        data: {
+          user: {
+            id: user.id,
+            email: user.email
+          },
+          allSubscriptions: allSubscriptions.map(sub => ({
+            id: sub.id,
+            planId: sub.planId,
+            status: sub.status,
+            stripeSubscriptionId: sub.stripeSubscriptionId,
+            stripeCustomerId: sub.stripeCustomerId,
+            currentPeriodStart: sub.currentPeriodStart,
+            currentPeriodEnd: sub.currentPeriodEnd,
+            cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+            createdAt: sub.createdAt
+          })),
+          activeSubscription: activeSubscription ? {
+            id: activeSubscription.id,
+            planId: activeSubscription.planId,
+            status: activeSubscription.status
+          } : null,
+          usageCheck,
+          expectedProPlanId: 'price_1S5X2XBY2SPm2HvO2he9Unto'
+        }
+      });
+    } catch (error: any) {
+      console.error('Debug subscriptions error:', error);
+      res.status(500).json({ error: 'Failed to get subscription info' });
+    }
+  });
+
   // Define admin auth middleware
   const requireAdminAuth = (req: any, res: any, next: any) => {
     if (req.session?.isAdmin) {
