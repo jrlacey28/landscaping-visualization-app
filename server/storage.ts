@@ -760,38 +760,59 @@ export class DatabaseStorage implements IStorage {
   }
 
   async computeEmbedAccess(userId: number): Promise<boolean> {
-    // SIMPLE LOGIC: Pro users and custom plans get embed access
+    // ROBUST LOGIC: Pro and Custom plans get embed access (normalized comparison)
     
-    // Method 1: Check their usage/plan info - MOST RELIABLE
+    // Method 1: Check usage/plan info with normalized comparison
     const usageInfo = await this.checkUsageLimits(userId);
-    console.log(`[Embed Check] User ${userId} - Usage Plan: ${usageInfo.planName}`);
+    const normalizedPlanName = (usageInfo.planName || '').trim().toLowerCase();
+    console.log(`[Embed Check] User ${userId} - Usage Plan: "${usageInfo.planName}" (normalized: "${normalizedPlanName}")`);
     
-    if (usageInfo.planName === 'Pro' || usageInfo.planName === 'Custom') {
+    if (normalizedPlanName === 'pro' || normalizedPlanName === 'custom') {
       console.log(`[Embed Check] ✅ User ${userId} has ${usageInfo.planName} plan - EMBED ALLOWED`);
       return true;
     }
     
-    // Method 2: Check subscription directly (handles duplicates by taking most recent)
-    const subscription = await this.getUserActiveSubscription(userId);
-    if (subscription && subscription.status === 'active') {
-      console.log(`[Embed Check] User ${userId} - Active subscription plan ID: ${subscription.planId}`);
+    // Method 2: Check ALL active subscriptions (not just the latest)
+    const allSubscriptions = await this.db
+      .select()
+      .from(subscriptions)
+      .where(and(eq(subscriptions.userId, userId), eq(subscriptions.status, 'active')))
+      .orderBy(desc(subscriptions.createdAt));
+    
+    console.log(`[Embed Check] User ${userId} has ${allSubscriptions.length} active subscription(s)`);
+    
+    // Check each active subscription
+    for (const subscription of allSubscriptions) {
+      console.log(`[Embed Check] Checking subscription ID ${subscription.id}, plan ID: ${subscription.planId}`);
       
-      // Pro plan Stripe ID
-      const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
-      if (subscription.planId === PRO_PLAN_ID) {
-        console.log(`[Embed Check] ✅ User ${userId} has Pro via Stripe - EMBED ALLOWED`);
-        return true;
+      // Get the plan details
+      const plan = await this.getSubscriptionPlan(subscription.planId);
+      if (plan) {
+        const normalizedName = (plan.name || '').trim().toLowerCase();
+        console.log(`[Embed Check] Plan name: "${plan.name}" (normalized: "${normalizedName}")`);
+        
+        // Check if it's Pro or Custom (normalized)
+        if (normalizedName === 'pro' || normalizedName === 'custom') {
+          console.log(`[Embed Check] ✅ User ${userId} has ${plan.name} plan - EMBED ALLOWED`);
+          return true;
+        }
+        
+        // Also check embedAccess field if it exists
+        if (plan.embedAccess === true) {
+          console.log(`[Embed Check] ✅ User ${userId} has plan with embedAccess=true - EMBED ALLOWED`);
+          return true;
+        }
       }
       
-      // Check if plan is named Pro or Custom
-      const plan = await this.getSubscriptionPlan(subscription.planId);
-      if (plan && (plan.name === 'Pro' || plan.name === 'Custom')) {
-        console.log(`[Embed Check] ✅ User ${userId} has ${plan.name} plan - EMBED ALLOWED`);
+      // Legacy check for Stripe Pro plan ID (admin-created plans won't have this)
+      const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
+      if (subscription.planId === PRO_PLAN_ID) {
+        console.log(`[Embed Check] ✅ User ${userId} has Pro via Stripe ID - EMBED ALLOWED`);
         return true;
       }
     }
 
-    console.log(`[Embed Check] ❌ User ${userId} - No Pro/Custom plan - NO EMBED ACCESS`);
+    console.log(`[Embed Check] ❌ User ${userId} - No Pro/Custom plan found - NO EMBED ACCESS`);
     return false;
   }
 }
