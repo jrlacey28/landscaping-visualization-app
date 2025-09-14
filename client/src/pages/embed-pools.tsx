@@ -98,26 +98,7 @@ export default function EmbedPoolsPage() {
     }
   };
 
-  if (tenantLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-900 via-blue-900 to-indigo-900">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (tenantError || !tenant) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-900 via-red-800 to-red-900">
-        <div className="text-center">
-          <p className="text-white">Service not available</p>
-        </div>
-      </div>
-    );
-  }
+  // Skip loading and error states - use fallback tenant data for embed to work without API access
 
   return (
     <div className="min-h-screen p-2" style={{ background: `linear-gradient(to bottom right, ${primaryColor}dd, ${secondaryColor}dd, ${primaryColor}cc)` }}>
@@ -125,7 +106,7 @@ export default function EmbedPoolsPage() {
         {showHeader && (
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-              {companyName || tenant.companyName} Pool Visualizer
+              {companyName || effectiveTenant.companyName} Pool Visualizer
             </h1>
             <p className="text-lg text-cyan-100">
               Transform your backyard with AI-powered pool design visualization
@@ -269,14 +250,14 @@ export default function EmbedPoolsPage() {
                       if (contactType === 'link' && contactLink) {
                         window.open(contactLink, '_blank');
                       } else {
-                        const contactPhone = tenant.contactPhone || tenant.phone || '(555) 123-4567';
+                        const contactPhone = effectiveTenant.contactPhone || effectiveTenant.phone || '(555) 123-4567';
                         const message = encodeURIComponent(`Hi! I'm interested in getting a free quote for pool installation. I just tried your pool visualizer and would like to discuss my project.`);
                         
                         if (contactPhone.startsWith('(') || contactPhone.startsWith('+')) {
                           const cleanPhone = contactPhone.replace(/[\(\)\-\s]/g, '');
                           window.open(`tel:${cleanPhone}`, '_self');
                         } else {
-                          window.open(`mailto:${tenant.email || 'info@company.com'}?subject=Pool Installation Quote Request&body=${message}`, '_blank');
+                          window.open(`mailto:${effectiveTenant.email || 'info@company.com'}?subject=Pool Installation Quote Request&body=${message}`, '_blank');
                         }
                       }
                     }}
@@ -347,7 +328,7 @@ export default function EmbedPoolsPage() {
 
                   const result = await uploadPoolImage(
                     originalFile,
-                    tenant.id,
+                    effectiveTenant.id,
                     selectedPoolStyles,
                   );
 

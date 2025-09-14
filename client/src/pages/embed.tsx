@@ -105,26 +105,7 @@ export default function EmbedPage() {
     }
   };
 
-  if (tenantLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-900 via-teal-900 to-green-900">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (tenantError || !tenant) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-900 via-red-800 to-red-900">
-        <div className="text-center">
-          <p className="text-white">Service not available</p>
-        </div>
-      </div>
-    );
-  }
+  // Skip loading and error states - use fallback tenant data for embed to work without API access
 
   return (
     <div className="min-h-screen p-2" style={{ background: `linear-gradient(to bottom right, ${primaryColor}dd, ${secondaryColor}dd, ${primaryColor}cc)` }}>
@@ -132,7 +113,7 @@ export default function EmbedPage() {
         {showHeader && (
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-              {companyName || tenant.companyName} Landscape Visualizer
+              {companyName || effectiveTenant.companyName} Landscape Visualizer
             </h1>
             <p className="text-lg text-emerald-100">
               Transform your outdoor space with AI-powered landscape design
@@ -279,7 +260,7 @@ export default function EmbedPage() {
                       if (contactType === 'email' && contactLink) {
                         window.open(contactLink, '_blank');
                       } else if (tenant?.phone) {
-                        window.open(`tel:${tenant.phone.replace(/[\(\)\-\s]/g, '')}`, '_self');
+                        window.open(`tel:${effectiveTenant.phone.replace(/[\(\)\-\s]/g, '')}`, '_self');
                       }
                     }}
                   >
@@ -335,7 +316,7 @@ export default function EmbedPage() {
 
                   const result = await uploadLandscapeImage(
                     originalFile,
-                    tenant.id,
+                    effectiveTenant.id,
                     selectedLandscapeStyles,
                   );
 
