@@ -23,14 +23,15 @@ import LeadCaptureForm from "@/components/lead-capture-form";
 import Header from "@/components/header";
 import { SparklesText } from "@/components/ui/sparkles-text";
 import { useTenant } from "@/hooks/use-tenant";
+import { useAuth } from "@/hooks/use-auth";
 import {
-  uploadLandscapeImage,
-  checkLandscapeVisualizationStatus,
-  analyzeLandscapeImage,
+  uploadImage,
+  checkVisualizationStatus,
 } from "@/lib/api";
 
 export default function RoofingSiding() {
   const { tenant, isLoading: tenantLoading } = useTenant();
+  const { user } = useAuth();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -341,24 +342,19 @@ export default function RoofingSiding() {
                           return;
                         }
 
-                        // Upload image and generate AI visualization using landscape endpoint
-                        // Map roofing/siding styles to landscape format for Gemini processing
-                        const landscapeStyles = {
-                          curbing: selectedStyles.roof.enabled ? selectedStyles.roof.type : '',
-                          landscape: selectedStyles.siding.enabled ? selectedStyles.siding.type : '',
-                          patios: selectedStyles.surpriseMe.enabled ? selectedStyles.surpriseMe.type : ''
-                        };
-
-                        const result = await uploadLandscapeImage(
+                        // Upload image and generate AI visualization using correct roofing endpoint
+                        // Use logged-in user's account for proper generation tracking
+                        const accountId = user?.user.id || effectiveTenant.id;
+                        const result = await uploadImage(
                           originalFile,
-                          effectiveTenant.id,
-                          landscapeStyles
+                          accountId,
+                          selectedStyles
                         );
 
-                        if (result.landscapeVisualizationId) {
+                        if (result.visualizationId) {
                           // Check status immediately since Gemini processes instantly
-                          const status = await checkLandscapeVisualizationStatus(
-                            result.landscapeVisualizationId,
+                          const status = await checkVisualizationStatus(
+                            result.visualizationId,
                           );
                           setVisualizationResult(status); // Store status and URL
 
@@ -380,8 +376,8 @@ export default function RoofingSiding() {
                             const pollInterval = setInterval(async () => {
                               try {
                                 const polledStatus =
-                                  await checkLandscapeVisualizationStatus(
-                                    result.landscapeVisualizationId,
+                                  await checkVisualizationStatus(
+                                    result.visualizationId,
                                   );
                                 setVisualizationResult(polledStatus); // Update visualizationResult during polling
                                 if (
