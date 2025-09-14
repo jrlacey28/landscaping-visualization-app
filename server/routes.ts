@@ -6,6 +6,7 @@ import sharp from "sharp";
 import path from "path";
 import fs from "fs";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 
 import { storage } from "./storage";
 import { insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertTenantSchema } from "@shared/schema";
@@ -25,8 +26,10 @@ if (!fs.existsSync(uploadsDir)) {
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Configure session middleware
-  app.use(session({
+  // Configure session middleware with production-ready store
+  const PgSession = connectPgSimple(session);
+  
+  const sessionConfig: any = {
     secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
@@ -36,7 +39,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       httpOnly: true, // Prevent client-side access for security
       sameSite: 'lax' // CSRF protection
     }
-  }));
+  };
+
+  // Use PostgreSQL session store in production, memory store in development
+  if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
+    sessionConfig.store = new PgSession({
+      conString: process.env.DATABASE_URL,
+      tableName: 'session', // Table name for session storage
+      createTableIfMissing: true,
+    });
+  }
+
+  app.use(session(sessionConfig));
 
   // Admin authentication middleware
   const requireAdminAuth = (req: any, res: any, next: any) => {
