@@ -97,9 +97,9 @@ export default function AuthPage() {
         if (planId) {
           redirectToCheckout(planId);
         } else {
-          setLocation('/dashboard');
+          setLocation('/');
         }
-      }, 300);
+      }, 100);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -138,9 +138,9 @@ export default function AuthPage() {
         if (planId) {
           redirectToCheckout(planId);
         } else {
-          setLocation('/dashboard');
+          setLocation('/');
         }
-      }, 300);
+      }, 100);
     } catch (error: any) {
       toast({
         title: 'Error',
