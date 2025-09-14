@@ -5,33 +5,39 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { AuthProvider } from "@/hooks/use-auth";
+import { lazy, Suspense } from "react";
 
-// Regular imports for instant page navigation
+// Immediate imports for fast navigation
 import Home from "@/pages/home";
-import RoofingSiding from "@/pages/roofing-siding";
-import Pools from "@/pages/pools";
-import Landscape from "@/pages/landscape";
-import Admin from "@/pages/admin";
-import Embed from "@/pages/embed";
-import EmbedRoofing from "@/pages/embed-roofing";
-import EmbedPools from "@/pages/embed-pools";
-import EmbedManager from "@/pages/embed-manager";
 import PricingPage from "@/pages/pricing";
 import ContactPage from "@/pages/contact";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard-simple";
 import NotFound from "@/pages/not-found";
 
-// Wrap components with error boundaries for better error handling
-const SafePools = () => (
-  <ErrorBoundary>
-    <Pools />
-  </ErrorBoundary>
+// Lazy imports for heavy components that slow initial load
+const RoofingSiding = lazy(() => import("@/pages/roofing-siding"));
+const Pools = lazy(() => import("@/pages/pools"));
+const Landscape = lazy(() => import("@/pages/landscape"));
+const Admin = lazy(() => import("@/pages/admin"));
+const Embed = lazy(() => import("@/pages/embed"));
+const EmbedRoofing = lazy(() => import("@/pages/embed-roofing"));
+const EmbedPools = lazy(() => import("@/pages/embed-pools"));
+const EmbedManager = lazy(() => import("@/pages/embed-manager"));
+
+// Loading component for lazy routes
+const LoadingSpinner = () => (
+  <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-black flex items-center justify-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+  </div>
 );
 
-const SafeLandscape = () => (
+// Wrap lazy components with Suspense and ErrorBoundary
+const LazyRoute = ({ Component }: { Component: React.LazyExoticComponent<() => JSX.Element> }) => (
   <ErrorBoundary>
-    <Landscape />
+    <Suspense fallback={<LoadingSpinner />}>
+      <Component />
+    </Suspense>
   </ErrorBoundary>
 );
 
@@ -39,16 +45,16 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/roofing-siding" component={RoofingSiding} />
-      <Route path="/landscape" component={SafeLandscape} />
-      <Route path="/pools" component={SafePools} />
-      <Route path="/admin" component={Admin} />
+      <Route path="/roofing-siding" component={() => <LazyRoute Component={RoofingSiding} />} />
+      <Route path="/landscape" component={() => <LazyRoute Component={Landscape} />} />
+      <Route path="/pools" component={() => <LazyRoute Component={Pools} />} />
+      <Route path="/admin" component={() => <LazyRoute Component={Admin} />} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/dashboard" component={Dashboard} />
-      <Route path="/embed" component={Embed} />
-      <Route path="/embed-roofing" component={EmbedRoofing} />
-      <Route path="/embed-pools" component={EmbedPools} />
-      <Route path="/embed-manager" component={EmbedManager} />
+      <Route path="/embed" component={() => <LazyRoute Component={Embed} />} />
+      <Route path="/embed-roofing" component={() => <LazyRoute Component={EmbedRoofing} />} />
+      <Route path="/embed-pools" component={() => <LazyRoute Component={EmbedPools} />} />
+      <Route path="/embed-manager" component={() => <LazyRoute Component={EmbedManager} />} />
       <Route path="/pricing" component={PricingPage} />
       <Route path="/contact" component={ContactPage} />
       <Route component={NotFound} />
