@@ -99,12 +99,6 @@ export default function Header({ tenant }: HeaderProps) {
             </DropdownMenu>
 
             <a
-              href="#gallery"
-              className="text-slate-300 hover:text-blue-400 transition-colors"
-            >
-              Gallery
-            </a>
-            <a
               href="/pricing"
               className="text-slate-300 hover:text-blue-400 transition-colors"
             >
@@ -187,9 +181,6 @@ export default function Header({ tenant }: HeaderProps) {
                     <TreePine className="h-4 w-4" />
                     Landscape Design
                   </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <a href="#gallery" className="w-full">Gallery</a>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/pricing" className="flex items-center px-3 py-2 hover:bg-slate-100">
