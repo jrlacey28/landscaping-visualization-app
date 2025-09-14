@@ -24,8 +24,8 @@ import Header from "@/components/header";
 import { SparklesText } from "@/components/ui/sparkles-text";
 import { useTenant } from "@/hooks/use-tenant";
 import {
-  uploadImage,
-  checkVisualizationStatus,
+  uploadLandscapeImage,
+  checkLandscapeVisualizationStatus,
   analyzeLandscapeImage,
 } from "@/lib/api";
 
@@ -341,18 +341,24 @@ export default function RoofingSiding() {
                           return;
                         }
 
-                        // Upload image and generate AI visualization
-                        const result = await uploadImage(
+                        // Upload image and generate AI visualization using landscape endpoint
+                        // Map roofing/siding styles to landscape format for Gemini processing
+                        const landscapeStyles = {
+                          curbing: selectedStyles.roof.enabled ? selectedStyles.roof.type : '',
+                          landscape: selectedStyles.siding.enabled ? selectedStyles.siding.type : '',
+                          patios: selectedStyles.surpriseMe.enabled ? selectedStyles.surpriseMe.type : ''
+                        };
+
+                        const result = await uploadLandscapeImage(
                           originalFile,
                           effectiveTenant.id,
-                          selectedStyles,
-                          maskData || undefined,
+                          landscapeStyles
                         );
 
-                        if (result.visualizationId) {
+                        if (result.landscapeVisualizationId) {
                           // Check status immediately since Gemini processes instantly
-                          const status = await checkVisualizationStatus(
-                            result.visualizationId,
+                          const status = await checkLandscapeVisualizationStatus(
+                            result.landscapeVisualizationId,
                           );
                           setVisualizationResult(status); // Store status and URL
 
@@ -374,8 +380,8 @@ export default function RoofingSiding() {
                             const pollInterval = setInterval(async () => {
                               try {
                                 const polledStatus =
-                                  await checkVisualizationStatus(
-                                    result.visualizationId,
+                                  await checkLandscapeVisualizationStatus(
+                                    result.landscapeVisualizationId,
                                   );
                                 setVisualizationResult(polledStatus); // Update visualizationResult during polling
                                 if (

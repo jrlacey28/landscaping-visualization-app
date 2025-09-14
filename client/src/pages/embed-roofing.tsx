@@ -5,7 +5,7 @@ import StyleSelector from "../components/style-selector";
 import { Button } from "../components/ui/button";
 import { Upload, Sparkles, Download, Eye, Camera, Phone, XCircle } from "lucide-react";
 import { SparklesText } from "@/components/ui/sparkles-text";
-import { uploadImage, checkVisualizationStatus } from "../lib/api";
+import { uploadLandscapeImage, checkLandscapeVisualizationStatus } from "../lib/api";
 
 export default function EmbedRoofingPage() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -323,15 +323,22 @@ export default function EmbedRoofingPage() {
                     return;
                   }
 
-                  const result = await uploadImage(
+                  // Map roofing/siding styles to landscape format for Gemini processing
+                  const landscapeStyles = {
+                    curbing: selectedStyles.roof.enabled ? selectedStyles.roof.type : '',
+                    landscape: selectedStyles.siding.enabled ? selectedStyles.siding.type : '',
+                    patios: selectedStyles.surpriseMe.enabled ? selectedStyles.surpriseMe.type : ''
+                  };
+
+                  const result = await uploadLandscapeImage(
                     originalFile,
                     effectiveTenant.id,
-                    selectedStyles,
+                    landscapeStyles
                   );
 
-                  if (result.visualizationId) {
-                    const status = await checkVisualizationStatus(
-                      result.visualizationId,
+                  if (result.landscapeVisualizationId) {
+                    const status = await checkLandscapeVisualizationStatus(
+                      result.landscapeVisualizationId,
                     );
                     setVisualizationResult(status);
                   }

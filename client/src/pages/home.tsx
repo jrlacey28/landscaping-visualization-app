@@ -74,9 +74,9 @@ export default function Home() {
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-2">
             Visualize your new...
           </h1>
-          <div className="h-32 md:h-36 flex items-center justify-center mb-2">
+          <div className="h-15 md:h-26 flex items-center justify-center mb-2">
             <span 
-              className="text-4xl md:text-6xl font-bold text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-red-400 bg-clip-text animate-slide-down leading-tight"
+              className="text-4xl md:text-6xl font-bold text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-red-400 bg-clip-text animate-slide-down leading-tight leading-normal pb-1"
               key={currentTextIndex}
             >
               {animatedTexts[currentTextIndex]}
@@ -86,7 +86,7 @@ export default function Home() {
       </section>
 
       {/* Video Demo Section */}
-      <section className="py-0 pb-12">
+      <section className="py-0 pb-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="aspect-video overflow-hidden rounded-xl">
             <video 
