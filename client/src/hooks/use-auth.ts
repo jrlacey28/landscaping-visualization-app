@@ -69,12 +69,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setToken = (token: string) => localStorage.setItem('auth_token', token);
   const removeToken = () => localStorage.removeItem('auth_token');
 
-  // Check if user is authenticated on mount
+  // Check if user is authenticated on mount with retry logic  
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = async (retries = 2) => {
       const token = getToken();
       if (token) {
-        await fetchUser();
+        try {
+          await fetchUser();
+        } catch (error) {
+          // If fetch fails and we have retries left, try again
+          if (retries > 0) {
+            console.log(`Auth check failed, retrying... (${retries} attempts left)`);
+            setTimeout(() => checkAuth(retries - 1), 1000);
+          } else {
+            console.error('Auth check failed after all retries');
+            setLoading(false);
+          }
+        }
       } else {
         setLoading(false);
       }
@@ -111,16 +122,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       } else {
         // For other errors, don't remove the token (could be network issues)
-        console.error('Failed to fetch user, keeping token');
+        console.error('Failed to fetch user, keeping token. Status:', response.status);
+        throw new Error(`Network error: ${response.status}`);
       }
     } catch (err: any) {
       console.error('Auth error:', err);
       setError(err.message);
-      // Don't remove token on network errors - only on explicit auth failures
-      // This prevents logout on page refresh when API is slow
-      if (err.message?.includes('401') || err.message?.includes('403')) {
+      // Only remove token for explicit auth failures, not network errors
+      // This prevents logout on page refresh when API is slow or temporarily unavailable
+      if (err.message?.includes('401') || err.message?.includes('403') || 
+          (err.response && (err.response.status === 401 || err.response.status === 403))) {
         removeToken();
         setUser(null);
+      } else {
+        // For network errors, keep the user logged in but throw error for retry logic
+        throw err;
       }
     } finally {
       setLoading(false);
