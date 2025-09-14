@@ -118,6 +118,25 @@ export default function PricingPage() {
       ],
       cta: "Get Started",
       ctaLink: "price_1S5X2XBY2SPm2HvO2he9Unto" // Production Pro price ID
+    },
+    {
+      name: "Enterprise",
+      description: "Scale AI visualizations across your entire business",
+      monthlyPrice: 500,
+      yearlyPrice: 6000,
+      features: [
+        "Everything in Pro, plus:",
+        "Unlimited visualizations",
+        "White-label solutions",
+        "Custom API integrations",
+        "Dedicated account manager",
+        "Priority support & training",
+        "Multi-location management",
+        "Advanced analytics & reporting"
+      ],
+      cta: "Contact Sales",
+      ctaLink: "/contact",
+      priceNote: "Custom pricing available for larger organizations"
     }
   ]
 

@@ -47,7 +47,7 @@ export default function AuthPage() {
             if (planId) {
               redirectToCheckout(planId);
             } else {
-              setLocation('/dashboard');
+              setLocation('/');
             }
           }, 500);
         } catch (error) {
