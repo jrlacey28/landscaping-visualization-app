@@ -175,12 +175,30 @@ export default function PricingPage() {
       <Header tenant={effectiveTenant} />
       
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        {/* Main Pricing Tiers: Free, Basic, Pro */}
         <PricingSection
           title="Pricing"
           subtitle="Select the perfect plan for your business needs. All plans include our core AI visualization features."
-          tiers={pricingTiers}
+          tiers={pricingTiers.slice(0, 3)} // Only Free, Basic, Pro
           frequencies={["Monthly"]}
         />
+
+        {/* Enterprise Section - Separate row below */}
+        <section className="flex flex-col items-center gap-8 py-16 mt-8">
+          <div className="text-center space-y-4">
+            <h2 className="text-4xl font-semibold text-white">Enterprise Solutions</h2>
+            <p className="text-slate-300 max-w-2xl">
+              Scale AI visualizations across your entire business with our comprehensive enterprise platform designed for larger organizations and multiple locations.
+            </p>
+          </div>
+          
+          <div className="flex justify-center w-full max-w-md">
+            <PricingCard
+              tier={pricingTiers[3]} // Enterprise tier
+              paymentFrequency="Monthly"
+            />
+          </div>
+        </section>
       </main>
 
       {/* FAQ Section */}

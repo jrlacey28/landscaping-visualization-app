@@ -12,10 +12,10 @@ import EmbedCodeGenerator from '@/components/embed-code-generator';
 import { RefreshCw } from 'lucide-react';
 
 export default function Dashboard() {
-  const { user, logout, refreshUser } = useAuth();
+  const { user, logout, refreshUser, loading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const { tenant } = useTenant("demo");
 
@@ -47,14 +47,32 @@ export default function Dashboard() {
     }
   };
 
-  if (!user) {
+  // Show loading state while authentication is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Only redirect to auth if we're not loading and there's no user
+  if (!authLoading && !user) {
     setLocation('/auth');
+    return null;
+  }
+
+  // Ensure user is not null for the rest of the component
+  if (!user) {
     return null;
   }
 
   const handleUpgrade = async (planId: string) => {
     try {
-      setLoading(true);
+      setCheckoutLoading(true);
       const token = localStorage.getItem('auth_token');
       const response = await apiRequest('POST', '/api/subscription/checkout', 
         { planId },
@@ -78,13 +96,13 @@ export default function Dashboard() {
         variant: 'destructive',
       });
     } finally {
-      setLoading(false);
+      setCheckoutLoading(false);
     }
   };
 
   const handleCancel = async () => {
     try {
-      setLoading(true);
+      setCheckoutLoading(true);
       const token = localStorage.getItem('auth_token');
       const response = await apiRequest('POST', '/api/subscription/cancel', 
         {},
@@ -113,7 +131,7 @@ export default function Dashboard() {
         variant: 'destructive',
       });
     } finally {
-      setLoading(false);
+      setCheckoutLoading(false);
     }
   };
 
@@ -226,7 +244,7 @@ export default function Dashboard() {
                       </p>
                       <Button 
                         onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
-                        disabled={loading}
+                        disabled={checkoutLoading}
                         className="w-full max-w-xs"
                       >
                         Upgrade to Pro for this Feature
@@ -301,7 +319,7 @@ export default function Dashboard() {
                     <div className="space-y-2">
                       <Button 
                         onClick={() => handleUpgrade('price_1S5X1sBY2SPm2HvOuDHNzsIp')}
-                        disabled={loading}
+                        disabled={checkoutLoading}
                         className="w-full"
                         variant="outline"
                       >
@@ -309,7 +327,7 @@ export default function Dashboard() {
                       </Button>
                       <Button 
                         onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
-                        disabled={loading}
+                        disabled={checkoutLoading}
                         className="w-full"
                       >
                         Upgrade to Pro ($100/mo)
@@ -326,14 +344,14 @@ export default function Dashboard() {
                     <div className="space-y-2">
                       <Button 
                         onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
-                        disabled={loading}
+                        disabled={checkoutLoading}
                         className="w-full"
                       >
                         Upgrade to Pro ($100/mo)
                       </Button>
                       <Button 
                         onClick={handleCancel}
-                        disabled={loading}
+                        disabled={checkoutLoading}
                         className="w-full"
                         variant="destructive"
                       >
@@ -351,7 +369,7 @@ export default function Dashboard() {
                     <div className="space-y-2">
                       <Button 
                         onClick={handleCancel}
-                        disabled={loading}
+                        disabled={checkoutLoading}
                         className="w-full"
                         variant="destructive"
                       >
@@ -375,7 +393,7 @@ export default function Dashboard() {
                 <CardContent>
                   <Button 
                     onClick={() => handleUpgrade('price_1S5X1sBY2SPm2HvOuDHNzsIp')}
-                    disabled={loading}
+                    disabled={checkoutLoading}
                     className="w-full"
                   >
                     Upgrade to Continue
