@@ -47,6 +47,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
+  // Health check endpoint for debugging production issues
+  app.get("/api/health", async (req, res) => {
+    try {
+      // Check database connection
+      let dbStatus = 'unknown';
+      let dbHost = 'unknown';
+      try {
+        await storage.getUser(1); // Simple query to test DB
+        dbStatus = 'connected';
+        dbHost = process.env.DATABASE_URL?.split('@')[1]?.split('/')[0] || 'unknown';
+      } catch (e) {
+        dbStatus = 'failed';
+      }
+
+      // Check Stripe configuration
+      const stripeSecretSet = Boolean(process.env.STRIPE_SECRET_KEY);
+      const stripeWebhookSet = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
+      const stripePublicSet = Boolean(process.env.VITE_STRIPE_PUBLIC_KEY);
+
+      // Check session/auth configuration
+      const sessionSecretSet = Boolean(process.env.SESSION_SECRET);
+      const googleClientSet = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
+      // Check production environment
+      const isProduction = process.env.NODE_ENV === 'production';
+      const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || 'unknown';
+
+      // Check Pro plan configuration
+      const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
+      let proUsers = 0;
+      let embedEnabledUsers = 0;
+      
+      try {
+        const users = await storage.getAllUsersWithUsage();
+        for (const user of users) {
+          if (user.subscription?.planId === PRO_PLAN_ID || user.usage?.planName === 'Pro') {
+            proUsers++;
+          }
+          const hasEmbed = await storage.computeEmbedAccess(user.id);
+          if (hasEmbed) embedEnabledUsers++;
+        }
+      } catch (e) {
+        console.error('Error checking users:', e);
+      }
+
+      res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        environment: {
+          NODE_ENV: process.env.NODE_ENV || 'unknown',
+          isProduction,
+          baseUrl,
+          replitDomains: process.env.REPLIT_DOMAINS || 'not set',
+        },
+        database: {
+          status: dbStatus,
+          host: dbHost,
+          url_set: Boolean(process.env.DATABASE_URL),
+        },
+        stripe: {
+          secret_key_set: stripeSecretSet,
+          webhook_secret_set: stripeWebhookSet,
+          public_key_set: stripePublicSet,
+          pro_plan_id: PRO_PLAN_ID,
+        },
+        session: {
+          secret_set: sessionSecretSet,
+          google_oauth_set: googleClientSet,
+          cookie_config: {
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            httpOnly: true,
+          }
+        },
+        embedStats: {
+          proUsers,
+          embedEnabledUsers,
+          issue: proUsers > embedEnabledUsers ? 'Some Pro users missing embed access' : 'ok',
+        },
+        debug: {
+          cookies_sent: req.headers.cookie || 'none',
+          origin: req.headers.origin || 'none',
+          host: req.headers.host || 'none',
+          protocol: req.protocol,
+          secure: req.secure,
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        status: 'error', 
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+
   // Admin login endpoint
   app.post("/api/admin/login", (req, res) => {
     const { password } = req.body;
