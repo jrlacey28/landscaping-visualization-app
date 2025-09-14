@@ -143,6 +143,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint for specific user embed access (temporary)
+  app.get("/api/debug/user/:userId/embed", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const subscription = await storage.getUserActiveSubscription(userId);
+      const usage = await storage.checkUsageLimits(userId);
+      const hasEmbed = await storage.computeEmbedAccess(userId);
+      
+      // Get all subscriptions for this user to check for duplicates
+      const allSubs: any[] = [];
+      
+      res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          name: `${user.firstName} ${user.lastName}`,
+        },
+        activeSubscription: subscription,
+        allSubscriptions: allSubs.map(s => ({
+          id: s.id,
+          planId: s.planId,
+          status: s.status,
+          createdAt: s.createdAt,
+        })),
+        duplicateActiveCount: allSubs.filter(s => s.status === 'active').length,
+        usage: usage,
+        computedEmbedAccess: hasEmbed,
+        checks: {
+          hasProPlanId: subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto',
+          usageSaysPro: usage.planName === 'Pro',
+          usageSaysCustom: usage.planName === 'Custom',
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Admin login endpoint
   app.post("/api/admin/login", (req, res) => {
     const { password } = req.body;
