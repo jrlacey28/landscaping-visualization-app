@@ -26,6 +26,11 @@ if (!fs.existsSync(uploadsDir)) {
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Enforce SESSION_SECRET in production for security
+  if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+    throw new Error('SESSION_SECRET environment variable is required in production');
+  }
+
   // Configure session middleware with production-ready store
   const PgSession = connectPgSimple(session);
   

@@ -8,6 +8,11 @@ import compression from "compression";
 
 const app = express();
 
+// Configure trust proxy for production (required for secure sessions behind load balancer)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Add compression middleware for better performance
 app.use(compression());
 
