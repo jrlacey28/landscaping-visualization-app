@@ -74,9 +74,9 @@ export default function Home() {
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-2">
             Visualize your new...
           </h1>
-          <div className="h-24 flex items-center justify-center mb-2">
+          <div className="h-32 md:h-36 flex items-center justify-center mb-2">
             <span 
-              className="text-4xl md:text-6xl font-bold text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-red-400 bg-clip-text animate-slide-down"
+              className="text-4xl md:text-6xl font-bold text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-red-400 bg-clip-text animate-slide-down leading-tight"
               key={currentTextIndex}
             >
               {animatedTexts[currentTextIndex]}
