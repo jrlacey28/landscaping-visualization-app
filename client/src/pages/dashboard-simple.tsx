@@ -205,8 +205,17 @@ export default function Dashboard() {
                 <CardDescription>Add visualization tools to your website</CardDescription>
               </CardHeader>
               <CardContent>
-                {user.hasEmbedAccess && tenant ? (
-                  <EmbedCodeGenerator tenant={tenant} />
+                {user.hasEmbedAccess ? (
+                  <EmbedCodeGenerator tenant={tenant || {
+                    id: 0,
+                    slug: `user-${user.user.id}`,
+                    companyName: user.user.businessName || `${user.user.firstName} ${user.user.lastName}`,
+                    primaryColor: "#10b981",
+                    secondaryColor: "#059669",
+                    phone: "",
+                    email: user.user.email,
+                    active: true,
+                  }} />
                 ) : (
                   <div className="text-center space-y-4">
                     <div className="text-6xl opacity-50">🔒</div>

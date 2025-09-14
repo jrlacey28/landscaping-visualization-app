@@ -755,47 +755,56 @@ export class DatabaseStorage implements IStorage {
   }
 
   async computeEmbedAccess(userId: number): Promise<boolean> {
-    // SIMPLIFIED: Pro plan ID or Custom = embed access, plus admin overrides
+    // PRODUCTION FIX: Any active Pro subscription = embed access
     
-    // First, check for admin override
-    const [override] = await this.db
-      .select()
-      .from(userFeatureOverrides)
-      .where(eq(userFeatureOverrides.userId, userId));
-    
-    if (override && override.embedOverride !== null) {
-      console.log(`[Embed] User ${userId} has admin override: ${override.embedOverride}`);
-      return override.embedOverride;
-    }
-    
-    // Check active subscription
-    const subscription = await this.getUserActiveSubscription(userId);
-    if (!subscription || subscription.status !== 'active') {
-      console.log(`[Embed] User ${userId} - No active subscription`);
-      return false;
-    }
-    
-    // Simple check: Pro plan ID = embed access
-    const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
-    
-    // Direct check for Pro plan ID
-    if (subscription.planId === PRO_PLAN_ID) {
-      console.log(`[Embed] User ${userId} - Pro plan ID - ACCESS GRANTED`);
-      return true;
-    }
-    
-    // Check if plan name contains Pro or Custom (case insensitive)
-    const plan = await this.getSubscriptionPlan(subscription.planId);
-    if (plan) {
-      const planName = (plan.name || '').toLowerCase().trim();
-      if (planName === 'pro' || planName === 'custom') {
-        console.log(`[Embed] User ${userId} - ${plan.name} plan - ACCESS GRANTED`);
+    try {
+      // First, check for admin override
+      const [override] = await this.db
+        .select()
+        .from(userFeatureOverrides)
+        .where(eq(userFeatureOverrides.userId, userId));
+      
+      if (override && override.embedOverride !== null) {
+        console.log(`[Embed] User ${userId} has admin override: ${override.embedOverride}`);
+        return override.embedOverride;
+      }
+      
+      // Get the user's active subscription
+      const subscription = await this.getUserActiveSubscription(userId);
+      
+      // The ONLY Pro plan ID that matters
+      const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
+      
+      // If they have this exact plan ID and it's active, they get embed
+      if (subscription && subscription.status === 'active' && subscription.planId === PRO_PLAN_ID) {
+        console.log(`[Embed] User ${userId} - HAS PRO PLAN - EMBED ENABLED`);
         return true;
       }
+      
+      // Also check if the plan in subscription_plans table says it's Pro
+      if (subscription && subscription.status === 'active') {
+        const plan = await this.getSubscriptionPlan(subscription.planId);
+        if (plan) {
+          // Check if plan name is exactly Pro (case insensitive, trimmed)
+          const normalizedName = (plan.name || '').trim().toLowerCase();
+          if (normalizedName === 'pro' || normalizedName === 'custom') {
+            console.log(`[Embed] User ${userId} - ${plan.name} plan detected - EMBED ENABLED`);
+            return true;
+          }
+          // Also check if the plan has embedAccess flag set to true
+          if (plan.embedAccess === true) {
+            console.log(`[Embed] User ${userId} - Plan has embedAccess=true - EMBED ENABLED`);
+            return true;
+          }
+        }
+      }
+      
+      console.log(`[Embed] User ${userId} - Not Pro/Custom - NO EMBED`);
+      return false;
+    } catch (error) {
+      console.error(`[Embed] Error checking embed access for user ${userId}:`, error);
+      return false;
     }
-    
-    console.log(`[Embed] User ${userId} - No Pro/Custom plan - NO ACCESS`);
-    return false;
   }
 }
 
