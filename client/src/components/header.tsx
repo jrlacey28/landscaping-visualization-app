@@ -192,6 +192,26 @@ export default function Header({ tenant }: HeaderProps) {
                     Contact
                   </Link>
                 </DropdownMenuItem>
+                
+                {/* Authentication section for mobile */}
+                <DropdownMenuSeparator />
+                {user ? (
+                  <>
+                    <DropdownMenuItem onClick={() => setLocation('/dashboard')} className="px-3 py-2">
+                      <User className="mr-2 h-4 w-4" />
+                      Dashboard ({user.user.firstName})
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={logout} className="px-3 py-2">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem onClick={() => setLocation('/auth')} className="px-3 py-2">
+                    <User className="mr-2 h-4 w-4" />
+                    Sign In
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
