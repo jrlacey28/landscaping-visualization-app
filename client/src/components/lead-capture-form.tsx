@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { X, Send } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import type { Tenant } from "@shared/schema";
 
 const leadFormSchema = z.object({
@@ -43,6 +44,7 @@ export default function LeadCaptureForm({
 }: LeadCaptureFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const form = useForm<LeadFormData>({
     resolver: zodResolver(tenant.requirePhone ? leadFormSchema.extend({
@@ -61,13 +63,21 @@ export default function LeadCaptureForm({
 
   const submitLeadMutation = useMutation({
     mutationFn: async (data: LeadFormData) => {
-      return apiRequest("POST", "/api/leads", {
+      // Only send tenantId if user is not authenticated
+      // When authenticated, server will use user's tenant automatically
+      const leadData: any = {
         ...data,
-        tenantId: tenant.id,
         selectedStyles,
         originalImageUrl,
         generatedImageUrl,
-      });
+      };
+      
+      // Only add tenantId if user is not authenticated
+      if (!user) {
+        leadData.tenantId = tenant.id;
+      }
+      
+      return apiRequest("POST", "/api/leads", leadData);
     },
     onSuccess: () => {
       toast({
