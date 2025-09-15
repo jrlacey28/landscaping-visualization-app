@@ -1636,109 +1636,321 @@ export default function AdminDashboard() {
               <h2 className="text-2xl md:text-3xl font-bold">Leads Management</h2>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Mail className="h-5 w-5" />
-                  Website Leads
-                </CardTitle>
-                <CardDescription>
-                  All contact form submissions from your website
-                </CardDescription>
-              </CardHeader>
-                <CardContent>
-                  {leadsLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    </div>
-                  ) : leads.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 text-lg mb-2">No leads yet</p>
-                      <p className="text-gray-500 text-sm">Contact form submissions will appear here</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-gray-600">
-                          Total leads: {leads.length}
-                        </p>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse">
-                          <thead>
-                            <tr className="border-b bg-gray-50">
-                              <th className="text-left p-3 font-medium text-gray-700">Name</th>
-                              <th className="text-left p-3 font-medium text-gray-700">Business</th>
-                              <th className="text-left p-3 font-medium text-gray-700">Email</th>
-                              <th className="text-left p-3 font-medium text-gray-700">Phone</th>
-                              <th className="text-left p-3 font-medium text-gray-700">Date</th>
-                              <th className="text-left p-3 font-medium text-gray-700">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {leads.map((lead) => (
-                              <tr key={lead.id} className="border-b hover:bg-gray-50">
-                                <td className="p-3">
-                                  <div className="font-medium text-gray-900">
-                                    {lead.firstName} {lead.lastName}
-                                  </div>
-                                </td>
-                                <td className="p-3">
-                                  <div className="text-gray-700">
-                                    {lead.businessName || 'Not provided'}
-                                  </div>
-                                </td>
-                                <td className="p-3">
-                                  <a 
-                                    href={`mailto:${lead.email}`}
-                                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                                  >
-                                    {lead.email}
-                                  </a>
-                                </td>
-                                <td className="p-3">
-                                  {lead.phone ? (
-                                    <a 
-                                      href={`tel:${lead.phone}`}
-                                      className="text-blue-600 hover:text-blue-800 hover:underline"
-                                    >
-                                      {lead.phone}
-                                    </a>
-                                  ) : (
-                                    <span className="text-gray-500">Not provided</span>
-                                  )}
-                                </td>
-                                <td className="p-3">
-                                  <div className="text-gray-700 text-sm">
-                                    {lead.createdAt ? (
-                                      <>
-                                        {new Date(lead.createdAt).toLocaleDateString()} {new Date(lead.createdAt).toLocaleTimeString()}
-                                      </>
-                                    ) : (
-                                      'Date not available'
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="p-3">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setDeletingLead(lead)}
-                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-              </CardContent>
-            </Card>
+            {/* Filter leads by type */}
+            {(() => {
+              const regularLeads = leads.filter(lead => !lead.leadType || lead.leadType === 'regular');
+              const quoteLeads = leads.filter(lead => lead.leadType === 'quote');
+              const bugFeatureLeads = leads.filter(lead => lead.leadType === 'bugs_features');
+
+              return (
+                <>
+                  {/* Quote Leads Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Phone className="h-5 w-5 text-green-600" />
+                        Quote Requests
+                      </CardTitle>
+                      <CardDescription>
+                        Service quotes requested from visualizations
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {leadsLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                        </div>
+                      ) : quoteLeads.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Phone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600 text-lg mb-2">No quote requests yet</p>
+                          <p className="text-gray-500 text-sm">Quote requests from service pages will appear here</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-gray-600">
+                              Total quote requests: {quoteLeads.length}
+                            </p>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                              <thead>
+                                <tr className="border-b bg-gray-50">
+                                  <th className="text-left p-3 font-medium text-gray-700">Service</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Name</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Email</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Phone</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Project Details</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Date</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {quoteLeads.map((lead) => (
+                                  <tr key={lead.id} className="border-b hover:bg-gray-50">
+                                    <td className="p-3">
+                                      <Badge variant="outline" className="capitalize">
+                                        {lead.service || 'Unknown'}
+                                      </Badge>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="font-medium text-gray-900">
+                                        {lead.firstName} {lead.lastName}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <a 
+                                        href={`mailto:${lead.email}`}
+                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                      >
+                                        {lead.email}
+                                      </a>
+                                    </td>
+                                    <td className="p-3">
+                                      {lead.phone ? (
+                                        <a 
+                                          href={`tel:${lead.phone}`}
+                                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                                        >
+                                          {lead.phone}
+                                        </a>
+                                      ) : (
+                                        <span className="text-gray-500">Not provided</span>
+                                      )}
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="text-gray-700 text-sm max-w-xs truncate">
+                                        {lead.projectDetails || 'No details provided'}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="text-gray-700 text-sm">
+                                        {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'N/A'}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setDeletingLead(lead)}
+                                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Bug/Feature Reports Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-orange-600" />
+                        Bug Reports & Feature Requests
+                      </CardTitle>
+                      <CardDescription>
+                        User feedback and improvement suggestions
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {leadsLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                        </div>
+                      ) : bugFeatureLeads.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600 text-lg mb-2">No feedback yet</p>
+                          <p className="text-gray-500 text-sm">Bug reports and feature requests will appear here</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-gray-600">
+                              Total feedback: {bugFeatureLeads.length}
+                            </p>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                              <thead>
+                                <tr className="border-b bg-gray-50">
+                                  <th className="text-left p-3 font-medium text-gray-700">Type</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">User</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Email</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Description</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Date</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {bugFeatureLeads.map((lead) => (
+                                  <tr key={lead.id} className="border-b hover:bg-gray-50">
+                                    <td className="p-3">
+                                      <Badge 
+                                        variant={lead.service === 'bug' ? 'destructive' : 'default'}
+                                        className="capitalize"
+                                      >
+                                        {lead.service === 'bug' ? 'Bug' : 'Feature'}
+                                      </Badge>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="font-medium text-gray-900">
+                                        {lead.firstName} {lead.lastName}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <a 
+                                        href={`mailto:${lead.email}`}
+                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                      >
+                                        {lead.email}
+                                      </a>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="text-gray-700 text-sm max-w-md">
+                                        {lead.projectDetails || 'No details provided'}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="text-gray-700 text-sm">
+                                        {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'N/A'}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setDeletingLead(lead)}
+                                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Regular Website Leads Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Mail className="h-5 w-5" />
+                        Website Leads
+                      </CardTitle>
+                      <CardDescription>
+                        General contact form submissions from your website
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {leadsLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        </div>
+                      ) : regularLeads.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600 text-lg mb-2">No leads yet</p>
+                          <p className="text-gray-500 text-sm">Contact form submissions will appear here</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-gray-600">
+                              Total leads: {regularLeads.length}
+                            </p>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                              <thead>
+                                <tr className="border-b bg-gray-50">
+                                  <th className="text-left p-3 font-medium text-gray-700">Name</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Business</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Email</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Phone</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Date</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {regularLeads.map((lead) => (
+                                  <tr key={lead.id} className="border-b hover:bg-gray-50">
+                                    <td className="p-3">
+                                      <div className="font-medium text-gray-900">
+                                        {lead.firstName} {lead.lastName}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="text-gray-700">
+                                        {lead.businessName || 'Not provided'}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <a 
+                                        href={`mailto:${lead.email}`}
+                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                      >
+                                        {lead.email}
+                                      </a>
+                                    </td>
+                                    <td className="p-3">
+                                      {lead.phone ? (
+                                        <a 
+                                          href={`tel:${lead.phone}`}
+                                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                                        >
+                                          {lead.phone}
+                                        </a>
+                                      ) : (
+                                        <span className="text-gray-500">Not provided</span>
+                                      )}
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="text-gray-700 text-sm">
+                                        {lead.createdAt ? (
+                                          <>
+                                            {new Date(lead.createdAt).toLocaleDateString()} {new Date(lead.createdAt).toLocaleTimeString()}
+                                          </>
+                                        ) : (
+                                          'Date not available'
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setDeletingLead(lead)}
+                                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+              );
+            })()}
           </TabsContent>
 
 
