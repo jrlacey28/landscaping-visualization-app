@@ -2,6 +2,11 @@ import { apiRequest } from "./queryClient";
 
 export { apiRequest };
 
+// Helper function to get auth token
+const getAuthToken = () => {
+  return localStorage.getItem('auth_token');
+};
+
 // Additional API utilities can be added here
 export const uploadImageWithFastSAM2 = async (file: File, tenantId: number, selectedStyles: any) => {
   const formData = new FormData();
@@ -91,8 +96,12 @@ export const uploadImage = async (file: File, userId: number, selectedStyles: an
 };
 
 export const checkVisualizationStatus = async (visualizationId: number) => {
+  const token = getAuthToken();
   const response = await fetch(`/api/visualizations/${visualizationId}/status`, {
     credentials: 'include',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
   });
 
   if (!response.ok) {
@@ -194,11 +203,6 @@ export const analyzeLandscapeImage = async (file: File) => {
   return response.json();
 };
 
-// Helper function to get auth token
-const getAuthToken = () => {
-  return localStorage.getItem('auth_token');
-};
-
 // Pool-specific API functions
 export const uploadPoolImage = async (file: File, userId: number, selectedPoolStyles: any) => {
   const formData = new FormData();
@@ -245,8 +249,12 @@ export const uploadPoolImage = async (file: File, userId: number, selectedPoolSt
 };
 
 export const checkPoolVisualizationStatus = async (poolVisualizationId: number) => {
+  const token = getAuthToken();
   const response = await fetch(`/api/pools/${poolVisualizationId}/status`, {
     credentials: 'include',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
   });
 
   if (!response.ok) {
@@ -298,8 +306,12 @@ export const uploadLandscapeImage = async (file: File, userId: number, selectedL
 };
 
 export const checkLandscapeVisualizationStatus = async (landscapeVisualizationId: number) => {
+  const token = getAuthToken();
   const response = await fetch(`/api/landscape/${landscapeVisualizationId}/status`, {
     credentials: "include",
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
   });
 
   if (!response.ok) {
