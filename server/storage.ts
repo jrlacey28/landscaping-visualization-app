@@ -40,6 +40,7 @@ export interface IStorage {
   // Tenant methods (for white-label customers)
   getTenant(id: number): Promise<Tenant | undefined>;
   getTenantBySlug(slug: string): Promise<Tenant | undefined>;
+  getTenantByUserId(userId: number): Promise<Tenant | undefined>;
   getAllTenants(): Promise<Tenant[]>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
   updateTenant(id: number, tenant: Partial<InsertTenant>): Promise<Tenant>;
@@ -482,6 +483,11 @@ export class DatabaseStorage implements IStorage {
 
   async getTenantBySlug(slug: string): Promise<Tenant | undefined> {
     const [tenant] = await this.db.select().from(tenants).where(eq(tenants.slug, slug));
+    return tenant || undefined;
+  }
+
+  async getTenantByUserId(userId: number): Promise<Tenant | undefined> {
+    const [tenant] = await this.db.select().from(tenants).where(eq(tenants.userId, userId));
     return tenant || undefined;
   }
 
