@@ -149,7 +149,7 @@ export default function Home() {
             {/* Right side - Social icons */}
             <div className="flex items-center justify-center space-x-4 md:justify-end">
               <a
-                href="#" // Update with your Facebook URL
+                href="https://www.facebook.com/profile.php?id=61581152150848" // Update with your Facebook URL
                 className="text-slate-400 hover:text-blue-400 transition-colors"
               >
                 <Facebook className="h-5 w-5" />
@@ -161,7 +161,7 @@ export default function Home() {
                 <Youtube className="h-5 w-5" />
               </a>
               <a
-                href="#" // Update with your Instagram URL
+                href="https://www.instagram.com/dreambuilderai/?igsh=Nmt1NnVoeGxvNXEx&utm_source=qr#" // Update with your Instagram URL
                 className="text-slate-400 hover:text-pink-400 transition-colors"
               >
                 <Instagram className="h-5 w-5" />
@@ -173,7 +173,7 @@ export default function Home() {
                 <SiTiktok className="h-5 w-5" />
               </a>
               <a
-                href="#" // Update with your LinkedIn URL
+                href="https://www.linkedin.com/company/dream-builder-ai/" // Update with your LinkedIn URL
                 className="text-slate-400 hover:text-blue-400 transition-colors"
               >
                 <Linkedin className="h-5 w-5" />
