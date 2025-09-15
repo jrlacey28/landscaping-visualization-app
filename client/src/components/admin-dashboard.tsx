@@ -143,6 +143,7 @@ export default function AdminDashboard() {
   const [editingClient, setEditingClient] = useState<Tenant | null>(null);
   const [deletingClient, setDeletingClient] = useState<Tenant | null>(null);
   const [deletingLead, setDeletingLead] = useState<Lead | null>(null);
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set());
   const [newClientData, setNewClientData] = useState({
     companyName: "",
     slug: "",
@@ -1638,22 +1639,77 @@ export default function AdminDashboard() {
 
             {/* Filter leads by type */}
             {(() => {
-              const regularLeads = leads.filter(lead => !lead.leadType || lead.leadType === 'regular');
-              const quoteLeads = leads.filter(lead => lead.leadType === 'quote');
-              const bugFeatureLeads = leads.filter(lead => lead.leadType === 'bugs_features');
+              const regularLeads = leads.filter(lead => !lead.leadType || lead.leadType === 'regular').slice(0, 10);
+              const quoteLeads = leads.filter(lead => lead.leadType === 'quote').slice(0, 10);
+              const bugFeatureLeads = leads.filter(lead => lead.leadType === 'bugs_features').slice(0, 10);
+              
+              const toggleDescription = (leadId: number) => {
+                const newExpanded = new Set(expandedDescriptions);
+                if (newExpanded.has(leadId)) {
+                  newExpanded.delete(leadId);
+                } else {
+                  newExpanded.add(leadId);
+                }
+                setExpandedDescriptions(newExpanded);
+              };
+              
+              const truncateText = (text: string, maxLength: number = 100) => {
+                if (!text) return 'No details provided';
+                return text.length <= maxLength ? text : text.substring(0, maxLength) + '...';
+              };
+              
+              const exportLeads = (leadsData: any[], filename: string) => {
+                const csvContent = [
+                  // CSV headers
+                  ['Date', 'Type', 'Name', 'Email', 'Phone', 'Location/Service', 'Description'].join(','),
+                  // CSV data
+                  ...leadsData.map(lead => [
+                    lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'N/A',
+                    lead.leadType || 'regular',
+                    `"${lead.firstName} ${lead.lastName}"`,
+                    lead.email,
+                    lead.phone || 'N/A',
+                    lead.location || lead.service || 'N/A',
+                    `"${(lead.projectDetails || 'No details').replace(/"/g, '""')}"`
+                  ].join(','))
+                ].join('\n');
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              };
 
               return (
                 <>
                   {/* Quote Leads Section */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Phone className="h-5 w-5 text-green-600" />
-                        Quote Requests
-                      </CardTitle>
-                      <CardDescription>
-                        Service quotes requested from visualizations
-                      </CardDescription>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <Phone className="h-5 w-5 text-green-600" />
+                            Quote Requests
+                          </CardTitle>
+                          <CardDescription>
+                            Service quotes requested from visualizations (showing {quoteLeads.length} most recent)
+                          </CardDescription>
+                        </div>
+                        {quoteLeads.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => exportLeads(quoteLeads, 'quote-requests.csv')}
+                          >
+                            Export CSV
+                          </Button>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent>
                       {leadsLoading ? (
@@ -1681,6 +1737,7 @@ export default function AdminDashboard() {
                                   <th className="text-left p-3 font-medium text-gray-700">Name</th>
                                   <th className="text-left p-3 font-medium text-gray-700">Email</th>
                                   <th className="text-left p-3 font-medium text-gray-700">Phone</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Location</th>
                                   <th className="text-left p-3 font-medium text-gray-700">Project Details</th>
                                   <th className="text-left p-3 font-medium text-gray-700">Date</th>
                                   <th className="text-left p-3 font-medium text-gray-700">Actions</th>
@@ -1720,8 +1777,35 @@ export default function AdminDashboard() {
                                       )}
                                     </td>
                                     <td className="p-3">
-                                      <div className="text-gray-700 text-sm max-w-xs truncate">
-                                        {lead.projectDetails || 'No details provided'}
+                                      <div className="text-gray-700 text-sm">
+                                        {lead.location || 'Not provided'}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="text-gray-700 text-sm max-w-xs">
+                                        {expandedDescriptions.has(lead.id) ? (
+                                          <div>
+                                            <div className="whitespace-pre-wrap">{lead.projectDetails || 'No details provided'}</div>
+                                            <button 
+                                              onClick={() => toggleDescription(lead.id)}
+                                              className="text-blue-600 hover:text-blue-800 text-xs mt-1"
+                                            >
+                                              Read less
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <div>
+                                            <div>{truncateText(lead.projectDetails)}</div>
+                                            {lead.projectDetails && lead.projectDetails.length > 100 && (
+                                              <button 
+                                                onClick={() => toggleDescription(lead.id)}
+                                                className="text-blue-600 hover:text-blue-800 text-xs mt-1"
+                                              >
+                                                Read more
+                                              </button>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
                                     </td>
                                     <td className="p-3">
@@ -1752,13 +1836,26 @@ export default function AdminDashboard() {
                   {/* Bug/Feature Reports Section */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-orange-600" />
-                        Bug Reports & Feature Requests
-                      </CardTitle>
-                      <CardDescription>
-                        User feedback and improvement suggestions
-                      </CardDescription>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <Users className="h-5 w-5 text-orange-600" />
+                            Bug Reports & Feature Requests
+                          </CardTitle>
+                          <CardDescription>
+                            User feedback and improvement suggestions (showing {bugFeatureLeads.length} most recent)
+                          </CardDescription>
+                        </div>
+                        {bugFeatureLeads.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => exportLeads(bugFeatureLeads, 'bug-feature-requests.csv')}
+                          >
+                            Export CSV
+                          </Button>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent>
                       {leadsLoading ? (
@@ -1805,6 +1902,9 @@ export default function AdminDashboard() {
                                       <div className="font-medium text-gray-900">
                                         {lead.firstName} {lead.lastName}
                                       </div>
+                                      <div className="text-sm text-gray-500">
+                                        User feedback
+                                      </div>
                                     </td>
                                     <td className="p-3">
                                       <a 
@@ -1816,7 +1916,29 @@ export default function AdminDashboard() {
                                     </td>
                                     <td className="p-3">
                                       <div className="text-gray-700 text-sm max-w-md">
-                                        {lead.projectDetails || 'No details provided'}
+                                        {expandedDescriptions.has(lead.id) ? (
+                                          <div>
+                                            <div className="whitespace-pre-wrap">{lead.projectDetails || 'No details provided'}</div>
+                                            <button 
+                                              onClick={() => toggleDescription(lead.id)}
+                                              className="text-blue-600 hover:text-blue-800 text-xs mt-1"
+                                            >
+                                              Read less
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <div>
+                                            <div>{truncateText(lead.projectDetails)}</div>
+                                            {lead.projectDetails && lead.projectDetails.length > 100 && (
+                                              <button 
+                                                onClick={() => toggleDescription(lead.id)}
+                                                className="text-blue-600 hover:text-blue-800 text-xs mt-1"
+                                              >
+                                                Read more
+                                              </button>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
                                     </td>
                                     <td className="p-3">
@@ -1847,13 +1969,26 @@ export default function AdminDashboard() {
                   {/* Regular Website Leads Section */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Mail className="h-5 w-5" />
-                        Website Leads
-                      </CardTitle>
-                      <CardDescription>
-                        General contact form submissions from your website
-                      </CardDescription>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <Mail className="h-5 w-5" />
+                            Website Leads
+                          </CardTitle>
+                          <CardDescription>
+                            General contact form submissions from your website (showing {regularLeads.length} most recent)
+                          </CardDescription>
+                        </div>
+                        {regularLeads.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => exportLeads(regularLeads, 'website-leads.csv')}
+                          >
+                            Export CSV
+                          </Button>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent>
                       {leadsLoading ? (
