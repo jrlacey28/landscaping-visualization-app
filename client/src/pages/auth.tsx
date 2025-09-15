@@ -27,21 +27,21 @@ export default function AuthPage() {
   useEffect(() => {    
     if (token && !tokenProcessed) {
       setTokenProcessed(true); // Prevent multiple executions
-      
+
       const handleGoogleAuth = async () => {
         try {
           // Store the token immediately
           localStorage.setItem('auth_token', token);
-          
+
           // Refresh user data to validate token
           await refreshUser();
-          
+
           // Show success message
           toast({
             title: 'Success',
             description: 'Signed in with Google successfully!',
           });
-          
+
           // Allow time for auth state to fully propagate
           setTimeout(() => {
             if (planId) {
@@ -59,7 +59,7 @@ export default function AuthPage() {
           });
         }
       };
-      
+
       handleGoogleAuth();
     } else if (error) {
       let errorMessage = 'Authentication failed';
@@ -68,7 +68,7 @@ export default function AuthPage() {
       } else if (error === 'callback_failed') {
         errorMessage = 'Authentication callback failed. Please try again.';
       }
-      
+
       toast({
         title: 'Error',
         description: errorMessage,
@@ -86,7 +86,7 @@ export default function AuthPage() {
     try {
       setIsLoading(true);
       await login(email, password);
-      
+
       toast({
         title: 'Success',
         description: 'Logged in successfully!',
@@ -114,7 +114,7 @@ export default function AuthPage() {
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
+
     const data = {
       email: formData.get('email') as string,
       password: formData.get('password') as string,
@@ -127,7 +127,7 @@ export default function AuthPage() {
     try {
       setIsLoading(true);
       await register(data);
-      
+
       toast({
         title: 'Success',
         description: 'Account created successfully!',
@@ -163,7 +163,7 @@ export default function AuthPage() {
           }
         }
       );
-      
+
       const data = await response.json();
       if (data.success && data.data.url) {
         window.location.href = data.data.url;
@@ -241,7 +241,7 @@ export default function AuthPage() {
               </svg>
               Continue with Google
               </Button>
-              
+
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <Separator className="w-full" />
@@ -257,7 +257,7 @@ export default function AuthPage() {
                 <TabsTrigger value="login">Sign In</TabsTrigger>
                 <TabsTrigger value="register">Sign Up</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
@@ -270,7 +270,7 @@ export default function AuthPage() {
                       placeholder="Enter your email"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
                     <Input
@@ -281,7 +281,7 @@ export default function AuthPage() {
                       placeholder="Enter your password"
                     />
                   </div>
-                  
+
                   <Button 
                     type="submit" 
                     className="w-full" 
@@ -291,7 +291,7 @@ export default function AuthPage() {
                   </Button>
                 </form>
               </TabsContent>
-              
+
               <TabsContent value="register">
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -314,7 +314,7 @@ export default function AuthPage() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -325,7 +325,7 @@ export default function AuthPage() {
                       placeholder="john@example.com"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
                     <Input
@@ -337,7 +337,7 @@ export default function AuthPage() {
                       minLength={8}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="businessName">Business Name (Optional)</Label>
                     <Input
@@ -346,7 +346,7 @@ export default function AuthPage() {
                       placeholder="Your Business Name"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone (Optional)</Label>
                     <Input
@@ -356,7 +356,7 @@ export default function AuthPage() {
                       placeholder="(555) 123-4567"
                     />
                   </div>
-                  
+
                   <Button 
                     type="submit" 
                     className="w-full"
@@ -369,6 +369,11 @@ export default function AuthPage() {
             </Tabs>
           </CardContent>
         </Card>
+
+        <div className="text-center text-sm text-gray-500 mt-6 space-x-4">
+          <a href="/privacy" className="hover:text-gray-700 underline">Privacy Policy</a>
+          <a href="/terms" className="hover:text-gray-700 underline">Terms of Service</a>
+        </div>
       </div>
     </div>
   );

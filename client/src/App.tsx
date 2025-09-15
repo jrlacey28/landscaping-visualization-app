@@ -14,6 +14,8 @@ import ContactPage from "@/pages/contact";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard-simple";
 import NotFound from "@/pages/not-found";
+import PrivacyPage from "@/pages/privacy";
+import TermsPage from "@/pages/terms";
 
 // Lazy imports for heavy components that slow initial load
 const RoofingSiding = lazy(() => import("@/pages/roofing-siding"));
@@ -57,6 +59,8 @@ function Router() {
       <Route path="/embed-manager" component={() => <LazyRoute Component={EmbedManager} />} />
       <Route path="/pricing" component={PricingPage} />
       <Route path="/contact" component={ContactPage} />
+      <Route path="/privacy" component={PrivacyPage} />
+      <Route path="/terms" component={TermsPage} />
       <Route component={NotFound} />
     </Switch>
   );
