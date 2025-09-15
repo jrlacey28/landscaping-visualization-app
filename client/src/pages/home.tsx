@@ -133,13 +133,13 @@ export default function Home() {
             {/* Center - Terms & Privacy */}
             <div className="flex items-center justify-center space-x-6 text-sm">
               <a 
-                href="#" // Update with your Terms of Service URL
+                href="https://dreambuilderai.com/terms" // Update with your Terms of Service URL
                 className="text-slate-400 hover:text-white transition-colors"
               >
                 Terms of Service
               </a>
               <a 
-                href="#" // Update with your Privacy Policy URL
+                href="https://dreambuilderai.com/privacy" // Update with your Privacy Policy URL
                 className="text-slate-400 hover:text-white transition-colors"
               >
                 Privacy Policy
