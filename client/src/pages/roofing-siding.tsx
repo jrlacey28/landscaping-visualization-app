@@ -341,7 +341,7 @@ export default function RoofingSiding() {
                           description: "Please sign in and choose a plan to use AI visualization features.",
                           variant: "destructive",
                         });
-                        navigate("/login");
+                        navigate("/pricing");
                         return;
                       }
 
