@@ -24,7 +24,7 @@ import Header from "@/components/header";
 import { SparklesText } from "@/components/ui/sparkles-text";
 import { useTenant } from "@/hooks/use-tenant";
 import { useAuth } from "@/hooks/use-auth";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import {
   uploadImage,
@@ -34,7 +34,7 @@ import {
 export default function RoofingSiding() {
   const { tenant, isLoading: tenantLoading } = useTenant();
   const { user } = useAuth();
-  const [navigate] = useNavigate();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
