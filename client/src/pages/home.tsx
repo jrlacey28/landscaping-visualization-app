@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Facebook, Youtube, Instagram } from "lucide-react";
+import { Facebook, Youtube, Instagram, Linkedin } from "lucide-react";
+import { SiTiktok } from "react-icons/si";
 import Header from "@/components/header";
 import { useTenant } from "@/hooks/use-tenant";
 import { Link } from "wouter";
@@ -128,26 +129,53 @@ export default function Home() {
               </div>
             </Link>
 
+            {/* Center - Terms & Privacy */}
+            <div className="flex items-center justify-center space-x-6 text-sm">
+              <a 
+                href="#" // Update with your Terms of Service URL
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                Terms of Service
+              </a>
+              <a 
+                href="#" // Update with your Privacy Policy URL
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                Privacy Policy
+              </a>
+            </div>
 
             {/* Right side - Social icons */}
             <div className="flex items-center justify-center space-x-4 md:justify-end">
               <a
-                href="#"
+                href="#" // Update with your Facebook URL
                 className="text-slate-400 hover:text-blue-400 transition-colors"
               >
                 <Facebook className="h-5 w-5" />
               </a>
               <a
-                href="#"
+                href="#" // Update with your YouTube URL
                 className="text-slate-400 hover:text-red-400 transition-colors"
               >
                 <Youtube className="h-5 w-5" />
               </a>
               <a
-                href="#"
-                className="text-slate-400 hover:text-blue-400 transition-colors"
+                href="#" // Update with your Instagram URL
+                className="text-slate-400 hover:text-pink-400 transition-colors"
               >
                 <Instagram className="h-5 w-5" />
+              </a>
+              <a
+                href="#" // Update with your TikTok URL
+                className="text-slate-400 hover:text-pink-400 transition-colors"
+              >
+                <SiTiktok className="h-5 w-5" />
+              </a>
+              <a
+                href="#" // Update with your LinkedIn URL
+                className="text-slate-400 hover:text-blue-400 transition-colors"
+              >
+                <Linkedin className="h-5 w-5" />
               </a>
             </div>
           </div>
