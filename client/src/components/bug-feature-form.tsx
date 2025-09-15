@@ -48,6 +48,7 @@ export default function BugFeatureForm() {
         projectDetails: `[${data.type.toUpperCase()}] ${data.title}\n\n${data.description}`,
         leadType: "bugs_features",
         service: data.type, // Store whether it's a bug or feature
+        tenantId: 1, // Always associate with tenant 1 for admin visibility
       };
       
       return apiRequest("POST", "/api/leads", leadData);

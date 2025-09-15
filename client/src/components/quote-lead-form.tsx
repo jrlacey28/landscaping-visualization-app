@@ -61,12 +61,8 @@ export default function QuoteLeadForm({
         selectedStyles,
         originalImageUrl,
         generatedImageUrl,
+        tenantId: 1, // Always associate with tenant 1 for admin visibility
       };
-      
-      // Only add tenantId if user is not authenticated
-      if (!user) {
-        leadData.tenantId = 1; // Default to demo tenant for unauthenticated users
-      }
       
       return apiRequest("POST", "/api/leads", leadData);
     },
@@ -97,14 +93,14 @@ export default function QuoteLeadForm({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-blue-200">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center">
-              <Send className="h-5 w-5 text-accent mr-3" />
+            <CardTitle className="flex items-center text-blue-900">
+              <Send className="h-5 w-5 text-blue-600 mr-3" />
               Get Your Free {serviceDisplay} Quote
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-blue-200">
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -193,11 +189,22 @@ export default function QuoteLeadForm({
               />
 
               <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={onClose}>
+                <Button type="button" variant="outline" onClick={onClose} className="border-blue-300 hover:bg-blue-50">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={submitQuoteMutation.isPending}>
-                  {submitQuoteMutation.isPending ? "Submitting..." : "Get Free Quote"}
+                <Button 
+                  type="submit" 
+                  disabled={submitQuoteMutation.isPending}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+                >
+                  {submitQuoteMutation.isPending ? (
+                    <>Submitting...</>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Get Free Quote
+                    </>
+                  )}
                 </Button>
               </div>
             </form>
