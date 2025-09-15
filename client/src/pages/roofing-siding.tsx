@@ -19,7 +19,7 @@ import FileUpload from "@/components/ui/file-upload";
 import ImageComparison from "@/components/ui/image-comparison";
 import InpaintingCanvas from "@/components/ui/inpainting-canvas";
 import StyleSelector from "@/components/style-selector";
-import LeadCaptureForm from "@/components/lead-capture-form";
+import QuoteLeadForm from "@/components/quote-lead-form";
 import Header from "@/components/header";
 import { SparklesText } from "@/components/ui/sparkles-text";
 import { useTenant } from "@/hooks/use-tenant";
@@ -536,8 +536,8 @@ export default function RoofingSiding() {
 
       {/* Lead Capture Modal */}
       {showLeadForm && (
-        <LeadCaptureForm
-          tenant={effectiveTenant}
+        <QuoteLeadForm
+          service="roofing-siding"
           onClose={() => setShowLeadForm(false)}
           selectedStyles={selectedStyles}
           originalImageUrl={uploadedImage}

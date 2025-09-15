@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import FileUpload from "@/components/ui/file-upload";
 import PoolStyleSelector from "@/components/pool-style-selector";
-import LeadCaptureForm from "@/components/lead-capture-form";
+import QuoteLeadForm from "@/components/quote-lead-form";
 import Header from "@/components/header";
 import { SparklesText } from "@/components/ui/sparkles-text";
 import { useTenant } from "@/hooks/use-tenant";
@@ -461,8 +461,8 @@ export default function Pools() {
       {showLeadForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <LeadCaptureForm
-              tenant={effectiveTenant}
+            <QuoteLeadForm
+              service="pools"
               originalImageUrl={uploadedImage}
               generatedImageUrl={generatedImage}
               selectedStyles={selectedPoolStyles}

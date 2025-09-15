@@ -98,6 +98,8 @@ export const leads = pgTable("leads", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id), // For user-generated leads
   tenantId: integer("tenant_id").references(() => tenants.id), // For tenant-captured leads
+  leadType: text("lead_type").default("standard"), // standard, quote, bug, feature
+  service: text("service"), // landscape, roofing-siding, pools
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   email: text("email").notNull(),
