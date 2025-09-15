@@ -24,6 +24,8 @@ import Header from "@/components/header";
 import { SparklesText } from "@/components/ui/sparkles-text";
 import { useTenant } from "@/hooks/use-tenant";
 import { useAuth } from "@/hooks/use-auth";
+import { useNavigate } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import {
   uploadImage,
   checkVisualizationStatus,
@@ -32,6 +34,8 @@ import {
 export default function RoofingSiding() {
   const { tenant, isLoading: tenantLoading } = useTenant();
   const { user } = useAuth();
+  const [navigate] = useNavigate();
+  const { toast } = useToast();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -330,6 +334,28 @@ export default function RoofingSiding() {
                       )
                     }
                     onClick={async () => {
+                      // Check if user is authenticated
+                      if (!user) {
+                        toast({
+                          title: "Authentication Required",
+                          description: "Please sign in and choose a plan to use AI visualization features.",
+                          variant: "destructive",
+                        });
+                        navigate("/login");
+                        return;
+                      }
+
+                      // Check if user has usage available
+                      if (!user.usage.canUse) {
+                        toast({
+                          title: "Usage Limit Reached",
+                          description: `You've reached your monthly limit of ${user.usage.limit} visualizations. Please upgrade your plan to continue.`,
+                          variant: "destructive",
+                        });
+                        navigate("/pricing");
+                        return;
+                      }
+
                       setIsGenerating(true);
                       setVisualizationResult(null); // Clear previous results
                       try {
@@ -344,7 +370,7 @@ export default function RoofingSiding() {
 
                         // Upload image and generate AI visualization using correct roofing endpoint
                         // Use logged-in user's account for proper generation tracking
-                        const accountId = user?.user.id || effectiveTenant.id;
+                        const accountId = user.user.id; // Always use authenticated user ID
                         const result = await uploadImage(
                           originalFile,
                           accountId,

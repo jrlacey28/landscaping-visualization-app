@@ -18,6 +18,9 @@ import LeadCaptureForm from "@/components/lead-capture-form";
 import Header from "@/components/header";
 import { SparklesText } from "@/components/ui/sparkles-text";
 import { useTenant } from "@/hooks/use-tenant";
+import { useAuth } from "@/hooks/use-auth";
+import { useNavigate } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import {
   uploadPoolImage,
   checkPoolVisualizationStatus,
@@ -25,6 +28,9 @@ import {
 
 export default function Pools() {
   const { tenant, isLoading: tenantLoading } = useTenant();
+  const { user } = useAuth();
+  const [navigate] = useNavigate();
+  const { toast } = useToast();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -304,6 +310,28 @@ export default function Pools() {
                       )
                     }
                     onClick={async () => {
+                      // Check if user is authenticated
+                      if (!user) {
+                        toast({
+                          title: "Authentication Required",
+                          description: "Please sign in and choose a plan to use AI visualization features.",
+                          variant: "destructive",
+                        });
+                        navigate("/login");
+                        return;
+                      }
+
+                      // Check if user has usage available
+                      if (!user.usage.canUse) {
+                        toast({
+                          title: "Usage Limit Reached",
+                          description: `You've reached your monthly limit of ${user.usage.limit} visualizations. Please upgrade your plan to continue.`,
+                          variant: "destructive",
+                        });
+                        navigate("/pricing");
+                        return;
+                      }
+
                       setIsGenerating(true);
                       setPoolVisualizationResult(null);
                       try {
@@ -317,9 +345,10 @@ export default function Pools() {
                         }
 
                         // Upload image and generate pool AI visualization
+                        // Backend will now track usage to authenticated user
                         const result = await uploadPoolImage(
                           originalFile,
-                          effectiveTenant.id,
+                          user.user.id, // Use user ID for proper tracking
                           selectedPoolStyles,
                         );
 

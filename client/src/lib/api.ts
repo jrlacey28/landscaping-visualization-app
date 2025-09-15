@@ -46,10 +46,10 @@ export const checkFastEditStatus = async (segmentationId: string) => {
 };
 
 // Keep legacy upload for backward compatibility
-export const uploadImage = async (file: File, tenantId: number, selectedStyles: any, maskData?: string) => {
+export const uploadImage = async (file: File, userId: number, selectedStyles: any, maskData?: string) => {
   const formData = new FormData();
   formData.append('image', file);
-  formData.append('tenantId', tenantId.toString());
+  // Note: tenantId is no longer needed - backend will determine it
 
   // Format the selected styles to match backend expectations
   const roofValue = selectedStyles.roof.enabled && selectedStyles.roof.type ? selectedStyles.roof.type : '';
@@ -64,10 +64,14 @@ export const uploadImage = async (file: File, tenantId: number, selectedStyles: 
     formData.append('maskData', maskData);
   }
 
+  const token = getAuthToken();
   const response = await fetch('/api/upload', {
     method: 'POST',
     body: formData,
     credentials: 'include',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
   });
 
   if (!response.ok) {
@@ -190,11 +194,16 @@ export const analyzeLandscapeImage = async (file: File) => {
   return response.json();
 };
 
+// Helper function to get auth token
+const getAuthToken = () => {
+  return localStorage.getItem('auth_token');
+};
+
 // Pool-specific API functions
-export const uploadPoolImage = async (file: File, tenantId: number, selectedPoolStyles: any) => {
+export const uploadPoolImage = async (file: File, userId: number, selectedPoolStyles: any) => {
   const formData = new FormData();
   formData.append('image', file);
-  formData.append('tenantId', tenantId.toString());
+  // Note: tenantId is no longer needed - backend will determine it
 
   // Format the selected pool styles to match backend expectations
   const poolTypeValue = selectedPoolStyles.poolType || '';
@@ -209,10 +218,14 @@ export const uploadPoolImage = async (file: File, tenantId: number, selectedPool
   formData.append('selectedLandscaping', landscapingValue);
   formData.append('selectedFeatures', featuresValue);
 
+  const token = getAuthToken();
   const response = await fetch('/api/pools/upload', {
     method: 'POST',
     body: formData,
     credentials: 'include',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
   });
 
   if (!response.ok) {
@@ -244,10 +257,10 @@ export const checkPoolVisualizationStatus = async (poolVisualizationId: number) 
 };
 
 // Landscape-specific API functions
-export const uploadLandscapeImage = async (file: File, tenantId: number, selectedLandscapeStyles: any) => {
+export const uploadLandscapeImage = async (file: File, userId: number, selectedLandscapeStyles: any) => {
   const formData = new FormData();
   formData.append('image', file);
-  formData.append('tenantId', tenantId.toString());
+  // Note: tenantId is no longer needed - backend will determine it
 
   // Format the selected landscape styles to match backend expectations
   const curbingValue = selectedLandscapeStyles.curbing || '';
@@ -258,10 +271,14 @@ export const uploadLandscapeImage = async (file: File, tenantId: number, selecte
   formData.append('selectedLandscape', landscapeValue);
   formData.append('selectedPatios', patiosValue);
 
+  const token = getAuthToken();
   const response = await fetch('/api/landscape/upload', {
     method: 'POST',
     body: formData,
     credentials: 'include',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
   });
 
   if (!response.ok) {
