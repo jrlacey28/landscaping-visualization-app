@@ -56,7 +56,7 @@ const faqItems = [
   },
   {
     question: 'Can I try the service before purchasing?',
-    answer: 'Yes! We offer a free trial that allows you to generate up to 3 visualizations so you can experience the quality of our AI-powered design tools.',
+    answer: 'Yes! We offer a free trial that allows you to generate up to 5 visualizations so you can experience the quality of our AI-powered design tools.',
   },
   {
     question: 'What image formats do you support?',
@@ -83,8 +83,6 @@ export default function PricingPage() {
       yearlyPrice: 0,
       features: [
         "5 visualizations per month",
-        "All AI-powered design tools",
-        "Basic templates",
         "Standard sharing options"
       ],
       cta: "Start Free Trial",
@@ -97,8 +95,6 @@ export default function PricingPage() {
       yearlyPrice: 240,
       features: [
         "100 visualizations per month",
-        "All AI-powered design tools",
-        "Premium templates",
         "Standard sharing options"
       ],
       cta: "Get Started",
@@ -122,21 +118,18 @@ export default function PricingPage() {
     {
       name: "Enterprise",
       description: "Scale AI visualizations across your entire business",
-      monthlyPrice: 500,
+      monthlyPrice: 750,
       yearlyPrice: 6000,
       features: [
         "Everything in Pro, plus:",
         "Unlimited visualizations",
-        "White-label solutions",
-        "Custom API integrations",
-        "Dedicated account manager",
-        "Priority support & training",
-        "Multi-location management",
-        "Advanced analytics & reporting"
+        "White-label app and widget",
+        "Custom training integrations",
+        "Advanced storage and tracking"
       ],
       cta: "Contact Sales",
       ctaLink: "/contact",
-      priceNote: "Custom pricing available for larger organizations"
+      priceNote: "Plus one time setup fee"
     }
   ]
 

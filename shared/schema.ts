@@ -106,6 +106,7 @@ export const leads = pgTable("leads", {
   phone: text("phone"),
   businessName: text("business_name"),
   address: text("address"),
+  location: text("location"), // City, State for quote requests
   projectDetails: text("project_details"),
   timeline: text("timeline"),
   selectedStyles: jsonb("selected_styles"),
