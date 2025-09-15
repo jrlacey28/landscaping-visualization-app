@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { useTenant } from '@/hooks/use-tenant';
 import EmbedCodeGenerator from '@/components/embed-code-generator';
+import BugFeatureForm from '@/components/bug-feature-form';
 import { RefreshCw } from 'lucide-react';
 
 export default function Dashboard() {
@@ -401,6 +402,9 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Bug/Feature Request Form */}
+            <BugFeatureForm />
           </div>
         </div>
       </div>
