@@ -14,6 +14,7 @@ import { z } from "zod";
 import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage } from "./gemini-service";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
+import { authenticateToken, AuthRequest } from "./auth";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -639,22 +640,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return tenant;
   }
 
-  // Gemini-powered landscape editing workflow
-  app.post("/api/upload", upload.single("image"), async (req, res) => {
+  // Helper function to check user usage limits based on subscription
+  async function checkUserUsageLimits(userId: number, type: 'visualization' | 'landscape' | 'pool') {
+    // Get user subscriptions
+    const subscriptions = await storage.getUserSubscriptions(userId);
+    const subscription = subscriptions.find(s => s.status === 'active' || s.status === 'trialing');
+    
+    if (!subscription) {
+      throw new Error('No active subscription. Please choose a plan to use AI features.');
+    }
+
+    // Get subscription plan details
+    const plan = await storage.getSubscriptionPlan(subscription.planId);
+    if (!plan) {
+      throw new Error('Invalid subscription plan.');
+    }
+
+    // Check visualization limits
+    if (plan.visualizationLimit !== -1) { // -1 means unlimited
+      const now = new Date();
+      const usage = await storage.getUserUsage(userId, now.getMonth() + 1, now.getFullYear());
+      const currentUsage = usage?.totalCount || 0;
+      
+      if (currentUsage >= plan.visualizationLimit) {
+        throw new Error(`Monthly limit of ${plan.visualizationLimit} visualizations reached. Please upgrade your plan.`);
+      }
+    }
+
+    return { subscription, plan };
+  }
+
+  // Gemini-powered roofing/siding editing workflow (requires authentication)
+  app.post("/api/upload", authenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      const { tenantId, selectedRoof, selectedSiding, selectedSurpriseMe } = req.body;
-
-      if (!tenantId) {
-        return res.status(400).json({ error: "Tenant ID is required" });
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
       }
 
-      // Check usage limits before processing
+      const { selectedRoof, selectedSiding, selectedSurpriseMe } = req.body;
+      const userId = req.user.id;
+
+      // Check user usage limits before processing
       try {
-        await checkTenantUsageLimits(parseInt(tenantId));
+        await checkUserUsageLimits(userId, 'visualization');
       } catch (limitError: any) {
         return res.status(429).json({ error: limitError.message });
       }
@@ -665,15 +697,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create base64 for storage
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
 
-      // Create visualization record
+      // For multi-tenant support, we use a default tenant ID for now
+      // In a full multi-tenant setup, users would be associated with tenants
+      const tenantId = 1; // Default tenant ID
+
+      // Create visualization record with user ID
       const visualization = await storage.createVisualization({
-        tenantId: parseInt(tenantId),
+        tenantId: tenantId,
+        userId: userId, // Track the actual user
         originalImageUrl: base64Image,
         selectedRoof: selectedRoof || null,
         selectedSiding: selectedSiding || null,
         selectedSurpriseMe: selectedSurpriseMe || null,
         status: "processing",
       });
+
+      // Track user-level usage
+      await storage.createOrUpdateUserUsage(userId, 'visualization');
 
       // Process with Gemini AI
       try {
@@ -818,22 +858,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Pool-specific API routes - completely separate from roofing/siding
   
-  // Pool visualization upload
-  app.post("/api/pools/upload", upload.single("image"), async (req, res) => {
+  // Pool visualization upload (requires authentication)
+  app.post("/api/pools/upload", authenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      const { tenantId, selectedPoolType, selectedPoolSize, selectedDecking, selectedLandscaping, selectedFeatures } = req.body;
-
-      if (!tenantId) {
-        return res.status(400).json({ error: "Tenant ID is required" });
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
       }
 
-      // Check usage limits before processing
+      const { selectedPoolType, selectedPoolSize, selectedDecking, selectedLandscaping, selectedFeatures } = req.body;
+      const userId = req.user.id;
+
+      // Check user usage limits before processing
       try {
-        await checkTenantUsageLimits(parseInt(tenantId));
+        await checkUserUsageLimits(userId, 'pool');
       } catch (limitError: any) {
         return res.status(429).json({ error: limitError.message });
       }
@@ -844,9 +885,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create base64 for storage
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
 
-      // Create pool visualization record
+      // Create pool visualization record with user ID
       const poolVisualization = await storage.createPoolVisualization({
-        tenantId: parseInt(tenantId),
+        tenantId: 1, // Default tenant ID
+        userId: userId, // Track the actual user
         originalImageUrl: base64Image,
         selectedPoolType: selectedPoolType || null,
         selectedPoolSize: selectedPoolSize || null,
@@ -855,6 +897,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         selectedFeatures: selectedFeatures || null,
         status: "processing",
       });
+
+      // Track user-level usage
+      await storage.createOrUpdateUserUsage(userId, 'pool');
 
       // Process with Gemini AI using pool-specific prompts
       try {
@@ -1037,22 +1082,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Landscape-specific API routes
   
-  // Landscape visualization upload
-  app.post("/api/landscape/upload", upload.single("image"), async (req, res) => {
+  // Landscape visualization upload (requires authentication)
+  app.post("/api/landscape/upload", authenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      const { tenantId, selectedCurbing, selectedLandscape, selectedPatios } = req.body;
-
-      if (!tenantId) {
-        return res.status(400).json({ error: "Tenant ID is required" });
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
       }
 
-      // Check usage limits before processing
+      const { selectedCurbing, selectedLandscape, selectedPatios } = req.body;
+      const userId = req.user.id;
+
+      // Check user usage limits before processing
       try {
-        await checkTenantUsageLimits(parseInt(tenantId));
+        await checkUserUsageLimits(userId, 'landscape');
       } catch (limitError: any) {
         return res.status(429).json({ error: limitError.message });
       }
@@ -1063,15 +1109,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create base64 for storage
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
 
-      // Create landscape visualization record
+      // Create landscape visualization record with user ID
       const landscapeVisualization = await storage.createLandscapeVisualization({
-        tenantId: parseInt(tenantId),
+        tenantId: 1, // Default tenant ID
+        userId: userId, // Track the actual user
         originalImageUrl: base64Image,
         selectedCurbing: selectedCurbing || null,
         selectedLandscape: selectedLandscape || null,
         selectedPatios: selectedPatios || null,
         status: "processing",
       });
+
+      // Track user-level usage
+      await storage.createOrUpdateUserUsage(userId, 'landscape');
 
       // Process with Gemini AI using landscape-specific prompts
       try {
