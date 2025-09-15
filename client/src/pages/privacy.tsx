@@ -1,9 +1,43 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Header from "@/components/header";
+import { useTenant } from "@/hooks/use-tenant";
 
 export default function PrivacyPage() {
+  const { tenant } = useTenant();
+  
+  // Create fallback tenant if API call fails
+  const effectiveTenant = tenant || {
+    id: 1,
+    userId: null,
+    slug: "demo",
+    companyName: "DreamBuilder",
+    logoUrl: null,
+    primaryColor: "#2563EB", 
+    secondaryColor: "#059669",
+    phone: null,
+    email: null,
+    address: null,
+    description: "Professional AI-powered landscaping visualization services",
+    showPricing: true,
+    requirePhone: true,
+    active: true,
+    monthlyGenerationLimit: 1000,
+    currentMonthGenerations: null,
+    contactPhone: null,
+    embedEnabled: false,
+    embedCtaText: null,
+    embedCtaPhone: null,
+    embedCtaUrl: null,
+    embedPrimaryColor: null,
+    embedSecondaryColor: null,
+    lastResetDate: new Date(),
+    createdAt: new Date(),
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-black text-white">
+      <Header tenant={effectiveTenant} />
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
           <Card className="bg-slate-800/50 border-slate-700">
