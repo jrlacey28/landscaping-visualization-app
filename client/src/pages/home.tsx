@@ -56,6 +56,7 @@ export default function Home() {
     embedCtaUrl: null,
     embedPrimaryColor: null,
     embedSecondaryColor: null,
+    lastResetDate: new Date(),
     createdAt: new Date(),
   };
 
