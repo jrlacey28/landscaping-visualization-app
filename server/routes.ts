@@ -529,6 +529,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get tenant by slug (for multi-tenant setup)
+  // Get authenticated user's tenant
+  app.get("/api/tenant/my-tenant", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const userTenant = await storage.getTenantByUserId(req.user.id);
+      
+      if (!userTenant) {
+        // If user doesn't have a tenant, return the demo tenant
+        const demoTenant = await storage.getTenantBySlug("demo");
+        return res.json(demoTenant);
+      }
+
+      res.json(userTenant);
+    } catch (error) {
+      console.error("Error fetching user tenant:", error);
+      res.status(500).json({ error: "Failed to fetch tenant" });
+    }
+  });
+
   app.get("/api/tenant/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
