@@ -720,13 +720,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create base64 for storage
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
 
-      // Get the user's tenant or use default if they don't have one
-      const userTenant = await storage.getTenantByUserId(userId);
-      const tenantId = userTenant ? userTenant.id : 1; // Use user's tenant or default to demo tenant
-
-      // Create visualization record with user ID
+      // Don't track tenant for authenticated users - only track user
+      // Create visualization record with user ID only
       const visualization = await storage.createVisualization({
-        tenantId: tenantId,
+        tenantId: null, // No tenant tracking for authenticated users
         userId: userId, // Track the actual user
         originalImageUrl: base64Image,
         selectedRoof: selectedRoof || null,
@@ -924,13 +921,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create base64 for storage
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
 
-      // Get the user's tenant or use default if they don't have one
-      const userTenant = await storage.getTenantByUserId(userId);
-      const tenantId = userTenant ? userTenant.id : 1; // Use user's tenant or default to demo tenant
-
-      // Create pool visualization record with user ID
+      // Don't track tenant for authenticated users - only track user
+      // Create pool visualization record with user ID only
       const poolVisualization = await storage.createPoolVisualization({
-        tenantId: tenantId,
+        tenantId: null, // No tenant tracking for authenticated users
         userId: userId, // Track the actual user
         originalImageUrl: base64Image,
         selectedPoolType: selectedPoolType || null,
@@ -1152,13 +1146,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create base64 for storage
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
 
-      // Get the user's tenant or use default if they don't have one
-      const userTenant = await storage.getTenantByUserId(userId);
-      const tenantId = userTenant ? userTenant.id : 1; // Use user's tenant or default to demo tenant
-
-      // Create landscape visualization record with user ID
+      // Don't track tenant for authenticated users - only track user
+      // Create landscape visualization record with user ID only
       const landscapeVisualization = await storage.createLandscapeVisualization({
-        tenantId: tenantId,
+        tenantId: null, // No tenant tracking for authenticated users
         userId: userId, // Track the actual user
         originalImageUrl: base64Image,
         selectedCurbing: selectedCurbing || null,

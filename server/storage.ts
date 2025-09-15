@@ -559,10 +559,8 @@ export class DatabaseStorage implements IStorage {
       .values(insertVisualization)
       .returning();
 
-    // Increment the tenant's generation count
-    if (insertVisualization.tenantId) {
-      await this.incrementTenantGenerations(insertVisualization.tenantId);
-    }
+    // Don't increment tenant generations for authenticated users
+    // Only track user-level usage
 
     return visualization;
   }
@@ -635,10 +633,8 @@ export class DatabaseStorage implements IStorage {
       .values(insertPoolVisualization)
       .returning();
 
-    // Increment the tenant's generation count  
-    if (insertPoolVisualization.tenantId) {
-      await this.incrementTenantGenerations(insertPoolVisualization.tenantId);
-    }
+    // Don't increment tenant generations for authenticated users
+    // Only track user-level usage
 
     return poolVisualization;
   }
@@ -671,10 +667,8 @@ export class DatabaseStorage implements IStorage {
       .values(insertLandscapeVisualization)
       .returning();
 
-    // Increment the tenant's generation count
-    if (insertLandscapeVisualization.tenantId) {
-      await this.incrementTenantGenerations(insertLandscapeVisualization.tenantId);
-    }
+    // Don't increment tenant generations for authenticated users
+    // Only track user-level usage
 
     return landscapeVisualization;
   }
