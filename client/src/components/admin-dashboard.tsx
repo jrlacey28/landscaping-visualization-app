@@ -1756,10 +1756,11 @@ export default function AdminDashboard() {
                                         {lead.firstName} {lead.lastName}
                                       </div>
                                     </td>
-                                    <td className="p-3">
+                                    <td className="p-3 max-w-0">
                                       <a 
                                         href={`mailto:${lead.email}`}
-                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                        className="text-blue-600 hover:text-blue-800 hover:underline text-sm break-all overflow-hidden"
+                                        title={lead.email}
                                       >
                                         {lead.email}
                                       </a>
@@ -1906,10 +1907,11 @@ export default function AdminDashboard() {
                                         User feedback
                                       </div>
                                     </td>
-                                    <td className="p-3">
+                                    <td className="p-3 max-w-0">
                                       <a 
                                         href={`mailto:${lead.email}`}
-                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                        className="text-blue-600 hover:text-blue-800 hover:underline text-sm break-all overflow-hidden"
+                                        title={lead.email}
                                       >
                                         {lead.email}
                                       </a>
@@ -2033,10 +2035,11 @@ export default function AdminDashboard() {
                                         {lead.businessName || 'Not provided'}
                                       </div>
                                     </td>
-                                    <td className="p-3">
+                                    <td className="p-3 max-w-0">
                                       <a 
                                         href={`mailto:${lead.email}`}
-                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                        className="text-blue-600 hover:text-blue-800 hover:underline text-sm break-all overflow-hidden"
+                                        title={lead.email}
                                       >
                                         {lead.email}
                                       </a>
