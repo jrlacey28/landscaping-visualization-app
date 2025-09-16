@@ -4,7 +4,7 @@ import { SiTiktok } from "react-icons/si";
 import Header from "@/components/header";
 import { useTenant } from "@/hooks/use-tenant";
 import { Link } from "wouter";
-import homepageVideoPath from "@assets/720 Video Homepage_1758028748952.mp4";
+import homepageVideoPath from "@assets/720 Video Homepage_1758030379692.mp4";
 
 export default function Home() {
   const { tenant } = useTenant(); // Removed isLoading to prevent blocking
