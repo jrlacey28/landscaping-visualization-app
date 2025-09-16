@@ -14,8 +14,7 @@ export function useTenant(slug?: string) {
 
   const { data: tenant, isLoading, error } = useQuery<Tenant>({
     queryKey: [tenantEndpoint],
-    retry: 3, // Retry up to 3 times for network issues
-    retryDelay: 1000, // Wait 1 second between retries
+    retry: false, // Don't retry - use fallback immediately
     staleTime: 1000 * 60 * 5, // 5 minutes - tenant data rarely changes
     gcTime: 1000 * 60 * 10, // 10 minutes - keep in cache longer
   });

@@ -32,7 +32,7 @@ import {
 } from "@/lib/api";
 
 export default function RoofingSiding() {
-  const { tenant, isLoading: tenantLoading } = useTenant();
+  const { tenant } = useTenant(); // Removed isLoading to prevent blocking
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -60,16 +60,7 @@ export default function RoofingSiding() {
     setIsGenerating(false);
   };
 
-  if (tenantLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  // Removed loading state to prevent blocking page render
 
   // Create fallback tenant if API call fails
   const effectiveTenant = tenant || {
@@ -96,6 +87,7 @@ export default function RoofingSiding() {
     embedCtaUrl: null,
     embedPrimaryColor: null,
     embedSecondaryColor: null,
+    lastResetDate: new Date(),
     createdAt: new Date(),
   };
 

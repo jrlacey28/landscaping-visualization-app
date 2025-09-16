@@ -29,7 +29,7 @@ import {
 } from "@/lib/api";
 
 export default function Landscape() {
-  const { tenant, isLoading: tenantLoading } = useTenant();
+  const { tenant } = useTenant(); // Removed isLoading to prevent blocking
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -63,6 +63,13 @@ export default function Landscape() {
     showPricing: true,
     requirePhone: true,
     active: true,
+    userId: null,
+    embedEnabled: false,
+    embedCtaText: null,
+    embedCtaPhone: null,
+    embedCtaUrl: null,
+    embedPrimaryColor: null,
+    embedSecondaryColor: null,
     monthlyGenerationLimit: 1000,
     currentMonthGenerations: 0,
     lastResetDate: null,
@@ -74,16 +81,7 @@ export default function Landscape() {
     "--secondary": effectiveTenant.secondaryColor,
   } as React.CSSProperties), [effectiveTenant.primaryColor, effectiveTenant.secondaryColor]);
 
-  if (tenantLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  // Removed loading state to prevent blocking page render
 
   return (
     <div

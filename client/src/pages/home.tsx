@@ -4,10 +4,10 @@ import { SiTiktok } from "react-icons/si";
 import Header from "@/components/header";
 import { useTenant } from "@/hooks/use-tenant";
 import { Link } from "wouter";
-import homepageVideoPath from "@assets/AI Visualizer homepage video_1757535237826.mp4";
+import homepageVideoPath from "@assets/720 Video Homepage_1758028748952.mp4";
 
 export default function Home() {
-  const { tenant, isLoading: tenantLoading } = useTenant();
+  const { tenant } = useTenant(); // Removed isLoading to prevent blocking
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   
   const animatedTexts = ["Roof", "Siding", "Landscape", "Patio", "Pool"];
@@ -19,17 +19,6 @@ export default function Home() {
     }, 1200);
     return () => clearInterval(interval);
   }, []);
-
-  if (tenantLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   // Create fallback tenant if API call fails
   const effectiveTenant = tenant || {
