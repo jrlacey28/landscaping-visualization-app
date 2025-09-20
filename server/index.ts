@@ -118,8 +118,8 @@ async function initializeDatabase() {
     serveStatic(app);
   }
 
-  // Serve the app on port 5000 for Replit workflow compatibility
-  const port = Number(process.env.PORT) || 5000;
+  // Serve the app on available port (fallback from 5000 to 3000 if needed)
+  const port = Number(process.env.PORT) || 3000;
   
   server.once('error', (err: any) => {
     if (err.code === 'EADDRINUSE') {

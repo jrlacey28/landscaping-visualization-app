@@ -24,10 +24,11 @@ export function setupGoogleAuth(app: Express) {
     done(null, user);
   });
 
-  // Debug logging - Use custom domain for production
+  // Debug logging - Use custom domain for production, dynamic port for development
+  const port = Number(process.env.PORT) || 3000;
   const callbackUrl = process.env.NODE_ENV === 'production' 
     ? 'https://dreambuilderai.com/api/auth/google/callback'
-    : 'http://localhost:5000/api/auth/google/callback';
+    : `http://localhost:${port}/api/auth/google/callback`;
   
   console.log('🔧 Google OAuth Config:');
   console.log('  Client ID:', GOOGLE_CLIENT_ID);
