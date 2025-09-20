@@ -159,9 +159,9 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  app.get('/api/auth/me', authenticateToken, async (req, res) => {
+  app.get('/api/auth/me', authenticateToken as any, async (req: any, res: any) => {
     try {
-      const user = (req as any).user!;
+      const user = req.user!;
       const subscription = await storage.getUserActiveSubscription(user.id);
       const usageCheck = await storage.checkUsageLimits(user.id);
 
@@ -214,10 +214,10 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  app.post('/api/subscription/checkout', authenticateToken, async (req, res) => {
+  app.post('/api/subscription/checkout', authenticateToken as any, async (req: any, res: any) => {
     try {
       const { planId } = req.body;
-      const user = (req as any).user!;
+      const user = req.user!;
 
       if (!planId) {
         return res.status(400).json({ error: 'Plan ID is required' });
@@ -254,9 +254,9 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  app.post('/api/subscription/cancel', authenticateToken, async (req, res) => {
+  app.post('/api/subscription/cancel', authenticateToken as any, async (req: any, res: any) => {
     try {
-      const user = (req as any).user!;
+      const user = req.user!;
 
       // Get user's active subscription
       const subscription = await storage.getUserActiveSubscription(user.id);
@@ -287,10 +287,10 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // Usage tracking middleware
-  app.use('/api/usage/track', authenticateToken, async (req, res) => {
+  app.use('/api/usage/track', authenticateToken as any, async (req: any, res: any) => {
     try {
       const { type } = req.body;
-      const user = (req as any).user!;
+      const user = req.user!;
 
       if (!type || !['visualization', 'landscape', 'pool'].includes(type)) {
         return res.status(400).json({ error: 'Valid usage type is required' });
@@ -322,9 +322,9 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // Subscription diagnostics endpoint for debugging
-  app.get('/api/debug/subscriptions', authenticateToken, async (req, res) => {
+  app.get('/api/debug/subscriptions', authenticateToken as any, async (req: any, res: any) => {
     try {
-      const user = (req as any).user!;
+      const user = req.user!;
       
       // Get ALL subscriptions for this user
       const allSubscriptions = await storage.getUserSubscriptions(user.id);
@@ -545,9 +545,9 @@ export function registerAuthRoutes(app: Express) {
 
       await storage.updateSubscriptionByStripeId(subscription.id, {
         status: status,
-        currentPeriodStart: new Date(subscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      });
+        currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
+        currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
+      } as any);
     } catch (error) {
       console.error('Error updating subscription:', error);
     }

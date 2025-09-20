@@ -24,11 +24,9 @@ export class AuthService {
   }
 
   static generateToken(user: User): string {
-    return jwt.sign(
-      { userId: user.id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    const payload = { userId: user.id, email: user.email };
+    const options = { expiresIn: JWT_EXPIRES_IN };
+    return (jwt.sign as any)(payload, JWT_SECRET, options);
   }
 
   static verifyToken(token: string): { userId: number; email: string } | null {
@@ -63,8 +61,8 @@ export class AuthService {
     // Generate email verification token
     const emailVerificationToken = this.generateVerificationToken();
 
-    // Create user
-    const insertUserData: InsertUser = {
+    // Create user with manual object to include all needed fields
+    const insertUserData = {
       email: userData.email,
       passwordHash,
       firstName: userData.firstName,
@@ -72,7 +70,8 @@ export class AuthService {
       businessName: userData.businessName || null,
       phone: userData.phone || null,
       emailVerificationToken,
-    };
+      emailVerified: false,
+    } as any;
 
     const user = await storage.createUser(insertUserData);
 
@@ -89,7 +88,10 @@ export class AuthService {
       throw new Error('Invalid email or password');
     }
 
-    // Verify password
+    // Verify password (handle Google OAuth users with no password)
+    if (!user.passwordHash) {
+      throw new Error('Please use Google sign-in for this account');
+    }
     const isValidPassword = await this.verifyPassword(password, user.passwordHash);
     if (!isValidPassword) {
       throw new Error('Invalid email or password');
@@ -111,7 +113,7 @@ export class AuthService {
     const updatedUser = await storage.updateUser(user.id, {
       emailVerified: true,
       emailVerificationToken: null,
-    });
+    } as any);
 
     return updatedUser;
   }
@@ -130,7 +132,7 @@ export class AuthService {
     await storage.updateUser(user.id, {
       resetPasswordToken: resetToken,
       resetPasswordExpires: resetExpires,
-    });
+    } as any);
 
     return resetToken;
   }
@@ -149,7 +151,7 @@ export class AuthService {
       passwordHash,
       resetPasswordToken: null,
       resetPasswordExpires: null,
-    });
+    } as any);
 
     return updatedUser;
   }
