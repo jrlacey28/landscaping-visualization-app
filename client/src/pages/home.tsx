@@ -55,44 +55,47 @@ export default function Home() {
   } as React.CSSProperties;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-black">
+    <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-black flex flex-col">
       {/* Header */}
       <Header tenant={effectiveTenant} />
       
-      {/* Hero Section */}
-      <section className="py-12 pb-2">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-2">
-            Visualize your new...
-          </h1>
-          <div className="h-15 md:h-26 flex items-center justify-center mb-2">
-            <span 
-              className="text-4xl md:text-6xl font-bold text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-red-400 bg-clip-text animate-slide-down leading-tight leading-normal pb-1"
-              key={currentTextIndex}
-            >
-              {animatedTexts[currentTextIndex]}
-            </span>
+      {/* Main Content */}
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="py-12 pb-2">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 className="text-5xl md:text-7xl font-bold text-white mb-2">
+              Visualize your new...
+            </h1>
+            <div className="h-15 md:h-26 flex items-center justify-center mb-2">
+              <span 
+                className="text-4xl md:text-6xl font-bold text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-red-400 bg-clip-text animate-slide-down leading-tight leading-normal pb-1"
+                key={currentTextIndex}
+              >
+                {animatedTexts[currentTextIndex]}
+              </span>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Video Demo Section */}
-      <section className="py-0 pb-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="aspect-video overflow-hidden rounded-xl">
-            <video 
-              className="w-full h-full object-cover"
-              autoPlay
-              loop
-              muted
-              playsInline
-            >
-              <source src={homepageVideoPath} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
+        {/* Video Demo Section */}
+        <section className="py-0 pb-10">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div className="aspect-video overflow-hidden rounded-xl">
+              <video 
+                className="w-full h-full object-cover"
+                autoPlay
+                loop
+                muted
+                playsInline
+              >
+                <source src={homepageVideoPath} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
       {/* Simplified Footer */}
       <footer className="bg-slate-900/50 border-t border-slate-700">
@@ -144,7 +147,7 @@ export default function Home() {
                 <Facebook className="h-5 w-5" />
               </a>
               <a
-                href="#" // Update with your YouTube URL
+                href="https://www.youtube.com/@DreamBuilderAI" // Update with your YouTube URL
                 className="text-slate-400 hover:text-red-400 transition-colors"
               >
                 <Youtube className="h-5 w-5" />
