@@ -118,26 +118,16 @@ async function initializeDatabase() {
     serveStatic(app);
   }
 
-  // Serve the app on configurable port (default 5000)
-  // this serves both the API and the client.
-  // Use PORT environment variable to avoid conflicts with other projects.
-  const port = process.env.PORT ? parseInt(process.env.PORT) : 5000;
+  // Serve the app on port 5000 for Replit workflow compatibility
+  const port = Number(process.env.PORT) || 5000;
   
-  // Handle port conflicts gracefully
-  server.on('error', (err: any) => {
+  server.once('error', (err: any) => {
     if (err.code === 'EADDRINUSE') {
-      console.log(`Port ${port} is already in use, trying to find an available port...`);
-      // Let the system choose an available port
-      server.listen({
-        port: 0,
-        host: "0.0.0.0",
-      }, () => {
-        const address = server.address();
-        const actualPort = typeof address === 'string' ? address : address?.port;
-        log(`serving on port ${actualPort} (port ${port} was in use)`);
-      });
+      console.error(`Port ${port} in use; exiting.`);
+      process.exit(1);
     } else {
-      throw err;
+      console.error(err);
+      process.exit(1);
     }
   });
   
