@@ -10,6 +10,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 3, 2025**: Added Halloween visualization feature for October
+- Created new Halloween-themed visualization page with spooky background (purple/orange gradients)
+- Added 7 decoration categories: pumpkins, ghosts, skeletons, witches, bats, spiders, graveyard
+- Implemented "Really Spooky Mode" toggle for dramatic nighttime transformation
+- Users can select multiple decorations and combine with spooky atmosphere effects
+- Added /halloween route with Ghost icon in navigation menu
+- Created halloween-style-config.ts with detailed AI prompts for each decoration type
+- Extended Gemini service to process Halloween visualizations
+- Fun and playful for October to drive seasonal traffic to the site
+
+**October 3, 2025**: Fixed authentication issues
+- Email/password signups now automatically receive free subscription (matching Google OAuth behavior)
+- Email verification set to true by default since no email sending is configured
+- Resolved unverified account status for email signups in production
+
 **August 30, 2025**: Fixed critical prompting issue
 - Problem: Gemini was changing entire yards instead of only selected features
 - Solution: Completely rewrote prompting system with precise, targeted instructions
@@ -40,7 +55,13 @@ Preferred communication style: Simple, everyday language.
 - **Database Schema**:
   - `tenants` - Company branding and configuration
   - `leads` - Customer contact information and project details
-  - `visualizations` - Image processing jobs and results
+  - `visualizations` - Roofing and siding visualization jobs
+  - `poolVisualizations` - Pool design visualizations
+  - `landscapeVisualizations` - Landscape design visualizations
+  - `halloweenVisualizations` - Halloween decoration visualizations (seasonal feature)
+  - `users` - User accounts with authentication
+  - `subscriptions` - User subscription plans and billing
+  - `userUsage` - Monthly usage tracking per user
 - **File Storage** - Local filesystem for uploaded and generated images
 
 ### AI Integration Pipeline
