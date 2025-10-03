@@ -320,3 +320,48 @@ export const checkLandscapeVisualizationStatus = async (landscapeVisualizationId
 
   return response.json();
 };
+
+export const uploadHalloweenImage = async (file: File, userId: number, decorations: string[], spookyMode: boolean) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  formData.append('decorations', decorations.join(','));
+  formData.append('spookyMode', spookyMode.toString());
+
+  const token = getAuthToken();
+  const response = await fetch('/api/halloween/upload', {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    let errorMessage = errorData.error || 'Unknown error';
+    if (errorMessage.includes('AI') || errorMessage.includes('processing')) {
+      errorMessage = 'Halloween AI processing failed. Please try again.';
+    }
+    throw new Error(`Halloween upload failed: ${errorMessage}`);
+  }
+
+  const data = await response.json();
+  return data;
+};
+
+export const checkHalloweenVisualizationStatus = async (halloweenVisualizationId: number) => {
+  const token = getAuthToken();
+  const response = await fetch(`/api/halloween/${halloweenVisualizationId}/status`, {
+    credentials: "include",
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to check Halloween status");
+  }
+
+  return response.json();
+};
