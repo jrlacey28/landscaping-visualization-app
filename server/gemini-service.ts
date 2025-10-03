@@ -856,41 +856,54 @@ export async function processHalloweenVisualizationWithGemini({
 
     console.log("🎃 PROCESSING HALLOWEEN DECORATIONS:", decorationIds);
 
-    // Step 4: If spookyMode is true and no decorations selected, generate comprehensive random scary scene
+    // Step 4: If spookyMode is true and no decorations selected, generate random scary scene with 3-4 decorations
     if (spookyMode && decorationIds.length === 0) {
-      console.log("🎃 Generating comprehensive random spooky Halloween scene");
+      console.log("🎃 Generating random spooky Halloween scene with 3-4 decorations");
       
-      const randomSpookyPrompt = `CREATE A TERRIFYING HALLOWEEN SCENE with the following elements:
-
-SPOOKY ATMOSPHERE:
-- Transform to nighttime with dark midnight blue-black sky
-- Add a large blood moon (orange-red tinted full moon) breaking through ominous dark clouds
-- Add thick atmospheric ground fog (1-2 feet deep) rolling across the entire lawn
-- Create dramatic Halloween lighting: eerie orange glow from windows, purple and green accent lights on house exterior, blue-white uplighting on trees
-- Add volumetric fog/mist effects swirling throughout
-- Create stark dramatic shadows with theatrical rim lighting
-- Make grass appear dark black-green in the eerie moonlight
-
-RANDOM SPOOKY DECORATIONS (include a variety):
-- 12-foot giant skeleton as centerpiece, reaching toward the house or in dramatic pose
-- Life-sized zombie figures (4-6) shambling across the yard with decayed appearance and tattered clothing
-- Graveyard scene with 6-8 tombstones, skeletal hands emerging from ground, and scattered bones
-- Hanging ghosts (3-5) suspended from trees and porch with flowing white fabric
-- Giant spider (4-6 feet) crawling on house with elaborate spider webs across porch
-- Carved jack-o'-lanterns (8-12) with glowing faces along walkway and porch
-- Flying bats (15-20) swarming from house eaves in dramatic pattern
-- Witch crash scene with striped stockings and pointy shoes sticking out
-- Creepy carnival clowns (2-3) with distorted faces positioned around yard
-- Mummy figures (2-3) wrapped in weathered bandages emerging from darkness
-- Vampire coffin display with figure rising from coffin
-- Inflatable grim reaper (8-10 feet tall) looming in the yard
-- LED skull torches (8-10) lining the pathway with flickering flames
-- Eerie purple, orange, and green colored spotlights throughout
-
-Make this scene GENUINELY SCARY and DRAMATIC - like a professional haunted house attraction. The atmosphere should be intensely spooky with fog, dramatic lighting, blood moon, and numerous terrifying decorations creating a truly frightening Halloween display.`;
-
-      modifications.push(randomSpookyPrompt);
-      appliedDecorations.push('comprehensive_spooky_scene');
+      // Always include pumpkins, then randomly select 2-3 more decorations
+      const allDecorationIds = Object.keys(HALLOWEEN_STYLE_CONFIG).filter(
+        id => !['night_mode', 'really_spooky'].includes(id)
+      );
+      
+      // Shuffle and select 2-3 random decorations (excluding pumpkins which we'll add separately)
+      const nonPumpkinIds = allDecorationIds.filter(id => !id.includes('pumpkin'));
+      const shuffled = nonPumpkinIds.sort(() => Math.random() - 0.5);
+      const randomCount = Math.floor(Math.random() * 2) + 2; // 2 or 3 random decorations
+      const selectedIds = shuffled.slice(0, randomCount);
+      
+      // Always add a pumpkin decoration first
+      const pumpkinIds = allDecorationIds.filter(id => id.includes('pumpkin'));
+      const randomPumpkin = pumpkinIds[Math.floor(Math.random() * pumpkinIds.length)];
+      
+      const finalSelectionIds = [randomPumpkin, ...selectedIds];
+      
+      console.log("🎃 Selected decorations:", finalSelectionIds);
+      
+      // Add each selected decoration
+      for (const decorationId of finalSelectionIds) {
+        try {
+          const styleConfig = HALLOWEEN_STYLE_CONFIG[decorationId];
+          if (styleConfig) {
+            console.log(`✓ Adding random decoration: ${styleConfig.name}`);
+            modifications.push(styleConfig.prompt);
+            appliedDecorations.push(decorationId);
+          }
+        } catch (error) {
+          console.log(`❌ Error loading decoration: ${decorationId}`, error);
+        }
+      }
+      
+      // Add spooky atmosphere
+      try {
+        const spookyConfig = HALLOWEEN_STYLE_CONFIG['really_spooky'];
+        if (spookyConfig) {
+          console.log(`✓ Adding spooky mode atmosphere: ${spookyConfig.name}`);
+          modifications.push(spookyConfig.prompt);
+          appliedDecorations.push('really_spooky');
+        }
+      } catch (error) {
+        console.log(`❌ Error loading spooky mode configuration`, error);
+      }
     } else {
       // Original logic for specific decorations
       for (const decorationId of decorationIds) {
