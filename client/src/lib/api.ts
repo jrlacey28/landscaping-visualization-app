@@ -321,10 +321,11 @@ export const checkLandscapeVisualizationStatus = async (landscapeVisualizationId
   return response.json();
 };
 
-export const uploadHalloweenImage = async (file: File, userId: number, decorations: string[], spookyMode: boolean) => {
+export const uploadHalloweenImage = async (file: File, userId: number, decorations: string[], nightMode: boolean, spookyMode: boolean) => {
   const formData = new FormData();
   formData.append('image', file);
   formData.append('decorations', decorations.join(','));
+  formData.append('nightMode', nightMode.toString());
   formData.append('spookyMode', spookyMode.toString());
 
   const token = getAuthToken();

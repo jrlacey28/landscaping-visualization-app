@@ -62,6 +62,7 @@ const decorationCategories: DecorationCategory[] = [
     options: [
       { value: "skeleton_yard_display", label: "Skeleton Yard Display" },
       { value: "skeleton_graveyard_scene", label: "Skeleton Graveyard Scene" },
+      { value: "giant_skeleton", label: "Giant Skeleton (12ft)" },
     ],
   },
   {
@@ -100,6 +101,71 @@ const decorationCategories: DecorationCategory[] = [
       { value: "graveyard_fence", label: "Graveyard Fence" },
     ],
   },
+  {
+    id: "inflatables",
+    name: "Inflatables",
+    icon: Sparkles,
+    options: [
+      { value: "inflatable_giant_pumpkin", label: "Giant Pumpkin" },
+      { value: "inflatable_grim_reaper", label: "Grim Reaper" },
+      { value: "inflatable_haunted_tree", label: "Haunted Tree" },
+    ],
+  },
+  {
+    id: "animated",
+    name: "Animated Props",
+    icon: Ghost,
+    options: [
+      { value: "animated_heads", label: "Talking Heads" },
+      { value: "animated_talking_pumpkin", label: "Talking Pumpkin" },
+      { value: "animated_jumping_spider", label: "Jumping Spider" },
+    ],
+  },
+  {
+    id: "lights",
+    name: "Pathway Lights",
+    icon: Sparkles,
+    options: [
+      { value: "skull_torch_lights", label: "LED Skull Torches" },
+      { value: "flickering_lanterns", label: "Flickering Lanterns" },
+    ],
+  },
+  {
+    id: "clowns",
+    name: "Clowns",
+    icon: Ghost,
+    options: [
+      { value: "creepy_carnival_clowns", label: "Creepy Clowns" },
+      { value: "circus_tent_display", label: "Circus Tent" },
+    ],
+  },
+  {
+    id: "zombies",
+    name: "Zombies",
+    icon: Skull,
+    options: [
+      { value: "groundbreaker_zombies", label: "Groundbreaker Zombies" },
+      { value: "zombie_horde", label: "Zombie Horde" },
+    ],
+  },
+  {
+    id: "mummies",
+    name: "Mummies",
+    icon: Skull,
+    options: [
+      { value: "wrapped_mummy_figures", label: "Wrapped Mummies" },
+      { value: "mummy_tomb_display", label: "Mummy Tomb" },
+    ],
+  },
+  {
+    id: "vampires",
+    name: "Vampires",
+    icon: Ghost,
+    options: [
+      { value: "vampire_coffin_display", label: "Vampire Coffin" },
+      { value: "vampire_silhouettes", label: "Vampire Silhouettes" },
+    ],
+  },
 ];
 
 export default function Halloween() {
@@ -112,6 +178,7 @@ export default function Halloween() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedDecorations, setSelectedDecorations] = useState<string[]>([]);
+  const [nightMode, setNightMode] = useState(false);
   const [spookyMode, setSpookyMode] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
@@ -331,6 +398,7 @@ export default function Halloween() {
                         onClick={() => {
                           setUploadedImage(null);
                           setSelectedDecorations([]);
+                          setNightMode(false);
                           setSpookyMode(false);
                         }}
                         className="border-slate-400 text-slate-600 hover:bg-slate-100"
@@ -353,6 +421,27 @@ export default function Halloween() {
                     </p>
                   </div>
 
+                  <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 rounded-xl shadow-lg mb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Sparkles className="h-8 w-8 text-white" />
+                        <div>
+                          <h4 className="text-xl font-bold text-white">
+                            Night Mode
+                          </h4>
+                          <p className="text-white/80 text-sm">
+                            See your decorations at night (simple day-to-night conversion)
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={nightMode}
+                        onCheckedChange={setNightMode}
+                        className="data-[state=checked]:bg-indigo-400 data-[state=unchecked]:bg-gray-400"
+                      />
+                    </div>
+                  </div>
+
                   <div className="bg-gradient-to-r from-purple-600 to-orange-600 p-6 rounded-xl shadow-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -362,7 +451,7 @@ export default function Halloween() {
                             Really Spooky Mode
                           </h4>
                           <p className="text-white/80 text-sm">
-                            Make it extra frightening with intense effects!
+                            Add dramatic spooky atmosphere with fog, blood moon & effects!
                           </p>
                         </div>
                       </div>
@@ -455,6 +544,7 @@ export default function Halloween() {
                           originalFile,
                           effectiveTenant.id,
                           selectedDecorations,
+                          nightMode,
                           spookyMode
                         );
 
@@ -565,7 +655,7 @@ export default function Halloween() {
               service="halloween"
               originalImageUrl={uploadedImage}
               generatedImageUrl={generatedImage}
-              selectedStyles={{ decorations: selectedDecorations, spookyMode }}
+              selectedStyles={{ decorations: selectedDecorations, nightMode, spookyMode }}
               onClose={() => setShowLeadForm(false)}
             />
           </div>
