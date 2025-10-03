@@ -58,9 +58,6 @@ export class AuthService {
     // Hash password
     const passwordHash = await this.hashPassword(userData.password);
 
-    // Generate email verification token
-    const emailVerificationToken = this.generateVerificationToken();
-
     // Create user with manual object to include all needed fields
     const insertUserData = {
       email: userData.email,
@@ -69,11 +66,19 @@ export class AuthService {
       lastName: userData.lastName,
       businessName: userData.businessName || null,
       phone: userData.phone || null,
-      emailVerificationToken,
-      emailVerified: false,
+      emailVerified: true, // Set to true since no email verification is configured
     } as any;
 
     const user = await storage.createUser(insertUserData);
+
+    // Auto-assign free plan to new email/password users (matching Google OAuth behavior)
+    try {
+      await storage.createFreeSubscription(user.id);
+      console.log('✅ Assigned free plan to new email signup user:', user.email);
+    } catch (subError) {
+      console.error('⚠️ Failed to assign free plan to user:', subError);
+      // Don't fail registration, just log the error
+    }
 
     // Generate JWT token
     const token = this.generateToken(user);
