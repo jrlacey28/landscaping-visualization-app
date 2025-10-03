@@ -117,35 +117,35 @@ export default function Halloween() {
         // Draw the generated image
         ctx.drawImage(img, 0, 0);
         
-        // Add text watermark in top left
-        const padding = 20;
-        const fontSize = Math.max(img.width * 0.03, 24); // Responsive font size
-        
-        // Draw semi-transparent background for text
-        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-        ctx.fillRect(padding - 10, padding - 5, 200, fontSize + 20);
-        
-        // Draw "DreamBuilder" text
-        ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-        ctx.fillStyle = "white";
-        ctx.textBaseline = "top";
-        ctx.fillText("DreamBuilder", padding, padding + 5);
-        
-        // Convert to blob and download
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "halloween-decorations.jpg";
-              a.click();
-              URL.revokeObjectURL(url);
-            }
-          },
-          "image/jpeg",
-          0.9
-        );
+        // Load and draw the logo watermark in top left
+        const logo = new Image();
+        logo.crossOrigin = "anonymous";
+        logo.onload = function () {
+          // Calculate logo size (10% of image width for balanced sizing)
+          const logoWidth = img.width * 0.10;
+          const logoHeight = (logo.height / logo.width) * logoWidth;
+          
+          // Position in top left with padding
+          const padding = 20;
+          ctx.drawImage(logo, padding, padding, logoWidth, logoHeight);
+          
+          // Convert to blob and download
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "halloween-decorations.jpg";
+                a.click();
+                URL.revokeObjectURL(url);
+              }
+            },
+            "image/jpeg",
+            0.9
+          );
+        };
+        logo.src = "/dreambuilder-logo.png";
       }
     };
     img.src = generatedImage;
