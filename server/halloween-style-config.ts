@@ -14,7 +14,7 @@ export const HALLOWEEN_STYLE_CONFIG: Record<string, HalloweenStyleConfig> = {
     id: "classic_pumpkins",
     name: "Classic Pumpkins",
     prompt:
-      "ADD festive carved jack-o'-lanterns and decorative pumpkins throughout the yard. Place medium to large orange pumpkins (12-18 inches diameter) with traditional carved faces showing warm glowing candlelight from within. Arrange them on the front porch steps, along walkways, and clustered near the entrance. Include a mix of carved and uncarved pumpkins in various sizes. The pumpkins should look realistic with natural orange coloring and green stems. Position them naturally as if placed for Halloween decoration.",
+      "Add 5-8 carved jack-o'-lanterns with glowing faces on porch and walkway",
     referenceImageUrl: "https://mycdn.com/pumpkins.jpg",
     category: "pumpkins",
     regionType: "outdoor",
@@ -43,7 +43,7 @@ export const HALLOWEEN_STYLE_CONFIG: Record<string, HalloweenStyleConfig> = {
     id: "skeleton_yard_display",
     name: "Skeleton Yard Display",
     prompt:
-      "ADD life-sized realistic skeleton decorations positioned throughout the front yard. Place 5-6 foot tall poseable skeletons in playful or spooky poses - one emerging from the ground near landscaping beds, one sitting on the front porch, one climbing up the side of the house or porch column. The skeletons should be anatomically detailed with weathered bone-white coloring and realistic joints. Position them to look like they're interacting with the environment (reaching toward the door, waving at visitors, etc.). Make them festive but family-friendly.",
+      "Add 2-3 life-sized white skeletons in various poses around the yard",
     referenceImageUrl: "https://mycdn.com/skeleton-display.jpg",
     category: "skeletons",
     regionType: "outdoor",
@@ -63,7 +63,7 @@ export const HALLOWEEN_STYLE_CONFIG: Record<string, HalloweenStyleConfig> = {
     id: "hanging_ghosts",
     name: "Hanging Ghosts",
     prompt:
-      "ADD floating ghost decorations suspended around the porch and entrance area. Hang 3-5 white fabric ghosts (3-4 feet tall) from porch ceiling, tree branches, or eaves using invisible fishing line to create a floating effect. Each ghost should be made of flowing white fabric with black eyes and mouth, appearing to drift in the breeze. Position them at varying heights (4-8 feet from ground) to create depth. The ghosts should look ethereal and friendly-spooky rather than terrifying. Some can have arms outstretched, others in swooping poses.",
+      "Add 3-5 white floating ghosts hanging from porch ceiling and tree branches",
     referenceImageUrl: "https://mycdn.com/hanging-ghosts.jpg",
     category: "ghosts",
     regionType: "outdoor",
@@ -123,7 +123,7 @@ export const HALLOWEEN_STYLE_CONFIG: Record<string, HalloweenStyleConfig> = {
     id: "giant_spider",
     name: "Giant Spider",
     prompt:
-      "ADD a large realistic-looking spider decoration on the house exterior. Place one oversized spider (4-6 feet leg span) positioned on the front of the house, appearing to crawl on the siding, near the entrance, or on the porch. The spider should be black or dark gray with detailed hairy legs, realistic body segments, and multiple red or green eyes. Position it at a dramatic angle as if actively crawling. The spider should look three-dimensional with bendable legs in a natural crawling pose. Make it large enough to be a focal point but keep it realistic and detailed rather than cartoonish.",
+      "Add one giant black spider (5-foot leg span) crawling on the front of the house",
     referenceImageUrl: "https://mycdn.com/giant-spider.jpg",
     category: "spiders",
     regionType: "outdoor",
@@ -143,7 +143,7 @@ export const HALLOWEEN_STYLE_CONFIG: Record<string, HalloweenStyleConfig> = {
     id: "tombstone_graveyard",
     name: "Tombstone Graveyard",
     prompt:
-      "ADD a spooky miniature graveyard scene in the front yard. Place 6-10 foam or plastic tombstones (2-3 feet tall) arranged in a clustered graveyard layout in one section of the lawn. The tombstones should have weathered gray stone appearance with cracks, moss texture, and various epitaphs (RIP, carved names, dates, humorous sayings). Position them at slightly different angles and depths as if in an old cemetery. Add ground fog effects at the base and dim purple or blue ground lighting for nighttime atmosphere. Include a few skeletal hands reaching up from the ground between tombstones. The overall scene should be spooky but family-friendly.",
+      "Add 6-8 gray tombstones arranged as a graveyard in one section of the lawn with ground fog",
     referenceImageUrl: "https://mycdn.com/graveyard.jpg",
     category: "graveyard",
     regionType: "garden",
@@ -163,7 +163,7 @@ export const HALLOWEEN_STYLE_CONFIG: Record<string, HalloweenStyleConfig> = {
     id: "giant_skeleton",
     name: "Giant Skeleton",
     prompt:
-      "ADD a massive 12-foot tall giant skeleton decoration as the centerpiece of the Halloween display. Position this oversized skeleton standing prominently in the front yard - either reaching toward the house, waving at visitors, or in a dramatic pose. The skeleton should be white/bone-colored with realistic anatomical proportions scaled up massively. It should stand at least 12 feet tall (reaching roof height on single-story homes). Add LED lights in the eyes for a glowing effect. The giant skeleton should look impressive and eye-catching, becoming the main focal point of the display. Position it where it's highly visible from the street.",
+      "Add one 12-foot tall white skeleton standing in the front yard with glowing eyes",
     referenceImageUrl: "https://mycdn.com/giant-skeleton.jpg",
     category: "skeletons",
     regionType: "outdoor",
@@ -183,7 +183,7 @@ export const HALLOWEEN_STYLE_CONFIG: Record<string, HalloweenStyleConfig> = {
     id: "inflatable_grim_reaper",
     name: "Grim Reaper Inflatable",
     prompt:
-      "ADD a tall inflatable Grim Reaper figure to the Halloween display. Place a 7-10 foot tall inflatable Grim Reaper with black hooded robe, skeletal face, and carrying a scythe. The figure should be illuminated from within with eerie lighting. Position it in a prominent spot in the yard, appearing to loom over the property. The reaper should have a menacing but family-friendly appearance with glowing eyes or face. The inflatable should have realistic fabric texture of the robe with slight wrinkles.",
+      "Add one 8-foot tall inflatable Grim Reaper with black robe and scythe, glowing from within",
     referenceImageUrl: "https://mycdn.com/inflatable-reaper.jpg",
     category: "inflatables",
     regionType: "outdoor",
@@ -252,7 +252,7 @@ export const HALLOWEEN_STYLE_CONFIG: Record<string, HalloweenStyleConfig> = {
     id: "creepy_carnival_clowns",
     name: "Creepy Carnival Clowns",
     prompt:
-      "ADD unsettling circus clown decorations to create a creepy carnival atmosphere. Place 2-4 life-sized (5-6 feet tall) clown figures with distorted faces, exaggerated makeup, and unnerving grins positioned around the yard. The clowns should wear traditional circus costumes (ruffled collars, colorful but faded outfits, oversized shoes) but with a sinister twist - cracked makeup, hollow eyes, disturbing smiles. Add vintage circus props like weathered signs or carnival bunting. Position them in unexpected spots - peeking around corners, standing in shadows, or clustered together. They should be creepy but not extremely gory.",
+      "Add 2-3 creepy clown figures with distorted makeup positioned around the yard",
     referenceImageUrl: "https://mycdn.com/creepy-clowns.jpg",
     category: "clowns",
     regionType: "outdoor",
@@ -272,7 +272,7 @@ export const HALLOWEEN_STYLE_CONFIG: Record<string, HalloweenStyleConfig> = {
     id: "groundbreaker_zombies",
     name: "Groundbreaker Zombies",
     prompt:
-      "ADD groundbreaker zombie decorations emerging from the lawn. Place 3-5 zombie figures appearing to crawl out from underground, with upper bodies, heads, and arms visible above ground level. The zombies should have decayed flesh appearance, tattered clothing, reaching arms, and distressed expressions. Position them throughout the lawn as if breaking through the earth's surface. Some should be reaching forward, others clawing at the ground. Add disturbed dirt or grass effects around them. The zombies should look realistic with detailed decay makeup and weathered clothes, but keep it family-friendly (no extreme gore).",
+      "Add 3-4 zombie figures emerging from the ground with arms reaching up",
     referenceImageUrl: "https://mycdn.com/groundbreaker-zombies.jpg",
     category: "zombies",
     regionType: "garden",
@@ -292,7 +292,7 @@ export const HALLOWEEN_STYLE_CONFIG: Record<string, HalloweenStyleConfig> = {
     id: "wrapped_mummies",
     name: "Wrapped Mummies",
     prompt:
-      "ADD classic wrapped mummy decorations to the Halloween display. Place 2-4 life-sized mummy figures (5-6 feet tall) wrapped in weathered white/tan bandages positioned around the yard. The mummies should be in various poses - arms outstretched, walking forward, or standing still. The bandages should appear aged and tattered with some loose strips hanging or trailing. Position them emerging from landscaping, standing on the porch, or arranged near the entrance. Add subtle amber or yellow-green glow lighting on the figures for an ancient Egyptian tomb effect.",
+      "Add 2-3 mummy figures wrapped in white bandages with arms outstretched in the yard",
     referenceImageUrl: "https://mycdn.com/wrapped-mummies.jpg",
     category: "mummies",
     regionType: "outdoor",

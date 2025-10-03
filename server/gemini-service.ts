@@ -946,18 +946,20 @@ Make this scene GENUINELY SCARY and DRAMATIC - like a professional haunted house
     console.log(`✓ Using ${modifications.length} Halloween decoration prompts`);
 
     // Step 8: Combine all modification prompts with proper formatting
-    const finalPrompt = `HALLOWEEN TRANSFORMATION:
+    const decorationList = modifications.map((mod, idx) => `${idx + 1}. ${mod}`).join("\n\n");
+    
+    const finalPrompt = `ADD these Halloween decorations to the property:
 
-${modifications.join("\n\n")}
+${decorationList}
 
-PRESERVATION RULES (what NOT to change):
-- Keep house structure, windows, doors, roof, siding exactly the same
-- Keep existing landscaping, trees, shrubs, plants in place
-- Keep driveway, walkways, hardscaping unchanged
-- Maintain property layout and perspective
+RULES:
+- Add ALL decorations listed above - each one must appear in the result
+- Keep house, landscaping, driveway exactly as they are  
 - Keep image at 1920x1080 pixels
+- Make decorations look realistic and professionally placed
+- If multiple decorations are listed, include every single one
 
-FINAL RESULT: Transform the original property into a terrifying Halloween scene with all the decorations and atmospheric effects specified above. Make it look dramatic, scary, and professionally decorated.`;
+Create a complete Halloween scene with ALL the decorations specified above visible in the image.`;
 
     // Step 9: Generate edited image using Gemini
     const base64Image = processedImage.buffer.toString("base64");
