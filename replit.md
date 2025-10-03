@@ -10,15 +10,23 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**October 3, 2025**: Added Halloween visualization feature for October
-- Created new Halloween-themed visualization page with spooky background (purple/orange gradients)
-- Added 7 decoration categories: pumpkins, ghosts, skeletons, witches, bats, spiders, graveyard
-- Implemented "Really Spooky Mode" toggle for dramatic nighttime transformation
-- Users can select multiple decorations and combine with spooky atmosphere effects
-- Added /halloween route with Ghost icon in navigation menu
-- Created halloween-style-config.ts with detailed AI prompts for each decoration type
-- Extended Gemini service to process Halloween visualizations
-- Fun and playful for October to drive seasonal traffic to the site
+**October 3, 2025**: Expanded Halloween visualization feature with new decorations and modes
+- **Fixed Really Spooky Mode bug**: Now correctly combines selected decorations with atmospheric effects
+- **Added 8 new decoration categories**:
+  - Giant Skeleton (12ft centerpiece)
+  - Inflatable Characters (giant pumpkins, grim reapers, haunted trees)
+  - Animated Props (talking heads, talking pumpkins, jumping spiders)
+  - Haunted Pathway Lights (LED skull torches, flickering lanterns)
+  - Clowns (creepy carnival, circus tent displays)
+  - Zombies (groundbreaker zombies, zombie horde)
+  - Mummies (wrapped figures, tomb displays)
+  - Vampires (coffin setups, vampire silhouettes)
+- **Added Night Mode**: Simple day-to-night conversion to preview decorations at night (separate from Really Spooky Mode)
+- **Really Spooky Mode enhanced**: Now adds dramatic atmosphere (fog, blood moon, colored lighting) while preserving selected decorations
+- Total of 14 decoration categories with 31 unique decoration options
+- Database updated with nightMode field in halloweenVisualizations table
+- Frontend UI includes blue/indigo Night Mode toggle and purple/orange Really Spooky Mode toggle
+- Halloween feature perfect for driving October seasonal traffic
 
 **October 3, 2025**: Fixed authentication issues
 - Email/password signups now automatically receive free subscription (matching Google OAuth behavior)
