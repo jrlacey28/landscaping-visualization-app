@@ -1,22 +1,16 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import {
   Eye,
-  Phone,
   Sparkles,
   Download,
   Camera,
   FileImage,
   Ghost,
-  Skull,
-  Facebook,
-  Twitter,
-  Instagram,
+  Share2,
 } from "lucide-react";
 import FileUpload from "@/components/ui/file-upload";
-import QuoteLeadForm from "@/components/quote-lead-form";
 import Header from "@/components/header";
 import { SparklesText } from "@/components/ui/sparkles-text";
 import { useTenant } from "@/hooks/use-tenant";
@@ -28,146 +22,6 @@ import {
   checkHalloweenVisualizationStatus,
 } from "@/lib/api";
 
-interface DecorationCategory {
-  id: string;
-  name: string;
-  icon: typeof Ghost;
-  options: { value: string; label: string }[];
-}
-
-const decorationCategories: DecorationCategory[] = [
-  {
-    id: "pumpkins",
-    name: "Pumpkins",
-    icon: Sparkles,
-    options: [
-      { value: "classic_pumpkins", label: "Classic Pumpkins" },
-      { value: "pumpkin_pathway", label: "Pumpkin Pathway" },
-      { value: "pumpkin_display", label: "Pumpkin Display" },
-    ],
-  },
-  {
-    id: "ghosts",
-    name: "Ghosts",
-    icon: Ghost,
-    options: [
-      { value: "hanging_ghosts", label: "Hanging Ghosts" },
-      { value: "ghost_family", label: "Ghost Family" },
-    ],
-  },
-  {
-    id: "skeletons",
-    name: "Skeletons",
-    icon: Skull,
-    options: [
-      { value: "skeleton_yard_display", label: "Skeleton Yard Display" },
-      { value: "skeleton_graveyard_scene", label: "Skeleton Graveyard Scene" },
-      { value: "giant_skeleton", label: "Giant Skeleton (12ft)" },
-    ],
-  },
-  {
-    id: "witches",
-    name: "Witches",
-    icon: Sparkles,
-    options: [
-      { value: "witch_crash", label: "Witch Crash" },
-      { value: "witch_silhouettes", label: "Witch Silhouettes" },
-    ],
-  },
-  {
-    id: "bats",
-    name: "Bats",
-    icon: Ghost,
-    options: [
-      { value: "bat_swarm", label: "Bat Swarm" },
-      { value: "hanging_bats", label: "Hanging Bats" },
-    ],
-  },
-  {
-    id: "spiders",
-    name: "Spiders",
-    icon: Skull,
-    options: [
-      { value: "giant_spider", label: "Giant Spider" },
-      { value: "spider_web_display", label: "Spider Web Display" },
-    ],
-  },
-  {
-    id: "graveyard",
-    name: "Graveyard",
-    icon: Skull,
-    options: [
-      { value: "tombstone_graveyard", label: "Tombstone Graveyard" },
-      { value: "graveyard_fence", label: "Graveyard Fence" },
-    ],
-  },
-  {
-    id: "inflatables",
-    name: "Inflatables",
-    icon: Sparkles,
-    options: [
-      { value: "inflatable_giant_pumpkin", label: "Giant Pumpkin" },
-      { value: "inflatable_grim_reaper", label: "Grim Reaper" },
-      { value: "inflatable_haunted_tree", label: "Haunted Tree" },
-    ],
-  },
-  {
-    id: "animated",
-    name: "Animated Props",
-    icon: Ghost,
-    options: [
-      { value: "animated_heads", label: "Talking Heads" },
-      { value: "animated_talking_pumpkin", label: "Talking Pumpkin" },
-      { value: "animated_jumping_spider", label: "Jumping Spider" },
-    ],
-  },
-  {
-    id: "lights",
-    name: "Pathway Lights",
-    icon: Sparkles,
-    options: [
-      { value: "skull_torch_lights", label: "LED Skull Torches" },
-      { value: "flickering_lanterns", label: "Flickering Lanterns" },
-    ],
-  },
-  {
-    id: "clowns",
-    name: "Clowns",
-    icon: Ghost,
-    options: [
-      { value: "creepy_carnival_clowns", label: "Creepy Clowns" },
-      { value: "circus_tent_display", label: "Circus Tent" },
-    ],
-  },
-  {
-    id: "zombies",
-    name: "Zombies",
-    icon: Skull,
-    options: [
-      { value: "groundbreaker_zombies", label: "Groundbreaker Zombies" },
-      { value: "zombie_horde", label: "Zombie Horde" },
-    ],
-  },
-  {
-    id: "mummies",
-    name: "Mummies",
-    icon: Skull,
-    options: [
-      { value: "wrapped_mummy_figures", label: "Wrapped Mummies" },
-      { value: "mummy_tomb_display", label: "Mummy Tomb" },
-    ],
-  },
-  {
-    id: "vampires",
-    name: "Vampires",
-    icon: Ghost,
-    options: [
-      { value: "vampire_coffin_display", label: "Vampire Coffin" },
-      { value: "vampire_silhouettes", label: "Vampire Silhouettes" },
-    ],
-  },
-];
-
 export default function Halloween() {
   const { tenant } = useTenant();
   const { user } = useAuth();
@@ -177,10 +31,6 @@ export default function Halloween() {
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedDecorations, setSelectedDecorations] = useState<string[]>([]);
-  const [nightMode, setNightMode] = useState(false);
-  const [spookyMode, setSpookyMode] = useState(false);
-  const [showLeadForm, setShowLeadForm] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
 
   const effectiveTenant = tenant || {
@@ -220,12 +70,85 @@ export default function Halloween() {
     [effectiveTenant.primaryColor, effectiveTenant.secondaryColor]
   );
 
-  const toggleDecoration = (value: string) => {
-    setSelectedDecorations((prev) =>
-      prev.includes(value)
-        ? prev.filter((d) => d !== value)
-        : [...prev, value]
-    );
+  const handleShare = async () => {
+    if (navigator.share && generatedImage) {
+      try {
+        // Fetch the image as a blob
+        const response = await fetch(generatedImage);
+        const blob = await response.blob();
+        const file = new File([blob], "halloween-decorations.jpg", {
+          type: "image/jpeg",
+        });
+
+        await navigator.share({
+          title: "My Halloween Home Transformation",
+          text: "Check out my spooky Halloween home design!",
+          files: [file],
+        });
+      } catch (error) {
+        console.error("Error sharing:", error);
+        toast({
+          title: "Sharing failed",
+          description: "Could not share the image. Try downloading instead.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "Sharing not supported",
+        description: "Your browser doesn't support sharing. Try downloading the image instead.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!generatedImage) return;
+
+    const img = document.createElement("img");
+    img.crossOrigin = "anonymous";
+    img.onload = async function () {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        // Draw the generated image
+        ctx.drawImage(img, 0, 0);
+        
+        // Add text watermark in top left
+        const padding = 20;
+        const fontSize = Math.max(img.width * 0.03, 24); // Responsive font size
+        
+        // Draw semi-transparent background for text
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.fillRect(padding - 10, padding - 5, 200, fontSize + 20);
+        
+        // Draw "DreamBuilder" text
+        ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+        ctx.fillStyle = "white";
+        ctx.textBaseline = "top";
+        ctx.fillText("DreamBuilder", padding, padding + 5);
+        
+        // Convert to blob and download
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "halloween-decorations.jpg";
+              a.click();
+              URL.revokeObjectURL(url);
+            }
+          },
+          "image/jpeg",
+          0.9
+        );
+      }
+    };
+    img.src = generatedImage;
   };
 
   return (
@@ -296,34 +219,8 @@ export default function Halloween() {
                   <Button
                     size="lg"
                     className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
-                    onClick={() => {
-                      const img = document.createElement("img");
-                      img.crossOrigin = "anonymous";
-                      img.onload = function () {
-                        const canvas = document.createElement("canvas");
-                        const ctx = canvas.getContext("2d");
-                        if (ctx) {
-                          canvas.width = img.width;
-                          canvas.height = img.height;
-                          ctx.drawImage(img, 0, 0);
-                          canvas.toBlob(
-                            (blob) => {
-                              if (blob) {
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement("a");
-                                a.href = url;
-                                a.download = "halloween-decorations.jpg";
-                                a.click();
-                                URL.revokeObjectURL(url);
-                              }
-                            },
-                            "image/jpeg",
-                            0.9
-                          );
-                        }
-                      };
-                      img.src = generatedImage || "";
-                    }}
+                    onClick={handleDownload}
+                    data-testid="button-download-halloween"
                   >
                     <Download className="h-5 w-5 mr-2" />
                     Download Image
@@ -333,6 +230,7 @@ export default function Halloween() {
                     size="lg"
                     className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
                     onClick={() => setShowingOriginal(!showingOriginal)}
+                    data-testid="button-toggle-view"
                   >
                     <Eye className="h-5 w-5 mr-2" />
                     {showingOriginal
@@ -346,9 +244,8 @@ export default function Halloween() {
                     onClick={() => {
                       setUploadedImage(null);
                       setGeneratedImage(null);
-                      setSelectedDecorations([]);
-                      setSpookyMode(false);
                     }}
+                    data-testid="button-try-another"
                   >
                     <Camera className="h-5 w-5 mr-2" />
                     Try Another Photo
@@ -358,10 +255,11 @@ export default function Halloween() {
                 <Button
                   size="lg"
                   className="w-full bg-gradient-to-r from-orange-600 via-purple-500 to-orange-600 hover:from-orange-700 hover:via-purple-600 hover:to-orange-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
-                  onClick={() => setShowLeadForm(true)}
+                  onClick={handleShare}
+                  data-testid="button-share-halloween"
                 >
-                  <Phone className="h-5 w-5 mr-2" />
-                  Get Free Quote
+                  <Share2 className="h-5 w-5 mr-2" />
+                  Share Your Design
                 </Button>
               </CardContent>
             </Card>
@@ -397,11 +295,9 @@ export default function Halloween() {
                         variant="outline"
                         onClick={() => {
                           setUploadedImage(null);
-                          setSelectedDecorations([]);
-                          setNightMode(false);
-                          setSpookyMode(false);
                         }}
                         className="border-slate-400 text-slate-600 hover:bg-slate-100"
+                        data-testid="button-choose-different"
                       >
                         <FileImage className="h-4 w-4 mr-2" />
                         Choose Different Photo
@@ -413,101 +309,29 @@ export default function Halloween() {
                 <div className="space-y-6">
                   <div className="text-center">
                     <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                      Choose Your Halloween Decorations
+                      Create Your Spooky Scene
                     </h3>
                     <p className="text-slate-600">
-                      Select the spooky decorations you'd like to see on your
-                      home
+                      Transform your home with a scary Halloween atmosphere
                     </p>
                   </div>
 
-                  <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 rounded-xl shadow-lg mb-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Sparkles className="h-8 w-8 text-white" />
-                        <div>
-                          <h4 className="text-xl font-bold text-white">
-                            Night Mode
-                          </h4>
-                          <p className="text-white/80 text-sm">
-                            See your decorations at night (simple day-to-night conversion)
-                          </p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={nightMode}
-                        onCheckedChange={setNightMode}
-                        className="data-[state=checked]:bg-indigo-400 data-[state=unchecked]:bg-gray-400"
-                      />
+                  <div className="bg-gradient-to-r from-purple-600 to-orange-600 p-8 rounded-xl shadow-lg">
+                    <div className="text-center space-y-3">
+                      <Ghost className="h-16 w-16 text-white mx-auto" />
+                      <h4 className="text-2xl font-bold text-white">
+                        Spooky Halloween Mode
+                      </h4>
+                      <p className="text-white/90 text-lg">
+                        Generate a terrifying Halloween scene with random spooky decorations, blood moon, fog, eerie lighting, and dramatic effects!
+                      </p>
                     </div>
-                  </div>
-
-                  <div className="bg-gradient-to-r from-purple-600 to-orange-600 p-6 rounded-xl shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Ghost className="h-8 w-8 text-white" />
-                        <div>
-                          <h4 className="text-xl font-bold text-white">
-                            Really Spooky Mode
-                          </h4>
-                          <p className="text-white/80 text-sm">
-                            Add dramatic spooky atmosphere with fog, blood moon & effects!
-                          </p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={spookyMode}
-                        onCheckedChange={setSpookyMode}
-                        className="data-[state=checked]:bg-orange-500 data-[state=unchecked]:bg-gray-400"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {decorationCategories.map((category) => {
-                      const Icon = category.icon;
-                      return (
-                        <div
-                          key={category.id}
-                          className="bg-gradient-to-br from-purple-100 to-orange-100 p-4 rounded-lg border-2 border-purple-300 hover:border-orange-400 transition-all hover:shadow-lg"
-                        >
-                          <div className="flex items-center gap-2 mb-3">
-                            <Icon className="h-5 w-5 text-purple-700" />
-                            <h4 className="font-bold text-slate-800">
-                              {category.name}
-                            </h4>
-                          </div>
-                          <div className="space-y-2">
-                            {category.options.map((option) => (
-                              <label
-                                key={option.value}
-                                className="flex items-center space-x-2 cursor-pointer group"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedDecorations.includes(
-                                    option.value
-                                  )}
-                                  onChange={() =>
-                                    toggleDecoration(option.value)
-                                  }
-                                  className="w-4 h-4 text-orange-600 border-purple-300 rounded focus:ring-orange-500 focus:ring-2"
-                                />
-                                <span className="text-sm text-slate-700 group-hover:text-purple-700 transition-colors">
-                                  {option.label}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
                   </div>
 
                   <Button
                     size="lg"
-                    className="w-full bg-gradient-to-r from-orange-600 via-purple-500 to-orange-600 hover:from-orange-700 hover:via-purple-600 hover:to-orange-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={isGenerating || selectedDecorations.length === 0}
+                    className="w-full bg-gradient-to-r from-orange-600 via-purple-500 to-orange-600 hover:from-orange-700 hover:via-purple-600 hover:to-orange-700 text-white font-semibold py-6 text-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isGenerating}
                     onClick={async () => {
                       if (!user) {
                         toast({
@@ -543,9 +367,9 @@ export default function Halloween() {
                         const result = await uploadHalloweenImage(
                           originalFile,
                           effectiveTenant.id,
-                          selectedDecorations,
-                          nightMode,
-                          spookyMode
+                          [], // No specific decorations - backend will generate random ones
+                          false, // nightMode
+                          true // spookyMode - always true for this simplified version
                         );
 
                         if (result.halloweenVisualizationId) {
@@ -621,102 +445,17 @@ export default function Halloween() {
                         );
                       }
                     }}
+                    data-testid="button-create-spooky"
                   >
-                    {isGenerating ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Generating Your Spooky Scene...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-5 w-5 mr-2" />
-                        Generate AI Halloween Design
-                      </>
-                    )}
+                    <Sparkles className="h-6 w-6 mr-2" />
+                    Create Spooky Halloween Scene
                   </Button>
-
-                  {selectedDecorations.length === 0 && (
-                    <p className="text-sm text-slate-500 text-center">
-                      Please select at least one decoration to generate your
-                      Halloween design
-                    </p>
-                  )}
                 </div>
               </CardContent>
             </Card>
           )}
         </div>
       </main>
-
-      {showLeadForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <QuoteLeadForm
-              service="halloween"
-              originalImageUrl={uploadedImage}
-              generatedImageUrl={generatedImage}
-              selectedStyles={{ decorations: selectedDecorations, nightMode, spookyMode }}
-              onClose={() => setShowLeadForm(false)}
-            />
-          </div>
-        </div>
-      )}
-
-      <footer className="bg-slate-900/50 border-t border-slate-700">
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col space-y-6 md:flex md:flex-row md:justify-between md:items-center md:space-y-0">
-            <div className="flex items-center justify-center md:justify-start space-x-3">
-              <svg
-                className="w-10 h-10 text-white"
-                viewBox="0 0 128.37 135.86"
-                fill="currentColor"
-              >
-                <path
-                  fill="#fff"
-                  d="M111.98,78.77L56.63,23.24.92,78.76c-1.23,1.22-1.23,3.21,0,4.44,1.22,1.23,3.21,1.23,4.43,0l10.33-10.3v59.82c0,1.73,1.4,3.14,3.14,3.14h21.95c1.73,0,3.14-1.4,3.14-3.14v-25.09c0-3.46,2.81-6.27,6.27-6.27h12.54c3.46,0,6.27,2.81,6.27,6.27v25.09c0,1.73,1.4,3.14,3.14,3.14h21.95c1.73,0,3.14-1.4,3.14-3.14v-59.89l10.32,10.36c1.22,1.23,3.21,1.23,4.43,0,1.23-1.22,1.23-3.21,0-4.43Z"
-                />
-                <path
-                  fill="#fff"
-                  d="M102.82,0c-2.69,20.69-4.87,22.87-25.55,25.55,20.69,2.69,22.87,4.87,25.55,25.55,2.69-20.69,4.87-22.87,25.55-25.55-20.69-2.69-22.87-4.87-25.55-25.55Z"
-                />
-              </svg>
-              <div>
-                <p className="text-white font-semibold">
-                  {effectiveTenant.companyName}
-                </p>
-                <p className="text-slate-400 text-sm">Powered by Solst LLC</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-center space-x-4 md:justify-end">
-              <a
-                href="https://facebook.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a
-                href="https://instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                <Instagram className="h-5 w-5" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

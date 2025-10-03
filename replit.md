@@ -10,14 +10,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**October 3, 2025**: Fixed Halloween decoration prompt system
-- **CRITICAL FIX**: Completely rewrote all Halloween prompts to work together properly
-- **Problem**: Original prompts said "keep everything the same" which prevented decorations from being added
-- **Solution**: Changed all decoration prompts to use "ADD" language instead of preservation language
-- **Night Mode fixed**: Now properly converts to nighttime while adding all selected decorations
-- **Really Spooky Mode fixed**: Now adds dramatic atmosphere (fog, blood moon, colored lights) while adding all selected decorations
-- **Prompt structure improved**: Clear instructions that all modifications are ADDITIVE and should be combined
-- All 31 decoration options now work correctly when selected together or with atmosphere modes
+**October 3, 2025**: Simplified Halloween feature to single Spooky Mode
+- **SIMPLIFIED UX**: Removed individual decoration categories - now just one "Create Spooky Halloween Scene" button
+- **Random Generation**: AI automatically generates comprehensive scary Halloween scene with variety of random decorations
+- **Includes**: Giant skeletons, zombies, graveyard, ghosts, spiders, jack-o'-lanterns, bats, witches, clowns, mummies, vampires, inflatables, and atmospheric effects
+- **Atmosphere**: Blood moon, thick fog, dramatic purple/orange/green lighting, eerie shadows
+- **Logo Watermark**: DreamBuilder logo now added to top-left corner when downloading images
+- **Share Button**: Changed "Get Free Quote" to "Share Your Design" button on Halloween page only
+- **Truly Scary**: Prompts optimized to create genuinely frightening Halloween scenes like professional haunted house displays
 
 **October 3, 2025**: Expanded Halloween visualization feature with new decorations and modes
 - **Added 8 new decoration categories**:

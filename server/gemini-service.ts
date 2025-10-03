@@ -856,47 +856,84 @@ export async function processHalloweenVisualizationWithGemini({
 
     console.log("🎃 PROCESSING HALLOWEEN DECORATIONS:", decorationIds);
 
-    // Step 4: Build modifications array by looking up each decoration in HALLOWEEN_STYLE_CONFIG
-    for (const decorationId of decorationIds) {
-      try {
-        const styleConfig = HALLOWEEN_STYLE_CONFIG[decorationId];
-        if (styleConfig) {
-          console.log(`✓ Found Halloween decoration: ${styleConfig.name}`);
-          modifications.push(styleConfig.prompt);
-          appliedDecorations.push(decorationId);
-        } else {
-          console.log(`❌ Halloween decoration not found: ${decorationId}`);
-        }
-      } catch (error) {
-        console.log(`❌ Error loading Halloween decoration: ${decorationId}`, error);
-      }
-    }
+    // Step 4: If spookyMode is true and no decorations selected, generate comprehensive random scary scene
+    if (spookyMode && decorationIds.length === 0) {
+      console.log("🎃 Generating comprehensive random spooky Halloween scene");
+      
+      const randomSpookyPrompt = `CREATE A TERRIFYING HALLOWEEN SCENE with the following elements:
 
-    // Step 5: If nightMode is true, add the "night_mode" configuration
-    if (nightMode) {
-      try {
-        const nightConfig = HALLOWEEN_STYLE_CONFIG['night_mode'];
-        if (nightConfig) {
-          console.log(`✓ Adding night mode atmosphere: ${nightConfig.name}`);
-          modifications.push(nightConfig.prompt);
-          appliedDecorations.push('night_mode');
-        }
-      } catch (error) {
-        console.log(`❌ Error loading night mode configuration`, error);
-      }
-    }
+SPOOKY ATMOSPHERE:
+- Transform to nighttime with dark midnight blue-black sky
+- Add a large blood moon (orange-red tinted full moon) breaking through ominous dark clouds
+- Add thick atmospheric ground fog (1-2 feet deep) rolling across the entire lawn
+- Create dramatic Halloween lighting: eerie orange glow from windows, purple and green accent lights on house exterior, blue-white uplighting on trees
+- Add volumetric fog/mist effects swirling throughout
+- Create stark dramatic shadows with theatrical rim lighting
+- Make grass appear dark black-green in the eerie moonlight
 
-    // Step 6: If spookyMode is true, add the "really_spooky" configuration
-    if (spookyMode) {
-      try {
-        const spookyConfig = HALLOWEEN_STYLE_CONFIG['really_spooky'];
-        if (spookyConfig) {
-          console.log(`✓ Adding spooky mode atmosphere: ${spookyConfig.name}`);
-          modifications.push(spookyConfig.prompt);
-          appliedDecorations.push('really_spooky');
+RANDOM SPOOKY DECORATIONS (include a variety):
+- 12-foot giant skeleton as centerpiece, reaching toward the house or in dramatic pose
+- Life-sized zombie figures (4-6) shambling across the yard with decayed appearance and tattered clothing
+- Graveyard scene with 6-8 tombstones, skeletal hands emerging from ground, and scattered bones
+- Hanging ghosts (3-5) suspended from trees and porch with flowing white fabric
+- Giant spider (4-6 feet) crawling on house with elaborate spider webs across porch
+- Carved jack-o'-lanterns (8-12) with glowing faces along walkway and porch
+- Flying bats (15-20) swarming from house eaves in dramatic pattern
+- Witch crash scene with striped stockings and pointy shoes sticking out
+- Creepy carnival clowns (2-3) with distorted faces positioned around yard
+- Mummy figures (2-3) wrapped in weathered bandages emerging from darkness
+- Vampire coffin display with figure rising from coffin
+- Inflatable grim reaper (8-10 feet tall) looming in the yard
+- LED skull torches (8-10) lining the pathway with flickering flames
+- Eerie purple, orange, and green colored spotlights throughout
+
+Make this scene GENUINELY SCARY and DRAMATIC - like a professional haunted house attraction. The atmosphere should be intensely spooky with fog, dramatic lighting, blood moon, and numerous terrifying decorations creating a truly frightening Halloween display.`;
+
+      modifications.push(randomSpookyPrompt);
+      appliedDecorations.push('comprehensive_spooky_scene');
+    } else {
+      // Original logic for specific decorations
+      for (const decorationId of decorationIds) {
+        try {
+          const styleConfig = HALLOWEEN_STYLE_CONFIG[decorationId];
+          if (styleConfig) {
+            console.log(`✓ Found Halloween decoration: ${styleConfig.name}`);
+            modifications.push(styleConfig.prompt);
+            appliedDecorations.push(decorationId);
+          } else {
+            console.log(`❌ Halloween decoration not found: ${decorationId}`);
+          }
+        } catch (error) {
+          console.log(`❌ Error loading Halloween decoration: ${decorationId}`, error);
         }
-      } catch (error) {
-        console.log(`❌ Error loading spooky mode configuration`, error);
+      }
+
+      // Step 5: If nightMode is true, add the "night_mode" configuration
+      if (nightMode) {
+        try {
+          const nightConfig = HALLOWEEN_STYLE_CONFIG['night_mode'];
+          if (nightConfig) {
+            console.log(`✓ Adding night mode atmosphere: ${nightConfig.name}`);
+            modifications.push(nightConfig.prompt);
+            appliedDecorations.push('night_mode');
+          }
+        } catch (error) {
+          console.log(`❌ Error loading night mode configuration`, error);
+        }
+      }
+
+      // Step 6: If spookyMode is true (with specific decorations), add the "really_spooky" configuration
+      if (spookyMode) {
+        try {
+          const spookyConfig = HALLOWEEN_STYLE_CONFIG['really_spooky'];
+          if (spookyConfig) {
+            console.log(`✓ Adding spooky mode atmosphere: ${spookyConfig.name}`);
+            modifications.push(spookyConfig.prompt);
+            appliedDecorations.push('really_spooky');
+          }
+        } catch (error) {
+          console.log(`❌ Error loading spooky mode configuration`, error);
+        }
       }
     }
 
@@ -909,19 +946,9 @@ export async function processHalloweenVisualizationWithGemini({
     console.log(`✓ Using ${modifications.length} Halloween decoration prompts`);
 
     // Step 8: Combine all modification prompts with proper formatting
-    const finalPrompt = `HALLOWEEN TRANSFORMATION - APPLY ALL INSTRUCTIONS TOGETHER:
-
-YOU MUST ADD ALL OF THE FOLLOWING TO THE SCENE:
+    const finalPrompt = `HALLOWEEN TRANSFORMATION:
 
 ${modifications.join("\n\n")}
-
-CRITICAL RULES FOR COMBINING MULTIPLE DECORATIONS:
-- ADD every single decoration/effect listed above to the SAME image
-- If decorations are listed, ADD them all to the yard/house
-- If Night Mode is listed, CONVERT to nighttime AND keep all decorations visible
-- If Really Spooky Mode is listed, ADD dramatic atmosphere (fog, blood moon, colored lights) AND keep all decorations
-- All decorations work together - the scene should have EVERYTHING specified above
-- Each item above is ADDITIVE - combine them all in one cohesive Halloween display
 
 PRESERVATION RULES (what NOT to change):
 - Keep house structure, windows, doors, roof, siding exactly the same
@@ -930,7 +957,7 @@ PRESERVATION RULES (what NOT to change):
 - Maintain property layout and perspective
 - Keep image at 1920x1080 pixels
 
-FINAL RESULT: The image should show the original property with ALL the Halloween decorations and atmospheric effects listed above added to it. Make it look natural and professionally decorated.`;
+FINAL RESULT: Transform the original property into a terrifying Halloween scene with all the decorations and atmospheric effects specified above. Make it look dramatic, scary, and professionally decorated.`;
 
     // Step 9: Generate edited image using Gemini
     const base64Image = processedImage.buffer.toString("base64");
