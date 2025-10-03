@@ -25,7 +25,7 @@ export function setupGoogleAuth(app: Express) {
   });
 
   // Debug logging - Use custom domain for production, dynamic port for development
-  const port = Number(process.env.PORT) || 3000;
+  const port = Number(process.env.PORT) || 5000;
   const callbackUrl = process.env.NODE_ENV === 'production' 
     ? 'https://dreambuilderai.com/api/auth/google/callback'
     : `http://localhost:${port}/api/auth/google/callback`;

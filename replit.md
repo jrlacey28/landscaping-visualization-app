@@ -10,8 +10,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 3, 2025**: Fixed Halloween decoration prompt system
+- **CRITICAL FIX**: Completely rewrote all Halloween prompts to work together properly
+- **Problem**: Original prompts said "keep everything the same" which prevented decorations from being added
+- **Solution**: Changed all decoration prompts to use "ADD" language instead of preservation language
+- **Night Mode fixed**: Now properly converts to nighttime while adding all selected decorations
+- **Really Spooky Mode fixed**: Now adds dramatic atmosphere (fog, blood moon, colored lights) while adding all selected decorations
+- **Prompt structure improved**: Clear instructions that all modifications are ADDITIVE and should be combined
+- All 31 decoration options now work correctly when selected together or with atmosphere modes
+
 **October 3, 2025**: Expanded Halloween visualization feature with new decorations and modes
-- **Fixed Really Spooky Mode bug**: Now correctly combines selected decorations with atmospheric effects
 - **Added 8 new decoration categories**:
   - Giant Skeleton (12ft centerpiece)
   - Inflatable Characters (giant pumpkins, grim reapers, haunted trees)

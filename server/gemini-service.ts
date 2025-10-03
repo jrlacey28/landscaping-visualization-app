@@ -909,22 +909,28 @@ export async function processHalloweenVisualizationWithGemini({
     console.log(`✓ Using ${modifications.length} Halloween decoration prompts`);
 
     // Step 8: Combine all modification prompts with proper formatting
-    const finalPrompt = `HALLOWEEN DECORATION INSTRUCTIONS:
+    const finalPrompt = `HALLOWEEN TRANSFORMATION - APPLY ALL INSTRUCTIONS TOGETHER:
+
+YOU MUST ADD ALL OF THE FOLLOWING TO THE SCENE:
 
 ${modifications.join("\n\n")}
 
-CRITICAL PRESERVATION RULES:
-- Keep the house structure, windows, doors, roof, and all architecture exactly the same
-- Preserve all existing landscaping, trees, shrubs, and plants
-- Maintain the exact driveway, walkways, and existing hardscaping
-- Keep the same property layout and overall yard design
-- Only add the Halloween decorations and effects specified above
-- Maintain original perspective and composition
-- Keep image dimensions at 1920x1080 pixels
-- Result must look natural and professionally decorated
-- Halloween decorations should enhance the property festively
+CRITICAL RULES FOR COMBINING MULTIPLE DECORATIONS:
+- ADD every single decoration/effect listed above to the SAME image
+- If decorations are listed, ADD them all to the yard/house
+- If Night Mode is listed, CONVERT to nighttime AND keep all decorations visible
+- If Really Spooky Mode is listed, ADD dramatic atmosphere (fog, blood moon, colored lights) AND keep all decorations
+- All decorations work together - the scene should have EVERYTHING specified above
+- Each item above is ADDITIVE - combine them all in one cohesive Halloween display
 
-Apply ONLY the Halloween decorations specified above. Do not redesign the house or dramatically alter existing features.`;
+PRESERVATION RULES (what NOT to change):
+- Keep house structure, windows, doors, roof, siding exactly the same
+- Keep existing landscaping, trees, shrubs, plants in place
+- Keep driveway, walkways, hardscaping unchanged
+- Maintain property layout and perspective
+- Keep image at 1920x1080 pixels
+
+FINAL RESULT: The image should show the original property with ALL the Halloween decorations and atmospheric effects listed above added to it. Make it look natural and professionally decorated.`;
 
     // Step 9: Generate edited image using Gemini
     const base64Image = processedImage.buffer.toString("base64");
