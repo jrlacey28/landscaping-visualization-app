@@ -60,6 +60,7 @@ export const userUsage = pgTable("user_usage", {
   visualizationCount: integer("visualization_count").default(0),
   poolCount: integer("pool_count").default(0),
   landscapeCount: integer("landscape_count").default(0),
+  halloweenCount: integer("halloween_count").default(0),
   totalCount: integer("total_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -159,6 +160,19 @@ export const landscapeVisualizations = pgTable("landscape_visualizations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const halloweenVisualizations = pgTable("halloween_visualizations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id), // For user-owned visualizations
+  tenantId: integer("tenant_id").references(() => tenants.id), // For tenant-owned visualizations
+  originalImageUrl: text("original_image_url").notNull(),
+  generatedImageUrl: text("generated_image_url"),
+  selectedDecorations: text("selected_decorations"),
+  spookyMode: boolean("spooky_mode"),
+  replicateId: text("replicate_id"),
+  status: text("status").default("pending"), // pending, processing, completed, failed
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // User feature overrides for manual control of feature access
 export const userFeatureOverrides = pgTable("user_feature_overrides", {
   id: serial("id").primaryKey(),
@@ -177,6 +191,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   visualizations: many(visualizations),
   poolVisualizations: many(poolVisualizations),
   landscapeVisualizations: many(landscapeVisualizations),
+  halloweenVisualizations: many(halloweenVisualizations),
   leads: many(leads),
   featureOverrides: one(userFeatureOverrides),
 }));
@@ -201,6 +216,7 @@ export const tenantsRelations = relations(tenants, ({ one, many }) => ({
   visualizations: many(visualizations),
   poolVisualizations: many(poolVisualizations),
   landscapeVisualizations: many(landscapeVisualizations),
+  halloweenVisualizations: many(halloweenVisualizations),
 }));
 
 export const leadsRelations = relations(leads, ({ one }) => ({
@@ -243,6 +259,17 @@ export const landscapeVisualizationsRelations = relations(landscapeVisualization
   }),
   tenant: one(tenants, {
     fields: [landscapeVisualizations.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const halloweenVisualizationsRelations = relations(halloweenVisualizations, ({ one }) => ({
+  user: one(users, {
+    fields: [halloweenVisualizations.userId],
+    references: [users.id],
+  }),
+  tenant: one(tenants, {
+    fields: [halloweenVisualizations.tenantId],
     references: [tenants.id],
   }),
 }));
@@ -333,6 +360,11 @@ export const insertLandscapeVisualizationSchema = createInsertSchema(landscapeVi
   createdAt: true,
 });
 
+export const insertHalloweenVisualizationSchema = createInsertSchema(halloweenVisualizations).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertUserFeatureOverridesSchema = createInsertSchema(userFeatureOverrides).omit({
   id: true,
   createdAt: true,
@@ -358,6 +390,8 @@ export type PoolVisualization = typeof poolVisualizations.$inferSelect;
 export type InsertPoolVisualization = z.infer<typeof insertPoolVisualizationSchema>;
 export type LandscapeVisualization = typeof landscapeVisualizations.$inferSelect;
 export type InsertLandscapeVisualization = z.infer<typeof insertLandscapeVisualizationSchema>;
+export type HalloweenVisualization = typeof halloweenVisualizations.$inferSelect;
+export type InsertHalloweenVisualization = z.infer<typeof insertHalloweenVisualizationSchema>;
 export type UserFeatureOverrides = typeof userFeatureOverrides.$inferSelect;
 export type InsertUserFeatureOverrides = z.infer<typeof insertUserFeatureOverridesSchema>;
 export type UsageStats = typeof usageStats.$inferSelect;

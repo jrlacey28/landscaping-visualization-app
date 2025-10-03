@@ -9,7 +9,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 
 import { storage } from "./storage";
-import { insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertTenantSchema } from "@shared/schema";
+import { insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertHalloweenVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { z } from "zod";
 import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage } from "./gemini-service";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
@@ -1248,6 +1248,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching landscape visualizations:", error);
       res.status(500).json({ error: "Failed to fetch landscape visualizations" });
+    }
+  });
+
+  // Halloween-specific API routes
+  
+  // Halloween visualization upload (requires authentication)
+  app.post("/api/halloween/upload", authenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const { selectedDecorations, spookyMode } = req.body;
+      const userId = req.user.id;
+
+      // Check user usage limits before processing
+      try {
+        await checkUserUsageLimits(userId, 'visualization');
+      } catch (limitError: any) {
+        return res.status(429).json({ error: limitError.message });
+      }
+
+      // Process image with size constraints (max 1920x1080)
+      const originalImageBuffer = req.file.buffer;
+
+      // Create base64 for storage
+      const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
+
+      // Create halloween visualization record with user ID only
+      const halloweenVisualization = await storage.createHalloweenVisualization({
+        tenantId: null,
+        userId: userId,
+        originalImageUrl: base64Image,
+        selectedDecorations: selectedDecorations || null,
+        spookyMode: spookyMode === 'true' || spookyMode === true,
+        status: "processing",
+      });
+
+      // Track user-level usage
+      await storage.createOrUpdateUserUsage(userId, 'visualization');
+
+      // Process with Halloween AI (placeholder - will be implemented later)
+      try {
+        console.log('🎃 Processing Halloween visualization:', {
+          decorations: selectedDecorations,
+          spookyMode: spookyMode
+        });
+
+        // TODO: Implement Halloween processing function
+        // For now, we'll just mark it as completed with the original image
+        await storage.updateHalloweenVisualization(halloweenVisualization.id, {
+          generatedImageUrl: base64Image,
+          status: "completed"
+        });
+
+        res.json({
+          halloweenVisualizationId: halloweenVisualization.id,
+          generatedImageUrl: base64Image,
+          message: "Halloween visualization created successfully (processing will be implemented)"
+        });
+
+      } catch (error: any) {
+        console.error("Halloween processing error:", error);
+        
+        // Update record with error status
+        await storage.updateHalloweenVisualization(halloweenVisualization.id, {
+          status: "failed"
+        });
+
+        res.status(500).json({ 
+          error: "AI processing failed. Please try again.",
+          halloweenVisualizationId: halloweenVisualization.id
+        });
+      }
+
+    } catch (error: any) {
+      console.error("Halloween upload error:", error);
+      res.status(500).json({ error: "Upload failed. Please try again." });
+    }
+  });
+
+  // Get Halloween visualizations for authenticated user
+  app.get("/api/halloween/visualizations", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const halloweenVisualizations = await storage.getHalloweenVisualizationsByUser(req.user.id);
+      res.json(halloweenVisualizations);
+    } catch (error) {
+      console.error("Error fetching Halloween visualizations:", error);
+      res.status(500).json({ error: "Failed to fetch Halloween visualizations" });
+    }
+  });
+
+  // Get Halloween visualization status
+  app.get("/api/halloween/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const halloweenVisualization = await storage.getHalloweenVisualization(parseInt(id));
+
+      if (!halloweenVisualization) {
+        return res.status(404).json({ error: "Halloween visualization not found" });
+      }
+
+      res.json(halloweenVisualization);
+    } catch (error) {
+      console.error("Error checking Halloween visualization status:", error);
+      res.status(500).json({ error: "Failed to check Halloween status" });
     }
   });
 

@@ -1,9 +1,10 @@
 import { 
-  users, subscriptions, subscriptionPlans, userUsage, tenants, leads, visualizations, poolVisualizations, landscapeVisualizations,
+  users, subscriptions, subscriptionPlans, userUsage, tenants, leads, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations,
   userFeatureOverrides,
   type User, type InsertUser, type Subscription, type InsertSubscription, type SubscriptionPlan, type UserUsage, type InsertUserUsage,
   type Tenant, type InsertTenant, type Lead, type InsertLead, type Visualization, type InsertVisualization, 
   type PoolVisualization, type InsertPoolVisualization, type LandscapeVisualization, type InsertLandscapeVisualization,
+  type HalloweenVisualization, type InsertHalloweenVisualization,
   type UserFeatureOverrides, type InsertUserFeatureOverrides
 } from "@shared/schema";
 import { db } from "./db";
@@ -72,6 +73,13 @@ export interface IStorage {
   getLandscapeVisualizationsByUser(userId: number): Promise<LandscapeVisualization[]>;
   createLandscapeVisualization(landscapeVisualization: InsertLandscapeVisualization): Promise<LandscapeVisualization>;
   updateLandscapeVisualization(id: number, landscapeVisualization: Partial<InsertLandscapeVisualization>): Promise<LandscapeVisualization>;
+
+  // Halloween Visualization methods
+  getHalloweenVisualization(id: number): Promise<HalloweenVisualization | undefined>;
+  getHalloweenVisualizationsByTenant(tenantId: number): Promise<HalloweenVisualization[]>;
+  getHalloweenVisualizationsByUser(userId: number): Promise<HalloweenVisualization[]>;
+  createHalloweenVisualization(halloweenVisualization: InsertHalloweenVisualization): Promise<HalloweenVisualization>;
+  updateHalloweenVisualization(id: number, halloweenVisualization: Partial<InsertHalloweenVisualization>): Promise<HalloweenVisualization>;
 
   // Admin methods
   getAllUsersWithUsage(): Promise<Array<User & { usage?: UserUsage; subscription?: Subscription }>>;
@@ -686,6 +694,48 @@ export class DatabaseStorage implements IStorage {
     }
 
     return updated;
+  }
+
+  async getHalloweenVisualization(id: number): Promise<HalloweenVisualization | undefined> {
+    const [halloweenVisualization] = await this.db.select().from(halloweenVisualizations).where(eq(halloweenVisualizations.id, id));
+    return halloweenVisualization || undefined;
+  }
+
+  async getHalloweenVisualizationsByTenant(tenantId: number): Promise<HalloweenVisualization[]> {
+    return await this.db
+      .select()
+      .from(halloweenVisualizations)
+      .where(eq(halloweenVisualizations.tenantId, tenantId))
+      .orderBy(desc(halloweenVisualizations.createdAt));
+  }
+
+  async getHalloweenVisualizationsByUser(userId: number): Promise<HalloweenVisualization[]> {
+    return await this.db
+      .select()
+      .from(halloweenVisualizations)
+      .where(eq(halloweenVisualizations.userId, userId))
+      .orderBy(desc(halloweenVisualizations.createdAt));
+  }
+
+  async createHalloweenVisualization(insertHalloweenVisualization: InsertHalloweenVisualization): Promise<HalloweenVisualization> {
+    const [halloweenVisualization] = await this.db
+      .insert(halloweenVisualizations)
+      .values(insertHalloweenVisualization)
+      .returning();
+
+    // Don't increment tenant generations for authenticated users
+    // Only track user-level usage
+
+    return halloweenVisualization;
+  }
+
+  async updateHalloweenVisualization(id: number, insertHalloweenVisualization: Partial<InsertHalloweenVisualization>): Promise<HalloweenVisualization> {
+    const [halloweenVisualization] = await this.db
+      .update(halloweenVisualizations)
+      .set(insertHalloweenVisualization)
+      .where(eq(halloweenVisualizations.id, id))
+      .returning();
+    return halloweenVisualization;
   }
 
   async trackUsage(tenantId: number, type: 'visualization' | 'landscape' | 'pool'): Promise<void> {
