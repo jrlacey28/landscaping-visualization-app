@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Eye,
   Sparkles,
@@ -22,6 +23,83 @@ import {
   checkHalloweenVisualizationStatus,
 } from "@/lib/api";
 
+interface DecorationOption {
+  id: string;
+  name: string;
+  category: string;
+}
+
+const DECORATION_OPTIONS: DecorationOption[] = [
+  // Pumpkins
+  { id: "classic_pumpkins", name: "Classic Pumpkins", category: "Pumpkins" },
+  { id: "pumpkin_pathway", name: "Pumpkin Pathway", category: "Pumpkins" },
+  { id: "pumpkin_display", name: "Pumpkin Display", category: "Pumpkins" },
+  
+  // Skeletons
+  { id: "skeleton_yard_display", name: "Skeleton Display", category: "Skeletons" },
+  { id: "skeleton_graveyard_scene", name: "Skeleton Graveyard", category: "Skeletons" },
+  { id: "giant_skeleton", name: "12ft Giant Skeleton", category: "Skeletons" },
+  
+  // Ghosts
+  { id: "hanging_ghosts", name: "Hanging Ghosts", category: "Ghosts" },
+  { id: "ghost_family", name: "Ghost Family", category: "Ghosts" },
+  
+  // Witches
+  { id: "witch_crash", name: "Witch Crash Landing", category: "Witches" },
+  { id: "witch_silhouettes", name: "Witch Silhouettes", category: "Witches" },
+  
+  // Bats
+  { id: "bat_swarm", name: "Bat Swarm", category: "Bats" },
+  { id: "hanging_bats", name: "Hanging Bats", category: "Bats" },
+  
+  // Spiders
+  { id: "giant_spider", name: "Giant Spider", category: "Spiders" },
+  { id: "spider_web_display", name: "Spider Webs", category: "Spiders" },
+  
+  // Graveyard
+  { id: "tombstone_graveyard", name: "Tombstone Graveyard", category: "Graveyard" },
+  { id: "graveyard_fence", name: "Graveyard with Fence", category: "Graveyard" },
+  
+  // Inflatables
+  { id: "inflatable_giant_pumpkin", name: "Giant Pumpkin Inflatable", category: "Inflatables" },
+  { id: "inflatable_grim_reaper", name: "Grim Reaper Inflatable", category: "Inflatables" },
+  { id: "inflatable_haunted_tree", name: "Haunted Tree Inflatable", category: "Inflatables" },
+  
+  // Animated Props
+  { id: "animated_heads", name: "Animated Talking Heads", category: "Animated Props" },
+  { id: "animated_talking_pumpkin", name: "Talking Pumpkin", category: "Animated Props" },
+  { id: "animated_jumping_spider", name: "Jumping Spider", category: "Animated Props" },
+  
+  // Pathway Lights
+  { id: "skull_torch_lights", name: "LED Skull Torches", category: "Pathway Lights" },
+  { id: "flickering_lanterns", name: "Flickering Lanterns", category: "Pathway Lights" },
+  
+  // Clowns
+  { id: "creepy_carnival_clowns", name: "Creepy Carnival Clowns", category: "Clowns" },
+  { id: "circus_tent_display", name: "Haunted Circus Tent", category: "Clowns" },
+  
+  // Zombies
+  { id: "groundbreaker_zombies", name: "Groundbreaker Zombies", category: "Zombies" },
+  { id: "zombie_horde", name: "Zombie Horde", category: "Zombies" },
+  
+  // Mummies
+  { id: "wrapped_mummies", name: "Wrapped Mummies", category: "Mummies" },
+  { id: "tomb_display", name: "Egyptian Tomb Display", category: "Mummies" },
+  
+  // Vampires
+  { id: "vampire_silhouettes", name: "Vampire Silhouettes", category: "Vampires" },
+  { id: "coffin_setup", name: "Vampire Coffin Setup", category: "Vampires" },
+];
+
+// Group decorations by category
+const DECORATION_CATEGORIES = DECORATION_OPTIONS.reduce((acc, decoration) => {
+  if (!acc[decoration.category]) {
+    acc[decoration.category] = [];
+  }
+  acc[decoration.category].push(decoration);
+  return acc;
+}, {} as Record<string, DecorationOption[]>);
+
 export default function Halloween() {
   const { tenant } = useTenant();
   const { user } = useAuth();
@@ -32,6 +110,8 @@ export default function Halloween() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
+  const [selectedDecorations, setSelectedDecorations] = useState<string[]>([]);
+  const [spookyMode, setSpookyMode] = useState(false);
 
   const effectiveTenant = tenant || {
     id: 1,
@@ -73,7 +153,6 @@ export default function Halloween() {
   const handleShare = async () => {
     if (navigator.share && generatedImage) {
       try {
-        // Fetch the image as a blob
         const response = await fetch(generatedImage);
         const blob = await response.blob();
         const file = new File([blob], "halloween-decorations.jpg", {
@@ -114,22 +193,17 @@ export default function Halloween() {
         canvas.width = img.width;
         canvas.height = img.height;
         
-        // Draw the generated image
         ctx.drawImage(img, 0, 0);
         
-        // Load and draw the logo watermark in top left
         const logo = new Image();
         logo.crossOrigin = "anonymous";
         logo.onload = function () {
-          // Calculate logo size (10% of image width for balanced sizing)
           const logoWidth = img.width * 0.10;
           const logoHeight = (logo.height / logo.width) * logoWidth;
           
-          // Position in top left with padding
           const padding = 20;
           ctx.drawImage(logo, padding, padding, logoWidth, logoHeight);
           
-          // Convert to blob and download
           canvas.toBlob(
             (blob) => {
               if (blob) {
@@ -149,6 +223,102 @@ export default function Halloween() {
       }
     };
     img.src = generatedImage;
+  };
+
+  const handleDecorationToggle = (decorationId: string) => {
+    setSelectedDecorations(prev => 
+      prev.includes(decorationId)
+        ? prev.filter(id => id !== decorationId)
+        : [...prev, decorationId]
+    );
+  };
+
+  const handleGenerate = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in and choose a plan to use AI visualization features.",
+        variant: "destructive",
+      });
+      navigate("/pricing");
+      return;
+    }
+
+    if (!user.usage.canUse) {
+      toast({
+        title: "Usage Limit Reached",
+        description: `You've reached your monthly limit of ${user.usage.limit} visualizations. Please upgrade your plan to continue.`,
+        variant: "destructive",
+      });
+      navigate("/pricing");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      if (!originalFile) {
+        alert("Original file not found. Please re-upload your image.");
+        setIsGenerating(false);
+        return;
+      }
+
+      const result = await uploadHalloweenImage(
+        originalFile,
+        effectiveTenant.id,
+        selectedDecorations,
+        false, // nightMode removed
+        spookyMode
+      );
+
+      if (result.halloweenVisualizationId) {
+        const status = await checkHalloweenVisualizationStatus(
+          result.halloweenVisualizationId
+        );
+
+        if (status.status === "completed" && status.generatedImageUrl) {
+          setGeneratedImage(status.generatedImageUrl);
+          setIsGenerating(false);
+        } else if (status.status === "failed") {
+          console.error("Halloween AI generation failed");
+          setIsGenerating(false);
+          alert("Unable to generate Halloween visualization. Please check your connection and try again.");
+        } else {
+          const pollInterval = setInterval(async () => {
+            try {
+              const polledStatus = await checkHalloweenVisualizationStatus(
+                result.halloweenVisualizationId
+              );
+              if (polledStatus.status === "completed" && polledStatus.generatedImageUrl) {
+                setGeneratedImage(polledStatus.generatedImageUrl);
+                setIsGenerating(false);
+                clearInterval(pollInterval);
+              } else if (polledStatus.status === "failed") {
+                console.error("Halloween AI generation failed");
+                setIsGenerating(false);
+                clearInterval(pollInterval);
+                alert("Halloween AI generation failed. Please try again or contact support if the issue persists.");
+              }
+            } catch (error) {
+              console.error("Error checking Halloween status:", error);
+              setIsGenerating(false);
+              clearInterval(pollInterval);
+            }
+          }, 2000);
+
+          setTimeout(() => {
+            clearInterval(pollInterval);
+            if (isGenerating) {
+              setIsGenerating(false);
+              alert("Processing timed out. Please try again.");
+            }
+          }, 60000);
+        }
+      }
+    } catch (error) {
+      console.error("Error generating Halloween visualization:", error);
+      setIsGenerating(false);
+      alert("Unable to generate Halloween visualization. Please check your connection and try again.");
+    }
   };
 
   return (
@@ -309,146 +479,79 @@ export default function Halloween() {
                 <div className="space-y-6">
                   <div className="text-center">
                     <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                      Create Your Spooky Scene
+                      Choose Your Decorations
                     </h3>
                     <p className="text-slate-600">
-                      Transform your home with a scary Halloween atmosphere
+                      Select one or more decoration styles to add to your home
                     </p>
                   </div>
 
-                  <div className="bg-gradient-to-r from-purple-600 to-orange-600 p-8 rounded-xl shadow-lg">
-                    <div className="text-center space-y-3">
-                      <Ghost className="h-16 w-16 text-white mx-auto" />
-                      <h4 className="text-2xl font-bold text-white">
-                        Spooky Halloween Mode
-                      </h4>
-                      <p className="text-white/90 text-lg">
-                        Generate a terrifying Halloween scene with random spooky decorations, blood moon, fog, eerie lighting, and dramatic effects!
-                      </p>
+                  {/* Decoration Categories */}
+                  <div className="space-y-4 max-h-96 overflow-y-auto bg-slate-50 p-4 rounded-lg">
+                    {Object.entries(DECORATION_CATEGORIES).map(([category, decorations]) => (
+                      <div key={category} className="bg-white p-4 rounded-lg shadow-sm">
+                        <h4 className="font-bold text-lg text-slate-800 mb-3">{category}</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {decorations.map((decoration) => (
+                            <div
+                              key={decoration.id}
+                              className="flex items-center space-x-2"
+                            >
+                              <Checkbox
+                                id={decoration.id}
+                                checked={selectedDecorations.includes(decoration.id)}
+                                onCheckedChange={() => handleDecorationToggle(decoration.id)}
+                                data-testid={`checkbox-${decoration.id}`}
+                              />
+                              <label
+                                htmlFor={decoration.id}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              >
+                                {decoration.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Really Spooky Mode Toggle */}
+                  <div className="bg-gradient-to-r from-purple-600 to-orange-600 p-6 rounded-xl shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Ghost className="h-8 w-8 text-white" />
+                        <div>
+                          <h4 className="text-xl font-bold text-white">
+                            Really Spooky Mode
+                          </h4>
+                          <p className="text-white/90 text-sm">
+                            Add fog, blood moon, and eerie lighting effects
+                          </p>
+                        </div>
+                      </div>
+                      <Checkbox
+                        id="spooky-mode"
+                        checked={spookyMode}
+                        onCheckedChange={(checked) => setSpookyMode(checked as boolean)}
+                        className="h-6 w-6 border-white data-[state=checked]:bg-white data-[state=checked]:text-purple-600"
+                        data-testid="checkbox-spooky-mode"
+                      />
                     </div>
                   </div>
 
                   <Button
                     size="lg"
                     className="w-full bg-gradient-to-r from-orange-600 via-purple-500 to-orange-600 hover:from-orange-700 hover:via-purple-600 hover:to-orange-700 text-white font-semibold py-6 text-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={isGenerating}
-                    onClick={async () => {
-                      if (!user) {
-                        toast({
-                          title: "Authentication Required",
-                          description:
-                            "Please sign in and choose a plan to use AI visualization features.",
-                          variant: "destructive",
-                        });
-                        navigate("/pricing");
-                        return;
-                      }
-
-                      if (!user.usage.canUse) {
-                        toast({
-                          title: "Usage Limit Reached",
-                          description: `You've reached your monthly limit of ${user.usage.limit} visualizations. Please upgrade your plan to continue.`,
-                          variant: "destructive",
-                        });
-                        navigate("/pricing");
-                        return;
-                      }
-
-                      setIsGenerating(true);
-                      try {
-                        if (!originalFile) {
-                          alert(
-                            "Original file not found. Please re-upload your image."
-                          );
-                          setIsGenerating(false);
-                          return;
-                        }
-
-                        const result = await uploadHalloweenImage(
-                          originalFile,
-                          effectiveTenant.id,
-                          [], // No specific decorations - backend will generate random ones
-                          false, // nightMode
-                          true // spookyMode - always true for this simplified version
-                        );
-
-                        if (result.halloweenVisualizationId) {
-                          const status = await checkHalloweenVisualizationStatus(
-                            result.halloweenVisualizationId
-                          );
-
-                          if (
-                            status.status === "completed" &&
-                            status.generatedImageUrl
-                          ) {
-                            setGeneratedImage(status.generatedImageUrl);
-                            setIsGenerating(false);
-                          } else if (status.status === "failed") {
-                            console.error("Halloween AI generation failed");
-                            setIsGenerating(false);
-                            alert(
-                              "Unable to generate Halloween visualization. Please check your connection and try again."
-                            );
-                          } else {
-                            const pollInterval = setInterval(async () => {
-                              try {
-                                const polledStatus =
-                                  await checkHalloweenVisualizationStatus(
-                                    result.halloweenVisualizationId
-                                  );
-                                if (
-                                  polledStatus.status === "completed" &&
-                                  polledStatus.generatedImageUrl
-                                ) {
-                                  setGeneratedImage(
-                                    polledStatus.generatedImageUrl
-                                  );
-                                  setIsGenerating(false);
-                                  clearInterval(pollInterval);
-                                } else if (polledStatus.status === "failed") {
-                                  console.error(
-                                    "Halloween AI generation failed"
-                                  );
-                                  setIsGenerating(false);
-                                  clearInterval(pollInterval);
-                                  alert(
-                                    "Halloween AI generation failed. Please try again or contact support if the issue persists."
-                                  );
-                                }
-                              } catch (error) {
-                                console.error(
-                                  "Error checking Halloween status:",
-                                  error
-                                );
-                                setIsGenerating(false);
-                                clearInterval(pollInterval);
-                              }
-                            }, 2000);
-
-                            setTimeout(() => {
-                              clearInterval(pollInterval);
-                              if (isGenerating) {
-                                setIsGenerating(false);
-                                alert("Processing timed out. Please try again.");
-                              }
-                            }, 60000);
-                          }
-                        }
-                      } catch (error) {
-                        console.error(
-                          "Error generating Halloween visualization:",
-                          error
-                        );
-                        setIsGenerating(false);
-                        alert(
-                          "Unable to generate Halloween visualization. Please check your connection and try again."
-                        );
-                      }
-                    }}
-                    data-testid="button-create-spooky"
+                    disabled={isGenerating || selectedDecorations.length === 0}
+                    onClick={handleGenerate}
+                    data-testid="button-generate-halloween"
                   >
                     <Sparkles className="h-6 w-6 mr-2" />
-                    Create Spooky Halloween Scene
+                    {selectedDecorations.length === 0 
+                      ? "Select Decorations to Generate"
+                      : `Generate Halloween Scene with ${selectedDecorations.length} Decoration${selectedDecorations.length !== 1 ? 's' : ''}`
+                    }
                   </Button>
                 </div>
               </CardContent>
