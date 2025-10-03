@@ -813,3 +813,205 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
     throw new Error(`Landscape processing failed: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
+
+/**
+ * Processes Halloween visualization requests - decorations and spooky atmosphere
+ */
+export async function processHalloweenVisualizationWithGemini({
+  imageBuffer,
+  selectedDecorations,
+  spookyMode
+}: {
+  imageBuffer: Buffer;
+  selectedDecorations: string;
+  spookyMode: boolean;
+}): Promise<{
+  editedImageBuffer: Buffer;
+  appliedDecorations: string[];
+  prompt: string;
+}> {
+  try {
+    // Check API key at runtime
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || !apiKey.trim()) {
+      throw new Error("GEMINI_API_KEY not found in secrets. Please add your Google Gemini API key to the Secrets tool.");
+    }
+
+    // Step 1: Process and resize image
+    const processedImage = await processImageSize(imageBuffer);
+
+    // Step 2: Import Halloween style config
+    const { HALLOWEEN_STYLE_CONFIG } = await import("./halloween-style-config");
+
+    // Step 3: Parse selectedDecorations string (split by comma) into an array
+    const decorationIds = selectedDecorations 
+      ? selectedDecorations.split(',').map(id => id.trim()).filter(id => id.length > 0)
+      : [];
+
+    // Build prompt based on selected Halloween decorations
+    const modifications: string[] = [];
+    const appliedDecorations: string[] = [];
+
+    console.log("🎃 PROCESSING HALLOWEEN DECORATIONS:", decorationIds);
+
+    // Step 4: Build modifications array by looking up each decoration in HALLOWEEN_STYLE_CONFIG
+    for (const decorationId of decorationIds) {
+      try {
+        const styleConfig = HALLOWEEN_STYLE_CONFIG[decorationId];
+        if (styleConfig) {
+          console.log(`✓ Found Halloween decoration: ${styleConfig.name}`);
+          modifications.push(styleConfig.prompt);
+          appliedDecorations.push(decorationId);
+        } else {
+          console.log(`❌ Halloween decoration not found: ${decorationId}`);
+        }
+      } catch (error) {
+        console.log(`❌ Error loading Halloween decoration: ${decorationId}`, error);
+      }
+    }
+
+    // Step 5: If spookyMode is true, add the "really_spooky" configuration
+    if (spookyMode) {
+      try {
+        const spookyConfig = HALLOWEEN_STYLE_CONFIG['really_spooky'];
+        if (spookyConfig) {
+          console.log(`✓ Adding spooky mode atmosphere: ${spookyConfig.name}`);
+          modifications.push(spookyConfig.prompt);
+          appliedDecorations.push('really_spooky');
+        }
+      } catch (error) {
+        console.log(`❌ Error loading spooky mode configuration`, error);
+      }
+    }
+
+    // Step 6: If no modifications, use fallback prompt
+    if (modifications.length === 0) {
+      console.log("⚠️ No valid Halloween decorations found, using fallback");
+      modifications.push("Add festive Halloween decorations to the home and yard while preserving all existing features");
+    }
+
+    console.log(`✓ Using ${modifications.length} Halloween decoration prompts`);
+
+    // Step 7: Combine all modification prompts with proper formatting
+    const finalPrompt = `HALLOWEEN DECORATION INSTRUCTIONS:
+
+${modifications.join("\n\n")}
+
+CRITICAL PRESERVATION RULES:
+- Keep the house structure, windows, doors, roof, and all architecture exactly the same
+- Preserve all existing landscaping, trees, shrubs, and plants
+- Maintain the exact driveway, walkways, and existing hardscaping
+- Keep the same property layout and overall yard design
+- Only add the Halloween decorations and effects specified above
+- Maintain original perspective and composition
+- Keep image dimensions at 1920x1080 pixels
+- Result must look natural and professionally decorated
+- Halloween decorations should enhance the property festively
+
+Apply ONLY the Halloween decorations specified above. Do not redesign the house or dramatically alter existing features.`;
+
+    // Step 8: Generate edited image using Gemini
+    const base64Image = processedImage.buffer.toString("base64");
+
+    console.log("🎃 HALLOWEEN GEMINI PROMPT BEING SENT:");
+    console.log("=====================================");
+    console.log(finalPrompt);
+    console.log("=====================================");
+
+    const contentParts: any[] = [
+      { text: finalPrompt },
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: "image/jpeg"
+        }
+      }
+    ];
+
+    // Add retry logic for Gemini API failures
+    let response;
+    let lastError;
+    const maxRetries = 3;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🎃 Gemini API attempt ${attempt}/${maxRetries}`);
+        
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-image-preview",
+          contents: [
+            { 
+              role: "user", 
+              parts: contentParts
+            }
+          ],
+          config: {
+            responseModalities: [Modality.TEXT, Modality.IMAGE],
+          },
+        });
+        
+        console.log(`✓ Gemini API succeeded on attempt ${attempt}`);
+        break;
+        
+      } catch (error: any) {
+        lastError = error;
+        console.log(`❌ Gemini API attempt ${attempt} failed:`, error.message || error);
+        
+        if (attempt === maxRetries) {
+          console.log(`❌ All ${maxRetries} Gemini API attempts failed`);
+          throw error;
+        }
+        
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    if (!response) {
+      throw new Error("Failed to get response from Gemini API after all retries");
+    }
+
+    // Extract the generated image from Gemini response
+    let generatedImageBuffer = processedImage.buffer;
+
+    if (response.candidates && response.candidates.length > 0) {
+      const content = response.candidates[0].content;
+      if (content && content.parts) {
+        for (const part of content.parts) {
+          if (part.inlineData && part.inlineData.data) {
+            const rawGeneratedBuffer = Buffer.from(part.inlineData.data, "base64");
+            
+            const originalMetadata = await sharp(processedImage.buffer).metadata();
+            const targetWidth = originalMetadata.width || 1920;
+            const targetHeight = originalMetadata.height || 1080;
+            
+            console.log(`🎃 Resizing Halloween image to match original: ${targetWidth}x${targetHeight}`);
+            
+            generatedImageBuffer = await sharp(rawGeneratedBuffer)
+              .resize(targetWidth, targetHeight, { 
+                fit: "fill",
+                withoutEnlargement: false 
+              })
+              .jpeg({ quality: 85 })
+              .toBuffer();
+            
+            console.log("✓ Gemini generated and resized Halloween image successfully");
+            break;
+          }
+        }
+      }
+    }
+
+    // Step 9: Return the edited image buffer, applied decorations array, and final prompt
+    return {
+      editedImageBuffer: generatedImageBuffer,
+      appliedDecorations: appliedDecorations,
+      prompt: finalPrompt
+    };
+
+  } catch (error) {
+    console.error("Gemini Halloween processing error:", error);
+    throw new Error(`Halloween processing failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+}

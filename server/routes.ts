@@ -11,7 +11,7 @@ import connectPgSimple from "connect-pg-simple";
 import { storage } from "./storage";
 import { insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertHalloweenVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { z } from "zod";
-import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage } from "./gemini-service";
+import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage, processHalloweenVisualizationWithGemini } from "./gemini-service";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 import { authenticateToken, AuthRequest } from "./auth";
@@ -1293,24 +1293,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Track user-level usage
       await storage.createOrUpdateUserUsage(userId, 'visualization');
 
-      // Process with Halloween AI (placeholder - will be implemented later)
+      // Process with Halloween AI
       try {
         console.log('🎃 Processing Halloween visualization:', {
           decorations: selectedDecorations,
           spookyMode: spookyMode
         });
 
-        // TODO: Implement Halloween processing function
-        // For now, we'll just mark it as completed with the original image
+        // Call Halloween processing function
+        const result = await processHalloweenVisualizationWithGemini({
+          imageBuffer: originalImageBuffer,
+          selectedDecorations: selectedDecorations || '',
+          spookyMode: spookyMode === 'true' || spookyMode === true
+        });
+
+        // Convert edited image to base64 for storage
+        const editedBase64Image = `data:image/jpeg;base64,${result.editedImageBuffer.toString('base64')}`;
+
+        // Update visualization with generated image
         await storage.updateHalloweenVisualization(halloweenVisualization.id, {
-          generatedImageUrl: base64Image,
+          generatedImageUrl: editedBase64Image,
           status: "completed"
         });
 
         res.json({
           halloweenVisualizationId: halloweenVisualization.id,
-          generatedImageUrl: base64Image,
-          message: "Halloween visualization created successfully (processing will be implemented)"
+          generatedImageUrl: editedBase64Image,
+          appliedDecorations: result.appliedDecorations,
+          prompt: result.prompt,
+          message: "Halloween visualization created successfully"
         });
 
       } catch (error: any) {
