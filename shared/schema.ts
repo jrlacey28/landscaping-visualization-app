@@ -167,6 +167,7 @@ export const halloweenVisualizations = pgTable("halloween_visualizations", {
   originalImageUrl: text("original_image_url").notNull(),
   generatedImageUrl: text("generated_image_url"),
   selectedDecorations: text("selected_decorations"),
+  nightMode: boolean("night_mode"),
   spookyMode: boolean("spooky_mode"),
   replicateId: text("replicate_id"),
   status: text("status").default("pending"), // pending, processing, completed, failed

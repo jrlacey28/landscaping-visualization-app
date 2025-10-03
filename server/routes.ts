@@ -1264,7 +1264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const { selectedDecorations, spookyMode } = req.body;
+      const { selectedDecorations, nightMode, spookyMode } = req.body;
       const userId = req.user.id;
 
       // Check user usage limits before processing
@@ -1286,6 +1286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: userId,
         originalImageUrl: base64Image,
         selectedDecorations: selectedDecorations || null,
+        nightMode: nightMode === 'true' || nightMode === true,
         spookyMode: spookyMode === 'true' || spookyMode === true,
         status: "processing",
       });
@@ -1297,6 +1298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log('🎃 Processing Halloween visualization:', {
           decorations: selectedDecorations,
+          nightMode: nightMode,
           spookyMode: spookyMode
         });
 
@@ -1304,6 +1306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = await processHalloweenVisualizationWithGemini({
           imageBuffer: originalImageBuffer,
           selectedDecorations: selectedDecorations || '',
+          nightMode: nightMode === 'true' || nightMode === true,
           spookyMode: spookyMode === 'true' || spookyMode === true
         });
 

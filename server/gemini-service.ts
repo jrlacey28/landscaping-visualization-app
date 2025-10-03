@@ -820,10 +820,12 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
 export async function processHalloweenVisualizationWithGemini({
   imageBuffer,
   selectedDecorations,
+  nightMode,
   spookyMode
 }: {
   imageBuffer: Buffer;
   selectedDecorations: string;
+  nightMode: boolean;
   spookyMode: boolean;
 }): Promise<{
   editedImageBuffer: Buffer;
@@ -870,7 +872,21 @@ export async function processHalloweenVisualizationWithGemini({
       }
     }
 
-    // Step 5: If spookyMode is true, add the "really_spooky" configuration
+    // Step 5: If nightMode is true, add the "night_mode" configuration
+    if (nightMode) {
+      try {
+        const nightConfig = HALLOWEEN_STYLE_CONFIG['night_mode'];
+        if (nightConfig) {
+          console.log(`✓ Adding night mode atmosphere: ${nightConfig.name}`);
+          modifications.push(nightConfig.prompt);
+          appliedDecorations.push('night_mode');
+        }
+      } catch (error) {
+        console.log(`❌ Error loading night mode configuration`, error);
+      }
+    }
+
+    // Step 6: If spookyMode is true, add the "really_spooky" configuration
     if (spookyMode) {
       try {
         const spookyConfig = HALLOWEEN_STYLE_CONFIG['really_spooky'];
@@ -884,7 +900,7 @@ export async function processHalloweenVisualizationWithGemini({
       }
     }
 
-    // Step 6: If no modifications, use fallback prompt
+    // Step 7: If no modifications, use fallback prompt
     if (modifications.length === 0) {
       console.log("⚠️ No valid Halloween decorations found, using fallback");
       modifications.push("Add festive Halloween decorations to the home and yard while preserving all existing features");
@@ -892,7 +908,7 @@ export async function processHalloweenVisualizationWithGemini({
 
     console.log(`✓ Using ${modifications.length} Halloween decoration prompts`);
 
-    // Step 7: Combine all modification prompts with proper formatting
+    // Step 8: Combine all modification prompts with proper formatting
     const finalPrompt = `HALLOWEEN DECORATION INSTRUCTIONS:
 
 ${modifications.join("\n\n")}
@@ -910,7 +926,7 @@ CRITICAL PRESERVATION RULES:
 
 Apply ONLY the Halloween decorations specified above. Do not redesign the house or dramatically alter existing features.`;
 
-    // Step 8: Generate edited image using Gemini
+    // Step 9: Generate edited image using Gemini
     const base64Image = processedImage.buffer.toString("base64");
 
     console.log("🎃 HALLOWEEN GEMINI PROMPT BEING SENT:");
