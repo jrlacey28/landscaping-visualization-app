@@ -195,6 +195,12 @@ export default function Header({ tenant }: HeaderProps) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link href="/halloween" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100">
+                    <Ghost className="h-4 w-4" />
+                    🎃 Halloween Special
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/pricing" className="flex items-center px-3 py-2 hover:bg-slate-100">
                     Pricing
                   </Link>
