@@ -303,21 +303,21 @@ export default function Halloween() {
 
                 <div className="space-y-6">
                   <div className="text-center">
-                    <h3 className="text-2xl font-bold text-slate-800 mb-2">
+                    <h3 className="text-xl sm:text-2xl font-bold text-slate-800 mb-2">
                       Create Your Spooky Scene
                     </h3>
-                    <p className="text-slate-600">
+                    <p className="text-sm sm:text-base text-slate-600">
                       Transform your home with a scary Halloween atmosphere
                     </p>
                   </div>
 
-                  <div className="bg-gradient-to-r from-purple-600 to-orange-600 p-8 rounded-xl shadow-lg">
-                    <div className="text-center space-y-3">
-                      <Ghost className="h-16 w-16 text-white mx-auto" />
-                      <h4 className="text-2xl font-bold text-white">
+                  <div className="bg-gradient-to-r from-purple-600 to-orange-600 p-4 sm:p-8 rounded-xl shadow-lg">
+                    <div className="text-center space-y-2 sm:space-y-3">
+                      <Ghost className="h-12 w-12 sm:h-16 sm:w-16 text-white mx-auto" />
+                      <h4 className="text-xl sm:text-2xl font-bold text-white">
                         Spooky Halloween Mode
                       </h4>
-                      <p className="text-white/90 text-lg">
+                      <p className="text-white/90 text-sm sm:text-base md:text-lg">
                         Generate a terrifying Halloween scene with random spooky decorations, blood moon, fog, and eerie lighting!
                       </p>
                     </div>
@@ -325,7 +325,7 @@ export default function Halloween() {
 
                   <Button
                     size="lg"
-                    className="w-full bg-gradient-to-r from-orange-600 via-purple-500 to-orange-600 hover:from-orange-700 hover:via-purple-600 hover:to-orange-700 text-white font-semibold py-6 text-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-gradient-to-r from-orange-600 via-purple-500 to-orange-600 hover:from-orange-700 hover:via-purple-600 hover:to-orange-700 text-white font-semibold py-4 sm:py-6 text-base sm:text-lg md:text-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={isGenerating}
                     onClick={async () => {
                       if (!user) {
@@ -442,7 +442,7 @@ export default function Halloween() {
                     }}
                     data-testid="button-create-spooky"
                   >
-                    <Sparkles className="h-6 w-6 mr-2" />
+                    <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 mr-2 flex-shrink-0" />
                     Create Spooky Halloween Scene
                   </Button>
                 </div>
