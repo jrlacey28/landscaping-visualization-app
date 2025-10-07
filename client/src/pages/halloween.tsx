@@ -443,7 +443,7 @@ export default function Halloween() {
                     data-testid="button-create-spooky"
                   >
                     <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 mr-2 flex-shrink-0" />
-                    Create Spooky Halloween Scene
+                    Spookify
                   </Button>
                 </div>
               </CardContent>
