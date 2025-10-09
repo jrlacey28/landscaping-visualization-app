@@ -9,7 +9,9 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 
 import { storage } from "./storage";
-import { insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertHalloweenVisualizationSchema, insertTenantSchema } from "@shared/schema";
+import { db } from "./db";
+import { users, insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertHalloweenVisualizationSchema, insertTenantSchema } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage, processHalloweenVisualizationWithGemini } from "./gemini-service";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
@@ -239,6 +241,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Check admin auth status
   app.get("/api/admin/status", (req, res) => {
     res.json({ isAuthenticated: !!req.session?.isAdmin });
+  });
+
+  // Admin: Delete user
+  app.delete("/api/admin/user/:userId", requireAdminAuth, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const userIdNum = parseInt(userId);
+      
+      // Check if user exists
+      const user = await storage.getUser(userIdNum);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // Delete user and all related data
+      await db.delete(users).where(eq(users.id, userIdNum));
+      
+      res.json({ success: true, message: 'User deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      res.status(500).json({ error: 'Failed to delete user' });
+    }
   });
 
   // Admin: Update user plan by Stripe price ID

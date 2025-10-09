@@ -125,17 +125,18 @@ export default function Halloween() {
           const logo = new Image();
           logo.crossOrigin = "anonymous";
           logo.onload = function () {
-            // Larger watermark for free users (15% of image width)
+            // Watermark for free users (15% of image width)
             const logoWidth = img.width * 0.15;
             const logoHeight = (logo.height / logo.width) * logoWidth;
             
-            // Center the watermark
-            const x = (img.width - logoWidth) / 2;
-            const y = (img.height - logoHeight) / 2;
+            // Position in upper left corner with padding
+            const padding = 20;
+            const x = padding;
+            const y = padding;
             
             // Add semi-transparent background
             ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
-            ctx.fillRect(x - 20, y - 20, logoWidth + 40, logoHeight + 60);
+            ctx.fillRect(x - 10, y - 10, logoWidth + 20, logoHeight + 40);
             
             // Draw logo
             ctx.drawImage(logo, x, y, logoWidth, logoHeight);
@@ -144,7 +145,7 @@ export default function Halloween() {
             ctx.font = `bold ${logoWidth * 0.12}px Arial`;
             ctx.fillStyle = "white";
             ctx.textAlign = "center";
-            ctx.fillText("DreamBuilder AI", x + logoWidth / 2, y + logoHeight + 30);
+            ctx.fillText("DreamBuilder AI", x + logoWidth / 2, y + logoHeight + 20);
             
             canvas.toBlob(
               (blob) => {

@@ -94,6 +94,27 @@ export default function AdminDashboard() {
     },
   });
 
+  // Mutation for deleting user (admin only)
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      return apiRequest("DELETE", `/api/admin/user/${userId}`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "User Deleted",
+        description: "User has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Mutation for setting custom user limit (admin only)
   const setUserLimitMutation = useMutation({
     mutationFn: async ({ userId, limit }: { userId: number; limit: number }) => {
@@ -1230,7 +1251,7 @@ export default function AdminDashboard() {
                               <td className="py-4 px-2">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <Select
-                                    value={['Free', 'Basic', 'Pro'].includes(user.usage?.planName || 'Free') ? (user.usage?.planName || 'Free') : 'Free'}
+                                    value={['Free', 'Contractor', 'Business Pro'].includes(user.usage?.planName || 'Free') ? (user.usage?.planName || 'Free') : 'Free'}
                                     onValueChange={(planId) => {
                                       console.log(`[ADMIN FRONTEND] Updating plan for user ${user.id} to: ${planId}`);
                                       updateUserPlanMutation.mutate({ userId: user.id, planId });
@@ -1241,8 +1262,8 @@ export default function AdminDashboard() {
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="Free">Free</SelectItem>
-                                      <SelectItem value="Basic">Basic</SelectItem>
-                                      <SelectItem value="Pro">Pro</SelectItem>
+                                      <SelectItem value="Contractor">Contractor</SelectItem>
+                                      <SelectItem value="Business Pro">Business Pro</SelectItem>
                                     </SelectContent>
                                   </Select>
                                   
@@ -1271,6 +1292,22 @@ export default function AdminDashboard() {
                                     data-testid={`button-set-limit-${user.id}`}
                                   >
                                     Set Limit
+                                  </Button>
+                                  
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="h-8 px-2 text-xs"
+                                    onClick={() => {
+                                      if (confirm(`Are you sure you want to delete ${user.user.firstName} ${user.user.lastName}? This action cannot be undone.`)) {
+                                        deleteUserMutation.mutate(user.id);
+                                      }
+                                    }}
+                                    disabled={deleteUserMutation.isPending}
+                                    data-testid={`button-delete-user-${user.id}`}
+                                  >
+                                    <Trash2 className="h-3 w-3 mr-1" />
+                                    Delete
                                   </Button>
                                   
                                   <Select
