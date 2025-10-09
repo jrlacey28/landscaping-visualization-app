@@ -28,9 +28,13 @@ export async function downloadImageWithWatermark({
     ctx.drawImage(img, 0, 0);
     
     // Check if user has a paid subscription (Contractor, Business Pro, or Enterprise)
+    // Check both planId and status to determine if it's a paid plan
     const hasPaidPlan = subscription && 
       subscription.status === 'active' && 
-      subscription.planId !== 'free';
+      subscription.planId && 
+      subscription.planId !== 'free' &&
+      subscription.planId !== '' &&
+      subscription.planId !== null;
     
     if (!hasPaidPlan) {
       // Add watermark for free users

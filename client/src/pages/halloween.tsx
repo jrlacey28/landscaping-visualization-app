@@ -116,9 +116,13 @@ export default function Halloween() {
         ctx.drawImage(img, 0, 0);
         
         // Check if user has a paid subscription (Contractor, Business Pro, or Enterprise)
+        // Check both planId and status to determine if it's a paid plan
         const hasPaidPlan = user?.subscription && 
           user.subscription.status === 'active' && 
-          user.subscription.planId !== 'free';
+          user.subscription.planId &&
+          user.subscription.planId !== 'free' &&
+          user.subscription.planId !== '' &&
+          user.subscription.planId !== null;
         
         if (!hasPaidPlan) {
           // Add watermark for free users

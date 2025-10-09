@@ -1251,19 +1251,29 @@ export default function AdminDashboard() {
                               <td className="py-4 px-2">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <Select
-                                    value={['Free', 'Contractor', 'Business Pro'].includes(user.usage?.planName || 'Free') ? (user.usage?.planName || 'Free') : 'Free'}
-                                    onValueChange={(planId) => {
+                                    value={
+                                      user.subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto' ? 'contractor' :
+                                      user.subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' ? 'business_pro' :
+                                      'free'
+                                    }
+                                    onValueChange={(value) => {
+                                      const planIdMap: Record<string, string> = {
+                                        'free': 'free',
+                                        'contractor': 'price_1S5X2XBY2SPm2HvO2he9Unto',
+                                        'business_pro': 'price_1SGN4YBY2SPm2HvOrpREWCn1'
+                                      };
+                                      const planId = planIdMap[value];
                                       console.log(`[ADMIN FRONTEND] Updating plan for user ${user.id} to: ${planId}`);
                                       updateUserPlanMutation.mutate({ userId: user.id, planId });
                                     }}
                                   >
-                                    <SelectTrigger className="w-24 h-8 text-xs">
+                                    <SelectTrigger className="w-32 h-8 text-xs">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="Free">Free</SelectItem>
-                                      <SelectItem value="Contractor">Contractor</SelectItem>
-                                      <SelectItem value="Business Pro">Business Pro</SelectItem>
+                                      <SelectItem value="free">Free</SelectItem>
+                                      <SelectItem value="contractor">Contractor ($100)</SelectItem>
+                                      <SelectItem value="business_pro">Business Pro ($300)</SelectItem>
                                     </SelectContent>
                                   </Select>
                                   
