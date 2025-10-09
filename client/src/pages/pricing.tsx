@@ -83,37 +83,41 @@ export default function PricingPage() {
       yearlyPrice: 0,
       features: [
         "5 visualizations per month",
-        "Standard sharing options"
+        "Standard sharing options",
+        "Images include watermark"
       ],
       cta: "Start Free Trial",
       ctaLink: "/auth"
     },
     {
-      name: "Basic",
-      description: "Perfect for small businesses getting started",
-      monthlyPrice: 20,
-      yearlyPrice: 240,
-      features: [
-        "100 visualizations per month",
-        "Standard sharing options"
-      ],
-      cta: "Get Started",
-      ctaLink: "price_1S5X1sBY2SPm2HvOuDHNzsIp" // Production Basic price ID
-    },
-    {
-      name: "Pro",
-      description: "Ideal for growing businesses",
+      name: "Contractor",
+      description: "For small business owners ready to impress clients",
       monthlyPrice: 100,
       yearlyPrice: 1200,
       popular: true,
       features: [
-        "Everything in Basic, plus:",
-        "200 visualizations per month",
-        "Custom embed widgets",
-        "Advanced customization"
+        "100 visualizations per month",
+        "Full-resolution downloads (no watermarks)",
+        "Priority rendering speeds"
       ],
       cta: "Get Started",
-      ctaLink: "price_1S5X2XBY2SPm2HvO2he9Unto" // Production Pro price ID
+      ctaLink: "price_1S5X2XBY2SPm2HvO2he9Unto" // Using existing Pro price ID for Contractor
+    },
+    {
+      name: "Business Pro",
+      description: "For growing teams and advanced features",
+      monthlyPrice: 300,
+      yearlyPrice: 3600,
+      features: [
+        "500 visualizations per month",
+        "Team access for up to 3 users",
+        "Custom embed widget",
+        "Advanced customization chat",
+        "Priority rendering speeds",
+        "Additional users: $50/month each"
+      ],
+      cta: "Get Started",
+      ctaLink: "price_1SGN4YBY2SPm2HvOrpREWCn1" // New Business Pro price ID
     },
     {
       name: "Enterprise",
@@ -121,7 +125,7 @@ export default function PricingPage() {
       monthlyPrice: 750,
       yearlyPrice: 6000,
       features: [
-        "Everything in Pro, plus:",
+        "Everything in Business Pro, plus:",
         "Unlimited visualizations",
         "White-label app and widget",
         "Custom training integrations",
@@ -168,11 +172,11 @@ export default function PricingPage() {
       <Header tenant={effectiveTenant} />
       
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        {/* Main Pricing Tiers: Free, Basic, Pro */}
+        {/* Main Pricing Tiers: Free, Contractor, Business Pro */}
         <PricingSection
           title="Pricing"
           subtitle="Select the perfect plan for your business needs. All plans include our core AI visualization features."
-          tiers={pricingTiers.slice(0, 3)} // Only Free, Basic, Pro
+          tiers={pricingTiers.slice(0, 3)} // Free, Contractor, Business Pro
           frequencies={["Monthly"]}
         />
 

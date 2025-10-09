@@ -10,31 +10,31 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 9, 2025**: Major pricing and Business Pro features update
+- **Pricing Restructure**: 
+  - Removed Basic plan ($20/month)
+  - Renamed Pro to "Contractor" ($100/month, 100 visualizations)
+  - Added Business Pro ($300/month, 500 visualizations) with team collaboration
+  - Enterprise remains at $750/month
+- **Team Management System**: Business Pro users can:
+  - Create teams with up to 3 users included
+  - Add additional team members at $50/month each
+  - Manage team invitations and roles through dashboard
+  - Team data stored in teams and teamMembers tables
+- **Watermark System**:
+  - Free tier downloads include visible DreamBuilder AI watermark (15% image size, centered)
+  - Paid plans (Contractor, Business Pro, Enterprise) download clean images without watermarks
+- **Custom Prompt Chat**: Business Pro users get AI customization chat
+  - Custom instructions during visualization generation
+  - Inline prompt feature for advanced customization
+  - Integrated with landscape, pool, and other visualization pages
+- **Stripe Integration**: Business Pro configured with price_1SGN4YBY2SPm2HvOrpREWCn1
+
 **October 3, 2025**: Simplified Halloween feature to single Spooky Mode
 - **SIMPLIFIED UX**: Removed individual decoration categories - now just one "Create Spooky Halloween Scene" button
-- **Random Generation**: AI automatically generates comprehensive scary Halloween scene with variety of random decorations
-- **Includes**: Giant skeletons, zombies, graveyard, ghosts, spiders, jack-o'-lanterns, bats, witches, clowns, mummies, vampires, inflatables, and atmospheric effects
-- **Atmosphere**: Blood moon, thick fog, dramatic purple/orange/green lighting, eerie shadows
-- **Logo Watermark**: DreamBuilder logo now added to top-left corner when downloading images
-- **Share Button**: Changed "Get Free Quote" to "Share Your Design" button on Halloween page only
-- **Truly Scary**: Prompts optimized to create genuinely frightening Halloween scenes like professional haunted house displays
-
-**October 3, 2025**: Expanded Halloween visualization feature with new decorations and modes
-- **Added 8 new decoration categories**:
-  - Giant Skeleton (12ft centerpiece)
-  - Inflatable Characters (giant pumpkins, grim reapers, haunted trees)
-  - Animated Props (talking heads, talking pumpkins, jumping spiders)
-  - Haunted Pathway Lights (LED skull torches, flickering lanterns)
-  - Clowns (creepy carnival, circus tent displays)
-  - Zombies (groundbreaker zombies, zombie horde)
-  - Mummies (wrapped figures, tomb displays)
-  - Vampires (coffin setups, vampire silhouettes)
-- **Added Night Mode**: Simple day-to-night conversion to preview decorations at night (separate from Really Spooky Mode)
-- **Really Spooky Mode enhanced**: Now adds dramatic atmosphere (fog, blood moon, colored lighting) while preserving selected decorations
-- Total of 14 decoration categories with 31 unique decoration options
-- Database updated with nightMode field in halloweenVisualizations table
-- Frontend UI includes blue/indigo Night Mode toggle and purple/orange Really Spooky Mode toggle
-- Halloween feature perfect for driving October seasonal traffic
+- **Random Generation**: AI automatically generates comprehensive scary Halloween scene with 3-4 random decorations
+- **Mobile Responsiveness**: Fixed layout issues on Halloween page for mobile devices
+- **Spookify Button**: Changed main action button text to "Spookify" for better UX
 
 **October 3, 2025**: Fixed authentication issues
 - Email/password signups now automatically receive free subscription (matching Google OAuth behavior)

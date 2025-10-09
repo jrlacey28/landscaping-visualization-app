@@ -1,11 +1,12 @@
 import { 
   users, subscriptions, subscriptionPlans, userUsage, tenants, leads, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations,
-  userFeatureOverrides,
+  userFeatureOverrides, teams, teamMembers,
   type User, type InsertUser, type Subscription, type InsertSubscription, type SubscriptionPlan, type UserUsage, type InsertUserUsage,
   type Tenant, type InsertTenant, type Lead, type InsertLead, type Visualization, type InsertVisualization, 
   type PoolVisualization, type InsertPoolVisualization, type LandscapeVisualization, type InsertLandscapeVisualization,
   type HalloweenVisualization, type InsertHalloweenVisualization,
-  type UserFeatureOverrides, type InsertUserFeatureOverrides
+  type UserFeatureOverrides, type InsertUserFeatureOverrides,
+  type Team, type InsertTeam, type TeamMember, type InsertTeamMember
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte } from "drizzle-orm";
@@ -93,6 +94,18 @@ export interface IStorage {
   // Legacy tenant usage stats methods
   trackUsage(tenantId: number, type: 'visualization' | 'landscape' | 'pool'): Promise<void>;
   getUsageStats(tenantId: number, days?: number): Promise<any[]>;
+  
+  // Team methods
+  getTeamByOwnerId(ownerId: number): Promise<Team | undefined>;
+  getTeamById(id: number): Promise<Team | undefined>;
+  createTeam(team: InsertTeam): Promise<Team>;
+  updateTeam(id: number, team: Partial<InsertTeam>): Promise<Team>;
+  getTeamMembers(teamId: number): Promise<TeamMember[]>;
+  getTeamMemberByEmail(teamId: number, email: string): Promise<TeamMember | undefined>;
+  addTeamMember(member: InsertTeamMember): Promise<TeamMember>;
+  updateTeamMember(id: number, member: Partial<InsertTeamMember>): Promise<TeamMember>;
+  removeTeamMember(id: number): Promise<void>;
+  getUserTeams(userId: number): Promise<Team[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -855,6 +868,96 @@ export class DatabaseStorage implements IStorage {
       console.error(`[Embed] Error checking embed access for user ${userId}:`, error);
       return false;
     }
+  }
+  
+  // Team methods implementation
+  async getTeamByOwnerId(ownerId: number): Promise<Team | undefined> {
+    const [team] = await this.db.select().from(teams).where(eq(teams.ownerId, ownerId));
+    return team || undefined;
+  }
+
+  async getTeamById(id: number): Promise<Team | undefined> {
+    const [team] = await this.db.select().from(teams).where(eq(teams.id, id));
+    return team || undefined;
+  }
+
+  async createTeam(insertTeam: InsertTeam): Promise<Team> {
+    const [team] = await this.db
+      .insert(teams)
+      .values(insertTeam)
+      .returning();
+    return team;
+  }
+
+  async updateTeam(id: number, insertTeam: Partial<InsertTeam>): Promise<Team> {
+    const [team] = await this.db
+      .update(teams)
+      .set({ ...insertTeam, updatedAt: new Date() })
+      .where(eq(teams.id, id))
+      .returning();
+    return team;
+  }
+
+  async getTeamMembers(teamId: number): Promise<TeamMember[]> {
+    return await this.db
+      .select()
+      .from(teamMembers)
+      .where(eq(teamMembers.teamId, teamId));
+  }
+
+  async getTeamMemberByEmail(teamId: number, email: string): Promise<TeamMember | undefined> {
+    const [member] = await this.db
+      .select()
+      .from(teamMembers)
+      .where(and(
+        eq(teamMembers.teamId, teamId),
+        eq(teamMembers.email, email)
+      ));
+    return member || undefined;
+  }
+
+  async addTeamMember(insertMember: InsertTeamMember): Promise<TeamMember> {
+    const [member] = await this.db
+      .insert(teamMembers)
+      .values(insertMember)
+      .returning();
+    return member;
+  }
+
+  async updateTeamMember(id: number, insertMember: Partial<InsertTeamMember>): Promise<TeamMember> {
+    const [member] = await this.db
+      .update(teamMembers)
+      .set(insertMember)
+      .where(eq(teamMembers.id, id))
+      .returning();
+    return member;
+  }
+
+  async removeTeamMember(id: number): Promise<void> {
+    await this.db
+      .delete(teamMembers)
+      .where(eq(teamMembers.id, id));
+  }
+
+  async getUserTeams(userId: number): Promise<Team[]> {
+    // Get teams where user is owner
+    const ownedTeams = await this.db
+      .select()
+      .from(teams)
+      .where(eq(teams.ownerId, userId));
+    
+    // Get teams where user is a member
+    const memberTeams = await this.db
+      .select({ team: teams })
+      .from(teamMembers)
+      .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+      .where(eq(teamMembers.userId, userId));
+    
+    // Combine and deduplicate
+    const allTeams = [...ownedTeams, ...memberTeams.map(m => m.team)];
+    const uniqueTeams = Array.from(new Map(allTeams.map(t => [t.id, t])).values());
+    
+    return uniqueTeams;
   }
 }
 

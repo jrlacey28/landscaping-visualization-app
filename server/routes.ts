@@ -1457,6 +1457,165 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Team management routes for Business Pro users
+  app.get("/api/teams/my-team", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const team = await storage.getTeamByOwnerId(userId);
+      
+      if (!team) {
+        // Check if user is member of any team
+        const teams = await storage.getUserTeams(userId);
+        if (teams.length > 0) {
+          return res.json({ team: teams[0], members: [] });
+        }
+        return res.status(404).json({ error: "No team found" });
+      }
+      
+      const members = await storage.getTeamMembers(team.id);
+      res.json({ team, members });
+    } catch (error) {
+      console.error("Error fetching team:", error);
+      res.status(500).json({ error: "Failed to fetch team" });
+    }
+  });
+
+  app.post("/api/teams", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { name } = req.body;
+      
+      // Check if user already has a team
+      const existingTeam = await storage.getTeamByOwnerId(userId);
+      if (existingTeam) {
+        return res.status(400).json({ error: "You already have a team" });
+      }
+      
+      // Check if user has Business Pro subscription
+      const subscription = await storage.getUserActiveSubscription(userId);
+      if (!subscription || subscription.planId !== 'price_1SGN4YBY2SPm2HvOrpREWCn1') {
+        return res.status(403).json({ error: "Business Pro subscription required" });
+      }
+      
+      const team = await storage.createTeam({
+        ownerId: userId,
+        name,
+        maxMembers: 3,
+        additionalSeats: 0,
+      });
+      
+      res.json({ team });
+    } catch (error) {
+      console.error("Error creating team:", error);
+      res.status(500).json({ error: "Failed to create team" });
+    }
+  });
+
+  app.post("/api/teams/:teamId/invite", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { teamId } = req.params;
+      const { email, role = "member" } = req.body;
+      
+      const team = await storage.getTeamById(parseInt(teamId));
+      if (!team || team.ownerId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      // Check team member limit
+      const members = await storage.getTeamMembers(team.id);
+      const totalAllowed = (team.maxMembers || 3) + (team.additionalSeats || 0);
+      if (members.length >= totalAllowed) {
+        return res.status(400).json({ 
+          error: `Team limit reached. You can have ${totalAllowed} members. Add more seats for $50/month each.`
+        });
+      }
+      
+      // Check if already invited
+      const existingMember = await storage.getTeamMemberByEmail(team.id, email);
+      if (existingMember) {
+        return res.status(400).json({ error: "User already invited" });
+      }
+      
+      const member = await storage.addTeamMember({
+        teamId: team.id,
+        email,
+        role,
+        invitedBy: userId,
+        status: "pending",
+      });
+      
+      // TODO: Send invitation email
+      
+      res.json({ member });
+    } catch (error) {
+      console.error("Error inviting team member:", error);
+      res.status(500).json({ error: "Failed to invite team member" });
+    }
+  });
+
+  app.patch("/api/teams/:teamId/members/:memberId", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { teamId, memberId } = req.params;
+      const { role, status } = req.body;
+      
+      const team = await storage.getTeamById(parseInt(teamId));
+      if (!team || team.ownerId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const member = await storage.updateTeamMember(parseInt(memberId), { role, status });
+      res.json({ member });
+    } catch (error) {
+      console.error("Error updating team member:", error);
+      res.status(500).json({ error: "Failed to update team member" });
+    }
+  });
+
+  app.delete("/api/teams/:teamId/members/:memberId", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { teamId, memberId } = req.params;
+      
+      const team = await storage.getTeamById(parseInt(teamId));
+      if (!team || team.ownerId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      await storage.removeTeamMember(parseInt(memberId));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing team member:", error);
+      res.status(500).json({ error: "Failed to remove team member" });
+    }
+  });
+
+  app.post("/api/teams/:teamId/add-seats", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { teamId } = req.params;
+      const { additionalSeats } = req.body;
+      
+      const team = await storage.getTeamById(parseInt(teamId));
+      if (!team || team.ownerId !== userId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      // Update team with additional seats
+      const updatedTeam = await storage.updateTeam(team.id, {
+        additionalSeats
+      });
+      
+      // TODO: Update Stripe subscription with additional seats
+      
+      res.json({ team: updatedTeam });
+    } catch (error) {
+      console.error("Error adding seats:", error);
+      res.status(500).json({ error: "Failed to add seats" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

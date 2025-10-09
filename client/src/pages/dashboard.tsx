@@ -7,6 +7,7 @@ import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import TeamManagement from '@/components/team-management';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -255,6 +256,12 @@ export default function Dashboard() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Team Management for Business Pro users */}
+            <TeamManagement 
+              userId={user.user.id} 
+              subscription={user.subscription}
+            />
 
             {/* Usage Warning */}
             {!user.usage.canUse && (

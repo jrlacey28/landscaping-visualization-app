@@ -265,7 +265,7 @@ export const checkPoolVisualizationStatus = async (poolVisualizationId: number) 
 };
 
 // Landscape-specific API functions
-export const uploadLandscapeImage = async (file: File, userId: number, selectedLandscapeStyles: any) => {
+export const uploadLandscapeImage = async (file: File, userId: number, selectedLandscapeStyles: any, customPrompt?: string) => {
   const formData = new FormData();
   formData.append('image', file);
   // Note: tenantId is no longer needed - backend will determine it
@@ -278,6 +278,11 @@ export const uploadLandscapeImage = async (file: File, userId: number, selectedL
   formData.append('selectedCurbing', curbingValue);
   formData.append('selectedLandscape', landscapeValue);
   formData.append('selectedPatios', patiosValue);
+  
+  // Add custom prompt if provided (Business Pro feature)
+  if (customPrompt) {
+    formData.append('customPrompt', customPrompt);
+  }
 
   const token = getAuthToken();
   const response = await fetch('/api/landscape/upload', {

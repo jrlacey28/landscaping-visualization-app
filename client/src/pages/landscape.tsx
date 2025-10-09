@@ -27,6 +27,7 @@ import {
   uploadLandscapeImage,
   checkLandscapeVisualizationStatus,
 } from "@/lib/api";
+import { InlinePromptChat } from "@/components/custom-prompt-chat";
 
 export default function Landscape() {
   const { tenant } = useTenant(); // Removed isLoading to prevent blocking
@@ -46,6 +47,7 @@ export default function Landscape() {
   const [showingOriginal, setShowingOriginal] = useState(false);
   const [landscapeVisualizationResult, setLandscapeVisualizationResult] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState("");
 
   // Create fallback tenant if API call fails
   const effectiveTenant = tenant || {
@@ -290,6 +292,13 @@ export default function Landscape() {
                     secondaryColor="#14b8a6"
                   />
 
+                  {/* Custom Prompt Chat for Business Pro users */}
+                  <InlinePromptChat
+                    isBusinessPro={user?.subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' && user?.subscription?.status === 'active'}
+                    customPrompt={customPrompt}
+                    onPromptChange={setCustomPrompt}
+                  />
+
                   <Button
                     size="lg"
                     className="w-full bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-700 hover:via-teal-600 hover:to-emerald-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -341,6 +350,7 @@ export default function Landscape() {
                           originalFile,
                           effectiveTenant.id,
                           selectedLandscapeStyles,
+                          customPrompt
                         );
 
                         if (result.landscapeVisualizationId) {

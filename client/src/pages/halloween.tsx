@@ -115,16 +115,55 @@ export default function Halloween() {
         
         ctx.drawImage(img, 0, 0);
         
-        const logo = new Image();
-        logo.crossOrigin = "anonymous";
-        logo.onload = function () {
-          // Reduced to 25% of original size (75% smaller)
-          const logoWidth = img.width * 0.025;
-          const logoHeight = (logo.height / logo.width) * logoWidth;
-          
-          const padding = 20;
-          ctx.drawImage(logo, padding, padding, logoWidth, logoHeight);
-          
+        // Check if user has a paid subscription (Contractor, Business Pro, or Enterprise)
+        const hasPaidPlan = user?.subscription && 
+          user.subscription.status === 'active' && 
+          user.subscription.planId !== 'free';
+        
+        if (!hasPaidPlan) {
+          // Add watermark for free users
+          const logo = new Image();
+          logo.crossOrigin = "anonymous";
+          logo.onload = function () {
+            // Larger watermark for free users (15% of image width)
+            const logoWidth = img.width * 0.15;
+            const logoHeight = (logo.height / logo.width) * logoWidth;
+            
+            // Center the watermark
+            const x = (img.width - logoWidth) / 2;
+            const y = (img.height - logoHeight) / 2;
+            
+            // Add semi-transparent background
+            ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+            ctx.fillRect(x - 20, y - 20, logoWidth + 40, logoHeight + 60);
+            
+            // Draw logo
+            ctx.drawImage(logo, x, y, logoWidth, logoHeight);
+            
+            // Add "DreamBuilder AI" text below logo
+            ctx.font = `bold ${logoWidth * 0.12}px Arial`;
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.fillText("DreamBuilder AI", x + logoWidth / 2, y + logoHeight + 30);
+            
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "halloween-decorations.jpg";
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }
+              },
+              "image/jpeg",
+              0.9
+            );
+          };
+          logo.src = "/dreambuilder-logo.png";
+        } else {
+          // No watermark for paid users
           canvas.toBlob(
             (blob) => {
               if (blob) {
@@ -139,8 +178,7 @@ export default function Halloween() {
             "image/jpeg",
             0.9
           );
-        };
-        logo.src = "/dreambuilder-logo.png";
+        }
       }
     };
     img.src = generatedImage;

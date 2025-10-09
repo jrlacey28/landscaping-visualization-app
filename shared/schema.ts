@@ -174,6 +174,32 @@ export const halloweenVisualizations = pgTable("halloween_visualizations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Teams for Business Pro plan
+export const teams = pgTable("teams", {
+  id: serial("id").primaryKey(),
+  ownerId: integer("owner_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  maxMembers: integer("max_members").default(3), // Default 3 for Business Pro
+  additionalSeats: integer("additional_seats").default(0), // Extra seats beyond base plan
+  customPromptEnabled: boolean("custom_prompt_enabled").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Team members linking users to teams
+export const teamMembers = pgTable("team_members", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id),
+  email: text("email").notNull(),
+  role: text("role").notNull().default("member"), // owner, member
+  status: text("status").notNull().default("pending"), // pending, active, deactivated
+  invitedBy: integer("invited_by").references(() => users.id),
+  invitedAt: timestamp("invited_at").defaultNow(),
+  joinedAt: timestamp("joined_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // User feature overrides for manual control of feature access
 export const userFeatureOverrides = pgTable("user_feature_overrides", {
   id: serial("id").primaryKey(),
@@ -195,6 +221,8 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   halloweenVisualizations: many(halloweenVisualizations),
   leads: many(leads),
   featureOverrides: one(userFeatureOverrides),
+  ownedTeam: one(teams),
+  teamMemberships: many(teamMembers),
 }));
 
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
@@ -278,6 +306,29 @@ export const halloweenVisualizationsRelations = relations(halloweenVisualization
 export const userFeatureOverridesRelations = relations(userFeatureOverrides, ({ one }) => ({
   user: one(users, {
     fields: [userFeatureOverrides.userId],
+    references: [users.id],
+  }),
+}));
+
+export const teamsRelations = relations(teams, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [teams.ownerId],
+    references: [users.id],
+  }),
+  members: many(teamMembers),
+}));
+
+export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
+  team: one(teams, {
+    fields: [teamMembers.teamId],
+    references: [teams.id],
+  }),
+  user: one(users, {
+    fields: [teamMembers.userId],
+    references: [users.id],
+  }),
+  invitedByUser: one(users, {
+    fields: [teamMembers.invitedBy],
     references: [users.id],
   }),
 }));
@@ -372,6 +423,17 @@ export const insertUserFeatureOverridesSchema = createInsertSchema(userFeatureOv
   updatedAt: true,
 });
 
+export const insertTeamSchema = createInsertSchema(teams).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -395,6 +457,10 @@ export type HalloweenVisualization = typeof halloweenVisualizations.$inferSelect
 export type InsertHalloweenVisualization = z.infer<typeof insertHalloweenVisualizationSchema>;
 export type UserFeatureOverrides = typeof userFeatureOverrides.$inferSelect;
 export type InsertUserFeatureOverrides = z.infer<typeof insertUserFeatureOverridesSchema>;
+export type Team = typeof teams.$inferSelect;
+export type InsertTeam = z.infer<typeof insertTeamSchema>;
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = z.infer<typeof insertTeamMemberSchema>;
 export type UsageStats = typeof usageStats.$inferSelect;
 
 export const insertUsageStatsSchema = createInsertSchema(usageStats).omit({
