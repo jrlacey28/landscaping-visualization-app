@@ -10,18 +10,30 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**October 13, 2025**: Watermark and Email Integration Updates
+**October 13, 2025**: Team Invitation Flow and Quota Sharing Implementation
+- **Complete Team Invitation System**: Full end-to-end invitation flow now working
+  - Added secure invitation tokens to teamMembers schema
+  - Team invitation emails include unique acceptance link with token
+  - Created /accept-invitation page for seamless onboarding
+  - Users receive email → click link → sign in with invited email → accept invitation
+  - Backend validates email matches invitation before linking to team
+- **Shared Visualization Quota**: Business Pro team members now share monthly limits
+  - Team owner's 500 visualizations are shared across all team members
+  - Usage tracking aggregates all team members' usage (no double-counting)
+  - Both owner and members see combined team usage in dashboard
+  - Plan name displays as "Business Pro (Team)" for team members
 - **Watermark Redesign**: Completely rewrote watermark for free tier downloads
   - Reduced size to 4% of image width (much smaller and cleaner)
   - Removed all shadow effects and background boxes
   - Simple design: tiny logo + white "DreamBuilder" text only
   - Paid plans (Contractor, Business Pro, Enterprise) still download clean images without watermarks
-- **Email Service Integration**: Team invitation emails now functional
+  - Fixed Halloween page to use new minimal watermark function
+- **Email Service Integration**: Professional team invitation emails
   - Integrated Resend API for transactional emails
-  - Professional HTML/text email templates for team invitations
-  - Requires RESEND_API secret in environment
+  - Professional HTML/text email templates with team branding
+  - Requires RESEND_API and EMAIL_FROM secrets in environment
   - Supports testing with onboarding@resend.dev or custom verified domains
-  - DNS records (SPF, DKIM, DMARC) must be configured in domain registrar for custom sending domains
+  - DNS records (SPF, DKIM, DMARC) required for custom sending domains
 
 **October 9, 2025**: Major pricing and Business Pro features update
 - **Pricing Restructure**: 
