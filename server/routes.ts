@@ -18,6 +18,7 @@ import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-co
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 import { authenticateToken, AuthRequest } from "./auth";
 import jwt from 'jsonwebtoken';
+import { sendTeamInvitationEmail } from "./email-service";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -1572,7 +1573,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "pending",
       });
       
-      // TODO: Send invitation email
+      // Send invitation email
+      const inviterUser = await storage.getUser(userId);
+      const inviterName = inviterUser ? `${inviterUser.firstName} ${inviterUser.lastName}` : 'A team member';
+      
+      await sendTeamInvitationEmail({
+        toEmail: email,
+        teamName: team.name,
+        inviterName,
+      });
       
       res.json({ member });
     } catch (error) {
