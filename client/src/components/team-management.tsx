@@ -133,7 +133,7 @@ export default function TeamManagement({ userId, subscription }: TeamManagementP
     }
   };
 
-  const inviteMemb  = async () => {
+  const inviteMember = async () => {
     if (!inviteEmail.trim()) {
       toast({
         title: 'Error',

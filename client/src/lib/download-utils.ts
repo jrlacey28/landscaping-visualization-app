@@ -42,33 +42,24 @@ export async function downloadImageWithWatermark({
       logo.crossOrigin = "anonymous";
       
       logo.onload = function () {
-        // Watermark for free users (8% of image width - much smaller)
-        const logoWidth = img.width * 0.08;
+        // Watermark for free users (4% of image width - much smaller, no background)
+        const logoWidth = img.width * 0.04;
         const logoHeight = (logo.height / logo.width) * logoWidth;
         
         // Position in upper left corner with padding
-        const padding = 20;
+        const padding = 15;
         const x = padding;
         const y = padding;
         
         // Draw logo (no background box)
         ctx.drawImage(logo, x, y, logoWidth, logoHeight);
         
-        // Add "DreamBuilder AI" text below logo using Segoe UI font
-        ctx.font = `bold ${logoWidth * 0.15}px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif`;
+        // Add "DreamBuilder" text next to logo using Segoe UI font (no shadow to avoid dark box)
+        const fontSize = logoWidth * 0.35;
+        ctx.font = `bold ${fontSize}px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif`;
         ctx.fillStyle = "white";
-        ctx.textAlign = "center";
-        ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-        ctx.shadowBlur = 4;
-        ctx.fillText("DreamBuilder AI", x + logoWidth / 2, y + logoHeight + 18);
-        
-        // Add "Powered by Solst LLC" text below
-        ctx.font = `${logoWidth * 0.10}px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif`;
-        ctx.fillText("Powered by Solst LLC", x + logoWidth / 2, y + logoHeight + 32);
-        
-        // Reset shadow
-        ctx.shadowColor = "transparent";
-        ctx.shadowBlur = 0;
+        ctx.textAlign = "left";
+        ctx.fillText("DreamBuilder", x + logoWidth + 5, y + logoHeight / 2 + fontSize / 3);
         
         // Download the image
         canvas.toBlob(

@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { useTenant } from '@/hooks/use-tenant';
 import EmbedCodeGenerator from '@/components/embed-code-generator';
 import BugFeatureForm from '@/components/bug-feature-form';
+import TeamManagement from '@/components/team-management';
 import { RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -261,11 +262,11 @@ export default function Dashboard() {
                             Embed our visualization tools directly on your website to provide your customers with an interactive design experience.
                           </p>
                           <Button 
-                            onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
+                            onClick={() => handleUpgrade('price_1SGN4YBY2SPm2HvOrpREWCn1')}
                             disabled={checkoutLoading}
                             className="w-full max-w-xs"
                           >
-                            Upgrade to Pro for this Feature
+                            Upgrade to Business Pro
                           </Button>
                         </div>
                       </div>
@@ -274,6 +275,12 @@ export default function Dashboard() {
                 </CollapsibleContent>
               </Card>
             </Collapsible>
+
+            {/* Team Management - Business Pro Feature */}
+            <TeamManagement 
+              userId={user.user.id} 
+              subscription={user.subscription}
+            />
           </div>
 
           <div className="space-y-6">
@@ -338,36 +345,36 @@ export default function Dashboard() {
                     </p>
                     <div className="space-y-2">
                       <Button 
-                        onClick={() => handleUpgrade('price_1S5X1sBY2SPm2HvOuDHNzsIp')}
-                        disabled={checkoutLoading}
-                        className="w-full"
-                        variant="outline"
-                      >
-                        Upgrade to Basic ($20/mo)
-                      </Button>
-                      <Button 
                         onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
                         disabled={checkoutLoading}
                         className="w-full"
                       >
-                        Upgrade to Pro ($100/mo)
+                        Upgrade to Contractor ($100/mo)
+                      </Button>
+                      <Button 
+                        onClick={() => handleUpgrade('price_1SGN4YBY2SPm2HvOrpREWCn1')}
+                        disabled={checkoutLoading}
+                        className="w-full"
+                        variant="default"
+                      >
+                        Upgrade to Business Pro ($300/mo)
                       </Button>
                     </div>
                   </div>
                 )}
 
-                {user.subscription?.planId === 'price_1S5X1sBY2SPm2HvOuDHNzsIp' && user.subscription?.status === 'active' && (
+                {user.subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto' && user.subscription?.status === 'active' && (
                   <div className="space-y-3 border-t pt-4">
                     <p className="text-sm text-gray-600">
-                      Upgrade to Pro for unlimited visualizations and embed features!
+                      You're on the Contractor plan with 100 visualizations/month!
                     </p>
                     <div className="space-y-2">
                       <Button 
-                        onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
+                        onClick={() => handleUpgrade('price_1SGN4YBY2SPm2HvOrpREWCn1')}
                         disabled={checkoutLoading}
                         className="w-full"
                       >
-                        Upgrade to Pro ($100/mo)
+                        Upgrade to Business Pro ($300/mo)
                       </Button>
                       <Button 
                         onClick={handleCancel}
@@ -381,10 +388,10 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {user.subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto' && user.subscription?.status === 'active' && (
+                {user.subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' && user.subscription?.status === 'active' && (
                   <div className="space-y-3 border-t pt-4">
                     <p className="text-sm text-gray-600">
-                      You're on the Pro plan with unlimited visualizations!
+                      You're on the Business Pro plan with 500 visualizations/month and team features!
                     </p>
                     <div className="space-y-2">
                       <Button 
@@ -412,7 +419,7 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <Button 
-                    onClick={() => handleUpgrade('price_1S5X1sBY2SPm2HvOuDHNzsIp')}
+                    onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
                     disabled={checkoutLoading}
                     className="w-full"
                   >
