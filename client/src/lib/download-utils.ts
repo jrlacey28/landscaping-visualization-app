@@ -37,31 +37,30 @@ export async function downloadImageWithWatermark({
       subscription.planId !== null;
     
     if (!hasPaidPlan) {
-      // Add watermark for free users
+      // Add watermark for free users - simple logo + text only
       const logo = new Image();
       logo.crossOrigin = "anonymous";
       
       logo.onload = function () {
-        // Watermark for free users (4% of image width - much smaller, no background)
+        // Tiny logo at 4% width
         const logoWidth = img.width * 0.04;
         const logoHeight = (logo.height / logo.width) * logoWidth;
         
-        // Position in upper left corner with padding
-        const padding = 15;
-        const x = padding;
-        const y = padding;
+        // Position in top-left corner
+        const x = 15;
+        const y = 15;
         
-        // Draw logo (no background box)
+        // Draw logo only
         ctx.drawImage(logo, x, y, logoWidth, logoHeight);
         
-        // Add "DreamBuilder" text next to logo using Segoe UI font (no shadow to avoid dark box)
-        const fontSize = logoWidth * 0.35;
-        ctx.font = `bold ${fontSize}px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif`;
+        // Add simple "DreamBuilder" text next to logo - white text, no effects
+        const fontSize = logoHeight * 0.4;
+        ctx.font = `${fontSize}px Arial, sans-serif`;
         ctx.fillStyle = "white";
         ctx.textAlign = "left";
-        ctx.fillText("DreamBuilder", x + logoWidth + 5, y + logoHeight / 2 + fontSize / 3);
+        ctx.fillText("DreamBuilder", x + logoWidth + 8, y + logoHeight / 2 + fontSize / 3);
         
-        // Download the image
+        // Download
         canvas.toBlob(
           (blob) => {
             if (blob) {
