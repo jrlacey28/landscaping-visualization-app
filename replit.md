@@ -10,6 +10,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 13, 2025**: Watermark and Email Integration Updates
+- **Watermark Redesign**: Completely rewrote watermark for free tier downloads
+  - Reduced size to 4% of image width (much smaller and cleaner)
+  - Removed all shadow effects and background boxes
+  - Simple design: tiny logo + white "DreamBuilder" text only
+  - Paid plans (Contractor, Business Pro, Enterprise) still download clean images without watermarks
+- **Email Service Integration**: Team invitation emails now functional
+  - Integrated Resend API for transactional emails
+  - Professional HTML/text email templates for team invitations
+  - Requires RESEND_API secret in environment
+  - Supports testing with onboarding@resend.dev or custom verified domains
+  - DNS records (SPF, DKIM, DMARC) must be configured in domain registrar for custom sending domains
+
 **October 9, 2025**: Major pricing and Business Pro features update
 - **Pricing Restructure**: 
   - Removed Basic plan ($20/month)
@@ -102,6 +115,12 @@ Preferred communication style: Simple, everyday language.
 ### Database and Infrastructure
 - **Neon PostgreSQL** - Serverless PostgreSQL hosting
 - **Drizzle Kit** - Database migrations and schema management
+
+### Communication Services
+- **Resend** - Transactional email service for team invitations
+  - Professional email templates with HTML/text formats
+  - Requires RESEND_API environment variable
+  - Supports custom domain verification for branded emails
 
 ### Development Tools
 - **ESBuild** - Production build bundling
