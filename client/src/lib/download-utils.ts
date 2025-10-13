@@ -53,9 +53,9 @@ export async function downloadImageWithWatermark({
         // Draw logo only
         ctx.drawImage(logo, x, y, logoWidth, logoHeight);
         
-        // Add simple "DreamBuilder" text next to logo - white text, no effects
+        // Add simple "DreamBuilder" text next to logo - white text, bold font to match header
         const fontSize = logoHeight * 0.4;
-        ctx.font = `${fontSize}px Arial, sans-serif`;
+        ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
         ctx.fillStyle = "white";
         ctx.textAlign = "left";
         ctx.fillText("DreamBuilder", x + logoWidth + 8, y + logoHeight / 2 + fontSize / 3);

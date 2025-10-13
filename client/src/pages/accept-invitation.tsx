@@ -173,10 +173,10 @@ export default function AcceptInvitation() {
                 Sign In to Accept
               </Button>
             </div>
-          ) : user.email.toLowerCase() !== invitation.email.toLowerCase() ? (
+          ) : user.user.email.toLowerCase() !== invitation.email.toLowerCase() ? (
             <div className="space-y-3">
               <p className="text-sm text-red-600 text-center">
-                You're signed in as <strong>{user.email}</strong>, but this invitation was sent to <strong>{invitation.email}</strong>
+                You're signed in as <strong>{user.user.email}</strong>, but this invitation was sent to <strong>{invitation.email}</strong>
               </p>
               <Button 
                 variant="outline" 
