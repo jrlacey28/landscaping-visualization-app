@@ -10,7 +10,8 @@ import { useState, useEffect } from 'react';
 import { useTenant } from '@/hooks/use-tenant';
 import EmbedCodeGenerator from '@/components/embed-code-generator';
 import BugFeatureForm from '@/components/bug-feature-form';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export default function Dashboard() {
   const { user, logout, refreshUser, loading: authLoading } = useAuth();
@@ -18,6 +19,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [embedToolsOpen, setEmbedToolsOpen] = useState(false);
   const { tenant } = useTenant("demo");
 
   // Auto-refresh user data every 30 seconds to catch plan changes
@@ -218,43 +220,60 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Embed Tools</CardTitle>
-                <CardDescription>Add visualization tools to your website</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {user.hasEmbedAccess ? (
-                  <EmbedCodeGenerator tenant={tenant || {
-                    id: 0,
-                    slug: `user-${user.user.id}`,
-                    companyName: user.user.businessName || `${user.user.firstName} ${user.user.lastName}`,
-                    primaryColor: "#10b981",
-                    secondaryColor: "#059669",
-                    phone: "",
-                    email: user.user.email,
-                    active: true,
-                  }} />
-                ) : (
-                  <div className="text-center space-y-4">
-                    <div className="text-6xl opacity-50">🔒</div>
+            <Collapsible open={embedToolsOpen} onOpenChange={setEmbedToolsOpen}>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-2">Pro Feature Required</h3>
-                      <p className="text-gray-600 text-sm mb-4">
-                        Embed our visualization tools directly on your website to provide your customers with an interactive design experience.
-                      </p>
-                      <Button 
-                        onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
-                        disabled={checkoutLoading}
-                        className="w-full max-w-xs"
-                      >
-                        Upgrade to Pro for this Feature
-                      </Button>
+                      <CardTitle>Embed Tools</CardTitle>
+                      <CardDescription>Add visualization tools to your website</CardDescription>
                     </div>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" data-testid="button-toggle-embed">
+                        {embedToolsOpen ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent>
+                    {user.hasEmbedAccess ? (
+                      <EmbedCodeGenerator tenant={tenant || {
+                        id: 0,
+                        slug: `user-${user.user.id}`,
+                        companyName: user.user.businessName || `${user.user.firstName} ${user.user.lastName}`,
+                        primaryColor: "#10b981",
+                        secondaryColor: "#059669",
+                        phone: "",
+                        email: user.user.email,
+                        active: true,
+                      }} />
+                    ) : (
+                      <div className="text-center space-y-4">
+                        <div className="text-6xl opacity-50">🔒</div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 mb-2">Pro Feature Required</h3>
+                          <p className="text-gray-600 text-sm mb-4">
+                            Embed our visualization tools directly on your website to provide your customers with an interactive design experience.
+                          </p>
+                          <Button 
+                            onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
+                            disabled={checkoutLoading}
+                            className="w-full max-w-xs"
+                          >
+                            Upgrade to Pro for this Feature
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
           </div>
 
           <div className="space-y-6">
