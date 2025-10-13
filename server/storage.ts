@@ -291,12 +291,86 @@ export class DatabaseStorage implements IStorage {
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
 
-    // Get user's current usage
+    // Check if user is a team owner
+    const ownedTeam = await this.getTeamByOwnerId(userId);
+    
+    // Check if user is a team member
+    const [teamMembership] = await this.db
+      .select({ team: teams })
+      .from(teamMembers)
+      .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+      .where(and(
+        eq(teamMembers.userId, userId),
+        eq(teamMembers.status, 'active')
+      ))
+      .limit(1);
+
+    let effectiveUserId = userId;
+    let isPartOfTeam = false;
+    let activeTeam: Team | null = null;
+
+    if (ownedTeam) {
+      // User owns a team - use their own subscription and team's combined usage
+      activeTeam = ownedTeam;
+      effectiveUserId = userId;
+      isPartOfTeam = true;
+    } else if (teamMembership) {
+      // User is part of a team - use team owner's subscription and combined team usage
+      activeTeam = teamMembership.team;
+      effectiveUserId = teamMembership.team.ownerId;
+      isPartOfTeam = true;
+    }
+
+    // Get subscription (either user's own or team owner's)
+    const subscription = await this.getUserActiveSubscription(effectiveUserId);
+
+    if (isPartOfTeam && activeTeam && subscription) {
+      // Calculate combined usage for all team members including owner
+      const teamMembers = await this.getTeamMembers(activeTeam.id);
+      
+      // Get all unique user IDs (active members + owner)
+      const userIds = new Set<number>();
+      userIds.add(effectiveUserId); // Add team owner
+      
+      teamMembers.forEach(member => {
+        if (member.status === 'active' && member.userId) {
+          userIds.add(member.userId);
+        }
+      });
+      
+      // Calculate total usage for all unique users
+      let totalTeamUsage = 0;
+      for (const uid of userIds) {
+        const memberUsage = await this.getUserUsage(uid, month, year);
+        totalTeamUsage += memberUsage ? (memberUsage.totalCount || 0) : 0;
+      }
+
+      // Get plan details
+      const plan = await this.getSubscriptionPlan(subscription.planId);
+      if (!plan) {
+        return {
+          canUse: false,
+          currentUsage: totalTeamUsage,
+          limit: 0,
+          planName: 'Unknown'
+        };
+      }
+
+      // Check limit (-1 means unlimited)
+      const planLimit = plan.visualizationLimit || 0;
+      const canUse = planLimit === -1 || totalTeamUsage < planLimit;
+
+      return {
+        canUse,
+        currentUsage: totalTeamUsage,
+        limit: plan.visualizationLimit || 0,
+        planName: `${plan.name} (Team)`
+      };
+    }
+
+    // Not part of a team or team owner doesn't have subscription - use individual limits
     const usage = await this.getUserUsage(userId, month, year);
     const currentUsage = usage ? (usage.totalCount || 0) : 0;
-
-    // Get user's subscription
-    const subscription = await this.getUserActiveSubscription(userId);
 
     if (!subscription) {
       // No subscription - they get 5 free visualizations
