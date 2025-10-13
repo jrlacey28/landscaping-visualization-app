@@ -169,7 +169,8 @@ Make ONLY the specified changes above. Do not redesign or dramatically alter the
  */
 export async function processLandscapeWithGemini({
   imageBuffer,
-  selectedStyles
+  selectedStyles,
+  customPrompt
 }: {
   imageBuffer: Buffer;
   selectedStyles: {
@@ -177,6 +178,7 @@ export async function processLandscapeWithGemini({
     siding?: string;
     surpriseMe?: string;
   };
+  customPrompt?: string;
 }): Promise<{
   editedImageBuffer: Buffer;
   appliedStyles: string[];
@@ -242,7 +244,7 @@ export async function processLandscapeWithGemini({
     console.log(`✓ Using ${modifications.length} style prompts`);
 
     // Use the actual detailed prompts from style config
-    const finalPrompt = `HOME EXTERIOR RENOVATION INSTRUCTIONS:
+    let finalPrompt = `HOME EXTERIOR RENOVATION INSTRUCTIONS:
 
 ${modifications.join('\n\n')}
 
@@ -257,6 +259,12 @@ CRITICAL PRESERVATION RULES:
 - Result must look natural and professionally installed
 
 Apply ONLY the specified modifications above. Do not redesign or dramatically alter the home.`;
+
+    // Add custom prompt if provided (Business Pro feature)
+    if (customPrompt && customPrompt.trim()) {
+      finalPrompt += `\n\nADDITIONAL CUSTOM INSTRUCTIONS:\n${customPrompt.trim()}`;
+      console.log('✓ Custom prompt added to generation');
+    }
 
     // Step 4: Generate edited image using Gemini
     const base64Image = processedImage.buffer.toString('base64');
@@ -373,10 +381,12 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
  */
 export async function processPoolWithGemini({
   imageBuffer,
-  selectedStyles
+  selectedStyles,
+  customPrompt
 }: {
   imageBuffer: Buffer;
   selectedStyles: Record<string, any>;
+  customPrompt?: string;
 }): Promise<{
   editedImageBuffer: Buffer;
   appliedStyles: string[];
@@ -421,7 +431,7 @@ export async function processPoolWithGemini({
     console.log(`✓ Using ${modifications.length} pool style prompts`);
 
     // Pool-specific final prompt
-    const finalPrompt = `POOL INSTALLATION INSTRUCTIONS:
+    let finalPrompt = `POOL INSTALLATION INSTRUCTIONS:
 
 ${modifications.join('\n\n')}
 
@@ -437,6 +447,12 @@ CRITICAL PRESERVATION RULES:
 - Pool should fit harmoniously in the available yard space
 
 Apply ONLY the pool installations specified above. Do not redesign the yard or dramatically alter existing features.`;
+
+    // Add custom prompt if provided (Business Pro feature)
+    if (customPrompt && customPrompt.trim()) {
+      finalPrompt += `\n\nADDITIONAL CUSTOM INSTRUCTIONS:\n${customPrompt.trim()}`;
+      console.log('✓ Custom prompt added to pool generation');
+    }
 
     // Step 3: Generate edited image using Gemini
     const base64Image = processedImage.buffer.toString('base64');
@@ -547,7 +563,8 @@ export async function analyzeLandscapeImage(imageBuffer: Buffer): Promise<string
  */
 export async function processLandscapeVisualizationWithGemini({
   imageBuffer,
-  selectedStyles
+  selectedStyles,
+  customPrompt
 }: {
   imageBuffer: Buffer;
   selectedStyles: {
@@ -555,6 +572,7 @@ export async function processLandscapeVisualizationWithGemini({
     landscape?: string;
     patios?: string;
   };
+  customPrompt?: string;
 }): Promise<{
   editedImageBuffer: Buffer;
   appliedStyles: string[];
@@ -687,7 +705,7 @@ export async function processLandscapeVisualizationWithGemini({
     console.log(`✓ Using ${modifications.length} landscape style prompts`);
 
     // Landscape-specific final prompt
-    const finalPrompt = `LANDSCAPE TRANSFORMATION INSTRUCTIONS:
+    let finalPrompt = `LANDSCAPE TRANSFORMATION INSTRUCTIONS:
 
 ${modifications.join("\n\n")}
 
@@ -703,6 +721,12 @@ CRITICAL PRESERVATION RULES:
 - Landscape changes should enhance the existing property
 
 Apply ONLY the landscape modifications specified above. Do not redesign the entire yard or dramatically alter existing features.`;
+
+    // Add custom prompt if provided (Business Pro feature)
+    if (customPrompt && customPrompt.trim()) {
+      finalPrompt += `\n\nADDITIONAL CUSTOM INSTRUCTIONS:\n${customPrompt.trim()}`;
+      console.log('✓ Custom prompt added to landscape generation');
+    }
 
     // Step 3: Generate edited image using Gemini
     const base64Image = processedImage.buffer.toString("base64");

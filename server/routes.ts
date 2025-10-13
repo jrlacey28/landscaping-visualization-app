@@ -728,7 +728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const { selectedRoof, selectedSiding, selectedSurpriseMe } = req.body;
+      const { selectedRoof, selectedSiding, selectedSurpriseMe, customPrompt } = req.body;
       const userId = req.user.id;
 
       // Check user usage limits before processing
@@ -769,7 +769,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const result = await processLandscapeWithGemini({
           imageBuffer: originalImageBuffer,
-          selectedStyles
+          selectedStyles,
+          customPrompt: customPrompt || undefined
         });
 
         // Convert edited image to base64 for storage
@@ -929,7 +930,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const { selectedPoolType, selectedPoolSize, selectedDecking, selectedLandscaping, selectedFeatures } = req.body;
+      const { selectedPoolType, selectedPoolSize, selectedDecking, selectedLandscaping, selectedFeatures, customPrompt } = req.body;
       const userId = req.user.id;
 
       // Check user usage limits before processing
@@ -1004,7 +1005,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Process with Gemini using the pool-specific processing function
         const result = await processPoolWithGemini({
           imageBuffer: originalImageBuffer,
-          selectedStyles: poolStylesForProcessing
+          selectedStyles: poolStylesForProcessing,
+          customPrompt: customPrompt || undefined
         });
 
         // Convert edited image to base64 for storage
@@ -1154,7 +1156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const { selectedCurbing, selectedLandscape, selectedPatios } = req.body;
+      const { selectedCurbing, selectedLandscape, selectedPatios, customPrompt } = req.body;
       const userId = req.user.id;
 
       // Check user usage limits before processing
@@ -1198,7 +1200,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { processLandscapeVisualizationWithGemini } = await import("./gemini-service");
         const result = await processLandscapeVisualizationWithGemini({
           imageBuffer: originalImageBuffer,
-          selectedStyles: selectedLandscapeStyles
+          selectedStyles: selectedLandscapeStyles,
+          customPrompt: customPrompt || undefined
         });
 
         // Convert processed image to base64 for storage
