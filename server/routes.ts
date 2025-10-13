@@ -10,7 +10,7 @@ import connectPgSimple from "connect-pg-simple";
 
 import { storage } from "./storage";
 import { db } from "./db";
-import { users, insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertHalloweenVisualizationSchema, insertTenantSchema } from "@shared/schema";
+import { users, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations, teamMembers, teams, leads, userUsage, subscriptions, tenants, insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertHalloweenVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage, processHalloweenVisualizationWithGemini } from "./gemini-service";
@@ -256,9 +256,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'User not found' });
       }
       
-      // Delete user and all related data
+      // Delete all related data first (to avoid foreign key constraint errors)
+      console.log(`[ADMIN] Deleting all data for user ${userIdNum}`);
+      
+      // Delete visualizations
+      await db.delete(visualizations).where(eq(visualizations.userId, userIdNum));
+      await db.delete(poolVisualizations).where(eq(poolVisualizations.userId, userIdNum));
+      await db.delete(landscapeVisualizations).where(eq(landscapeVisualizations.userId, userIdNum));
+      await db.delete(halloweenVisualizations).where(eq(halloweenVisualizations.userId, userIdNum));
+      
+      // Delete team memberships
+      await db.delete(teamMembers).where(eq(teamMembers.userId, userIdNum));
+      
+      // Delete teams owned by user
+      await db.delete(teams).where(eq(teams.ownerId, userIdNum));
+      
+      // Delete leads created by user
+      await db.delete(leads).where(eq(leads.userId, userIdNum));
+      
+      // Delete user usage records
+      await db.delete(userUsage).where(eq(userUsage.userId, userIdNum));
+      
+      // Delete subscriptions
+      await db.delete(subscriptions).where(eq(subscriptions.userId, userIdNum));
+      
+      // Delete tenants owned by user
+      await db.delete(tenants).where(eq(tenants.userId, userIdNum));
+      
+      // Finally, delete the user
       await db.delete(users).where(eq(users.id, userIdNum));
       
+      console.log(`[ADMIN] User ${userIdNum} and all related data deleted successfully`);
       res.json({ success: true, message: 'User deleted successfully' });
     } catch (error) {
       console.error('Error deleting user:', error);
