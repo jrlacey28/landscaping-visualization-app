@@ -1565,22 +1565,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "User already invited" });
       }
       
+      // Generate unique invitation token
+      const { nanoid } = await import('nanoid');
+      const invitationToken = nanoid(32);
+      
       const member = await storage.addTeamMember({
         teamId: team.id,
         email,
         role,
         invitedBy: userId,
         status: "pending",
+        invitationToken,
       });
       
       // Send invitation email
       const inviterUser = await storage.getUser(userId);
       const inviterName = inviterUser ? `${inviterUser.firstName} ${inviterUser.lastName}` : 'A team member';
       
+      // Get the app URL for invitation link
+      const replitDomain = process.env.REPLIT_DOMAINS?.split(',')[0];
+      const appUrl = replitDomain 
+        ? `https://${replitDomain}`
+        : 'http://localhost:5000';
+      
       await sendTeamInvitationEmail({
         toEmail: email,
         teamName: team.name,
         inviterName,
+        invitationLink: `${appUrl}/accept-invitation?token=${invitationToken}`,
       });
       
       res.json({ member });
@@ -1649,6 +1661,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error adding seats:", error);
       res.status(500).json({ error: "Failed to add seats" });
+    }
+  });
+
+  // Team invitation acceptance routes
+  app.get("/api/invitations/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      const invitation = await storage.getTeamMemberByToken(token);
+      if (!invitation) {
+        return res.status(404).json({ error: "Invitation not found or expired" });
+      }
+      
+      if (invitation.status !== 'pending') {
+        return res.status(400).json({ error: "Invitation already accepted" });
+      }
+      
+      res.json({
+        email: invitation.email,
+        teamName: invitation.team.name,
+        role: invitation.role
+      });
+    } catch (error) {
+      console.error("Error fetching invitation:", error);
+      res.status(500).json({ error: "Failed to fetch invitation" });
+    }
+  });
+
+  app.post("/api/invitations/:token/accept", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { token } = req.params;
+      
+      const invitation = await storage.getTeamMemberByToken(token);
+      if (!invitation) {
+        return res.status(404).json({ error: "Invitation not found" });
+      }
+      
+      if (invitation.status !== 'pending') {
+        return res.status(400).json({ error: "Invitation already accepted" });
+      }
+      
+      // Verify the logged-in user's email matches the invitation
+      const user = await storage.getUser(userId);
+      if (user?.email.toLowerCase() !== invitation.email.toLowerCase()) {
+        return res.status(403).json({ 
+          error: "This invitation was sent to a different email address" 
+        });
+      }
+      
+      const member = await storage.acceptTeamInvitation(token, userId);
+      res.json({ success: true, member });
+    } catch (error) {
+      console.error("Error accepting invitation:", error);
+      res.status(500).json({ error: "Failed to accept invitation" });
     }
   });
 

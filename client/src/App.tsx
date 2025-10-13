@@ -13,6 +13,7 @@ import PricingPage from "@/pages/pricing";
 import ContactPage from "@/pages/contact";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard-simple";
+import AcceptInvitation from "@/pages/accept-invitation";
 import NotFound from "@/pages/not-found";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/admin" component={() => <LazyRoute Component={Admin} />} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/accept-invitation" component={AcceptInvitation} />
       <Route path="/embed" component={() => <LazyRoute Component={Embed} />} />
       <Route path="/embed-roofing" component={() => <LazyRoute Component={EmbedRoofing} />} />
       <Route path="/embed-pools" component={() => <LazyRoute Component={EmbedPools} />} />

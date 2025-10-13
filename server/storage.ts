@@ -106,6 +106,8 @@ export interface IStorage {
   updateTeamMember(id: number, member: Partial<InsertTeamMember>): Promise<TeamMember>;
   removeTeamMember(id: number): Promise<void>;
   getUserTeams(userId: number): Promise<Team[]>;
+  getTeamMemberByToken(token: string): Promise<(TeamMember & { team: Team }) | undefined>;
+  acceptTeamInvitation(token: string, userId: number): Promise<TeamMember>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -958,6 +960,43 @@ export class DatabaseStorage implements IStorage {
     const uniqueTeams = Array.from(new Map(allTeams.map(t => [t.id, t])).values());
     
     return uniqueTeams;
+  }
+
+  async getTeamMemberByToken(token: string): Promise<(TeamMember & { team: Team }) | undefined> {
+    const result = await this.db
+      .select({
+        member: teamMembers,
+        team: teams
+      })
+      .from(teamMembers)
+      .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+      .where(eq(teamMembers.invitationToken, token))
+      .limit(1);
+    
+    if (result.length === 0) return undefined;
+    
+    return {
+      ...result[0].member,
+      team: result[0].team
+    };
+  }
+
+  async acceptTeamInvitation(token: string, userId: number): Promise<TeamMember> {
+    const [member] = await this.db
+      .update(teamMembers)
+      .set({
+        userId,
+        status: 'active',
+        joinedAt: new Date()
+      })
+      .where(eq(teamMembers.invitationToken, token))
+      .returning();
+    
+    if (!member) {
+      throw new Error('Invitation not found');
+    }
+    
+    return member;
   }
 }
 
