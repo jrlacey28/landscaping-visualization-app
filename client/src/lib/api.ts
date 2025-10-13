@@ -51,7 +51,7 @@ export const checkFastEditStatus = async (segmentationId: string) => {
 };
 
 // Keep legacy upload for backward compatibility
-export const uploadImage = async (file: File, userId: number, selectedStyles: any, maskData?: string) => {
+export const uploadImage = async (file: File, userId: number, selectedStyles: any, maskData?: string, customPrompt?: string) => {
   const formData = new FormData();
   formData.append('image', file);
   // Note: tenantId is no longer needed - backend will determine it
@@ -67,6 +67,10 @@ export const uploadImage = async (file: File, userId: number, selectedStyles: an
 
   if (maskData) {
     formData.append('maskData', maskData);
+  }
+  
+  if (customPrompt) {
+    formData.append('customPrompt', customPrompt);
   }
 
   const token = getAuthToken();
@@ -204,7 +208,7 @@ export const analyzeLandscapeImage = async (file: File) => {
 };
 
 // Pool-specific API functions
-export const uploadPoolImage = async (file: File, userId: number, selectedPoolStyles: any) => {
+export const uploadPoolImage = async (file: File, userId: number, selectedPoolStyles: any, customPrompt?: string) => {
   const formData = new FormData();
   formData.append('image', file);
   // Note: tenantId is no longer needed - backend will determine it
@@ -221,6 +225,10 @@ export const uploadPoolImage = async (file: File, userId: number, selectedPoolSt
   formData.append('selectedDecking', deckingValue);
   formData.append('selectedLandscaping', landscapingValue);
   formData.append('selectedFeatures', featuresValue);
+  
+  if (customPrompt) {
+    formData.append('customPrompt', customPrompt);
+  }
 
   const token = getAuthToken();
   const response = await fetch('/api/pools/upload', {

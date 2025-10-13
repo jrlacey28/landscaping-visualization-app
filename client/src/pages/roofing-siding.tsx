@@ -30,6 +30,7 @@ import {
   uploadImage,
   checkVisualizationStatus,
 } from "@/lib/api";
+import { InlinePromptChat } from "@/components/custom-prompt-chat";
 
 export default function RoofingSiding() {
   const { tenant } = useTenant(); // Removed isLoading to prevent blocking
@@ -51,6 +52,7 @@ export default function RoofingSiding() {
   const [showingOriginal, setShowingOriginal] = useState(false);
   const [visualizationResult, setVisualizationResult] = useState<any>(null); // Added to store visualization results
   const [isLoading, setIsLoading] = useState(false); // Added loading state for submission
+  const [customPrompt, setCustomPrompt] = useState("");
 
   const handleAutoInpaint = async (imageUrl: string, maskData: string) => {
     // For the simplified Gemini workflow, direct users to use the main upload process
@@ -311,6 +313,13 @@ export default function RoofingSiding() {
                     }}
                   />
 
+                  {/* Custom Prompt Chat for Business Pro users */}
+                  <InlinePromptChat
+                    isBusinessPro={user?.subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' && user?.subscription?.status === 'active'}
+                    customPrompt={customPrompt}
+                    onPromptChange={setCustomPrompt}
+                  />
+
                   <Button
                     size="lg"
                     className="w-full bg-gradient-to-r from-[#718ae1] via-[#dc6d73] to-[#718ae1] hover:from-[#8299e8] hover:via-[#e67d84] hover:to-[#8299e8] text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -366,7 +375,9 @@ export default function RoofingSiding() {
                         const result = await uploadImage(
                           originalFile,
                           accountId,
-                          selectedStyles
+                          selectedStyles,
+                          maskData || undefined,  // Pass mask data if available
+                          customPrompt  // Pass custom prompt for Business Pro users
                         );
 
                         if (result.visualizationId) {

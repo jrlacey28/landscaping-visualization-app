@@ -129,8 +129,8 @@ export default function Halloween() {
           const logo = new Image();
           logo.crossOrigin = "anonymous";
           logo.onload = function () {
-            // Watermark for free users (15% of image width)
-            const logoWidth = img.width * 0.15;
+            // Watermark for free users (15% of image width total)
+            const logoWidth = img.width * 0.08;  // Logo itself is smaller
             const logoHeight = (logo.height / logo.width) * logoWidth;
             
             // Position in upper left corner with padding
@@ -138,18 +138,21 @@ export default function Halloween() {
             const x = padding;
             const y = padding;
             
-            // Add semi-transparent background
-            ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
-            ctx.fillRect(x - 10, y - 10, logoWidth + 20, logoHeight + 40);
+            // Add semi-transparent background for readability
+            ctx.fillStyle = "rgba(30, 41, 59, 0.85)";  // Dark blue-gray like header
+            const bgWidth = img.width * 0.15;  // 15% total width
+            const bgHeight = logoHeight + 15;
+            ctx.fillRect(x - 5, y - 5, bgWidth + 10, bgHeight + 10);
             
             // Draw logo
             ctx.drawImage(logo, x, y, logoWidth, logoHeight);
             
-            // Add "DreamBuilder AI" text below logo
-            ctx.font = `bold ${logoWidth * 0.12}px Arial`;
+            // Add "DreamBuilder" text next to logo - matching header style
+            ctx.font = `bold ${logoHeight * 0.6}px system-ui, -apple-system, sans-serif`;
             ctx.fillStyle = "white";
-            ctx.textAlign = "center";
-            ctx.fillText("DreamBuilder AI", x + logoWidth / 2, y + logoHeight + 20);
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            ctx.fillText("DreamBuilder", x + logoWidth + 10, y + logoHeight / 2);
             
             canvas.toBlob(
               (blob) => {

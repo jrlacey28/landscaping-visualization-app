@@ -25,6 +25,7 @@ import {
   uploadPoolImage,
   checkPoolVisualizationStatus,
 } from "@/lib/api";
+import { InlinePromptChat } from "@/components/custom-prompt-chat";
 
 export default function Pools() {
   const { tenant } = useTenant(); // Removed isLoading to prevent blocking
@@ -46,6 +47,7 @@ export default function Pools() {
   const [showingOriginal, setShowingOriginal] = useState(false);
   const [poolVisualizationResult, setPoolVisualizationResult] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState("");
 
   // Create fallback tenant if API call fails
   const effectiveTenant = tenant || {
@@ -294,6 +296,13 @@ export default function Pools() {
                     secondaryColor="#06b6d4"
                   />
 
+                  {/* Custom Prompt Chat for Business Pro users */}
+                  <InlinePromptChat
+                    isBusinessPro={user?.subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' && user?.subscription?.status === 'active'}
+                    customPrompt={customPrompt}
+                    onPromptChange={setCustomPrompt}
+                  />
+
                   <Button
                     size="lg"
                     className="w-full bg-gradient-to-r from-blue-600 via-green-500 to-blue-600 hover:from-blue-700 hover:via-green-600 hover:to-blue-700 text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -348,6 +357,7 @@ export default function Pools() {
                           originalFile,
                           user.user.id, // Use user ID for proper tracking
                           selectedPoolStyles,
+                          customPrompt  // Pass custom prompt for Business Pro users
                         );
 
                         if (result.poolVisualizationId) {
