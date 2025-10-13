@@ -198,11 +198,13 @@ export default function CustomPromptChat({
 export function InlinePromptChat({ 
   isBusinessPro, 
   customPrompt,
-  onPromptChange
+  onPromptChange,
+  buttonClassName
 }: {
   isBusinessPro: boolean;
   customPrompt: string;
   onPromptChange: (prompt: string) => void;
+  buttonClassName?: string;
 }) {
   const [showInline, setShowInline] = useState(false);
 
@@ -217,11 +219,10 @@ export function InlinePromptChat({
           variant="outline"
           size="sm"
           onClick={() => setShowInline(true)}
-          className="w-full"
+          className={buttonClassName || "w-full"}
         >
           <Sparkles className="h-4 w-4 mr-2" />
           Add Custom Instructions
-          <Badge className="ml-2 text-xs" variant="secondary">Business Pro</Badge>
         </Button>
       ) : (
         <Card className="border-purple-200 bg-purple-50">

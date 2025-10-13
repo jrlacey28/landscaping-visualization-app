@@ -297,6 +297,7 @@ export default function Landscape() {
                     isBusinessPro={user?.subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' && user?.subscription?.status === 'active'}
                     customPrompt={customPrompt}
                     onPromptChange={setCustomPrompt}
+                    buttonClassName="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white border-0"
                   />
 
                   <Button
