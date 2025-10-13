@@ -492,7 +492,10 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/admin/logout", { method: "POST" });
+      await fetch("/api/admin/logout", { 
+        method: "POST",
+        credentials: "include"
+      });
       window.location.reload(); // Refresh to trigger auth check
     } catch (error) {
       console.error("Logout failed:", error);

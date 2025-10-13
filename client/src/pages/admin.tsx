@@ -13,7 +13,9 @@ export default function AdminPage() {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch("/api/admin/status");
+      const response = await fetch("/api/admin/status", {
+        credentials: "include"
+      });
       const data = await response.json();
       setIsAuthenticated(data.isAuthenticated);
     } catch (error) {
@@ -25,7 +27,9 @@ export default function AdminPage() {
   const { data: tenants, isLoading } = useQuery({
     queryKey: ["tenants"],
     queryFn: async () => {
-      const response = await fetch("/api/tenants");
+      const response = await fetch("/api/tenants", {
+        credentials: "include"
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch tenants");
       }

@@ -25,7 +25,7 @@ Preferred communication style: Simple, everyday language.
 - **Watermark Redesign**: Completely rewrote watermark for free tier downloads
   - Reduced size to 4% of image width (much smaller and cleaner)
   - Removed all shadow effects and background boxes
-  - Simple design: tiny logo + white "DreamBuilder" text only
+  - Simple design: tiny logo + bold white "DreamBuilder" text (matches header font)
   - Paid plans (Contractor, Business Pro, Enterprise) still download clean images without watermarks
   - Fixed Halloween page to use new minimal watermark function
 - **Email Service Integration**: Professional team invitation emails
@@ -34,6 +34,10 @@ Preferred communication style: Simple, everyday language.
   - Requires RESEND_API and EMAIL_FROM secrets in environment
   - Supports testing with onboarding@resend.dev or custom verified domains
   - DNS records (SPF, DKIM, DMARC) required for custom sending domains
+- **Admin Dashboard Production Fix**: Fixed session-based authentication
+  - Added `credentials: "include"` to all admin API calls (login, logout, status checks)
+  - Fixed admin session persistence in production for proper cookie handling
+  - User deletion and other admin operations now work correctly in production
 
 **October 9, 2025**: Major pricing and Business Pro features update
 - **Pricing Restructure**: 

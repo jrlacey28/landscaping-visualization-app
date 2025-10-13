@@ -25,6 +25,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({ password }),
       });
 
