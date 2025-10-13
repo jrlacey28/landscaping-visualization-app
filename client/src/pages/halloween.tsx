@@ -21,6 +21,7 @@ import {
   uploadHalloweenImage,
   checkHalloweenVisualizationStatus,
 } from "@/lib/api";
+import { downloadImageWithWatermark } from "@/lib/download-utils";
 
 export default function Halloween() {
   const { tenant } = useTenant();
@@ -104,92 +105,12 @@ export default function Halloween() {
   const handleDownload = async () => {
     if (!generatedImage) return;
 
-    const img = document.createElement("img");
-    img.crossOrigin = "anonymous";
-    img.onload = async function () {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        
-        ctx.drawImage(img, 0, 0);
-        
-        // Check if user has a paid subscription (Contractor, Business Pro, or Enterprise)
-        // Check both planId and status to determine if it's a paid plan
-        const hasPaidPlan = user?.subscription && 
-          user.subscription.status === 'active' && 
-          user.subscription.planId &&
-          user.subscription.planId !== 'free' &&
-          user.subscription.planId !== '' &&
-          user.subscription.planId !== null;
-        
-        if (!hasPaidPlan) {
-          // Add watermark for free users
-          const logo = new Image();
-          logo.crossOrigin = "anonymous";
-          logo.onload = function () {
-            // Watermark for free users (15% of image width total)
-            const logoWidth = img.width * 0.08;  // Logo itself is smaller
-            const logoHeight = (logo.height / logo.width) * logoWidth;
-            
-            // Position in upper left corner with padding
-            const padding = 20;
-            const x = padding;
-            const y = padding;
-            
-            // Add semi-transparent background for readability
-            ctx.fillStyle = "rgba(30, 41, 59, 0.85)";  // Dark blue-gray like header
-            const bgWidth = img.width * 0.15;  // 15% total width
-            const bgHeight = logoHeight + 15;
-            ctx.fillRect(x - 5, y - 5, bgWidth + 10, bgHeight + 10);
-            
-            // Draw logo
-            ctx.drawImage(logo, x, y, logoWidth, logoHeight);
-            
-            // Add "DreamBuilder" text next to logo - matching header style
-            ctx.font = `bold ${logoHeight * 0.6}px system-ui, -apple-system, sans-serif`;
-            ctx.fillStyle = "white";
-            ctx.textAlign = "left";
-            ctx.textBaseline = "middle";
-            ctx.fillText("DreamBuilder", x + logoWidth + 10, y + logoHeight / 2);
-            
-            canvas.toBlob(
-              (blob) => {
-                if (blob) {
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = "halloween-decorations.jpg";
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }
-              },
-              "image/jpeg",
-              0.9
-            );
-          };
-          logo.src = "/dreambuilder-logo.png";
-        } else {
-          // No watermark for paid users
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "halloween-decorations.jpg";
-                a.click();
-                URL.revokeObjectURL(url);
-              }
-            },
-            "image/jpeg",
-            0.9
-          );
-        }
-      }
-    };
-    img.src = generatedImage;
+    await downloadImageWithWatermark({
+      imageUrl: generatedImage,
+      fileName: "halloween-decorations.jpg",
+      user: user as any,
+      subscription: user?.subscription
+    });
   };
 
   return (
