@@ -775,6 +775,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { selectedRoof, selectedSiding, selectedSurpriseMe, customPrompt } = req.body;
       const userId = req.user.id;
 
+      // Validate custom prompt access (Business Pro feature)
+      let validatedCustomPrompt = undefined;
+      if (customPrompt && customPrompt.trim()) {
+        const hasBusinessPro = await storage.hasBusinessProAccess(userId);
+        if (hasBusinessPro) {
+          validatedCustomPrompt = customPrompt;
+        } else {
+          console.log(`User ${userId} attempted to use custom prompt without Business Pro access`);
+        }
+      }
+
       // Check user usage limits before processing
       try {
         await checkUserUsageLimits(userId, 'visualization');
@@ -814,7 +825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = await processLandscapeWithGemini({
           imageBuffer: originalImageBuffer,
           selectedStyles,
-          customPrompt: customPrompt || undefined
+          customPrompt: validatedCustomPrompt
         });
 
         // Convert edited image to base64 for storage
@@ -977,6 +988,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { selectedPoolType, selectedPoolSize, selectedDecking, selectedLandscaping, selectedFeatures, customPrompt } = req.body;
       const userId = req.user.id;
 
+      // Validate custom prompt access (Business Pro feature)
+      let validatedCustomPrompt = undefined;
+      if (customPrompt && customPrompt.trim()) {
+        const hasBusinessPro = await storage.hasBusinessProAccess(userId);
+        if (hasBusinessPro) {
+          validatedCustomPrompt = customPrompt;
+        } else {
+          console.log(`User ${userId} attempted to use custom prompt without Business Pro access`);
+        }
+      }
+
       // Check user usage limits before processing
       try {
         await checkUserUsageLimits(userId, 'pool');
@@ -1050,7 +1072,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = await processPoolWithGemini({
           imageBuffer: originalImageBuffer,
           selectedStyles: poolStylesForProcessing,
-          customPrompt: customPrompt || undefined
+          customPrompt: validatedCustomPrompt
         });
 
         // Convert edited image to base64 for storage
@@ -1203,6 +1225,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { selectedCurbing, selectedLandscape, selectedPatios, customPrompt } = req.body;
       const userId = req.user.id;
 
+      // Validate custom prompt access (Business Pro feature)
+      let validatedCustomPrompt = undefined;
+      if (customPrompt && customPrompt.trim()) {
+        const hasBusinessPro = await storage.hasBusinessProAccess(userId);
+        if (hasBusinessPro) {
+          validatedCustomPrompt = customPrompt;
+        } else {
+          console.log(`User ${userId} attempted to use custom prompt without Business Pro access`);
+        }
+      }
+
       // Check user usage limits before processing
       try {
         await checkUserUsageLimits(userId, 'landscape');
@@ -1245,7 +1278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = await processLandscapeVisualizationWithGemini({
           imageBuffer: originalImageBuffer,
           selectedStyles: selectedLandscapeStyles,
-          customPrompt: customPrompt || undefined
+          customPrompt: validatedCustomPrompt
         });
 
         // Convert processed image to base64 for storage

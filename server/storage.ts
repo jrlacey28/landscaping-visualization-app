@@ -110,6 +110,7 @@ export interface IStorage {
   acceptTeamInvitation(token: string, userId: number): Promise<TeamMember>;
   getTeamMemberByJoinCode(joinCode: string): Promise<(TeamMember & { team: Team }) | undefined>;
   acceptTeamInvitationByJoinCode(joinCode: string, userId: number): Promise<TeamMember>;
+  hasBusinessProAccess(userId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1209,6 +1210,69 @@ export class DatabaseStorage implements IStorage {
     }
     
     return member;
+  }
+
+  async hasBusinessProAccess(userId: number): Promise<boolean> {
+    // Check if user has Business Pro access (either as owner or team member)
+    const BUSINESS_PRO_PLAN_ID = 'price_1SGN4YBY2SPm2HvOrpREWCn1';
+    
+    try {
+      // Check if user owns a team (Business Pro owners)
+      const ownedTeam = await this.getTeamByOwnerId(userId);
+      let effectiveUserId = userId;
+      
+      if (!ownedTeam) {
+        // Check if user is a team member - try by userId first
+        let [teamMembership] = await this.db
+          .select({ team: teams, member: teamMembers })
+          .from(teamMembers)
+          .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+          .where(and(
+            eq(teamMembers.userId, userId),
+            eq(teamMembers.status, 'active')
+          ))
+          .limit(1);
+        
+        // If not found by userId, try by email (fallback)
+        if (!teamMembership) {
+          const user = await this.getUser(userId);
+          if (user) {
+            const [emailMembership] = await this.db
+              .select({ team: teams, member: teamMembers })
+              .from(teamMembers)
+              .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+              .where(and(
+                eq(teamMembers.email, user.email.toLowerCase()),
+                eq(teamMembers.status, 'active')
+              ))
+              .limit(1);
+            
+            if (emailMembership) {
+              // Auto-repair the userId
+              await this.db
+                .update(teamMembers)
+                .set({ userId })
+                .where(eq(teamMembers.id, emailMembership.member.id));
+              
+              teamMembership = emailMembership;
+            }
+          }
+        }
+        
+        if (teamMembership) {
+          // User is a team member - check team owner's subscription
+          effectiveUserId = teamMembership.team.ownerId;
+        }
+      }
+      
+      // Check if the effective user has Business Pro subscription
+      const subscription = await this.getUserActiveSubscription(effectiveUserId);
+      return subscription?.status === 'active' && subscription?.planId === BUSINESS_PRO_PLAN_ID;
+      
+    } catch (error) {
+      console.error(`Error checking Business Pro access for user ${userId}:`, error);
+      return false;
+    }
   }
 }
 
