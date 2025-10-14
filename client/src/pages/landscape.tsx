@@ -28,6 +28,7 @@ import {
   checkLandscapeVisualizationStatus,
 } from "@/lib/api";
 import { InlinePromptChat } from "@/components/custom-prompt-chat";
+import { downloadImageWithWatermark } from "@/lib/download-utils";
 
 export default function Landscape() {
   const { tenant } = useTenant(); // Removed isLoading to prevent blocking
@@ -154,32 +155,14 @@ export default function Landscape() {
                     size="lg"
                     className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
                     onClick={() => {
-                      const img = document.createElement("img");
-                      img.crossOrigin = "anonymous";
-                      img.onload = function () {
-                        const canvas = document.createElement("canvas");
-                        const ctx = canvas.getContext("2d");
-                        if (ctx) {
-                          canvas.width = img.width;
-                          canvas.height = img.height;
-                          ctx.drawImage(img, 0, 0);
-                          canvas.toBlob(
-                            (blob) => {
-                              if (blob) {
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement("a");
-                                a.href = url;
-                                a.download = "landscape-design.jpg";
-                                a.click();
-                                URL.revokeObjectURL(url);
-                              }
-                            },
-                            "image/jpeg",
-                            0.9,
-                          );
-                        }
-                      };
-                      img.src = generatedImage || "";
+                      if (generatedImage) {
+                        downloadImageWithWatermark({
+                          imageUrl: generatedImage,
+                          fileName: "landscape-design.jpg",
+                          user: user,
+                          subscription: user?.subscription
+                        });
+                      }
                     }}
                   >
                     <Download className="h-5 w-5 mr-2" />
