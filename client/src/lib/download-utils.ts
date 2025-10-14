@@ -3,7 +3,7 @@ import type { User } from "@shared/schema";
 interface DownloadImageOptions {
   imageUrl: string;
   fileName: string;
-  user: User | null;
+  user: any;
   subscription?: any;
 }
 
@@ -28,13 +28,15 @@ export async function downloadImageWithWatermark({
     ctx.drawImage(img, 0, 0);
     
     // Check if user has a paid subscription (Contractor, Business Pro, or Enterprise)
-    // Check both planId and status to determine if it's a paid plan
-    const hasPaidPlan = subscription && 
+    // OR if they are part of a Business Pro team
+    const hasPaidPlan = (subscription && 
       subscription.status === 'active' && 
       subscription.planId && 
       subscription.planId !== 'free' &&
       subscription.planId !== '' &&
-      subscription.planId !== null;
+      subscription.planId !== null) ||
+      // Also check if user is part of a team (gets Business Pro benefits)
+      (user && user.usage && user.usage.planName === 'Business Pro (Team)');
     
     if (!hasPaidPlan) {
       // Add watermark for free users - simple logo + text only
