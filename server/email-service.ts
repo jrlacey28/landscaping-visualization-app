@@ -51,7 +51,7 @@ export async function sendTeamInvitationEmail({
                     <!-- Header with Logo -->
                     <tr>
                       <td align="center" style="padding: 48px 40px 32px 40px;">
-                        <img src="${appUrl}/DreamBuilder%20White%20Transparent%20Logo_1759527781128.png" alt="DreamBuilder" style="height: 60px; width: auto; display: block;" />
+                        <img src="${appUrl}/dreambuilder-logo.png" alt="DreamBuilder" style="height: 60px; width: auto; display: block;" />
                       </td>
                     </tr>
                     
