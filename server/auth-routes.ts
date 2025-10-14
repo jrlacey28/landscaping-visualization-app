@@ -370,6 +370,82 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
+  // Team quota diagnostics endpoint for debugging
+  app.get('/api/debug/team-quota', authenticateToken as any, async (req: any, res: any) => {
+    try {
+      const user = req.user!;
+      
+      // Get team memberships
+      const ownedTeam = await storage.getTeamByOwnerId(user.id);
+      const userTeams = await storage.getUserTeams(user.id);
+      
+      // Get usage check
+      const usageCheck = await storage.checkUsageLimits(user.id);
+      
+      // Try to find team membership
+      let teamMembershipDetails = null;
+      if (userTeams.length > 0) {
+        const team = userTeams[0];
+        const members = await storage.getTeamMembers(team.id);
+        const userMember = members.find(m => 
+          m.userId === user.id || m.email === user.email.toLowerCase()
+        );
+        
+        teamMembershipDetails = {
+          teamId: team.id,
+          teamName: team.name,
+          teamOwner: team.ownerId,
+          memberRecord: userMember ? {
+            id: userMember.id,
+            email: userMember.email,
+            userId: userMember.userId,
+            status: userMember.status,
+            role: userMember.role,
+            hasUserIdSet: !!userMember.userId,
+            emailMatches: userMember.email === user.email.toLowerCase()
+          } : null,
+          allMembers: members.map(m => ({
+            email: m.email,
+            userId: m.userId,
+            status: m.status
+          }))
+        };
+      }
+      
+      res.json({
+        success: true,
+        data: {
+          user: {
+            id: user.id,
+            email: user.email
+          },
+          isTeamOwner: !!ownedTeam,
+          ownedTeam: ownedTeam ? {
+            id: ownedTeam.id,
+            name: ownedTeam.name
+          } : null,
+          memberOfTeams: userTeams.map(t => ({
+            id: t.id,
+            name: t.name,
+            ownerId: t.ownerId
+          })),
+          teamMembershipDetails,
+          usageCheck,
+          diagnosis: {
+            shouldHaveTeamAccess: userTeams.length > 0 || !!ownedTeam,
+            actuallyHasTeamAccess: usageCheck.planName.includes('(Team)'),
+            possibleIssue: userTeams.length > 0 && !usageCheck.planName.includes('(Team)') 
+              ? 'Team membership found but quota not applying - userId field may need repair'
+              : null
+          }
+        }
+      });
+    } catch (error: any) {
+      console.error('Debug team quota error:', error);
+      res.status(500).json({ error: 'Failed to get team quota info' });
+    }
+  });
+
   // Define admin auth middleware
   const requireAdminAuth = (req: any, res: any, next: any) => {
     if (req.session?.isAdmin) {
