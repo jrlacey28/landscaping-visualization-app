@@ -266,16 +266,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db.delete(halloweenVisualizations).where(eq(halloweenVisualizations.userId, userIdNum));
       
       // Delete ALL team member records (both active memberships and pending invitations)
-      // First delete where userId is set (accepted invitations)
+      // First, get all teams owned by this user
+      const ownedTeams = await db.select().from(teams).where(eq(teams.ownerId, userIdNum));
+      
+      // Delete ALL members from teams owned by this user (prevents FK constraint errors)
+      for (const team of ownedTeams) {
+        await db.delete(teamMembers).where(eq(teamMembers.teamId, team.id));
+      }
+      
+      // Delete where userId is set (user's active memberships in other teams)
       await db.delete(teamMembers).where(eq(teamMembers.userId, userIdNum));
       
-      // Then delete pending invitations sent TO this user's email
+      // Delete pending invitations sent TO this user's email
       await db.delete(teamMembers).where(eq(teamMembers.email, user.email));
       
       // Delete pending invitations sent BY this user (invitedBy field)
       await db.delete(teamMembers).where(eq(teamMembers.invitedBy, userIdNum));
       
-      // Delete teams owned by user
+      // Now safe to delete teams owned by user (all members are gone)
       await db.delete(teams).where(eq(teams.ownerId, userIdNum));
       
       // Delete leads created by user
