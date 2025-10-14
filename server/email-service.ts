@@ -51,7 +51,16 @@ export async function sendTeamInvitationEmail({
                     <!-- Header with Logo -->
                     <tr>
                       <td align="center" style="padding: 48px 40px 32px 40px;">
-                        <img src="${appUrl}/dreambuilder-logo.png" alt="DreamBuilder" style="height: 60px; width: auto; display: block;" />
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                          <tr>
+                            <td style="padding-right: 16px; vertical-align: middle;">
+                              <img src="${appUrl}/dreambuilder-logo.png" alt="DreamBuilder" style="height: 60px; width: auto; display: block;" />
+                            </td>
+                            <td style="vertical-align: middle;">
+                              <h2 style="color: #ffffff; font-size: 32px; font-weight: 700; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; white-space: nowrap;">DreamBuilder</h2>
+                            </td>
+                          </tr>
+                        </table>
                       </td>
                     </tr>
                     
@@ -66,16 +75,13 @@ export async function sendTeamInvitationEmail({
                                 You've Been Invited!
                               </h1>
                               
-                              <p style="color: #e2e8f0; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0; text-align: center;">
-                                <strong style="color: #ffffff;">${inviterName}</strong> has invited you to join their team on <strong style="color: #ffffff;">DreamBuilder</strong>
+                              <p style="color: #e2e8f0; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0; text-align: center;">
+                                <strong style="color: #ffffff;">${inviterName}</strong> has invited you to join their team <strong style="color: #ffffff;">${teamName}</strong> on <strong style="color: #ffffff;">DreamBuilder</strong>
                               </p>
                               
-                              <div style="background: rgba(0, 86, 179, 0.15); border-left: 4px solid #0056B3; padding: 16px; margin: 24px 0; border-radius: 6px;">
-                                <p style="color: #cbd5e1; font-size: 15px; line-height: 1.6; margin: 0;">
-                                  <strong style="color: #ffffff; display: block; margin-bottom: 8px;">Team: ${teamName}</strong>
-                                  Join your team to collaborate on AI-powered visualization projects for landscaping, roofing, siding, pools, and more.
-                                </p>
-                              </div>
+                              <p style="color: #cbd5e1; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0; text-align: center;">
+                                Join your team to collaborate on AI-powered visualization projects for landscaping, roofing, siding, pools, and more.
+                              </p>
                               
                               <!-- CTA Button -->
                               <div style="text-align: center; margin: 32px 0;">
@@ -149,9 +155,8 @@ export async function sendTeamInvitationEmail({
 
 You've Been Invited!
 
-${inviterName} has invited you to join their team on DreamBuilder.
+${inviterName} has invited you to join their team ${teamName} on DreamBuilder.
 
-Team: ${teamName}
 Join your team to collaborate on AI-powered visualization projects 
 for landscaping, roofing, siding, pools, and more.
 
