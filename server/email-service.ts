@@ -40,84 +40,146 @@ export async function sendTeamInvitationEmail({
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Team Invitation - DreamBuilder</title>
           </head>
-          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 28px;">Team Invitation</h1>
-            </div>
-            
-            <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-              <p style="font-size: 16px; margin-bottom: 20px;">Hi there!</p>
-              
-              <p style="font-size: 16px; margin-bottom: 20px;">
-                <strong>${inviterName}</strong> has invited you to join <strong>${teamName}</strong> on DreamBuilder.
-              </p>
-              
-              <p style="font-size: 16px; margin-bottom: 30px;">
-                DreamBuilder is a landscaping visualization platform that helps you create stunning designs using AI technology.
-              </p>
-              
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${loginLink}" 
-                   style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                          color: white; 
-                          padding: 15px 40px; 
-                          text-decoration: none; 
-                          border-radius: 5px; 
-                          font-weight: bold; 
-                          display: inline-block;">
-                  Accept Invitation
-                </a>
-              </div>
-              
-              <p style="font-size: 14px; color: #666; margin-top: 30px;">
-                If you don't have an account yet, you'll be able to create one after clicking the button above.
-              </p>
-              
-              ${joinCode ? `
-              <div style="background: #fff; border: 2px solid #667eea; border-radius: 8px; padding: 20px; margin: 30px 0; text-align: center;">
-                <p style="font-size: 14px; color: #666; margin: 0 0 10px 0;">
-                  <strong>Alternative:</strong> Already have an account? Use this join code:
-                </p>
-                <div style="background: #f0f0f0; padding: 15px; border-radius: 5px; display: inline-block;">
-                  <code style="font-size: 24px; font-weight: bold; letter-spacing: 2px; color: #667eea;">
-                    ${joinCode}
-                  </code>
-                </div>
-                <p style="font-size: 12px; color: #999; margin: 10px 0 0 0;">
-                  Enter this code on the team join page if you're already signed in
-                </p>
-              </div>
-              ` : ''}
-              
-              <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-              
-              <p style="font-size: 12px; color: #999; text-align: center;">
-                This invitation was sent to ${toEmail}. If you weren't expecting this invitation, you can safely ignore this email.
-              </p>
-            </div>
+          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f3f4f6;">
+              <tr>
+                <td align="center" style="padding: 40px 20px;">
+                  <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%; background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #000000 100%); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+                    
+                    <!-- Header with Logo -->
+                    <tr>
+                      <td align="center" style="padding: 48px 40px 32px 40px;">
+                        <img src="${appUrl}/DreamBuilder%20White%20Transparent%20Logo_1759527781128.png" alt="DreamBuilder" style="height: 60px; width: auto; display: block;" />
+                      </td>
+                    </tr>
+                    
+                    <!-- Main Content -->
+                    <tr>
+                      <td style="padding: 0 40px 40px 40px;">
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                          <tr>
+                            <td style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border-radius: 12px; padding: 32px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                              
+                              <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 24px 0; text-align: center; line-height: 1.3;">
+                                You've Been Invited!
+                              </h1>
+                              
+                              <p style="color: #e2e8f0; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0; text-align: center;">
+                                <strong style="color: #ffffff;">${inviterName}</strong> has invited you to join their team on <strong style="color: #ffffff;">DreamBuilder</strong>
+                              </p>
+                              
+                              <div style="background: rgba(0, 86, 179, 0.15); border-left: 4px solid #0056B3; padding: 16px; margin: 24px 0; border-radius: 6px;">
+                                <p style="color: #cbd5e1; font-size: 15px; line-height: 1.6; margin: 0;">
+                                  <strong style="color: #ffffff; display: block; margin-bottom: 8px;">Team: ${teamName}</strong>
+                                  Join your team to collaborate on AI-powered visualization projects for landscaping, roofing, siding, pools, and more.
+                                </p>
+                              </div>
+                              
+                              <!-- CTA Button -->
+                              <div style="text-align: center; margin: 32px 0;">
+                                <a href="${loginLink}" 
+                                   style="display: inline-block; background: linear-gradient(135deg, #0056B3 0%, #003d82 100%); color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 16px 48px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);">
+                                  Accept Invitation →
+                                </a>
+                              </div>
+                              
+                              <p style="color: #94a3b8; font-size: 14px; line-height: 1.5; margin: 24px 0 0 0; text-align: center;">
+                                New to DreamBuilder? You'll be able to create your account after clicking above.
+                              </p>
+                              
+                              ${joinCode ? `
+                              <!-- Join Code Section -->
+                              <div style="background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(0, 86, 179, 0.4); border-radius: 12px; padding: 24px; margin: 32px 0 0 0; text-align: center;">
+                                <p style="color: #cbd5e1; font-size: 14px; font-weight: 600; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                                  Alternative Method
+                                </p>
+                                <p style="color: #94a3b8; font-size: 14px; margin: 0 0 16px 0;">
+                                  Already have an account? Enter this join code:
+                                </p>
+                                <div style="background: rgba(0, 0, 0, 0.3); border-radius: 8px; padding: 20px; display: inline-block; margin: 0 0 12px 0;">
+                                  <code style="font-family: 'Courier New', monospace; font-size: 28px; font-weight: 700; letter-spacing: 4px; color: #60a5fa;">
+                                    ${joinCode}
+                                  </code>
+                                </div>
+                                <p style="color: #64748b; font-size: 12px; margin: 0;">
+                                  Enter this code on the team join page while signed in
+                                </p>
+                              </div>
+                              ` : ''}
+                              
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                      <td style="padding: 0 40px 40px 40px;">
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                          <tr>
+                            <td style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 24px;">
+                              <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 0; text-align: center;">
+                                This invitation was sent to <span style="color: #94a3b8;">${toEmail}</span><br/>
+                                If you weren't expecting this, you can safely ignore this email.
+                              </p>
+                              <p style="color: #475569; font-size: 11px; margin: 16px 0 0 0; text-align: center;">
+                                © ${new Date().getFullYear()} DreamBuilder AI. All rights reserved.
+                              </p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    
+                  </table>
+                </td>
+              </tr>
+            </table>
           </body>
         </html>
       `,
-      text: `You've been invited to join ${teamName} on DreamBuilder!
-      
-${inviterName} has invited you to collaborate on their team.
+      text: `
+╔══════════════════════════════════════════════════════════════╗
+║                       DREAMBUILDER AI                         ║
+║                    Team Invitation                            ║
+╚══════════════════════════════════════════════════════════════╝
 
-Click here to accept the invitation and get started:
+You've Been Invited!
+
+${inviterName} has invited you to join their team on DreamBuilder.
+
+Team: ${teamName}
+Join your team to collaborate on AI-powered visualization projects 
+for landscaping, roofing, siding, pools, and more.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Accept Your Invitation:
 ${loginLink}
 
-If you don't have an account yet, you'll be able to create one after clicking the link above.
+New to DreamBuilder? You'll be able to create your account after 
+clicking the link above.
 
 ${joinCode ? `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ALTERNATIVE: Already have an account?
-Use this join code: ${joinCode}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Enter this code on the team join page if you're already signed in.
+ALTERNATIVE METHOD
+Already have an account? Enter this join code:
+
+    ${joinCode}
+
+Enter this code on the team join page while signed in.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ` : ''}
 
-This invitation was sent to ${toEmail}. If you weren't expecting this invitation, you can safely ignore this email.`
+This invitation was sent to ${toEmail}
+If you weren't expecting this, you can safely ignore this email.
+
+© ${new Date().getFullYear()} DreamBuilder AI. All rights reserved.`
     });
 
     if (error) {
