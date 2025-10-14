@@ -10,6 +10,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 14, 2025**: Critical Team Usage Tracking Fix
+- **Fixed Team Member Usage Attribution**: Team members' visualizations now properly count towards the team owner's quota
+  - Previously team member usage was tracked individually, causing them to hit free tier limits
+  - Now all team member usage is consolidated under the team owner's account
+  - This ensures the shared 500 visualizations/month quota works correctly
+- **Simplified Usage Tracking**: Removed complex usage aggregation logic
+  - Usage is now tracked at the source - when team members create visualizations, it's recorded under the owner
+  - This makes the system more reliable and fixes the "not counting to team quota" issue
+- **Business Pro Feature Inheritance**: Team members inherit all owner's features
+  - computeEmbedAccess now checks team membership
+  - hasBusinessProAccess function validates custom prompt access
+  - Team members get embed access, custom prompts, and full quota
+
 **October 14, 2025**: Fixed Team Invitation Flow and Admin User Deletion
 - **Relaxed Invitation Acceptance**: Team invitations now work seamlessly for both new and existing users
   - Removed strict email matching requirement - any authenticated user with valid token can accept

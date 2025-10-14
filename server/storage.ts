@@ -246,8 +246,59 @@ export class DatabaseStorage implements IStorage {
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
 
-    // Try to get existing usage record
-    const existingUsage = await this.getUserUsage(userId, month, year);
+    // CRITICAL FIX: Check if user is part of a team and track usage under team owner
+    let effectiveUserId = userId;
+    
+    // Check if user owns a team
+    const ownedTeam = await this.getTeamByOwnerId(userId);
+    
+    if (!ownedTeam) {
+      // Check if user is a team member - try by userId first
+      let [teamMembership] = await this.db
+        .select({ team: teams, member: teamMembers })
+        .from(teamMembers)
+        .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+        .where(and(
+          eq(teamMembers.userId, userId),
+          eq(teamMembers.status, 'active')
+        ))
+        .limit(1);
+      
+      // If not found by userId, try by email (fallback)
+      if (!teamMembership) {
+        const user = await this.getUser(userId);
+        if (user) {
+          const [emailMembership] = await this.db
+            .select({ team: teams, member: teamMembers })
+            .from(teamMembers)
+            .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+            .where(and(
+              eq(teamMembers.email, user.email.toLowerCase()),
+              eq(teamMembers.status, 'active')
+            ))
+            .limit(1);
+          
+          if (emailMembership) {
+            // Auto-repair the userId
+            await this.db
+              .update(teamMembers)
+              .set({ userId })
+              .where(eq(teamMembers.id, emailMembership.member.id));
+            
+            teamMembership = emailMembership;
+          }
+        }
+      }
+      
+      if (teamMembership) {
+        // User is a team member - track usage under team owner's ID
+        effectiveUserId = teamMembership.team.ownerId;
+        console.log(`Team member ${userId} creating ${type}, tracking under owner ${effectiveUserId}`);
+      }
+    }
+
+    // Try to get existing usage record for the effective user
+    const existingUsage = await this.getUserUsage(effectiveUserId, month, year);
 
     if (existingUsage) {
       // Update existing record
@@ -272,7 +323,7 @@ export class DatabaseStorage implements IStorage {
     } else {
       // Create new record
       const newUsage: InsertUserUsage = {
-        userId,
+        userId: effectiveUserId,  // Use effective user ID (team owner if member)
         month,
         year,
         totalCount: 1,
@@ -358,26 +409,10 @@ export class DatabaseStorage implements IStorage {
     const subscription = await this.getUserActiveSubscription(effectiveUserId);
 
     if (isPartOfTeam && activeTeam && subscription) {
-      // Calculate combined usage for all team members including owner
-      const teamMembers = await this.getTeamMembers(activeTeam.id);
-      
-      // Get all unique user IDs (active members + owner)
-      const userIds = new Set<number>();
-      userIds.add(effectiveUserId); // Add team owner
-      
-      teamMembers.forEach(member => {
-        if (member.status === 'active' && member.userId) {
-          userIds.add(member.userId);
-        }
-      });
-      
-      // Calculate total usage for all unique users
-      let totalTeamUsage = 0;
-      const userIdsArray = Array.from(userIds);
-      for (const uid of userIdsArray) {
-        const memberUsage = await this.getUserUsage(uid, month, year);
-        totalTeamUsage += memberUsage ? (memberUsage.totalCount || 0) : 0;
-      }
+      // SIMPLIFIED: All team usage is now tracked under the team owner's ID
+      // No need to sum individual member usage anymore
+      const teamUsage = await this.getUserUsage(effectiveUserId, month, year);
+      const totalTeamUsage = teamUsage ? (teamUsage.totalCount || 0) : 0;
 
       // Get plan details
       const plan = await this.getSubscriptionPlan(subscription.planId);
