@@ -162,9 +162,22 @@ export class AuthService {
   }
 }
 
-// Middleware to authenticate requests
+// Middleware to authenticate requests (supports both JWT and session auth)
 export const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    // First check if user is authenticated via Passport session (primary method)
+    if (req.isAuthenticated && req.isAuthenticated() && (req as any).user) {
+      const sessionUser = (req as any).user;
+      // Get full user from database
+      const user = await storage.getUser(sessionUser.id);
+      if (user) {
+        req.user = user;
+        req.userId = user.id;
+        return next();
+      }
+    }
+
+    // Fallback to JWT Bearer token (for API compatibility)
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 

@@ -21,11 +21,12 @@ export async function sendTeamInvitationEmail({
     // Use onboarding@resend.dev for testing, or configure your verified domain
     const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
     
-    // Get the app URL from Replit domains (works for both dev and production)
+    // Use production domain if set, otherwise fall back to Replit domains
+    const productionUrl = process.env.APP_URL || process.env.PRODUCTION_URL;
     const replitDomain = process.env.REPLIT_DOMAINS?.split(',')[0];
-    const appUrl = replitDomain 
-      ? `https://${replitDomain}`
-      : 'http://localhost:5000';
+    const appUrl = productionUrl 
+      ? productionUrl 
+      : (replitDomain ? `https://${replitDomain}` : 'http://localhost:5000');
     
     const loginLink = invitationLink || `${appUrl}/auth`;
     
