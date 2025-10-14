@@ -296,9 +296,9 @@ export class DatabaseStorage implements IStorage {
     // Check if user is a team owner
     const ownedTeam = await this.getTeamByOwnerId(userId);
     
-    // Check if user is a team member
-    const [teamMembership] = await this.db
-      .select({ team: teams })
+    // Check if user is a team member - first try by userId
+    let [teamMembership] = await this.db
+      .select({ team: teams, member: teamMembers })
       .from(teamMembers)
       .innerJoin(teams, eq(teamMembers.teamId, teams.id))
       .where(and(
@@ -306,6 +306,37 @@ export class DatabaseStorage implements IStorage {
         eq(teamMembers.status, 'active')
       ))
       .limit(1);
+
+    // If no team found by userId, try fallback by email
+    if (!teamMembership) {
+      const user = await this.getUser(userId);
+      if (user) {
+        const [emailMembership] = await this.db
+          .select({ team: teams, member: teamMembers })
+          .from(teamMembers)
+          .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+          .where(and(
+            eq(teamMembers.email, user.email.toLowerCase()),
+            eq(teamMembers.status, 'active')
+          ))
+          .limit(1);
+
+        if (emailMembership) {
+          console.log(`Found team membership by email for user ${user.email}, auto-repairing userId`);
+          
+          // Auto-repair: Update the userId in the team_members table
+          await this.db
+            .update(teamMembers)
+            .set({ 
+              userId, 
+              updatedAt: new Date() 
+            })
+            .where(eq(teamMembers.id, emailMembership.member.id));
+          
+          teamMembership = emailMembership;
+        }
+      }
+    }
 
     let effectiveUserId = userId;
     let isPartOfTeam = false;
