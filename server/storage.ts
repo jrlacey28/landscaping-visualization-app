@@ -122,6 +122,92 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  // Robust team membership detection for production
+  async getActiveTeamMembership(userId: number): Promise<{ team: Team; member: TeamMember } | null> {
+    try {
+      // First try: Direct userId lookup
+      const [directMembership] = await this.db
+        .select({ team: teams, member: teamMembers })
+        .from(teamMembers)
+        .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+        .where(and(
+          eq(teamMembers.userId, userId),
+          eq(teamMembers.status, 'active')
+        ))
+        .limit(1);
+      
+      if (directMembership) {
+        return directMembership;
+      }
+
+      // Second try: Email lookup with auto-repair
+      const user = await this.getUser(userId);
+      if (!user) return null;
+
+      // Try both exact email match and lowercase
+      const emails = [user.email, user.email.toLowerCase()];
+      for (const email of emails) {
+        const [emailMembership] = await this.db
+          .select({ team: teams, member: teamMembers })
+          .from(teamMembers)
+          .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+          .where(and(
+            eq(teamMembers.email, email),
+            eq(teamMembers.status, 'active')
+          ))
+          .limit(1);
+        
+        if (emailMembership) {
+          // Auto-repair: Update the userId field for future lookups
+          await this.db
+            .update(teamMembers)
+            .set({ userId, email: user.email.toLowerCase() })
+            .where(eq(teamMembers.id, emailMembership.member.id));
+          
+          console.log(`[Team] Auto-repaired team membership for user ${userId} (${user.email})`);
+          return emailMembership;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`Error getting team membership for user ${userId}:`, error);
+      return null;
+    }
+  }
+
+  // Check if user has team access (owner or member)
+  async getUserTeamAccess(userId: number): Promise<{ isOwner: boolean; isMember: boolean; team: Team | null; effectiveUserId: number }> {
+    // Check if user owns a team
+    const ownedTeam = await this.getTeamByOwnerId(userId);
+    if (ownedTeam) {
+      return {
+        isOwner: true,
+        isMember: false,
+        team: ownedTeam,
+        effectiveUserId: userId
+      };
+    }
+
+    // Check if user is a team member
+    const membership = await this.getActiveTeamMembership(userId);
+    if (membership) {
+      return {
+        isOwner: false,
+        isMember: true,
+        team: membership.team,
+        effectiveUserId: membership.team.ownerId
+      };
+    }
+
+    return {
+      isOwner: false,
+      isMember: false,
+      team: null,
+      effectiveUserId: userId
+    };
+  }
+
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await this.db.select().from(users).where(eq(users.email, email));
     return user || undefined;
@@ -246,55 +332,12 @@ export class DatabaseStorage implements IStorage {
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
 
-    // CRITICAL FIX: Check if user is part of a team and track usage under team owner
-    let effectiveUserId = userId;
+    // Use the robust team access check
+    const teamAccess = await this.getUserTeamAccess(userId);
+    const effectiveUserId = teamAccess.effectiveUserId;
     
-    // Check if user owns a team
-    const ownedTeam = await this.getTeamByOwnerId(userId);
-    
-    if (!ownedTeam) {
-      // Check if user is a team member - try by userId first
-      let [teamMembership] = await this.db
-        .select({ team: teams, member: teamMembers })
-        .from(teamMembers)
-        .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-        .where(and(
-          eq(teamMembers.userId, userId),
-          eq(teamMembers.status, 'active')
-        ))
-        .limit(1);
-      
-      // If not found by userId, try by email (fallback)
-      if (!teamMembership) {
-        const user = await this.getUser(userId);
-        if (user) {
-          const [emailMembership] = await this.db
-            .select({ team: teams, member: teamMembers })
-            .from(teamMembers)
-            .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-            .where(and(
-              eq(teamMembers.email, user.email.toLowerCase()),
-              eq(teamMembers.status, 'active')
-            ))
-            .limit(1);
-          
-          if (emailMembership) {
-            // Auto-repair the userId
-            await this.db
-              .update(teamMembers)
-              .set({ userId })
-              .where(eq(teamMembers.id, emailMembership.member.id));
-            
-            teamMembership = emailMembership;
-          }
-        }
-      }
-      
-      if (teamMembership) {
-        // User is a team member - track usage under team owner's ID
-        effectiveUserId = teamMembership.team.ownerId;
-        console.log(`Team member ${userId} creating ${type}, tracking under owner ${effectiveUserId}`);
-      }
+    if (teamAccess.isMember) {
+      console.log(`[Usage] Team member ${userId} creating ${type}, tracking under owner ${effectiveUserId}`);
     }
 
     // Try to get existing usage record for the effective user
@@ -345,65 +388,11 @@ export class DatabaseStorage implements IStorage {
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
 
-    // Check if user is a team owner
-    const ownedTeam = await this.getTeamByOwnerId(userId);
-    
-    // Check if user is a team member - first try by userId
-    let [teamMembership] = await this.db
-      .select({ team: teams, member: teamMembers })
-      .from(teamMembers)
-      .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-      .where(and(
-        eq(teamMembers.userId, userId),
-        eq(teamMembers.status, 'active')
-      ))
-      .limit(1);
-
-    // If no team found by userId, try fallback by email
-    if (!teamMembership) {
-      const user = await this.getUser(userId);
-      if (user) {
-        const [emailMembership] = await this.db
-          .select({ team: teams, member: teamMembers })
-          .from(teamMembers)
-          .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-          .where(and(
-            eq(teamMembers.email, user.email.toLowerCase()),
-            eq(teamMembers.status, 'active')
-          ))
-          .limit(1);
-
-        if (emailMembership) {
-          console.log(`Found team membership by email for user ${user.email}, auto-repairing userId`);
-          
-          // Auto-repair: Update the userId in the team_members table
-          await this.db
-            .update(teamMembers)
-            .set({ 
-              userId
-            })
-            .where(eq(teamMembers.id, emailMembership.member.id));
-          
-          teamMembership = emailMembership;
-        }
-      }
-    }
-
-    let effectiveUserId = userId;
-    let isPartOfTeam = false;
-    let activeTeam: Team | null = null;
-
-    if (ownedTeam) {
-      // User owns a team - use their own subscription and team's combined usage
-      activeTeam = ownedTeam;
-      effectiveUserId = userId;
-      isPartOfTeam = true;
-    } else if (teamMembership) {
-      // User is part of a team - use team owner's subscription and combined team usage
-      activeTeam = teamMembership.team;
-      effectiveUserId = teamMembership.team.ownerId;
-      isPartOfTeam = true;
-    }
+    // Use the robust team access check
+    const teamAccess = await this.getUserTeamAccess(userId);
+    const effectiveUserId = teamAccess.effectiveUserId;
+    const isPartOfTeam = teamAccess.isOwner || teamAccess.isMember;
+    const activeTeam = teamAccess.team;
 
     // Get subscription (either user's own or team owner's)
     const subscription = await this.getUserActiveSubscription(effectiveUserId);
@@ -977,55 +966,13 @@ export class DatabaseStorage implements IStorage {
         return override.embedOverride;
       }
       
-      // Check if user is a team owner or member
-      const ownedTeam = await this.getTeamByOwnerId(userId);
-      let effectiveUserId = userId;
-      let isTeamMember = false;
+      // Use the robust team access check
+      const teamAccess = await this.getUserTeamAccess(userId);
+      const effectiveUserId = teamAccess.effectiveUserId;
+      const isTeamMember = teamAccess.isMember;
       
-      if (!ownedTeam) {
-        // Check if user is a team member - try by userId first
-        let [teamMembership] = await this.db
-          .select({ team: teams, member: teamMembers })
-          .from(teamMembers)
-          .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-          .where(and(
-            eq(teamMembers.userId, userId),
-            eq(teamMembers.status, 'active')
-          ))
-          .limit(1);
-        
-        // If not found by userId, try by email (fallback)
-        if (!teamMembership) {
-          const user = await this.getUser(userId);
-          if (user) {
-            const [emailMembership] = await this.db
-              .select({ team: teams, member: teamMembers })
-              .from(teamMembers)
-              .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-              .where(and(
-                eq(teamMembers.email, user.email.toLowerCase()),
-                eq(teamMembers.status, 'active')
-              ))
-              .limit(1);
-            
-            if (emailMembership) {
-              // Auto-repair the userId
-              await this.db
-                .update(teamMembers)
-                .set({ userId })
-                .where(eq(teamMembers.id, emailMembership.member.id));
-              
-              teamMembership = emailMembership;
-            }
-          }
-        }
-        
-        if (teamMembership) {
-          // User is a team member - use team owner's subscription
-          effectiveUserId = teamMembership.team.ownerId;
-          isTeamMember = true;
-          console.log(`[Embed] User ${userId} is team member, using owner ${effectiveUserId}'s subscription`);
-        }
+      if (isTeamMember) {
+        console.log(`[Embed] User ${userId} is team member, using owner ${effectiveUserId}'s subscription`);
       }
       
       // Get the effective user's subscription (either own or team owner's)
@@ -1252,57 +1199,23 @@ export class DatabaseStorage implements IStorage {
     const BUSINESS_PRO_PLAN_ID = 'price_1SGN4YBY2SPm2HvOrpREWCn1';
     
     try {
-      // Check if user owns a team (Business Pro owners)
-      const ownedTeam = await this.getTeamByOwnerId(userId);
-      let effectiveUserId = userId;
+      // Use the robust team access check
+      const teamAccess = await this.getUserTeamAccess(userId);
+      const effectiveUserId = teamAccess.effectiveUserId;
       
-      if (!ownedTeam) {
-        // Check if user is a team member - try by userId first
-        let [teamMembership] = await this.db
-          .select({ team: teams, member: teamMembers })
-          .from(teamMembers)
-          .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-          .where(and(
-            eq(teamMembers.userId, userId),
-            eq(teamMembers.status, 'active')
-          ))
-          .limit(1);
-        
-        // If not found by userId, try by email (fallback)
-        if (!teamMembership) {
-          const user = await this.getUser(userId);
-          if (user) {
-            const [emailMembership] = await this.db
-              .select({ team: teams, member: teamMembers })
-              .from(teamMembers)
-              .innerJoin(teams, eq(teamMembers.teamId, teams.id))
-              .where(and(
-                eq(teamMembers.email, user.email.toLowerCase()),
-                eq(teamMembers.status, 'active')
-              ))
-              .limit(1);
-            
-            if (emailMembership) {
-              // Auto-repair the userId
-              await this.db
-                .update(teamMembers)
-                .set({ userId })
-                .where(eq(teamMembers.id, emailMembership.member.id));
-              
-              teamMembership = emailMembership;
-            }
-          }
-        }
-        
-        if (teamMembership) {
-          // User is a team member - check team owner's subscription
-          effectiveUserId = teamMembership.team.ownerId;
-        }
+      if (teamAccess.isMember) {
+        console.log(`[Business Pro] User ${userId} is team member, checking owner ${effectiveUserId}'s subscription`);
       }
       
       // Check if the effective user has Business Pro subscription
       const subscription = await this.getUserActiveSubscription(effectiveUserId);
-      return subscription?.status === 'active' && subscription?.planId === BUSINESS_PRO_PLAN_ID;
+      const hasAccess = subscription?.status === 'active' && subscription?.planId === BUSINESS_PRO_PLAN_ID;
+      
+      if (hasAccess && teamAccess.isMember) {
+        console.log(`[Business Pro] Team member ${userId} has Business Pro access via owner ${effectiveUserId}`);
+      }
+      
+      return hasAccess;
       
     } catch (error) {
       console.error(`Error checking Business Pro access for user ${userId}:`, error);
