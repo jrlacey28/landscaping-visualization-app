@@ -1562,13 +1562,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check if user is member of any team
         const teams = await storage.getUserTeams(userId);
         if (teams.length > 0) {
-          return res.json({ team: teams[0], members: [] });
+          // User is a team member, not owner
+          // Members shouldn't see the member list or be able to manage team
+          return res.json({ 
+            team: teams[0], 
+            members: [], 
+            isOwner: false,
+            currentUserId: userId
+          });
         }
         return res.status(404).json({ error: "No team found" });
       }
       
+      // User is the team owner
       const members = await storage.getTeamMembers(team.id);
-      res.json({ team, members });
+      res.json({ 
+        team, 
+        members,
+        isOwner: true,
+        currentUserId: userId
+      });
     } catch (error) {
       console.error("Error fetching team:", error);
       res.status(500).json({ error: "Failed to fetch team" });

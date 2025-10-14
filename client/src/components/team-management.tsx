@@ -48,6 +48,7 @@ export default function TeamManagement({ userId, subscription }: TeamManagementP
   const [inviteEmail, setInviteEmail] = useState('');
   const [teamName, setTeamName] = useState('');
   const [creatingTeam, setCreatingTeam] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   // Check if user has Business Pro subscription (either own or through team)
   const hasBusinessPro = user?.hasBusinessProAccess || false;
@@ -73,10 +74,12 @@ export default function TeamManagement({ userId, subscription }: TeamManagementP
         const data = await response.json();
         setTeam(data.team);
         setMembers(data.members || []);
+        setIsOwner(data.isOwner || false);
       } else if (response.status === 404) {
         // No team exists yet
         setTeam(null);
         setMembers([]);
+        setIsOwner(false);
       }
     } catch (error) {
       console.error('Error fetching team:', error);
@@ -116,6 +119,7 @@ export default function TeamManagement({ userId, subscription }: TeamManagementP
       if (response.ok) {
         setTeam(data.team);
         setTeamName('');
+        setIsOwner(true); // User who creates team is always the owner
         toast({
           title: 'Success',
           description: 'Team created successfully',
@@ -242,6 +246,30 @@ export default function TeamManagement({ userId, subscription }: TeamManagementP
   }
 
   if (!team) {
+    // Only show create team option if user owns Business Pro (not just a member)
+    const isDirectBusinessPro = subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' && 
+                                subscription?.status === 'active';
+    
+    if (!isDirectBusinessPro) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>Team Member Access</CardTitle>
+            <CardDescription>You have Business Pro access through your team</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-4">
+              <Users className="h-12 w-12 mx-auto text-blue-600 mb-4" />
+              <p className="text-gray-600">
+                You're part of a team with Business Pro features.
+                Contact your team owner to manage team settings.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+    
     return (
       <Card>
         <CardHeader>
@@ -276,6 +304,44 @@ export default function TeamManagement({ userId, subscription }: TeamManagementP
   const totalSlots = (team.maxMembers || 3) + (team.additionalSeats || 0);
   const usedSlots = members.length + 1; // +1 for owner
 
+  // If user is a member (not owner), show limited view
+  if (!isOwner) {
+    return (
+      <Card>
+        <CardHeader>
+          <div>
+            <CardTitle>{team.name}</CardTitle>
+            <CardDescription>
+              You're a member of this team
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <User className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="font-medium">You (Member)</p>
+                  <p className="text-sm text-gray-600">Business Pro access</p>
+                </div>
+              </div>
+              <Badge>Member</Badge>
+            </div>
+            
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-900">
+                You have access to all Business Pro features through your team.
+                Contact your team owner for team management.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Owner view
   return (
     <Card>
       <CardHeader>
