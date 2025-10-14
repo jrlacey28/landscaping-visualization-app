@@ -28,6 +28,7 @@ interface AuthUser {
   subscription: Subscription | null;
   usage: UsageInfo;
   hasEmbedAccess: boolean;
+  hasBusinessProAccess: boolean;
 }
 
 interface AuthContextType {
