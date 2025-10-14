@@ -19,7 +19,7 @@ Preferred communication style: Simple, everyday language.
 - **Join Code System**: Added backup method for team joining
   - Auto-generated 8-character join codes for all team invitations
   - Invitation emails include join code prominently for manual entry
-  - Join team functionality integrated into dashboard page as a card
+  - Join team functionality integrated into dashboard page as a card (dashboard-simple.tsx)
   - Perfect for existing users who already have accounts
 - **Fixed Admin User Deletion**: Production user deletion now works correctly
   - Properly cascades deletion through ALL team-related data
@@ -29,13 +29,15 @@ Preferred communication style: Simple, everyday language.
   - Prevents foreign key constraint violations in production
   - Comprehensive cleanup of visualizations, teams, subscriptions, usage, and tenants
 - **Email Service Production Fix**: Invitation emails now use production domain
-  - Configurable via APP_URL or PRODUCTION_URL environment variables
+  - Configurable via APP_URL environment variable (set to https://dreambuilderai.com)
+  - Team invitation endpoints properly prioritize APP_URL over REPLIT_DOMAINS
   - Falls back to REPLIT_DOMAINS for development
   - No more .replit.app links in production emails
 - **Session Authentication Fix**: Fixed CORS/cookie authentication issues
   - Updated authenticateToken middleware to support session-based auth (Passport) as primary method
   - Falls back to JWT Bearer tokens for API compatibility
   - Invitation acceptance endpoints now work with session cookies in production
+  - All frontend API calls use credentials: "include" for proper session handling
 
 **October 13, 2025**: Team Invitation Flow and Quota Sharing Implementation
 - **Complete Team Invitation System**: Full end-to-end invitation flow now working
