@@ -163,43 +163,36 @@ export default function AcceptInvitation() {
           {!user ? (
             <div className="space-y-3">
               <p className="text-sm text-gray-600 text-center">
-                Sign in with the email <strong>{invitation.email}</strong> to accept this invitation
+                Sign in or create an account to accept this invitation
               </p>
               <Button 
                 className="w-full" 
                 onClick={() => navigate(`/auth?redirect=/accept-invitation?token=${token}`)}
                 data-testid="button-signin-to-accept"
               >
-                Sign In to Accept
+                Sign In or Sign Up
               </Button>
-            </div>
-          ) : user.user.email.toLowerCase() !== invitation.email.toLowerCase() ? (
-            <div className="space-y-3">
-              <p className="text-sm text-red-600 text-center">
-                You're signed in as <strong>{user.user.email}</strong>, but this invitation was sent to <strong>{invitation.email}</strong>
+              <p className="text-xs text-gray-500 text-center">
+                You can use any email address - the invitation will be updated to your account
               </p>
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={() => {
-                  // Sign out logic would go here
-                  navigate("/auth");
-                }}
-                data-testid="button-switch-account"
-              >
-                Sign in with {invitation.email}
-              </Button>
             </div>
           ) : (
-            <Button 
-              className="w-full" 
-              onClick={handleAcceptInvitation}
-              disabled={accepting}
-              data-testid="button-accept-invitation"
-            >
-              {accepting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Accept Invitation
-            </Button>
+            <div className="space-y-3">
+              {user.user.email.toLowerCase() !== invitation.email.toLowerCase() && (
+                <p className="text-sm text-blue-600 text-center bg-blue-50 p-3 rounded-lg">
+                  ℹ️ This invitation was sent to <strong>{invitation.email}</strong>, but will be accepted for your account (<strong>{user.user.email}</strong>)
+                </p>
+              )}
+              <Button 
+                className="w-full" 
+                onClick={handleAcceptInvitation}
+                disabled={accepting}
+                data-testid="button-accept-invitation"
+              >
+                {accepting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Accept Invitation
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

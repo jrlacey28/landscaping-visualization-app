@@ -265,8 +265,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db.delete(landscapeVisualizations).where(eq(landscapeVisualizations.userId, userIdNum));
       await db.delete(halloweenVisualizations).where(eq(halloweenVisualizations.userId, userIdNum));
       
-      // Delete team memberships
+      // Delete ALL team member records (both active memberships and pending invitations)
+      // First delete where userId is set (accepted invitations)
       await db.delete(teamMembers).where(eq(teamMembers.userId, userIdNum));
+      
+      // Then delete pending invitations sent TO this user's email
+      await db.delete(teamMembers).where(eq(teamMembers.email, user.email));
+      
+      // Delete pending invitations sent BY this user (invitedBy field)
+      await db.delete(teamMembers).where(eq(teamMembers.invitedBy, userIdNum));
       
       // Delete teams owned by user
       await db.delete(teams).where(eq(teams.ownerId, userIdNum));
@@ -1593,9 +1600,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "User already invited" });
       }
       
-      // Generate unique invitation token
+      // Generate unique invitation token and join code
       const { nanoid } = await import('nanoid');
       const invitationToken = nanoid(32);
+      const joinCode = nanoid(8).toUpperCase(); // 8-char uppercase code for easy sharing
       
       const member = await storage.addTeamMember({
         teamId: team.id,
@@ -1604,6 +1612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         invitedBy: userId,
         status: "pending",
         invitationToken,
+        joinCode,
       });
       
       // Send invitation email
@@ -1621,6 +1630,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         teamName: team.name,
         inviterName,
         invitationLink: `${appUrl}/accept-invitation?token=${invitationToken}`,
+        joinCode,
       });
       
       res.json({ member });
@@ -1731,19 +1741,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invitation already accepted" });
       }
       
-      // Verify the logged-in user's email matches the invitation
+      // RELAXED ACCEPTANCE: Allow any authenticated user with valid token
+      // This allows new users to create accounts and accept invitations seamlessly
       const user = await storage.getUser(userId);
-      if (user?.email.toLowerCase() !== invitation.email.toLowerCase()) {
-        return res.status(403).json({ 
-          error: "This invitation was sent to a different email address" 
-        });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
       }
       
+      // Accept the invitation and update with actual user email
       const member = await storage.acceptTeamInvitation(token, userId);
-      res.json({ success: true, member });
+      res.json({ 
+        success: true, 
+        member,
+        emailUpdated: user.email.toLowerCase() !== invitation.email.toLowerCase()
+      });
     } catch (error) {
       console.error("Error accepting invitation:", error);
       res.status(500).json({ error: "Failed to accept invitation" });
+    }
+  });
+
+  // Join team using join code (backup method)
+  app.post("/api/teams/join-with-code", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { joinCode } = req.body;
+      
+      if (!joinCode || typeof joinCode !== 'string') {
+        return res.status(400).json({ error: "Join code is required" });
+      }
+      
+      // Find pending invitation with this join code
+      const invitation = await storage.getTeamMemberByJoinCode(joinCode.toUpperCase());
+      if (!invitation) {
+        return res.status(404).json({ error: "Invalid join code" });
+      }
+      
+      if (invitation.status !== 'pending') {
+        return res.status(400).json({ error: "This join code has already been used" });
+      }
+      
+      // Accept the invitation with the current user
+      const member = await storage.acceptTeamInvitationByJoinCode(joinCode.toUpperCase(), userId);
+      
+      res.json({ 
+        success: true, 
+        message: "Successfully joined team",
+        member 
+      });
+    } catch (error) {
+      console.error("Error joining with code:", error);
+      res.status(500).json({ error: "Failed to join team with code" });
     }
   });
 

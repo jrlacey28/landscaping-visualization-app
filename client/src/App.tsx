@@ -14,6 +14,7 @@ import ContactPage from "@/pages/contact";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/dashboard-simple";
 import AcceptInvitation from "@/pages/accept-invitation";
+import JoinTeam from "@/pages/join-team";
 import NotFound from "@/pages/not-found";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/accept-invitation" component={AcceptInvitation} />
+      <Route path="/join-team" component={JoinTeam} />
       <Route path="/embed" component={() => <LazyRoute Component={Embed} />} />
       <Route path="/embed-roofing" component={() => <LazyRoute Component={EmbedRoofing} />} />
       <Route path="/embed-pools" component={() => <LazyRoute Component={EmbedPools} />} />

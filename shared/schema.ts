@@ -195,6 +195,7 @@ export const teamMembers = pgTable("team_members", {
   role: text("role").notNull().default("member"), // owner, member
   status: text("status").notNull().default("pending"), // pending, active, deactivated
   invitationToken: text("invitation_token").unique(), // Unique token for invitation acceptance
+  joinCode: text("join_code").unique(), // 6-8 char code for manual team joining
   invitedBy: integer("invited_by").references(() => users.id),
   invitedAt: timestamp("invited_at").defaultNow(),
   joinedAt: timestamp("joined_at"),

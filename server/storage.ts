@@ -108,6 +108,8 @@ export interface IStorage {
   getUserTeams(userId: number): Promise<Team[]>;
   getTeamMemberByToken(token: string): Promise<(TeamMember & { team: Team }) | undefined>;
   acceptTeamInvitation(token: string, userId: number): Promise<TeamMember>;
+  getTeamMemberByJoinCode(joinCode: string): Promise<(TeamMember & { team: Team }) | undefined>;
+  acceptTeamInvitationByJoinCode(joinCode: string, userId: number): Promise<TeamMember>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1056,10 +1058,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async acceptTeamInvitation(token: string, userId: number): Promise<TeamMember> {
+    // Get the user's email to update the invitation record
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
     const [member] = await this.db
       .update(teamMembers)
       .set({
         userId,
+        email: user.email, // Update email to authenticated user's email
         status: 'active',
         joinedAt: new Date()
       })
@@ -1068,6 +1077,50 @@ export class DatabaseStorage implements IStorage {
     
     if (!member) {
       throw new Error('Invitation not found');
+    }
+    
+    return member;
+  }
+
+  async getTeamMemberByJoinCode(joinCode: string): Promise<(TeamMember & { team: Team }) | undefined> {
+    const result = await this.db
+      .select({
+        member: teamMembers,
+        team: teams
+      })
+      .from(teamMembers)
+      .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+      .where(eq(teamMembers.joinCode, joinCode))
+      .limit(1);
+    
+    if (result.length === 0) return undefined;
+    
+    return {
+      ...result[0].member,
+      team: result[0].team
+    };
+  }
+
+  async acceptTeamInvitationByJoinCode(joinCode: string, userId: number): Promise<TeamMember> {
+    // Get the user's email to update the invitation record
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const [member] = await this.db
+      .update(teamMembers)
+      .set({
+        userId,
+        email: user.email, // Update email to authenticated user's email
+        status: 'active',
+        joinedAt: new Date()
+      })
+      .where(eq(teamMembers.joinCode, joinCode))
+      .returning();
+    
+    if (!member) {
+      throw new Error('Join code not found');
     }
     
     return member;
