@@ -19,14 +19,23 @@ Preferred communication style: Simple, everyday language.
 - **Join Code System**: Added backup method for team joining
   - Auto-generated 8-character join codes for all team invitations
   - Invitation emails include join code prominently for manual entry
-  - Created /join-team page for users to enter join codes
+  - Join team functionality integrated into dashboard page as a card
   - Perfect for existing users who already have accounts
 - **Fixed Admin User Deletion**: Production user deletion now works correctly
   - Properly cascades deletion through ALL team-related data
+  - Deletes ALL members from teams owned by user first (prevents FK errors)
   - Deletes team memberships by userId, email, and invitedBy fields
   - Removes pending invitations before user deletion
   - Prevents foreign key constraint violations in production
   - Comprehensive cleanup of visualizations, teams, subscriptions, usage, and tenants
+- **Email Service Production Fix**: Invitation emails now use production domain
+  - Configurable via APP_URL or PRODUCTION_URL environment variables
+  - Falls back to REPLIT_DOMAINS for development
+  - No more .replit.app links in production emails
+- **Session Authentication Fix**: Fixed CORS/cookie authentication issues
+  - Updated authenticateToken middleware to support session-based auth (Passport) as primary method
+  - Falls back to JWT Bearer tokens for API compatibility
+  - Invitation acceptance endpoints now work with session cookies in production
 
 **October 13, 2025**: Team Invitation Flow and Quota Sharing Implementation
 - **Complete Team Invitation System**: Full end-to-end invitation flow now working
