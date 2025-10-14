@@ -168,6 +168,9 @@ export function registerAuthRoutes(app: Express) {
       // Use the centralized, robust embed access computation
       const hasEmbedAccess = await storage.computeEmbedAccess(user.id);
       
+      // Check for Business Pro access (including team membership)
+      const hasBusinessProAccess = await storage.hasBusinessProAccess(user.id);
+      
       // Get team membership information
       const userTeams = await storage.getUserTeams(user.id);
       const teamOwner = await storage.getTeamByOwnerId(user.id);
@@ -199,6 +202,7 @@ export function registerAuthRoutes(app: Express) {
           } : null,
           usage: usageCheck,
           hasEmbedAccess,
+          hasBusinessProAccess,
           teams: userTeams,
           teamOwner: teamOwner || null
         }
