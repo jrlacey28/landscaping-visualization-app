@@ -26,15 +26,6 @@ export default function Dashboard() {
   const [joining, setJoining] = useState(false);
   const { tenant } = useTenant("demo");
 
-  // Auto-refresh user data every 30 seconds to catch plan changes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refreshUser();
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [refreshUser]);
-
   const handleRefresh = async () => {
     try {
       setRefreshing(true);
