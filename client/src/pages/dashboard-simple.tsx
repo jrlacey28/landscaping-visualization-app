@@ -341,50 +341,129 @@ export default function Dashboard() {
               subscription={user.subscription}
             />
 
-            {/* Join a Team Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Users className="h-5 w-5 text-blue-600" />
+            {/* Join a Team Card - Only show if NOT Business Pro and NOT in a team */}
+            {(!user.subscription || user.subscription.planId !== 'price_1SGN4YBY2SPm2HvOrpREWCn1') && 
+             (!user.teams || user.teams.length === 0) && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Users className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <CardTitle>Join a Team</CardTitle>
+                      <CardDescription>
+                        Have an invitation? Enter your join code
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle>Join a Team</CardTitle>
-                    <CardDescription>
-                      Have an invitation? Enter your join code
-                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleJoinTeam} className="space-y-4">
+                    <div className="space-y-2">
+                      <Input
+                        id="joinCode"
+                        type="text"
+                        placeholder="Enter 8-character code"
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                        maxLength={8}
+                        className="text-center text-lg font-mono tracking-widest uppercase"
+                        data-testid="input-join-code"
+                      />
+                      <p className="text-xs text-gray-500">
+                        The join code is included in your team invitation email
+                      </p>
+                    </div>
+                    <Button 
+                      type="submit"
+                      className="w-full" 
+                      disabled={joining || !joinCode.trim()}
+                      data-testid="button-join-team"
+                    >
+                      {joining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Join Team
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Team Membership Card - Show if user is in a team */}
+            {user.teams && user.teams.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Users className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <CardTitle>Team Membership</CardTitle>
+                      <CardDescription>
+                        You're part of a team
+                      </CardDescription>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleJoinTeam} className="space-y-4">
-                  <div className="space-y-2">
-                    <Input
-                      id="joinCode"
-                      type="text"
-                      placeholder="Enter 8-character code"
-                      value={joinCode}
-                      onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                      maxLength={8}
-                      className="text-center text-lg font-mono tracking-widest uppercase"
-                      data-testid="input-join-code"
-                    />
-                    <p className="text-xs text-gray-500">
-                      The join code is included in your team invitation email
-                    </p>
-                  </div>
-                  <Button 
-                    type="submit"
-                    className="w-full" 
-                    disabled={joining || !joinCode.trim()}
-                    data-testid="button-join-team"
-                  >
-                    {joining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Join Team
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {user.teams.map((team: any) => (
+                    <div key={team.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="font-semibold">{team.name}</h4>
+                          <p className="text-sm text-gray-500">
+                            {team.ownerId === user.user.id ? 'Owner' : 'Member'}
+                          </p>
+                        </div>
+                        {team.ownerId !== user.user.id && (
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const authToken = localStorage.getItem('auth_token');
+                                const res = await apiRequest('DELETE', `/api/teams/${team.id}/leave`, 
+                                  undefined,
+                                  { 
+                                    headers: {
+                                      ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+                                    }
+                                  }
+                                );
+                                
+                                if (res.ok) {
+                                  toast({
+                                    title: "Success",
+                                    description: "You've left the team"
+                                  });
+                                  setTimeout(() => window.location.reload(), 1500);
+                                } else {
+                                  const error = await res.json();
+                                  toast({
+                                    title: "Error",
+                                    description: error.error || "Failed to leave team",
+                                    variant: "destructive"
+                                  });
+                                }
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to leave team",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                            data-testid={`button-leave-team-${team.id}`}
+                          >
+                            Leave Team
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           <div className="space-y-6">

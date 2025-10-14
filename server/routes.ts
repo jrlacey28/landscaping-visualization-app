@@ -1806,6 +1806,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Leave team endpoint
+  app.delete("/api/teams/:teamId/leave", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { teamId } = req.params;
+      
+      const team = await storage.getTeamById(parseInt(teamId));
+      if (!team) {
+        return res.status(404).json({ error: "Team not found" });
+      }
+      
+      // Can't leave if you're the owner
+      if (team.ownerId === userId) {
+        return res.status(403).json({ error: "Team owner cannot leave team" });
+      }
+      
+      // Find the member record
+      const members = await storage.getTeamMembers(team.id);
+      const member = members.find(m => m.userId === userId);
+      
+      if (!member) {
+        return res.status(404).json({ error: "Not a member of this team" });
+      }
+      
+      await storage.removeTeamMember(member.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error leaving team:", error);
+      res.status(500).json({ error: "Failed to leave team" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

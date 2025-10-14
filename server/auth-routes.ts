@@ -168,6 +168,10 @@ export function registerAuthRoutes(app: Express) {
       // Use the centralized, robust embed access computation
       const hasEmbedAccess = await storage.computeEmbedAccess(user.id);
       
+      // Get team membership information
+      const userTeams = await storage.getUserTeams(user.id);
+      const teamOwner = await storage.getTeamByOwnerId(user.id);
+      
       // Add extra logging for debugging production issues
       if (user.email === 'jordanlacey2821@gmail.com') {
         console.log(`[DEBUG] User ${user.email}:`);
@@ -194,7 +198,9 @@ export function registerAuthRoutes(app: Express) {
             currentPeriodEnd: subscription.currentPeriodEnd,
           } : null,
           usage: usageCheck,
-          hasEmbedAccess
+          hasEmbedAccess,
+          teams: userTeams,
+          teamOwner: teamOwner || null
         }
       });
     } catch (error: any) {
