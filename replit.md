@@ -10,6 +10,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 14, 2025**: Professional Branded Team Invitation Emails
+- **Email Template Redesign**: Completely redesigned team invitation emails with professional branding
+  - Added DreamBuilder logo to email header (white transparent logo served from /public/dreambuilder-logo.png)
+  - Applied homepage color scheme: dark slate gradient background (slate-800 → slate-900 → black)
+  - Modern, professional table-based HTML layout with glassmorphic design elements
+  - Improved typography with better spacing and visual hierarchy
+  - Enhanced CTA button with blue gradient matching brand colors (#0056B3)
+  - Beautiful join code display section with monospace font and visual emphasis
+  - Professional footer with copyright and year
+  - Responsive design works across all email clients
+- **Text Email Format**: Enhanced plain text version with ASCII art header
+  - Boxed header design for DreamBuilder branding
+  - Clean, organized text layout with clear sections
+  - Maintains all functionality for text-only email clients
+
 **October 14, 2025**: Critical Team Usage Tracking Fix
 - **Fixed Team Member Usage Attribution**: Team members' visualizations now properly count towards the team owner's quota
   - Previously team member usage was tracked individually, causing them to hit free tier limits
