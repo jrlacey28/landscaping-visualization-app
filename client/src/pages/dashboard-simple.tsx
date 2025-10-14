@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -11,7 +12,7 @@ import { useTenant } from '@/hooks/use-tenant';
 import EmbedCodeGenerator from '@/components/embed-code-generator';
 import BugFeatureForm from '@/components/bug-feature-form';
 import TeamManagement from '@/components/team-management';
-import { RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronUp, Users, Loader2 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export default function Dashboard() {
@@ -21,6 +22,8 @@ export default function Dashboard() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [embedToolsOpen, setEmbedToolsOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+  const [joining, setJoining] = useState(false);
   const { tenant } = useTenant("demo");
 
   // Auto-refresh user data every 30 seconds to catch plan changes
@@ -136,6 +139,55 @@ export default function Dashboard() {
       });
     } finally {
       setCheckoutLoading(false);
+    }
+  };
+
+  const handleJoinTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!joinCode.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a join code",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setJoining(true);
+    try {
+      const res = await apiRequest('POST', '/api/teams/join-with-code', 
+        { joinCode: joinCode.trim().toUpperCase() },
+        { credentials: 'include' }
+      );
+
+      if (!res.ok) {
+        const error = await res.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to join team",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success!",
+        description: "You've joined the team successfully. Refreshing..."
+      });
+
+      // Refresh the page to show updated team info
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to join team",
+        variant: "destructive"
+      });
+    } finally {
+      setJoining(false);
     }
   };
 
@@ -281,6 +333,51 @@ export default function Dashboard() {
               userId={user.user.id} 
               subscription={user.subscription}
             />
+
+            {/* Join a Team Card */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Users className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle>Join a Team</CardTitle>
+                    <CardDescription>
+                      Have an invitation? Enter your join code
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleJoinTeam} className="space-y-4">
+                  <div className="space-y-2">
+                    <Input
+                      id="joinCode"
+                      type="text"
+                      placeholder="Enter 8-character code"
+                      value={joinCode}
+                      onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                      maxLength={8}
+                      className="text-center text-lg font-mono tracking-widest uppercase"
+                      data-testid="input-join-code"
+                    />
+                    <p className="text-xs text-gray-500">
+                      The join code is included in your team invitation email
+                    </p>
+                  </div>
+                  <Button 
+                    type="submit"
+                    className="w-full" 
+                    disabled={joining || !joinCode.trim()}
+                    data-testid="button-join-team"
+                  >
+                    {joining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Join Team
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="space-y-6">
