@@ -1627,11 +1627,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inviterUser = await storage.getUser(userId);
       const inviterName = inviterUser ? `${inviterUser.firstName} ${inviterUser.lastName}` : 'A team member';
       
-      // Get the app URL for invitation link
+      // Get the app URL for invitation link - prioritize production domain
+      const productionUrl = process.env.APP_URL || process.env.PRODUCTION_URL;
       const replitDomain = process.env.REPLIT_DOMAINS?.split(',')[0];
-      const appUrl = replitDomain 
-        ? `https://${replitDomain}`
-        : 'http://localhost:5000';
+      const appUrl = productionUrl 
+        ? productionUrl 
+        : (replitDomain ? `https://${replitDomain}` : 'http://localhost:5000');
+      
+      console.log(`🔗 Generating invitation URL with APP_URL=${process.env.APP_URL}, using: ${appUrl}`);
       
       await sendTeamInvitationEmail({
         toEmail: email,
