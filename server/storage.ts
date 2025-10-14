@@ -927,7 +927,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async computeEmbedAccess(userId: number): Promise<boolean> {
-    // PRODUCTION FIX: Any active Pro subscription = embed access
+    // Check for embed access including team membership
     
     try {
       // First, check for admin override
@@ -941,37 +941,91 @@ export class DatabaseStorage implements IStorage {
         return override.embedOverride;
       }
       
-      // Get the user's active subscription
-      const subscription = await this.getUserActiveSubscription(userId);
+      // Check if user is a team owner or member
+      const ownedTeam = await this.getTeamByOwnerId(userId);
+      let effectiveUserId = userId;
+      let isTeamMember = false;
       
-      // The ONLY Pro plan ID that matters
-      const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
-      
-      // If they have this exact plan ID and it's active, they get embed
-      if (subscription && subscription.status === 'active' && subscription.planId === PRO_PLAN_ID) {
-        console.log(`[Embed] User ${userId} - HAS PRO PLAN - EMBED ENABLED`);
-        return true;
+      if (!ownedTeam) {
+        // Check if user is a team member - try by userId first
+        let [teamMembership] = await this.db
+          .select({ team: teams, member: teamMembers })
+          .from(teamMembers)
+          .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+          .where(and(
+            eq(teamMembers.userId, userId),
+            eq(teamMembers.status, 'active')
+          ))
+          .limit(1);
+        
+        // If not found by userId, try by email (fallback)
+        if (!teamMembership) {
+          const user = await this.getUser(userId);
+          if (user) {
+            const [emailMembership] = await this.db
+              .select({ team: teams, member: teamMembers })
+              .from(teamMembers)
+              .innerJoin(teams, eq(teamMembers.teamId, teams.id))
+              .where(and(
+                eq(teamMembers.email, user.email.toLowerCase()),
+                eq(teamMembers.status, 'active')
+              ))
+              .limit(1);
+            
+            if (emailMembership) {
+              // Auto-repair the userId
+              await this.db
+                .update(teamMembers)
+                .set({ userId })
+                .where(eq(teamMembers.id, emailMembership.member.id));
+              
+              teamMembership = emailMembership;
+            }
+          }
+        }
+        
+        if (teamMembership) {
+          // User is a team member - use team owner's subscription
+          effectiveUserId = teamMembership.team.ownerId;
+          isTeamMember = true;
+          console.log(`[Embed] User ${userId} is team member, using owner ${effectiveUserId}'s subscription`);
+        }
       }
       
-      // Also check if the plan in subscription_plans table says it's Pro
+      // Get the effective user's subscription (either own or team owner's)
+      const subscription = await this.getUserActiveSubscription(effectiveUserId);
+      
+      // Check for Contractor and Business Pro plan IDs
+      const CONTRACTOR_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
+      const BUSINESS_PRO_PLAN_ID = 'price_1SGN4YBY2SPm2HvOrpREWCn1';
+      
+      // If they have these exact plan IDs and it's active, they get embed
+      if (subscription && subscription.status === 'active') {
+        if (subscription.planId === CONTRACTOR_PLAN_ID || subscription.planId === BUSINESS_PRO_PLAN_ID) {
+          console.log(`[Embed] User ${userId} - HAS ${subscription.planId === BUSINESS_PRO_PLAN_ID ? 'BUSINESS PRO' : 'CONTRACTOR'} PLAN ${isTeamMember ? '(via team)' : ''} - EMBED ENABLED`);
+          return true;
+        }
+      }
+      
+      // Also check if the plan in subscription_plans table has embed access
       if (subscription && subscription.status === 'active') {
         const plan = await this.getSubscriptionPlan(subscription.planId);
         if (plan) {
-          // Check if plan name is exactly Pro (case insensitive, trimmed)
+          // Check if plan name includes pro/contractor/business (case insensitive)
           const normalizedName = (plan.name || '').trim().toLowerCase();
-          if (normalizedName === 'pro' || normalizedName === 'custom') {
-            console.log(`[Embed] User ${userId} - ${plan.name} plan detected - EMBED ENABLED`);
+          if (normalizedName === 'pro' || normalizedName === 'contractor' || normalizedName === 'business pro' || normalizedName === 'custom') {
+            console.log(`[Embed] User ${userId} - ${plan.name} plan detected ${isTeamMember ? '(via team)' : ''} - EMBED ENABLED`);
             return true;
           }
           // Also check if the plan has embedAccess flag set to true
           if (plan.embedAccess === true) {
-            console.log(`[Embed] User ${userId} - Plan has embedAccess=true - EMBED ENABLED`);
+            console.log(`[Embed] User ${userId} - Plan has embedAccess=true ${isTeamMember ? '(via team)' : ''} - EMBED ENABLED`);
             return true;
           }
         }
       }
       
-      console.log(`[Embed] User ${userId} - Not Pro/Custom - NO EMBED`);
+      console.log(`[Embed] User ${userId} - Not Pro/Contractor/Business Pro/Custom - NO EMBED`);
       return false;
     } catch (error) {
       console.error(`[Embed] Error checking embed access for user ${userId}:`, error);
