@@ -156,9 +156,16 @@ export default function Dashboard() {
 
     setJoining(true);
     try {
+      // Get the auth token from localStorage
+      const authToken = localStorage.getItem('auth_token');
+      
       const res = await apiRequest('POST', '/api/teams/join-with-code', 
         { joinCode: joinCode.trim().toUpperCase() },
-        { credentials: 'include' }
+        { 
+          headers: {
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+          }
+        }
       );
 
       if (!res.ok) {

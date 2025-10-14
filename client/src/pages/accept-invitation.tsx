@@ -68,8 +68,15 @@ export default function AcceptInvitation() {
 
     setAccepting(true);
     try {
+      // Get the auth token from localStorage
+      const authToken = localStorage.getItem('auth_token');
+      
       const res = await fetch(`/api/invitations/${token}/accept`, {
         method: "POST",
+        headers: {
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+          'Content-Type': 'application/json'
+        },
         credentials: "include"
       });
 
