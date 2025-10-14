@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
 import {
   Dialog,
@@ -39,6 +40,7 @@ interface TeamManagementProps {
 
 export default function TeamManagement({ userId, subscription }: TeamManagementProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [team, setTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,9 +49,8 @@ export default function TeamManagement({ userId, subscription }: TeamManagementP
   const [teamName, setTeamName] = useState('');
   const [creatingTeam, setCreatingTeam] = useState(false);
 
-  // Check if user has Business Pro subscription
-  const hasBusinessPro = subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' && 
-                         subscription?.status === 'active';
+  // Check if user has Business Pro subscription (either own or through team)
+  const hasBusinessPro = user?.hasBusinessProAccess || false;
 
   useEffect(() => {
     if (hasBusinessPro) {

@@ -277,7 +277,7 @@ export default function Landscape() {
 
                   {/* Custom Prompt Chat for Business Pro users */}
                   <InlinePromptChat
-                    isBusinessPro={user?.subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' && user?.subscription?.status === 'active'}
+                    isBusinessPro={user?.hasBusinessProAccess || false}
                     customPrompt={customPrompt}
                     onPromptChange={setCustomPrompt}
                     buttonClassName="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white border-0"

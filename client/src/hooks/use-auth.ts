@@ -29,6 +29,8 @@ interface AuthUser {
   usage: UsageInfo;
   hasEmbedAccess: boolean;
   hasBusinessProAccess: boolean;
+  teams?: any[];
+  teamOwner?: any;
 }
 
 interface AuthContextType {

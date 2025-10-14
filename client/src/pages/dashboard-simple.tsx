@@ -333,7 +333,7 @@ export default function Dashboard() {
             />
 
             {/* Join a Team Card - Only show if NOT Business Pro and NOT in a team */}
-            {(!user.subscription || user.subscription.planId !== 'price_1SGN4YBY2SPm2HvOrpREWCn1') && 
+            {!user.hasBusinessProAccess && 
              (!user.teams || user.teams.length === 0) && (
               <Card>
                 <CardHeader>
@@ -562,10 +562,10 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {user.subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' && user.subscription?.status === 'active' && (
+                {user.hasBusinessProAccess && (
                   <div className="space-y-3 border-t pt-4">
                     <p className="text-sm text-gray-600">
-                      You're on the Business Pro plan with 500 visualizations/month and team features!
+                      You have Business Pro access with 500 visualizations/month and team features!
                     </p>
                     <div className="space-y-2">
                       <Button 
