@@ -731,33 +731,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return tenant;
   }
 
-  // Helper function to check user usage limits based on subscription
+  // Helper function to check user usage limits based on subscription (with team support)
   async function checkUserUsageLimits(userId: number, type: 'visualization' | 'landscape' | 'pool') {
-    // Get user subscriptions
-    const subscriptions = await storage.getUserSubscriptions(userId);
-    const subscription = subscriptions.find(s => s.status === 'active' || s.status === 'trialing');
+    // Use the storage method that already handles team membership correctly
+    const usageCheck = await storage.checkUsageLimits(userId);
     
-    if (!subscription) {
-      throw new Error('No active subscription. Please choose a plan to use AI features.');
-    }
-
-    // Get subscription plan details
-    const plan = await storage.getSubscriptionPlan(subscription.planId);
-    if (!plan) {
-      throw new Error('Invalid subscription plan.');
-    }
-
-    // Check visualization limits
-    if (plan.visualizationLimit !== -1) { // -1 means unlimited
-      const now = new Date();
-      const usage = await storage.getUserUsage(userId, now.getMonth() + 1, now.getFullYear());
-      const currentUsage = usage?.totalCount || 0;
-      
-      if (currentUsage >= plan.visualizationLimit) {
-        throw new Error(`Monthly limit of ${plan.visualizationLimit} visualizations reached. Please upgrade your plan.`);
+    if (!usageCheck.canUse) {
+      // Provide a more informative error message based on the plan
+      if (usageCheck.planName === 'Free') {
+        throw new Error(`You have reached your free tier limit of ${usageCheck.limit} visualizations. Please upgrade to continue.`);
+      } else {
+        throw new Error(`You have reached your monthly limit of ${usageCheck.limit} visualizations for the ${usageCheck.planName} plan.`);
       }
     }
-
+    
+    // Get subscription for return value compatibility
+    const subscription = await storage.getUserActiveSubscription(userId);
+    const plan = subscription ? await storage.getSubscriptionPlan(subscription.planId) : null;
+    
     return { subscription, plan };
   }
 
