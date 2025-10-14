@@ -10,6 +10,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 14, 2025**: Fixed Team Invitation Flow and Admin User Deletion
+- **Relaxed Invitation Acceptance**: Team invitations now work seamlessly for both new and existing users
+  - Removed strict email matching requirement - any authenticated user with valid token can accept
+  - Invitation records automatically update to the accepting user's actual email
+  - New users can create accounts with any email and accept invitations immediately
+  - Existing users can accept invitations even if sent to different email address
+- **Join Code System**: Added backup method for team joining
+  - Auto-generated 8-character join codes for all team invitations
+  - Invitation emails include join code prominently for manual entry
+  - Created /join-team page for users to enter join codes
+  - Perfect for existing users who already have accounts
+- **Fixed Admin User Deletion**: Production user deletion now works correctly
+  - Properly cascades deletion through ALL team-related data
+  - Deletes team memberships by userId, email, and invitedBy fields
+  - Removes pending invitations before user deletion
+  - Prevents foreign key constraint violations in production
+  - Comprehensive cleanup of visualizations, teams, subscriptions, usage, and tenants
+
 **October 13, 2025**: Team Invitation Flow and Quota Sharing Implementation
 - **Complete Team Invitation System**: Full end-to-end invitation flow now working
   - Added secure invitation tokens to teamMembers schema
