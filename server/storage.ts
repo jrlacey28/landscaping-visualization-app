@@ -328,8 +328,7 @@ export class DatabaseStorage implements IStorage {
           await this.db
             .update(teamMembers)
             .set({ 
-              userId, 
-              updatedAt: new Date() 
+              userId
             })
             .where(eq(teamMembers.id, emailMembership.member.id));
           
@@ -373,7 +372,8 @@ export class DatabaseStorage implements IStorage {
       
       // Calculate total usage for all unique users
       let totalTeamUsage = 0;
-      for (const uid of userIds) {
+      const userIdsArray = Array.from(userIds);
+      for (const uid of userIdsArray) {
         const memberUsage = await this.getUserUsage(uid, month, year);
         totalTeamUsage += memberUsage ? (memberUsage.totalCount || 0) : 0;
       }
