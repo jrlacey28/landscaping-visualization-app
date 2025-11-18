@@ -1201,12 +1201,17 @@ export async function processChristmasLightsWithGemini(
    - Do NOT spread bulbs far apart - they should be tightly clustered
    - Professional installation means ABUNDANT bulb coverage, not sparse placement
    
-   INSTALLATION PATTERN:
-   - Line the ENTIRE roofline edges with densely-packed continuous lights
-   - Outline ALL gutters, eaves, peaks, and architectural features with dense bulb coverage
-   - Cover garage door trim, porch columns, and any trim work
-   - Lights should be THE PRIMARY light source illuminating the home
-   - ${lightType === 'icicle' ? 'Dense vertical strands hanging down from roofline creating thick icicle dripping effect with many strands close together' : 'Each individual bulb clearly visible with proper glow and accurate color'}
+   INSTALLATION PATTERN (FOLLOW EXACTLY):
+   - ONLY install lights along the ROOFLINE where the roof meets the fascia/gutter
+   - Line roofline edges, peaks, and eaves with densely-packed continuous lights
+   - Install lights ONLY on the roofline - nowhere else
+   - DO NOT put lights around windows or doors
+   - DO NOT put lights on garage door trim or garage areas
+   - DO NOT put lights on siding, walls, or lower trim areas
+   - DO NOT create multiple rows or layers of lights
+   - ONE continuous dense line of lights along the roofline ONLY
+   - Lights should be THE PRIMARY light source illuminating the home from the roofline
+   - ${lightType === 'icicle' ? 'Dense vertical strands hanging down from roofline only, creating thick icicle dripping effect' : 'Each individual bulb clearly visible with proper glow and accurate color'}
    - ${lightType === 'led-rope' ? 'Smooth continuous tube glow without individual bulb separation' : 'Individual bulbs tightly spaced creating nearly continuous coverage'}
    - For RGB multicolor, ensure each closely-spaced bulb shows a different vibrant color (red, green, blue, yellow, orange, pink) in a repeating pattern
 
@@ -1215,16 +1220,18 @@ export async function processChristmasLightsWithGemini(
 CRITICAL RULES:
 - Make it CLEARLY NIGHTTIME - dark sky, evening atmosphere
 - Christmas lights must be the dominant light source on the home
+- LIGHTS ONLY ON ROOFLINE - do NOT put lights on windows, doors, garage, siding, or walls
+- ONLY ONE LINE OF LIGHTS along the roofline where roof meets fascia/gutter
 - BULBS MUST BE DENSELY PACKED - 4 to 6 inches apart maximum, creating continuous coverage
-- Use MANY bulbs to create professional, abundant lighting display
+- Use MANY bulbs to create professional, abundant lighting display along roofline
 - Color temperature MUST BE ACCURATE - ${colorTemp} has specific appearance described above
 - Light TYPE must match ${lightTypeDetails} exactly - get the size and style right
 - Keep the house structure, landscaping, and all existing features exactly as they are
 - Only add lights${addSnow ? ', snow,' : ''} and nighttime conversion - nothing else
 - Maintain 1920x1080 pixel dimensions
-- Make it look like a professional Christmas lights installation photograph taken at night with DENSE bulb coverage
+- Make it look like a professional Christmas lights installation photograph taken at night with DENSE bulb coverage on roofline ONLY
 
-Create a stunning nighttime Christmas scene with DENSELY-PACKED, ABUNDANT ${lightTypeDetails} in ${colorTemp} illuminating the home with many closely-spaced bulbs.`;
+Create a stunning nighttime Christmas scene with DENSELY-PACKED, ABUNDANT ${lightTypeDetails} in ${colorTemp} illuminating the home with many closely-spaced bulbs installed ONLY along the roofline.`;
 
     console.log("🎄 CHRISTMAS LIGHTS GEMINI PROMPT:");
     console.log("=====================================");
