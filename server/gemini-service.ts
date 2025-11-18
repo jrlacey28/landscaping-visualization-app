@@ -1204,7 +1204,6 @@ export async function processChristmasLightsWithGemini(
    INSTALLATION PATTERN:
    - Line the ENTIRE roofline edges with densely-packed continuous lights
    - Outline ALL gutters, eaves, peaks, and architectural features with dense bulb coverage
-   - Add dense light strings along windows and doorways
    - Cover garage door trim, porch columns, and any trim work
    - Lights should be THE PRIMARY light source illuminating the home
    - ${lightType === 'icicle' ? 'Dense vertical strands hanging down from roofline creating thick icicle dripping effect with many strands close together' : 'Each individual bulb clearly visible with proper glow and accurate color'}
