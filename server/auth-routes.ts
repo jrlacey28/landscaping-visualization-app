@@ -1,7 +1,5 @@
 import type { Express } from "express";
 import express from "express";
-import session from "express-session";
-import passport from "passport";
 import Stripe from "stripe";
 import { storage } from "./storage";
 import { AuthService, authenticateToken, requireProPlan, type AuthRequest } from "./auth";
@@ -18,21 +16,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 export function registerAuthRoutes(app: Express) {
-  // Configure session middleware for passport
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false, // Set to true in production with HTTPS
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
-  }));
-
-  // Initialize passport
-  app.use(passport.initialize());
-  app.use(passport.session());
-
   // Stripe webhook (must be before express.json middleware)
   app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
