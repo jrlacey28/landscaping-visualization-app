@@ -423,7 +423,12 @@ export default function ChristmasLights() {
                           addSnow
                         );
 
-                        if (result.christmasLightsVisualizationId) {
+                        // Check if image is already generated in the response
+                        if (result.generatedImageUrl) {
+                          setGeneratedImage(result.generatedImageUrl);
+                          setIsGenerating(false);
+                        } else if (result.christmasLightsVisualizationId) {
+                          // Otherwise poll for status
                           const status = await checkChristmasLightsVisualizationStatus(
                             result.christmasLightsVisualizationId
                           );

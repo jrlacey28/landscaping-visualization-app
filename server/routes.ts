@@ -1543,7 +1543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         res.json({
-          christmasVisualizationId: christmasVisualization.id,
+          christmasLightsVisualizationId: christmasVisualization.id,
           generatedImageUrl: editedBase64Image,
           appliedFeatures: result.appliedFeatures,
           prompt: result.prompt,
@@ -1560,7 +1560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         res.status(500).json({ 
           error: "AI processing failed. Please try again.",
-          christmasVisualizationId: christmasVisualization.id
+          christmasLightsVisualizationId: christmasVisualization.id
         });
       }
 
