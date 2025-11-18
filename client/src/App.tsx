@@ -23,6 +23,7 @@ const RoofingSiding = lazy(() => import("@/pages/roofing-siding"));
 const Pools = lazy(() => import("@/pages/pools"));
 const Landscape = lazy(() => import("@/pages/landscape"));
 const Halloween = lazy(() => import("@/pages/halloween"));
+const ChristmasLights = lazy(() => import("@/pages/christmas-lights"));
 const Admin = lazy(() => import("@/pages/admin"));
 const Embed = lazy(() => import("@/pages/embed"));
 const EmbedRoofing = lazy(() => import("@/pages/embed-roofing"));
@@ -53,6 +54,7 @@ function Router() {
       <Route path="/landscape" component={() => <LazyRoute Component={Landscape} />} />
       <Route path="/pools" component={() => <LazyRoute Component={Pools} />} />
       <Route path="/halloween" component={() => <LazyRoute Component={Halloween} />} />
+      <Route path="/christmas-lights" component={() => <LazyRoute Component={ChristmasLights} />} />
       <Route path="/admin" component={() => <LazyRoute Component={Admin} />} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/dashboard" component={Dashboard} />
