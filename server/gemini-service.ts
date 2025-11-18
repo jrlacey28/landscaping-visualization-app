@@ -1125,64 +1125,95 @@ export async function processChristmasLightsWithGemini(
     const processedImage = await processImageSize(imageBuffer);
     console.log(`✓ Image processed: ${processedImage.width}x${processedImage.height}`);
 
-    // Step 2: Build color temperature details based on selection
+    // Step 2: Build light type details
     const appliedFeatures: string[] = [];
-    let colorDetails = '';
-
-    switch (lightColor) {
-      case 'warm_white':
-        colorDetails = 'Warm White C9 lights with 2700K color temperature - soft golden glow like candlelight or traditional incandescent bulbs. The lights should have a cozy, inviting yellowish tone that feels nostalgic and warm.';
-        appliedFeatures.push('Warm White C9 Lights (2700K)');
+    let lightTypeDetails = '';
+    
+    switch (lightType) {
+      case 'c9-rope':
+        lightTypeDetails = 'C9 Rope Lights (classic large bulb style, 1.25" diameter bulbs)';
         break;
-      case 'pure_white':
-        colorDetails = 'Pure White C9 lights with 4000K color temperature - true white with no yellow or blue tint. Clean, neutral, modern brightness that appears as genuine white light without any color cast.';
-        appliedFeatures.push('Pure White C9 Lights (4000K)');
+      case 'c7-rope':
+        lightTypeDetails = 'C7 Rope Lights (medium bulb classic style, 1" diameter bulbs, slightly smaller than C9)';
         break;
-      case 'cool_white':
-        colorDetails = 'Cool White C9 lights with 8000K color temperature - bright white with icy bluish hue. Crisp, energetic winter wonderland appearance with a clear blue-white tone like fresh snow under bright sky.';
-        appliedFeatures.push('Cool White C9 Lights (8000K)');
+      case 'icicle':
+        lightTypeDetails = 'Icicle Lights (hanging dripping effect, vertical strands hanging from roofline creating icicle appearance)';
         break;
-      case 'rgb':
-        colorDetails = 'RGB multicolor C9 lights with vibrant red, green, blue, yellow, and other festive colors. Dynamic mix of traditional Christmas colors creating a cheerful, colorful display. Each bulb should be a different bright color.';
-        appliedFeatures.push('RGB Multicolor C9 Lights');
+      case 'mini-lights':
+        lightTypeDetails = 'Mini Lights (small traditional bulbs, 0.5" diameter, densely packed classic Christmas style)';
+        break;
+      case 'led-rope':
+        lightTypeDetails = 'LED Rope Lights (modern continuous glow, smooth tube appearance without individual bulb separation)';
         break;
       default:
-        colorDetails = 'Warm White C9 lights with soft golden glow';
-        appliedFeatures.push('C9 Lights');
+        lightTypeDetails = 'C9 Rope Lights (classic large bulb style)';
     }
 
-    // Step 3: Add snow if requested
+    // Step 3: Build color temperature details based on selection
+    let colorDetails = '';
+    let colorTemp = '';
+
+    switch (lightColor) {
+      case 'warm-white':
+        colorTemp = 'Warm White with 2700K color temperature';
+        colorDetails = 'soft golden glow like candlelight or traditional incandescent bulbs. The lights should have a cozy, inviting yellowish tone that feels nostalgic and warm.';
+        appliedFeatures.push(`${lightTypeDetails} - Warm White (2700K)`);
+        break;
+      case 'pure-white':
+        colorTemp = 'Pure White with 4000K color temperature';
+        colorDetails = 'true white with no yellow or blue tint. Clean, neutral, modern brightness that appears as genuine white light without any color cast.';
+        appliedFeatures.push(`${lightTypeDetails} - Pure White (4000K)`);
+        break;
+      case 'cool-white':
+        colorTemp = 'Cool White with 8000K color temperature';
+        colorDetails = 'bright white with icy bluish hue. Crisp, energetic winter wonderland appearance with a clear blue-white tone like fresh snow under bright sky.';
+        appliedFeatures.push(`${lightTypeDetails} - Cool White (8000K)`);
+        break;
+      case 'rgb-multicolor':
+        colorTemp = 'RGB Multicolor';
+        colorDetails = 'vibrant red, green, blue, yellow, and other festive colors. Dynamic mix of traditional Christmas colors creating a cheerful, colorful display. Each bulb should be a different bright color.';
+        appliedFeatures.push(`${lightTypeDetails} - RGB Multicolor`);
+        break;
+      default:
+        colorTemp = 'Warm White';
+        colorDetails = 'soft golden glow';
+        appliedFeatures.push(lightTypeDetails);
+    }
+
+    // Step 4: Add snow if requested
     let snowDetails = '';
     if (addSnow) {
       snowDetails = '\n\n4. ADD fresh snow covering: Light blanket of fresh white snow on roof, yard, landscaping, and ground. Natural accumulation with realistic texture and depth. Snow should look freshly fallen with clean white appearance.';
       appliedFeatures.push('Fresh Snow');
     }
 
-    // Step 4: Build the complete prompt with nighttime conversion
+    // Step 5: Build the complete prompt with nighttime conversion
     const finalPrompt = `Transform this home into a beautiful Christmas lights display with the following changes:
 
 1. CONVERT TO NIGHTTIME: Transform the scene to nighttime with dark evening sky (deep blue-black gradient). The sky should be clearly night - not dusk, not daytime. Make it look like 8-9 PM on a winter evening with natural darkness.
 
-2. ADD C9 ROPE LIGHTS: Install ${colorDetails}
-   - Line the roofline edges with continuous C9 rope lights
+2. ADD CHRISTMAS LIGHTS: Install ${lightTypeDetails} in ${colorTemp} - ${colorDetails}
+   - Line the roofline edges with continuous lights
    - Outline gutters, eaves, and architectural features
    - Add lights along windows and doorways  
    - Professional installation appearance with even spacing
    - Lights should be THE PRIMARY light source illuminating the home
-   - Each bulb clearly visible with proper glow and color accuracy
+   - ${lightType === 'icicle' ? 'Vertical strands hanging down from roofline creating icicle dripping effect' : 'Each bulb clearly visible with proper glow and color accuracy'}
+   - ${lightType === 'led-rope' ? 'Smooth continuous tube glow without individual bulb separation' : 'Individual bulbs with realistic spacing and appearance'}
 
-3. LIGHTING EFFECTS: The C9 lights should cast realistic glow onto the house exterior. The colored light from the bulbs should illuminate nearby surfaces (roof, walls, trim) with their corresponding color. Warm whites cast golden glow, cool whites cast bluish glow, RGB casts colorful glow. Make the lighting look professionally done and realistic.${snowDetails}
+3. LIGHTING EFFECTS: The Christmas lights should cast realistic glow onto the house exterior. The colored light from the bulbs should illuminate nearby surfaces (roof, walls, trim) with their corresponding color. Warm whites cast golden glow, cool whites cast bluish glow, RGB casts colorful glow. Make the lighting look professionally done and realistic.${snowDetails}
 
 CRITICAL RULES:
 - Make it CLEARLY NIGHTTIME - dark sky, evening atmosphere
-- C9 lights must be the dominant light source on the home  
-- Color temperature MUST BE ACCURATE - ${lightColor.replace('_', ' ')} has specific appearance described above
+- Christmas lights must be the dominant light source on the home  
+- Color temperature MUST BE ACCURATE - ${colorTemp} has specific appearance described above
+- Light TYPE must match ${lightTypeDetails} exactly - get the size and style right
 - Keep the house structure, landscaping, and all existing features exactly as they are
 - Only add lights${addSnow ? ', snow,' : ''} and nighttime conversion - nothing else
 - Maintain 1920x1080 pixel dimensions
 - Make it look like a professional Christmas lights installation photograph taken at night
 
-Create a stunning nighttime Christmas scene with accurate ${lightColor.replace('_', ' ')} C9 rope lights illuminating the home.`;
+Create a stunning nighttime Christmas scene with accurate ${lightTypeDetails} in ${colorTemp} illuminating the home.`;
 
     console.log("🎄 CHRISTMAS LIGHTS GEMINI PROMPT:");
     console.log("=====================================");

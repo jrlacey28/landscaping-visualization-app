@@ -34,6 +34,7 @@ export default function ChristmasLights() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
+  const [selectedLightType, setSelectedLightType] = useState<string>("c9-rope");
   const [selectedColor, setSelectedColor] = useState<string>("warm-white");
   const [addSnow, setAddSnow] = useState(false);
 
@@ -73,6 +74,14 @@ export default function ChristmasLights() {
       }) as React.CSSProperties,
     [effectiveTenant.primaryColor, effectiveTenant.secondaryColor]
   );
+
+  const lightTypes = [
+    { id: "c9-rope", name: "C9 Rope Lights", description: "Classic large bulb style" },
+    { id: "c7-rope", name: "C7 Rope Lights", description: "Medium bulb classic style" },
+    { id: "icicle", name: "Icicle Lights", description: "Hanging dripping effect" },
+    { id: "mini-lights", name: "Mini Lights", description: "Small traditional bulbs" },
+    { id: "led-rope", name: "LED Rope Lights", description: "Modern continuous glow" },
+  ];
 
   const lightColors = [
     { id: "warm-white", name: "Warm White (2700K)", color: "#FFE4B5" },
@@ -161,7 +170,7 @@ export default function ChristmasLights() {
                     setUploadedImage(previewUrl);
                   }}
                   uploadedImage={uploadedImage}
-                  theme="default"
+                  theme="christmas"
                 />
               </CardContent>
             </Card>
@@ -295,9 +304,22 @@ export default function ChristmasLights() {
                       <h4 className="text-lg font-semibold text-slate-800 mb-3">
                         Light Type
                       </h4>
-                      <div className="bg-gradient-to-r from-red-50 to-green-50 p-4 rounded-lg border-2 border-red-200">
-                        <p className="text-slate-700 font-medium">C9 Rope Lights</p>
-                        <p className="text-sm text-slate-600">Classic large bulb style</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {lightTypes.map((type) => (
+                          <button
+                            key={type.id}
+                            onClick={() => setSelectedLightType(type.id)}
+                            className={`p-4 rounded-lg border-2 transition-all text-left ${
+                              selectedLightType === type.id
+                                ? "border-green-600 bg-green-50 shadow-md"
+                                : "border-slate-200 bg-white hover:border-slate-300"
+                            }`}
+                            data-testid={`button-type-${type.id}`}
+                          >
+                            <p className="text-slate-700 font-medium">{type.name}</p>
+                            <p className="text-sm text-slate-600">{type.description}</p>
+                          </button>
+                        ))}
                       </div>
                     </div>
 
@@ -312,7 +334,7 @@ export default function ChristmasLights() {
                             onClick={() => setSelectedColor(color.id)}
                             className={`p-4 rounded-lg border-2 transition-all text-left ${
                               selectedColor === color.id
-                                ? "border-red-600 bg-red-50 shadow-md"
+                                ? "border-green-600 bg-green-50 shadow-md"
                                 : "border-slate-200 bg-white hover:border-slate-300"
                             }`}
                             data-testid={`button-color-${color.id}`}
@@ -339,11 +361,12 @@ export default function ChristmasLights() {
                       <h4 className="text-lg font-semibold text-slate-800 mb-3">
                         Additional Effects
                       </h4>
-                      <div className="flex items-center space-x-3 bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+                      <div className="flex items-center space-x-3 bg-slate-50 p-4 rounded-lg border-2 border-slate-300">
                         <Checkbox
                           id="snow-effect"
                           checked={addSnow}
                           onCheckedChange={(checked) => setAddSnow(checked as boolean)}
+                          className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                           data-testid="checkbox-snow"
                         />
                         <Label
@@ -395,7 +418,7 @@ export default function ChristmasLights() {
                         const result = await uploadChristmasLightsImage(
                           originalFile,
                           effectiveTenant.id,
-                          "c9-rope",
+                          selectedLightType,
                           selectedColor,
                           addSnow
                         );
