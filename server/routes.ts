@@ -10,10 +10,10 @@ import connectPgSimple from "connect-pg-simple";
 
 import { storage } from "./storage";
 import { db } from "./db";
-import { users, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations, teamMembers, teams, leads, userUsage, subscriptions, tenants, insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertHalloweenVisualizationSchema, insertTenantSchema } from "@shared/schema";
+import { users, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations, christmasLightsVisualizations, teamMembers, teams, leads, userUsage, subscriptions, tenants, insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertHalloweenVisualizationSchema, insertChristmasLightsVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage, processHalloweenVisualizationWithGemini } from "./gemini-service";
+import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage, processHalloweenVisualizationWithGemini, processChristmasLightsWithGemini } from "./gemini-service";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 import { authenticateToken, AuthRequest } from "./auth";
@@ -1471,6 +1471,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking Halloween visualization status:", error);
       res.status(500).json({ error: "Failed to check Halloween status" });
+    }
+  });
+
+  // Christmas Lights-specific API routes
+  
+  // Christmas Lights visualization upload (requires authentication)
+  app.post("/api/christmas-lights/upload", authenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const { lightType, lightColor, addSnow } = req.body;
+      const userId = req.user.id;
+
+      // Check user usage limits before processing
+      try {
+        await checkUserUsageLimits(userId, 'visualization');
+      } catch (limitError: any) {
+        return res.status(429).json({ error: limitError.message });
+      }
+
+      // Process image with size constraints (max 1920x1080)
+      const originalImageBuffer = req.file.buffer;
+
+      // Create base64 for storage
+      const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
+
+      // Create Christmas lights visualization record with user ID only
+      const christmasVisualization = await storage.createChristmasLightsVisualization({
+        tenantId: null,
+        userId: userId,
+        originalImageUrl: base64Image,
+        lightType: lightType || 'c9_rope_lights',
+        lightColor: lightColor || 'warm_white',
+        addSnow: addSnow === 'true' || addSnow === true,
+        status: "processing",
+      });
+
+      // Track user-level usage
+      await storage.createOrUpdateUserUsage(userId, 'visualization');
+
+      // Process with Christmas Lights AI
+      try {
+        console.log('🎄 Processing Christmas lights visualization:', {
+          lightType,
+          lightColor,
+          addSnow
+        });
+
+        // Call Christmas lights processing function
+        const result = await processChristmasLightsWithGemini(
+          originalImageBuffer,
+          lightType || 'c9_rope_lights',
+          lightColor || 'warm_white',
+          addSnow === 'true' || addSnow === true
+        );
+
+        // Convert edited image to base64 for storage
+        const editedBase64Image = `data:image/jpeg;base64,${result.editedImageBuffer.toString('base64')}`;
+
+        // Update visualization with generated image
+        await storage.updateChristmasLightsVisualization(christmasVisualization.id, {
+          generatedImageUrl: editedBase64Image,
+          status: "completed"
+        });
+
+        res.json({
+          christmasVisualizationId: christmasVisualization.id,
+          generatedImageUrl: editedBase64Image,
+          appliedFeatures: result.appliedFeatures,
+          prompt: result.prompt,
+          message: "Christmas lights visualization created successfully"
+        });
+
+      } catch (error: any) {
+        console.error("Christmas lights processing error:", error);
+        
+        // Update record with error status
+        await storage.updateChristmasLightsVisualization(christmasVisualization.id, {
+          status: "failed"
+        });
+
+        res.status(500).json({ 
+          error: "AI processing failed. Please try again.",
+          christmasVisualizationId: christmasVisualization.id
+        });
+      }
+
+    } catch (error: any) {
+      console.error("Christmas lights upload error:", error);
+      res.status(500).json({ error: "Upload failed. Please try again." });
+    }
+  });
+
+  // Get Christmas Lights visualizations for authenticated user
+  app.get("/api/christmas-lights/visualizations", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const christmasVisualizations = await storage.getChristmasLightsVisualizationsByUser(req.user.id);
+      res.json(christmasVisualizations);
+    } catch (error) {
+      console.error("Error fetching Christmas lights visualizations:", error);
+      res.status(500).json({ error: "Failed to fetch Christmas lights visualizations" });
+    }
+  });
+
+  // Get Christmas Lights visualization status
+  app.get("/api/christmas-lights/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const christmasVisualization = await storage.getChristmasLightsVisualization(parseInt(id));
+
+      if (!christmasVisualization) {
+        return res.status(404).json({ error: "Christmas lights visualization not found" });
+      }
+
+      res.json(christmasVisualization);
+    } catch (error) {
+      console.error("Error checking Christmas lights visualization status:", error);
+      res.status(500).json({ error: "Failed to check Christmas lights status" });
     }
   });
 

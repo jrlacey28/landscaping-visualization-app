@@ -1,10 +1,11 @@
 import { 
-  users, subscriptions, subscriptionPlans, userUsage, tenants, leads, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations,
+  users, subscriptions, subscriptionPlans, userUsage, tenants, leads, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations, christmasLightsVisualizations,
   userFeatureOverrides, teams, teamMembers,
   type User, type InsertUser, type Subscription, type InsertSubscription, type SubscriptionPlan, type UserUsage, type InsertUserUsage,
   type Tenant, type InsertTenant, type Lead, type InsertLead, type Visualization, type InsertVisualization, 
   type PoolVisualization, type InsertPoolVisualization, type LandscapeVisualization, type InsertLandscapeVisualization,
   type HalloweenVisualization, type InsertHalloweenVisualization,
+  type ChristmasLightsVisualization, type InsertChristmasLightsVisualization,
   type UserFeatureOverrides, type InsertUserFeatureOverrides,
   type Team, type InsertTeam, type TeamMember, type InsertTeamMember
 } from "@shared/schema";
@@ -81,6 +82,13 @@ export interface IStorage {
   getHalloweenVisualizationsByUser(userId: number): Promise<HalloweenVisualization[]>;
   createHalloweenVisualization(halloweenVisualization: InsertHalloweenVisualization): Promise<HalloweenVisualization>;
   updateHalloweenVisualization(id: number, halloweenVisualization: Partial<InsertHalloweenVisualization>): Promise<HalloweenVisualization>;
+
+  // Christmas Lights Visualization methods
+  getChristmasLightsVisualization(id: number): Promise<ChristmasLightsVisualization | undefined>;
+  getChristmasLightsVisualizationsByTenant(tenantId: number): Promise<ChristmasLightsVisualization[]>;
+  getChristmasLightsVisualizationsByUser(userId: number): Promise<ChristmasLightsVisualization[]>;
+  createChristmasLightsVisualization(christmasVisualization: InsertChristmasLightsVisualization): Promise<ChristmasLightsVisualization>;
+  updateChristmasLightsVisualization(id: number, christmasVisualization: Partial<InsertChristmasLightsVisualization>): Promise<ChristmasLightsVisualization>;
 
   // Admin methods
   getAllUsersWithUsage(): Promise<Array<User & { usage?: UserUsage; subscription?: Subscription }>>;
@@ -883,6 +891,48 @@ export class DatabaseStorage implements IStorage {
       .where(eq(halloweenVisualizations.id, id))
       .returning();
     return halloweenVisualization;
+  }
+
+  async getChristmasLightsVisualization(id: number): Promise<ChristmasLightsVisualization | undefined> {
+    const [christmasVisualization] = await this.db.select().from(christmasLightsVisualizations).where(eq(christmasLightsVisualizations.id, id));
+    return christmasVisualization || undefined;
+  }
+
+  async getChristmasLightsVisualizationsByTenant(tenantId: number): Promise<ChristmasLightsVisualization[]> {
+    return await this.db
+      .select()
+      .from(christmasLightsVisualizations)
+      .where(eq(christmasLightsVisualizations.tenantId, tenantId))
+      .orderBy(desc(christmasLightsVisualizations.createdAt));
+  }
+
+  async getChristmasLightsVisualizationsByUser(userId: number): Promise<ChristmasLightsVisualization[]> {
+    return await this.db
+      .select()
+      .from(christmasLightsVisualizations)
+      .where(eq(christmasLightsVisualizations.userId, userId))
+      .orderBy(desc(christmasLightsVisualizations.createdAt));
+  }
+
+  async createChristmasLightsVisualization(insertChristmasVisualization: InsertChristmasLightsVisualization): Promise<ChristmasLightsVisualization> {
+    const [christmasVisualization] = await this.db
+      .insert(christmasLightsVisualizations)
+      .values(insertChristmasVisualization)
+      .returning();
+
+    // Don't increment tenant generations for authenticated users
+    // Only track user-level usage
+
+    return christmasVisualization;
+  }
+
+  async updateChristmasLightsVisualization(id: number, insertChristmasVisualization: Partial<InsertChristmasLightsVisualization>): Promise<ChristmasLightsVisualization> {
+    const [christmasVisualization] = await this.db
+      .update(christmasLightsVisualizations)
+      .set(insertChristmasVisualization)
+      .where(eq(christmasLightsVisualizations.id, id))
+      .returning();
+    return christmasVisualization;
   }
 
   async trackUsage(tenantId: number, type: 'visualization' | 'landscape' | 'pool'): Promise<void> {
