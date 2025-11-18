@@ -1103,3 +1103,185 @@ Create a complete Halloween scene with ALL the decorations specified above visib
     throw new Error(`Halloween processing failed: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
+
+/**
+ * Process Christmas lights visualization with Gemini AI
+ * Converts to nighttime, adds C9 rope lights, and optionally snow
+ */
+export async function processChristmasLightsWithGemini(
+  imageBuffer: Buffer,
+  lightType: string,
+  lightColor: string,
+  addSnow: boolean
+): Promise<{
+  editedImageBuffer: Buffer;
+  prompt: string;
+  appliedFeatures: string[];
+}> {
+  try {
+    console.log(`🎄 Starting Christmas lights processing: ${lightType}, ${lightColor}, snow=${addSnow}`);
+
+    // Step 1: Process and resize image to max 1920x1080
+    const processedImage = await processImageSize(imageBuffer);
+    console.log(`✓ Image processed: ${processedImage.width}x${processedImage.height}`);
+
+    // Step 2: Build color temperature details based on selection
+    const appliedFeatures: string[] = [];
+    let colorDetails = '';
+
+    switch (lightColor) {
+      case 'warm_white':
+        colorDetails = 'Warm White C9 lights with 2700K color temperature - soft golden glow like candlelight or traditional incandescent bulbs. The lights should have a cozy, inviting yellowish tone that feels nostalgic and warm.';
+        appliedFeatures.push('Warm White C9 Lights (2700K)');
+        break;
+      case 'pure_white':
+        colorDetails = 'Pure White C9 lights with 4000K color temperature - true white with no yellow or blue tint. Clean, neutral, modern brightness that appears as genuine white light without any color cast.';
+        appliedFeatures.push('Pure White C9 Lights (4000K)');
+        break;
+      case 'cool_white':
+        colorDetails = 'Cool White C9 lights with 8000K color temperature - bright white with icy bluish hue. Crisp, energetic winter wonderland appearance with a clear blue-white tone like fresh snow under bright sky.';
+        appliedFeatures.push('Cool White C9 Lights (8000K)');
+        break;
+      case 'rgb':
+        colorDetails = 'RGB multicolor C9 lights with vibrant red, green, blue, yellow, and other festive colors. Dynamic mix of traditional Christmas colors creating a cheerful, colorful display. Each bulb should be a different bright color.';
+        appliedFeatures.push('RGB Multicolor C9 Lights');
+        break;
+      default:
+        colorDetails = 'Warm White C9 lights with soft golden glow';
+        appliedFeatures.push('C9 Lights');
+    }
+
+    // Step 3: Add snow if requested
+    let snowDetails = '';
+    if (addSnow) {
+      snowDetails = '\n\n4. ADD fresh snow covering: Light blanket of fresh white snow on roof, yard, landscaping, and ground. Natural accumulation with realistic texture and depth. Snow should look freshly fallen with clean white appearance.';
+      appliedFeatures.push('Fresh Snow');
+    }
+
+    // Step 4: Build the complete prompt with nighttime conversion
+    const finalPrompt = `Transform this home into a beautiful Christmas lights display with the following changes:
+
+1. CONVERT TO NIGHTTIME: Transform the scene to nighttime with dark evening sky (deep blue-black gradient). The sky should be clearly night - not dusk, not daytime. Make it look like 8-9 PM on a winter evening with natural darkness.
+
+2. ADD C9 ROPE LIGHTS: Install ${colorDetails}
+   - Line the roofline edges with continuous C9 rope lights
+   - Outline gutters, eaves, and architectural features
+   - Add lights along windows and doorways  
+   - Professional installation appearance with even spacing
+   - Lights should be THE PRIMARY light source illuminating the home
+   - Each bulb clearly visible with proper glow and color accuracy
+
+3. LIGHTING EFFECTS: The C9 lights should cast realistic glow onto the house exterior. The colored light from the bulbs should illuminate nearby surfaces (roof, walls, trim) with their corresponding color. Warm whites cast golden glow, cool whites cast bluish glow, RGB casts colorful glow. Make the lighting look professionally done and realistic.${snowDetails}
+
+CRITICAL RULES:
+- Make it CLEARLY NIGHTTIME - dark sky, evening atmosphere
+- C9 lights must be the dominant light source on the home  
+- Color temperature MUST BE ACCURATE - ${lightColor.replace('_', ' ')} has specific appearance described above
+- Keep the house structure, landscaping, and all existing features exactly as they are
+- Only add lights${addSnow ? ', snow,' : ''} and nighttime conversion - nothing else
+- Maintain 1920x1080 pixel dimensions
+- Make it look like a professional Christmas lights installation photograph taken at night
+
+Create a stunning nighttime Christmas scene with accurate ${lightColor.replace('_', ' ')} C9 rope lights illuminating the home.`;
+
+    console.log("🎄 CHRISTMAS LIGHTS GEMINI PROMPT:");
+    console.log("=====================================");
+    console.log(finalPrompt);
+    console.log("=====================================");
+
+    // Step 5: Call Gemini API with retry logic
+    const base64Image = processedImage.buffer.toString("base64");
+
+    const contentParts: any[] = [
+      { text: finalPrompt },
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: "image/jpeg"
+        }
+      }
+    ];
+
+    let response;
+    const maxRetries = 3;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🎄 Gemini API attempt ${attempt}/${maxRetries}`);
+        
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-image-preview",
+          contents: [
+            { 
+              role: "user", 
+              parts: contentParts
+            }
+          ],
+          config: {
+            responseModalities: [Modality.TEXT, Modality.IMAGE],
+          },
+        });
+        
+        console.log(`✓ Gemini API succeeded on attempt ${attempt}`);
+        break;
+        
+      } catch (error: any) {
+        console.log(`❌ Gemini API attempt ${attempt} failed:`, error.message || error);
+        
+        if (attempt === maxRetries) {
+          console.log(`❌ All ${maxRetries} Gemini API attempts failed`);
+          throw error;
+        }
+        
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    if (!response) {
+      throw new Error("Failed to get response from Gemini API after all retries");
+    }
+
+    // Step 6: Extract generated image from response
+    let generatedImageBuffer = processedImage.buffer;
+
+    if (response.candidates && response.candidates.length > 0) {
+      const content = response.candidates[0].content;
+      if (content && content.parts) {
+        for (const part of content.parts) {
+          if (part.inlineData && part.inlineData.data) {
+            const rawGeneratedBuffer = Buffer.from(part.inlineData.data, "base64");
+            
+            const originalMetadata = await sharp(processedImage.buffer).metadata();
+            const targetWidth = originalMetadata.width || 1920;
+            const targetHeight = originalMetadata.height || 1080;
+            
+            console.log(`🎄 Resizing Christmas image to match original: ${targetWidth}x${targetHeight}`);
+            
+            generatedImageBuffer = await sharp(rawGeneratedBuffer)
+              .resize(targetWidth, targetHeight, { 
+                fit: "fill",
+                withoutEnlargement: false 
+              })
+              .jpeg({ quality: 85 })
+              .toBuffer();
+            
+            console.log("✓ Gemini generated Christmas lights image successfully");
+            break;
+          }
+        }
+      }
+    }
+
+    return {
+      editedImageBuffer: generatedImageBuffer,
+      appliedFeatures: appliedFeatures,
+      prompt: finalPrompt
+    };
+
+  } catch (error) {
+    console.error("Gemini Christmas lights processing error:", error);
+    throw new Error(`Christmas lights processing failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+}
