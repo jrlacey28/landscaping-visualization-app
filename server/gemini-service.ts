@@ -1193,27 +1193,39 @@ export async function processChristmasLightsWithGemini(
 1. CONVERT TO NIGHTTIME: Transform the scene to nighttime with dark evening sky (deep blue-black gradient). The sky should be clearly night - not dusk, not daytime. Make it look like 8-9 PM on a winter evening with natural darkness.
 
 2. ADD CHRISTMAS LIGHTS: Install ${lightTypeDetails} in ${colorTemp} - ${colorDetails}
-   - Line the roofline edges with continuous lights
-   - Outline gutters, eaves, and architectural features
-   - Add lights along windows and doorways  
-   - Professional installation appearance with even spacing
+   
+   BULB SPACING AND DENSITY (CRITICAL):
+   - Bulbs must be VERY CLOSELY SPACED - only 4 to 6 inches apart (10-15 cm)
+   - Create a DENSE, CONTINUOUS line of lights with MANY bulbs
+   - The lights should appear as an almost unbroken string of closely-packed bulbs
+   - Do NOT spread bulbs far apart - they should be tightly clustered
+   - Professional installation means ABUNDANT bulb coverage, not sparse placement
+   
+   INSTALLATION PATTERN:
+   - Line the ENTIRE roofline edges with densely-packed continuous lights
+   - Outline ALL gutters, eaves, peaks, and architectural features with dense bulb coverage
+   - Add dense light strings along windows and doorways
+   - Cover garage door trim, porch columns, and any trim work
    - Lights should be THE PRIMARY light source illuminating the home
-   - ${lightType === 'icicle' ? 'Vertical strands hanging down from roofline creating icicle dripping effect' : 'Each bulb clearly visible with proper glow and color accuracy'}
-   - ${lightType === 'led-rope' ? 'Smooth continuous tube glow without individual bulb separation' : 'Individual bulbs with realistic spacing and appearance'}
+   - ${lightType === 'icicle' ? 'Dense vertical strands hanging down from roofline creating thick icicle dripping effect with many strands close together' : 'Each individual bulb clearly visible with proper glow and accurate color'}
+   - ${lightType === 'led-rope' ? 'Smooth continuous tube glow without individual bulb separation' : 'Individual bulbs tightly spaced creating nearly continuous coverage'}
+   - For RGB multicolor, ensure each closely-spaced bulb shows a different vibrant color (red, green, blue, yellow, orange, pink) in a repeating pattern
 
-3. LIGHTING EFFECTS: The Christmas lights should cast realistic glow onto the house exterior. The colored light from the bulbs should illuminate nearby surfaces (roof, walls, trim) with their corresponding color. Warm whites cast golden glow, cool whites cast bluish glow, RGB casts colorful glow. Make the lighting look professionally done and realistic.${snowDetails}
+3. LIGHTING EFFECTS: The densely-packed Christmas lights should cast realistic, abundant glow onto the house exterior. With so many closely-spaced lights, the illumination should be bright and festive. The colored light from the bulbs should illuminate nearby surfaces (roof, walls, trim) with their corresponding color. Warm whites cast golden glow, cool whites cast bluish glow, RGB casts colorful multi-hued glow. Make the lighting look professionally done, abundant, and realistic.${snowDetails}
 
 CRITICAL RULES:
 - Make it CLEARLY NIGHTTIME - dark sky, evening atmosphere
-- Christmas lights must be the dominant light source on the home  
+- Christmas lights must be the dominant light source on the home
+- BULBS MUST BE DENSELY PACKED - 4 to 6 inches apart maximum, creating continuous coverage
+- Use MANY bulbs to create professional, abundant lighting display
 - Color temperature MUST BE ACCURATE - ${colorTemp} has specific appearance described above
 - Light TYPE must match ${lightTypeDetails} exactly - get the size and style right
 - Keep the house structure, landscaping, and all existing features exactly as they are
 - Only add lights${addSnow ? ', snow,' : ''} and nighttime conversion - nothing else
 - Maintain 1920x1080 pixel dimensions
-- Make it look like a professional Christmas lights installation photograph taken at night
+- Make it look like a professional Christmas lights installation photograph taken at night with DENSE bulb coverage
 
-Create a stunning nighttime Christmas scene with accurate ${lightTypeDetails} in ${colorTemp} illuminating the home.`;
+Create a stunning nighttime Christmas scene with DENSELY-PACKED, ABUNDANT ${lightTypeDetails} in ${colorTemp} illuminating the home with many closely-spaced bulbs.`;
 
     console.log("🎄 CHRISTMAS LIGHTS GEMINI PROMPT:");
     console.log("=====================================");
