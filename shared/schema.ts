@@ -61,6 +61,7 @@ export const userUsage = pgTable("user_usage", {
   poolCount: integer("pool_count").default(0),
   landscapeCount: integer("landscape_count").default(0),
   halloweenCount: integer("halloween_count").default(0),
+  christmasLightsCount: integer("christmas_lights_count").default(0),
   totalCount: integer("total_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -174,6 +175,20 @@ export const halloweenVisualizations = pgTable("halloween_visualizations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const christmasLightsVisualizations = pgTable("christmas_lights_visualizations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id), // For user-owned visualizations
+  tenantId: integer("tenant_id").references(() => tenants.id), // For tenant-owned visualizations
+  originalImageUrl: text("original_image_url").notNull(),
+  generatedImageUrl: text("generated_image_url"),
+  lightType: text("light_type").notNull(), // c9_rope_lights
+  lightColor: text("light_color").notNull(), // warm_white, pure_white, cool_white, rgb
+  addSnow: boolean("add_snow").default(false),
+  replicateId: text("replicate_id"),
+  status: text("status").default("pending"), // pending, processing, completed, failed
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Teams for Business Pro plan
 export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
@@ -221,6 +236,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   poolVisualizations: many(poolVisualizations),
   landscapeVisualizations: many(landscapeVisualizations),
   halloweenVisualizations: many(halloweenVisualizations),
+  christmasLightsVisualizations: many(christmasLightsVisualizations),
   leads: many(leads),
   featureOverrides: one(userFeatureOverrides),
   ownedTeam: one(teams),
@@ -248,6 +264,7 @@ export const tenantsRelations = relations(tenants, ({ one, many }) => ({
   poolVisualizations: many(poolVisualizations),
   landscapeVisualizations: many(landscapeVisualizations),
   halloweenVisualizations: many(halloweenVisualizations),
+  christmasLightsVisualizations: many(christmasLightsVisualizations),
 }));
 
 export const leadsRelations = relations(leads, ({ one }) => ({
@@ -301,6 +318,17 @@ export const halloweenVisualizationsRelations = relations(halloweenVisualization
   }),
   tenant: one(tenants, {
     fields: [halloweenVisualizations.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const christmasLightsVisualizationsRelations = relations(christmasLightsVisualizations, ({ one }) => ({
+  user: one(users, {
+    fields: [christmasLightsVisualizations.userId],
+    references: [users.id],
+  }),
+  tenant: one(tenants, {
+    fields: [christmasLightsVisualizations.tenantId],
     references: [tenants.id],
   }),
 }));
@@ -419,6 +447,11 @@ export const insertHalloweenVisualizationSchema = createInsertSchema(halloweenVi
   createdAt: true,
 });
 
+export const insertChristmasLightsVisualizationSchema = createInsertSchema(christmasLightsVisualizations).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertUserFeatureOverridesSchema = createInsertSchema(userFeatureOverrides).omit({
   id: true,
   createdAt: true,
@@ -457,6 +490,8 @@ export type LandscapeVisualization = typeof landscapeVisualizations.$inferSelect
 export type InsertLandscapeVisualization = z.infer<typeof insertLandscapeVisualizationSchema>;
 export type HalloweenVisualization = typeof halloweenVisualizations.$inferSelect;
 export type InsertHalloweenVisualization = z.infer<typeof insertHalloweenVisualizationSchema>;
+export type ChristmasLightsVisualization = typeof christmasLightsVisualizations.$inferSelect;
+export type InsertChristmasLightsVisualization = z.infer<typeof insertChristmasLightsVisualizationSchema>;
 export type UserFeatureOverrides = typeof userFeatureOverrides.$inferSelect;
 export type InsertUserFeatureOverrides = z.infer<typeof insertUserFeatureOverridesSchema>;
 export type Team = typeof teams.$inferSelect;

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Home, Waves, TreePine, User, LogOut, Ghost } from "lucide-react";
+import { ChevronDown, Home, Waves, TreePine, User, LogOut } from "lucide-react";
 import type { Tenant } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -92,18 +92,6 @@ export default function Header({ tenant }: HeaderProps) {
                     <div>
                       <div className="font-medium">Landscape Design</div>
                       <div className="text-xs text-slate-500 group-hover:text-white">AI landscape visualization</div>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link 
-                    href="/halloween"
-                    className="group relative select-none rounded-sm text-sm outline-none hover:bg-gradient-to-r hover:from-orange-500 hover:to-purple-600 hover:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 flex items-center gap-3 px-3 py-2 cursor-pointer transition-all font-medium bg-[#ffffff] text-[#000000]"
-                  >
-                    <Ghost className="h-4 w-4" />
-                    <div>
-                      <div className="font-medium">🎃 Halloween Special</div>
-                      <div className="text-xs text-slate-500 group-hover:text-white">Spooky decorations for October!</div>
                     </div>
                   </Link>
                 </DropdownMenuItem>
@@ -192,12 +180,6 @@ export default function Header({ tenant }: HeaderProps) {
                   <Link href="/landscape" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100">
                     <TreePine className="h-4 w-4" />
                     Landscape Design
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/halloween" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100">
-                    <Ghost className="h-4 w-4" />
-                    🎃 Halloween Special
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
