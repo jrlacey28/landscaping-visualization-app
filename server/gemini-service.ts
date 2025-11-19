@@ -4,13 +4,17 @@ import sharp from "sharp";
 
 // Initialize Gemini AI client
 const getGeminiApiKey = () => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_KEY || process.env.GOOGLE_GEMINI_API_KEY;
-  
+  const apiKey =
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GEMINI_KEY ||
+    process.env.GOOGLE_GEMINI_API_KEY;
+
   if (apiKey && apiKey.trim()) {
     console.log("✓ Found Gemini API key");
     return apiKey.trim();
   }
-  
+
   console.log("⚠️ No Gemini API key found - will be checked when needed");
   return "";
 };
@@ -49,10 +53,14 @@ async function processImageSize(imageBuffer: Buffer): Promise<ProcessedImage> {
   let processedImage = image;
 
   // Check if resizing is needed
-  if (metadata.width && metadata.height && (metadata.width > 1920 || metadata.height > 1080)) {
+  if (
+    metadata.width &&
+    metadata.height &&
+    (metadata.width > 1920 || metadata.height > 1080)
+  ) {
     processedImage = image.resize(1920, 1080, {
-      fit: 'inside',
-      withoutEnlargement: false
+      fit: "inside",
+      withoutEnlargement: false,
     });
   }
 
@@ -63,7 +71,7 @@ async function processImageSize(imageBuffer: Buffer): Promise<ProcessedImage> {
     buffer: result,
     width: finalMetadata.width || 1920,
     height: finalMetadata.height || 1080,
-    format: 'jpeg'
+    format: "jpeg",
   };
 }
 
@@ -75,71 +83,94 @@ async function generateRoofingPrompt(selectedStyles: any): Promise<string> {
 
   // Build very specific modification instructions
   if (selectedStyles.roof) {
-    let roofDetails = '';
-    
+    let roofDetails = "";
+
     // Handle roof style and color combinations
-    if (selectedStyles.roof.includes('asphalt_shingles')) {
-      const color = selectedStyles.roof.split('_')[2] + '_' + selectedStyles.roof.split('_')[3];
+    if (selectedStyles.roof.includes("asphalt_shingles")) {
+      const color =
+        selectedStyles.roof.split("_")[2] +
+        "_" +
+        selectedStyles.roof.split("_")[3];
       switch (color) {
-        case 'charcoal_black':
-          roofDetails = 'Replace ONLY the roof with charcoal black asphalt shingles. High-quality dimensional shingles with deep black color and subtle texture variation. Professional installation with proper alignment. Do NOT change the house structure, siding, windows, doors, trim, or landscaping.';
+        case "charcoal_black":
+          roofDetails =
+            "Replace ONLY the roof with charcoal black asphalt shingles. High-quality dimensional shingles with deep black color and subtle texture variation. Professional installation with proper alignment. Do NOT change the house structure, siding, windows, doors, trim, or landscaping.";
           break;
-        case 'weathered_gray':
-          roofDetails = 'Replace ONLY the roof with weathered gray asphalt shingles. Premium architectural shingles in sophisticated gray tones with natural weathered appearance. Do NOT change any other home features or landscaping.';
+        case "weathered_gray":
+          roofDetails =
+            "Replace ONLY the roof with weathered gray asphalt shingles. Premium architectural shingles in sophisticated gray tones with natural weathered appearance. Do NOT change any other home features or landscaping.";
           break;
-        case 'rustic_brown':
-          roofDetails = 'Replace ONLY the roof with rustic brown asphalt shingles. Rich brown architectural shingles with natural earth tone colors and dimensional texture. Do NOT change the house structure or surroundings.';
+        case "rustic_brown":
+          roofDetails =
+            "Replace ONLY the roof with rustic brown asphalt shingles. Rich brown architectural shingles with natural earth tone colors and dimensional texture. Do NOT change the house structure or surroundings.";
           break;
-        case 'slate_blue':
-          roofDetails = 'Replace ONLY the roof with slate blue asphalt shingles. Premium shingles in sophisticated blue-gray color with architectural dimensionality. Do NOT change any other home elements.';
+        case "slate_blue":
+          roofDetails =
+            "Replace ONLY the roof with slate blue asphalt shingles. Premium shingles in sophisticated blue-gray color with architectural dimensionality. Do NOT change any other home elements.";
           break;
-        case 'forest_green':
-          roofDetails = 'Replace ONLY the roof with forest green asphalt shingles. Deep green architectural shingles with natural color variation. Do NOT change the house or landscape features.';
+        case "forest_green":
+          roofDetails =
+            "Replace ONLY the roof with forest green asphalt shingles. Deep green architectural shingles with natural color variation. Do NOT change the house or landscape features.";
           break;
         default:
-          roofDetails = 'Replace ONLY the roof with asphalt shingles. Do NOT change the house structure, siding, or landscaping.';
+          roofDetails =
+            "Replace ONLY the roof with asphalt shingles. Do NOT change the house structure, siding, or landscaping.";
       }
-    } else if (selectedStyles.roof.includes('steel_roof')) {
-      const color = selectedStyles.roof.split('_')[2] + '_' + selectedStyles.roof.split('_')[3];
-      if (color === 'charcoal_black') {
-        roofDetails = 'Replace ONLY the roof with charcoal black steel roofing. Modern standing seam metal roof with clean lines and durable finish. Do NOT change any other home elements or landscaping.';
+    } else if (selectedStyles.roof.includes("steel_roof")) {
+      const color =
+        selectedStyles.roof.split("_")[2] +
+        "_" +
+        selectedStyles.roof.split("_")[3];
+      if (color === "charcoal_black") {
+        roofDetails =
+          "Replace ONLY the roof with charcoal black steel roofing. Modern standing seam metal roof with clean lines and durable finish. Do NOT change any other home elements or landscaping.";
       } else {
-        roofDetails = 'Replace ONLY the roof with weathered gray steel roofing. Contemporary metal roof with sophisticated gray finish and standing seam design. Do NOT change the house structure or surroundings.';
+        roofDetails =
+          "Replace ONLY the roof with weathered gray steel roofing. Contemporary metal roof with sophisticated gray finish and standing seam design. Do NOT change the house structure or surroundings.";
       }
-    } else if (selectedStyles.roof.includes('steel_shingles')) {
-      roofDetails = 'Replace ONLY the roof with charcoal black steel shingles. Premium metal shingles with traditional appearance and modern durability. Do NOT change any other home or landscape features.';
+    } else if (selectedStyles.roof.includes("steel_shingles")) {
+      roofDetails =
+        "Replace ONLY the roof with charcoal black steel shingles. Premium metal shingles with traditional appearance and modern durability. Do NOT change any other home or landscape features.";
     } else {
-      roofDetails = 'Replace ONLY the roof with the selected roofing material. Do NOT change the house structure, siding, or landscaping.';
+      roofDetails =
+        "Replace ONLY the roof with the selected roofing material. Do NOT change the house structure, siding, or landscaping.";
     }
     modifications.push(roofDetails);
   }
 
   if (selectedStyles.siding) {
-    let sidingDetails = '';
+    let sidingDetails = "";
     switch (selectedStyles.siding) {
-      case 'vinyl_siding_white':
-        sidingDetails = 'Replace ONLY the house siding with clean white vinyl siding. Premium quality horizontal lap siding with smooth finish and professional installation. Bright white color with proper trim. Do NOT change the roof, windows, doors, or landscaping.';
+      case "vinyl_siding_white":
+        sidingDetails =
+          "Replace ONLY the house siding with clean white vinyl siding. Premium quality horizontal lap siding with smooth finish and professional installation. Bright white color with proper trim. Do NOT change the roof, windows, doors, or landscaping.";
         break;
-      case 'vinyl_siding_gray':
-        sidingDetails = 'Replace ONLY the house siding with modern gray vinyl siding. Contemporary gray color with horizontal lap style and professional installation. Do NOT change the roof, trim, windows, or landscape elements.';
+      case "vinyl_siding_gray":
+        sidingDetails =
+          "Replace ONLY the house siding with modern gray vinyl siding. Contemporary gray color with horizontal lap style and professional installation. Do NOT change the roof, trim, windows, or landscape elements.";
         break;
-      case 'fiber_cement_beige':
-        sidingDetails = 'Replace ONLY the house siding with beige fiber cement siding. High-quality cementitious siding in warm beige tone with wood-grain texture. Do NOT change the roof or other home features.';
+      case "fiber_cement_beige":
+        sidingDetails =
+          "Replace ONLY the house siding with beige fiber cement siding. High-quality cementitious siding in warm beige tone with wood-grain texture. Do NOT change the roof or other home features.";
         break;
-      case 'wood_siding_natural':
-        sidingDetails = 'Replace ONLY the house siding with natural wood siding. Cedar or similar wood species with natural finish and horizontal board installation. Do NOT change the roof, windows, or landscaping.';
+      case "wood_siding_natural":
+        sidingDetails =
+          "Replace ONLY the house siding with natural wood siding. Cedar or similar wood species with natural finish and horizontal board installation. Do NOT change the roof, windows, or landscaping.";
         break;
-      case 'brick_veneer_red':
-        sidingDetails = 'Replace ONLY the house siding with red brick veneer. Traditional red brick with classic mortar joints and professional masonry installation. Do NOT change the roof, trim, or landscape elements.';
+      case "brick_veneer_red":
+        sidingDetails =
+          "Replace ONLY the house siding with red brick veneer. Traditional red brick with classic mortar joints and professional masonry installation. Do NOT change the roof, trim, or landscape elements.";
         break;
       default:
-        sidingDetails = 'Replace ONLY the house siding with the selected siding material. Do NOT change the roof, windows, doors, or landscaping.';
+        sidingDetails =
+          "Replace ONLY the house siding with the selected siding material. Do NOT change the roof, windows, doors, or landscaping.";
     }
     modifications.push(sidingDetails);
   }
 
   if (selectedStyles.surpriseMe) {
-    const surpriseDetails = 'Transform this home with a complementary roof and siding combination. Choose appropriate colors and materials that work well together for a beautiful exterior renovation. Maintain all windows, doors, trim, and landscaping exactly as shown.';
+    const surpriseDetails =
+      "Transform this home with a complementary roof and siding combination. Choose appropriate colors and materials that work well together for a beautiful exterior renovation. Maintain all windows, doors, trim, and landscaping exactly as shown.";
     modifications.push(surpriseDetails);
   }
 
@@ -147,7 +178,7 @@ async function generateRoofingPrompt(selectedStyles: any): Promise<string> {
   const specificPrompt = `
 PRECISE HOME EXTERIOR RENOVATION INSTRUCTIONS:
 
-${modifications.join('\n\n')}
+${modifications.join("\n\n")}
 
 CRITICAL PRESERVATION RULES:
 - Keep the house structure, foundation, and framing exactly the same
@@ -170,7 +201,7 @@ Make ONLY the specified changes above. Do not redesign or dramatically alter the
 export async function processLandscapeWithGemini({
   imageBuffer,
   selectedStyles,
-  customPrompt
+  customPrompt,
 }: {
   imageBuffer: Buffer;
   selectedStyles: {
@@ -188,20 +219,22 @@ export async function processLandscapeWithGemini({
     // Check API key at runtime
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || !apiKey.trim()) {
-      throw new Error("GEMINI_API_KEY not found in secrets. Please add your Google Gemini API key to the Secrets tool.");
+      throw new Error(
+        "GEMINI_API_KEY not found in secrets. Please add your Google Gemini API key to the Secrets tool.",
+      );
     }
     // Step 1: Process and resize image
     const processedImage = await processImageSize(imageBuffer);
 
     // Step 2: Generate tailored prompt using style config
     // Import style config to get proper prompts
-    const { getStyleConfig } = await import('./style-config');
+    const { getStyleConfig } = await import("./style-config");
 
     // Build prompt based on selected styles using actual style config
     const modifications: string[] = [];
     const appliedStyles: string[] = [];
 
-    console.log('🔍 PROCESSING STYLES:', selectedStyles);
+    console.log("🔍 PROCESSING STYLES:", selectedStyles);
 
     if (selectedStyles.roof) {
       try {
@@ -232,13 +265,15 @@ export async function processLandscapeWithGemini({
         modifications.push(styleConfig.prompt);
         appliedStyles.push(selectedStyles.surpriseMe);
       } catch (error) {
-        console.log(`❌ Surprise style not found: ${selectedStyles.surpriseMe}`);
+        console.log(
+          `❌ Surprise style not found: ${selectedStyles.surpriseMe}`,
+        );
       }
     }
 
     if (modifications.length === 0) {
-      console.log('❌ No valid modifications found');
-      throw new Error('No valid modifications selected');
+      console.log("❌ No valid modifications found");
+      throw new Error("No valid modifications selected");
     }
 
     console.log(`✓ Using ${modifications.length} style prompts`);
@@ -246,7 +281,7 @@ export async function processLandscapeWithGemini({
     // Use the actual detailed prompts from style config
     let finalPrompt = `HOME EXTERIOR RENOVATION INSTRUCTIONS:
 
-${modifications.join('\n\n')}
+${modifications.join("\n\n")}
 
 CRITICAL PRESERVATION RULES:
 - Keep the house structure, windows, doors, and trim exactly the same
@@ -263,11 +298,11 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
     // Add custom prompt if provided (Business Pro feature)
     if (customPrompt && customPrompt.trim()) {
       finalPrompt += `\n\nADDITIONAL CUSTOM INSTRUCTIONS:\n${customPrompt.trim()}`;
-      console.log('✓ Custom prompt added to generation');
+      console.log("✓ Custom prompt added to generation");
     }
 
     // Step 4: Generate edited image using Gemini
-    const base64Image = processedImage.buffer.toString('base64');
+    const base64Image = processedImage.buffer.toString("base64");
 
     console.log("🎯 GEMINI PROMPT BEING SENT:");
     console.log("=====================================");
@@ -280,9 +315,9 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
       {
         inlineData: {
           data: base64Image,
-          mimeType: "image/jpeg"
-        }
-      }
+          mimeType: "image/jpeg",
+        },
+      },
     ];
 
     // Add reference images for each applied style
@@ -292,21 +327,21 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
         for (const refImageUrl of styleConfig.referenceImages) {
           try {
             // If it's a local file, read it
-            if (refImageUrl.startsWith('/uploads/')) {
-              const fs = await import('fs');
-              const path = await import('path');
-              const imagePath = path.join(process.cwd(), 'public', refImageUrl);
+            if (refImageUrl.startsWith("/uploads/")) {
+              const fs = await import("fs");
+              const path = await import("path");
+              const imagePath = path.join(process.cwd(), "public", refImageUrl);
               if (fs.existsSync(imagePath)) {
                 const refImageBuffer = fs.readFileSync(imagePath);
-                const refBase64 = refImageBuffer.toString('base64');
+                const refBase64 = refImageBuffer.toString("base64");
                 contentParts.push({
-                  text: `Reference image for ${styleConfig.name}:`
+                  text: `Reference image for ${styleConfig.name}:`,
                 });
                 contentParts.push({
                   inlineData: {
                     data: refBase64,
-                    mimeType: "image/jpeg"
-                  }
+                    mimeType: "image/jpeg",
+                  },
                 });
               }
             }
@@ -318,12 +353,12 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image-preview",
+      model: "gemini-2.5-flash-image",
       contents: [
-        { 
-          role: "user", 
-          parts: contentParts
-        }
+        {
+          role: "user",
+          parts: contentParts,
+        },
       ],
       config: {
         responseModalities: [Modality.TEXT, Modality.IMAGE],
@@ -339,25 +374,34 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
         for (const part of content.parts) {
           if (part.inlineData && part.inlineData.data) {
             // Convert base64 to buffer for the generated image
-            const rawGeneratedBuffer = Buffer.from(part.inlineData.data, 'base64');
-            
+            const rawGeneratedBuffer = Buffer.from(
+              part.inlineData.data,
+              "base64",
+            );
+
             // Force the generated image to match original dimensions
-            const originalMetadata = await sharp(processedImage.buffer).metadata();
+            const originalMetadata = await sharp(
+              processedImage.buffer,
+            ).metadata();
             const targetWidth = originalMetadata.width || 1920;
             const targetHeight = originalMetadata.height || 1080;
-            
-            console.log(`📐 Resizing Gemini output to match original: ${targetWidth}x${targetHeight}`);
-            
+
+            console.log(
+              `📐 Resizing Gemini output to match original: ${targetWidth}x${targetHeight}`,
+            );
+
             // Resize generated image to match original dimensions exactly
             generatedImageBuffer = await sharp(rawGeneratedBuffer)
               .resize(targetWidth, targetHeight, {
-                fit: 'fill', // Force exact dimensions
-                background: { r: 255, g: 255, b: 255, alpha: 1 } // White background if needed
+                fit: "fill", // Force exact dimensions
+                background: { r: 255, g: 255, b: 255, alpha: 1 }, // White background if needed
               })
               .jpeg({ quality: 95 })
               .toBuffer();
-              
-            console.log("✓ Gemini generated and resized roofing image successfully");
+
+            console.log(
+              "✓ Gemini generated and resized roofing image successfully",
+            );
             break;
           }
         }
@@ -367,12 +411,13 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
     return {
       editedImageBuffer: generatedImageBuffer,
       prompt: finalPrompt,
-      appliedStyles
+      appliedStyles,
     };
-
   } catch (error) {
     console.error("Gemini roofing processing error:", error);
-    throw new Error(`Roofing processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Roofing processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 
@@ -382,7 +427,7 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
 export async function processPoolWithGemini({
   imageBuffer,
   selectedStyles,
-  customPrompt
+  customPrompt,
 }: {
   imageBuffer: Buffer;
   selectedStyles: Record<string, any>;
@@ -396,23 +441,25 @@ export async function processPoolWithGemini({
     // Check API key at runtime
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || !apiKey.trim()) {
-      throw new Error("GEMINI_API_KEY not found in secrets. Please add your Google Gemini API key to the Secrets tool.");
+      throw new Error(
+        "GEMINI_API_KEY not found in secrets. Please add your Google Gemini API key to the Secrets tool.",
+      );
     }
 
     // Step 1: Process and resize image
     const processedImage = await processImageSize(imageBuffer);
 
     // Step 2: Generate pool-specific prompt using POOL style config
-    const { POOL_STYLE_CONFIG } = await import('./pool-style-config');
+    const { POOL_STYLE_CONFIG } = await import("./pool-style-config");
 
     // Build prompt based on selected pool styles
     const modifications: string[] = [];
     const appliedStyles: string[] = [];
 
-    console.log('🏊 PROCESSING POOL STYLES:', selectedStyles);
+    console.log("🏊 PROCESSING POOL STYLES:", selectedStyles);
 
     // Process each selected pool style
-    Object.keys(selectedStyles).forEach(styleKey => {
+    Object.keys(selectedStyles).forEach((styleKey) => {
       const styleConfig = selectedStyles[styleKey];
       if (styleConfig && styleConfig.prompt) {
         console.log(`✓ Found pool style: ${styleConfig.name || styleKey}`);
@@ -424,8 +471,8 @@ export async function processPoolWithGemini({
     });
 
     if (modifications.length === 0) {
-      console.log('❌ No valid pool modifications found');
-      throw new Error('No valid pool modifications selected');
+      console.log("❌ No valid pool modifications found");
+      throw new Error("No valid pool modifications selected");
     }
 
     console.log(`✓ Using ${modifications.length} pool style prompts`);
@@ -433,7 +480,7 @@ export async function processPoolWithGemini({
     // Pool-specific final prompt
     let finalPrompt = `POOL INSTALLATION INSTRUCTIONS:
 
-${modifications.join('\n\n')}
+${modifications.join("\n\n")}
 
 CRITICAL PRESERVATION RULES:
 - Keep the house structure, windows, doors, and all architecture exactly the same
@@ -451,11 +498,11 @@ Apply ONLY the pool installations specified above. Do not redesign the yard or d
     // Add custom prompt if provided (Business Pro feature)
     if (customPrompt && customPrompt.trim()) {
       finalPrompt += `\n\nADDITIONAL CUSTOM INSTRUCTIONS:\n${customPrompt.trim()}`;
-      console.log('✓ Custom prompt added to pool generation');
+      console.log("✓ Custom prompt added to pool generation");
     }
 
     // Step 3: Generate edited image using Gemini
-    const base64Image = processedImage.buffer.toString('base64');
+    const base64Image = processedImage.buffer.toString("base64");
 
     console.log("🏊 POOL GEMINI PROMPT BEING SENT:");
     console.log("=====================================");
@@ -467,18 +514,18 @@ Apply ONLY the pool installations specified above. Do not redesign the yard or d
       {
         inlineData: {
           data: base64Image,
-          mimeType: "image/jpeg"
-        }
-      }
+          mimeType: "image/jpeg",
+        },
+      },
     ];
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image-preview",
+      model: "gemini-2.5-flash-image",
       contents: [
-        { 
-          role: "user", 
-          parts: contentParts
-        }
+        {
+          role: "user",
+          parts: contentParts,
+        },
       ],
       config: {
         responseModalities: [Modality.TEXT, Modality.IMAGE],
@@ -494,25 +541,34 @@ Apply ONLY the pool installations specified above. Do not redesign the yard or d
         for (const part of content.parts) {
           if (part.inlineData && part.inlineData.data) {
             // Convert base64 to buffer for the generated image
-            const rawGeneratedBuffer = Buffer.from(part.inlineData.data, 'base64');
-            
+            const rawGeneratedBuffer = Buffer.from(
+              part.inlineData.data,
+              "base64",
+            );
+
             // Force the generated image to match original dimensions
-            const originalMetadata = await sharp(processedImage.buffer).metadata();
+            const originalMetadata = await sharp(
+              processedImage.buffer,
+            ).metadata();
             const targetWidth = originalMetadata.width || 1920;
             const targetHeight = originalMetadata.height || 1080;
-            
-            console.log(`🏊 Resizing pool image to match original: ${targetWidth}x${targetHeight}`);
-            
+
+            console.log(
+              `🏊 Resizing pool image to match original: ${targetWidth}x${targetHeight}`,
+            );
+
             // Resize generated image to match original dimensions exactly
             generatedImageBuffer = await sharp(rawGeneratedBuffer)
               .resize(targetWidth, targetHeight, {
-                fit: 'fill', // Force exact dimensions
-                background: { r: 255, g: 255, b: 255, alpha: 1 } // White background if needed
+                fit: "fill", // Force exact dimensions
+                background: { r: 255, g: 255, b: 255, alpha: 1 }, // White background if needed
               })
               .jpeg({ quality: 95 })
               .toBuffer();
-              
-            console.log("✓ Gemini generated and resized pool image successfully");
+
+            console.log(
+              "✓ Gemini generated and resized pool image successfully",
+            );
             break;
           }
         }
@@ -522,21 +578,24 @@ Apply ONLY the pool installations specified above. Do not redesign the yard or d
     return {
       editedImageBuffer: generatedImageBuffer,
       prompt: finalPrompt,
-      appliedStyles
+      appliedStyles,
     };
-
   } catch (error) {
     console.error("Gemini pool processing error:", error);
-    throw new Error(`Pool processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Pool processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 
 /**
  * Analyzes home exterior image to suggest improvement areas
  */
-export async function analyzeLandscapeImage(imageBuffer: Buffer): Promise<string> {
+export async function analyzeLandscapeImage(
+  imageBuffer: Buffer,
+): Promise<string> {
   try {
-    const base64Image = imageBuffer.toString('base64');
+    const base64Image = imageBuffer.toString("base64");
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-pro",
@@ -544,10 +603,10 @@ export async function analyzeLandscapeImage(imageBuffer: Buffer): Promise<string
         {
           inlineData: {
             data: base64Image,
-            mimeType: "image/jpeg"
-          }
+            mimeType: "image/jpeg",
+          },
         },
-        "Analyze this home exterior image and identify specific areas that could benefit from roof upgrades and siding improvements. Provide professional roofing and siding recommendations based on the home's architecture and style."
+        "Analyze this home exterior image and identify specific areas that could benefit from roof upgrades and siding improvements. Provide professional roofing and siding recommendations based on the home's architecture and style.",
       ],
     });
 
@@ -564,7 +623,7 @@ export async function analyzeLandscapeImage(imageBuffer: Buffer): Promise<string
 export async function processLandscapeVisualizationWithGemini({
   imageBuffer,
   selectedStyles,
-  customPrompt
+  customPrompt,
 }: {
   imageBuffer: Buffer;
   selectedStyles: {
@@ -582,7 +641,9 @@ export async function processLandscapeVisualizationWithGemini({
     // Check API key at runtime
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || !apiKey.trim()) {
-      throw new Error("GEMINI_API_KEY not found in secrets. Please add your Google Gemini API key to the Secrets tool.");
+      throw new Error(
+        "GEMINI_API_KEY not found in secrets. Please add your Google Gemini API key to the Secrets tool.",
+      );
     }
 
     // Step 1: Process and resize image
@@ -619,7 +680,9 @@ export async function processLandscapeVisualizationWithGemini({
           appliedStyles.push(selectedStyles.landscape);
         }
       } catch (error) {
-        console.log(`❌ Landscape style not found: ${selectedStyles.landscape}`);
+        console.log(
+          `❌ Landscape style not found: ${selectedStyles.landscape}`,
+        );
       }
     }
 
@@ -628,67 +691,69 @@ export async function processLandscapeVisualizationWithGemini({
         // Handle new patio spec format: "style|shape|size"
         const patioSpec = selectedStyles.patios;
         let styleConfig;
-        let shape = 'rectangular';
-        let size = 'medium';
-        
-        if (patioSpec.includes('|')) {
+        let shape = "rectangular";
+        let size = "medium";
+
+        if (patioSpec.includes("|")) {
           // Parse combined specification
-          const [styleId, shapeSpec, sizeSpec] = patioSpec.split('|');
-          shape = shapeSpec || 'rectangular';
-          size = sizeSpec || 'medium';
+          const [styleId, shapeSpec, sizeSpec] = patioSpec.split("|");
+          shape = shapeSpec || "rectangular";
+          size = sizeSpec || "medium";
           styleConfig = LANDSCAPE_STYLE_CONFIG[styleId];
         } else {
           // Legacy single ID format
           styleConfig = LANDSCAPE_STYLE_CONFIG[patioSpec];
         }
-        
+
         if (styleConfig) {
-          console.log(`✓ Found patio style: ${styleConfig.name} (${shape}, ${size})`);
-          
+          console.log(
+            `✓ Found patio style: ${styleConfig.name} (${shape}, ${size})`,
+          );
+
           // Modify the prompt to include shape and size specifications
           let enhancedPrompt = styleConfig.prompt;
-          
+
           // Add shape specifications
-          if (shape === 'curved') {
+          if (shape === "curved") {
             enhancedPrompt = enhancedPrompt.replace(
-              'in an appropriate area of the yard',
-              `in an appropriate area of the yard. Design with flowing curved edges and organic shapes`
+              "in an appropriate area of the yard",
+              `in an appropriate area of the yard. Design with flowing curved edges and organic shapes`,
             );
-          } else if (shape === 'circular') {
+          } else if (shape === "circular") {
             enhancedPrompt = enhancedPrompt.replace(
-              'in an appropriate area of the yard',
-              `in an appropriate area of the yard. Create a perfect circular design`
+              "in an appropriate area of the yard",
+              `in an appropriate area of the yard. Create a perfect circular design`,
             );
-          } else if (shape === 'l_shaped') {
+          } else if (shape === "l_shaped") {
             enhancedPrompt = enhancedPrompt.replace(
-              'in an appropriate area of the yard',
-              `in an appropriate area of the yard. Design in an L-shaped configuration to maximize corner space`
+              "in an appropriate area of the yard",
+              `in an appropriate area of the yard. Design in an L-shaped configuration to maximize corner space`,
             );
-          } else if (shape === 'rectangular') {
+          } else if (shape === "rectangular") {
             enhancedPrompt = enhancedPrompt.replace(
-              'in an appropriate area of the yard',
-              `in an appropriate area of the yard. Create clean rectangular design with straight edges`
+              "in an appropriate area of the yard",
+              `in an appropriate area of the yard. Create clean rectangular design with straight edges`,
             );
           }
-          
+
           // Add size specifications
-          if (size === 'small') {
+          if (size === "small") {
             enhancedPrompt = enhancedPrompt.replace(
-              'patio',
-              'small patio (approximately 10x12 feet)'
+              "patio",
+              "small patio (approximately 10x12 feet)",
             );
-          } else if (size === 'large') {
+          } else if (size === "large") {
             enhancedPrompt = enhancedPrompt.replace(
-              'patio',
-              'large patio (approximately 20x24 feet)'
+              "patio",
+              "large patio (approximately 20x24 feet)",
             );
           } else {
             enhancedPrompt = enhancedPrompt.replace(
-              'patio',
-              'medium patio (approximately 15x18 feet)'
+              "patio",
+              "medium patio (approximately 15x18 feet)",
             );
           }
-          
+
           modifications.push(enhancedPrompt);
           appliedStyles.push(patioSpec);
         }
@@ -725,7 +790,7 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
     // Add custom prompt if provided (Business Pro feature)
     if (customPrompt && customPrompt.trim()) {
       finalPrompt += `\n\nADDITIONAL CUSTOM INSTRUCTIONS:\n${customPrompt.trim()}`;
-      console.log('✓ Custom prompt added to landscape generation');
+      console.log("✓ Custom prompt added to landscape generation");
     }
 
     // Step 3: Generate edited image using Gemini
@@ -741,55 +806,59 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
       {
         inlineData: {
           data: base64Image,
-          mimeType: "image/jpeg"
-        }
-      }
+          mimeType: "image/jpeg",
+        },
+      },
     ];
 
     // Add retry logic for Gemini API failures
     let response;
     let lastError;
     const maxRetries = 3;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`🌿 Gemini API attempt ${attempt}/${maxRetries}`);
-        
+
         response = await ai.models.generateContent({
-          model: "gemini-2.5-flash-image-preview",
+          model: "gemini-2.5-flash-image",
           contents: [
-            { 
-              role: "user", 
-              parts: contentParts
-            }
+            {
+              role: "user",
+              parts: contentParts,
+            },
           ],
           config: {
             responseModalities: [Modality.TEXT, Modality.IMAGE],
           },
         });
-        
+
         console.log(`✓ Gemini API succeeded on attempt ${attempt}`);
         break; // Success, exit retry loop
-        
       } catch (error: any) {
         lastError = error;
-        console.log(`❌ Gemini API attempt ${attempt} failed:`, error.message || error);
-        
+        console.log(
+          `❌ Gemini API attempt ${attempt} failed:`,
+          error.message || error,
+        );
+
         if (attempt === maxRetries) {
           console.log(`❌ All ${maxRetries} Gemini API attempts failed`);
           throw error;
         }
-        
+
         // Wait before retrying (exponential backoff)
         const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
         console.log(`⏳ Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
 
     // Ensure response exists after retry logic
     if (!response) {
-      throw new Error("Failed to get response from Gemini API after all retries");
+      throw new Error(
+        "Failed to get response from Gemini API after all retries",
+      );
     }
 
     // Extract the generated image from Gemini response
@@ -801,25 +870,34 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
         for (const part of content.parts) {
           if (part.inlineData && part.inlineData.data) {
             // Convert base64 to buffer for the generated image
-            const rawGeneratedBuffer = Buffer.from(part.inlineData.data, "base64");
-            
+            const rawGeneratedBuffer = Buffer.from(
+              part.inlineData.data,
+              "base64",
+            );
+
             // Force the generated image to match original dimensions
-            const originalMetadata = await sharp(processedImage.buffer).metadata();
+            const originalMetadata = await sharp(
+              processedImage.buffer,
+            ).metadata();
             const targetWidth = originalMetadata.width || 1920;
             const targetHeight = originalMetadata.height || 1080;
-            
-            console.log(`🌿 Resizing landscape image to match original: ${targetWidth}x${targetHeight}`);
-            
+
+            console.log(
+              `🌿 Resizing landscape image to match original: ${targetWidth}x${targetHeight}`,
+            );
+
             // Resize generated image to match original dimensions exactly
             generatedImageBuffer = await sharp(rawGeneratedBuffer)
-              .resize(targetWidth, targetHeight, { 
+              .resize(targetWidth, targetHeight, {
                 fit: "fill",
-                withoutEnlargement: false 
+                withoutEnlargement: false,
               })
               .jpeg({ quality: 85 })
               .toBuffer();
-            
-            console.log("✓ Gemini generated and resized landscape image successfully");
+
+            console.log(
+              "✓ Gemini generated and resized landscape image successfully",
+            );
             break;
           }
         }
@@ -829,12 +907,13 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
     return {
       editedImageBuffer: generatedImageBuffer,
       appliedStyles: appliedStyles,
-      prompt: finalPrompt
+      prompt: finalPrompt,
     };
-
   } catch (error) {
     console.error("Gemini landscape processing error:", error);
-    throw new Error(`Landscape processing failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    throw new Error(
+      `Landscape processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 
@@ -845,7 +924,7 @@ export async function processHalloweenVisualizationWithGemini({
   imageBuffer,
   selectedDecorations,
   nightMode,
-  spookyMode
+  spookyMode,
 }: {
   imageBuffer: Buffer;
   selectedDecorations: string;
@@ -860,7 +939,9 @@ export async function processHalloweenVisualizationWithGemini({
     // Check API key at runtime
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || !apiKey.trim()) {
-      throw new Error("GEMINI_API_KEY not found in secrets. Please add your Google Gemini API key to the Secrets tool.");
+      throw new Error(
+        "GEMINI_API_KEY not found in secrets. Please add your Google Gemini API key to the Secrets tool.",
+      );
     }
 
     // Step 1: Process and resize image
@@ -870,8 +951,11 @@ export async function processHalloweenVisualizationWithGemini({
     const { HALLOWEEN_STYLE_CONFIG } = await import("./halloween-style-config");
 
     // Step 3: Parse selectedDecorations string (split by comma) into an array
-    const decorationIds = selectedDecorations 
-      ? selectedDecorations.split(',').map(id => id.trim()).filter(id => id.length > 0)
+    const decorationIds = selectedDecorations
+      ? selectedDecorations
+          .split(",")
+          .map((id) => id.trim())
+          .filter((id) => id.length > 0)
       : [];
 
     // Build prompt based on selected Halloween decorations
@@ -882,27 +966,34 @@ export async function processHalloweenVisualizationWithGemini({
 
     // Step 4: If spookyMode is true and no decorations selected, generate random scary scene with 3-4 decorations
     if (spookyMode && decorationIds.length === 0) {
-      console.log("🎃 Generating random spooky Halloween scene with 3-4 decorations");
-      
+      console.log(
+        "🎃 Generating random spooky Halloween scene with 3-4 decorations",
+      );
+
       // Always include pumpkins, then randomly select 2-3 more decorations
       const allDecorationIds = Object.keys(HALLOWEEN_STYLE_CONFIG).filter(
-        id => !['night_mode', 'really_spooky'].includes(id)
+        (id) => !["night_mode", "really_spooky"].includes(id),
       );
-      
+
       // Shuffle and select 2-3 random decorations (excluding pumpkins which we'll add separately)
-      const nonPumpkinIds = allDecorationIds.filter(id => !id.includes('pumpkin'));
+      const nonPumpkinIds = allDecorationIds.filter(
+        (id) => !id.includes("pumpkin"),
+      );
       const shuffled = nonPumpkinIds.sort(() => Math.random() - 0.5);
       const randomCount = Math.floor(Math.random() * 2) + 2; // 2 or 3 random decorations
       const selectedIds = shuffled.slice(0, randomCount);
-      
+
       // Always add a pumpkin decoration first
-      const pumpkinIds = allDecorationIds.filter(id => id.includes('pumpkin'));
-      const randomPumpkin = pumpkinIds[Math.floor(Math.random() * pumpkinIds.length)];
-      
+      const pumpkinIds = allDecorationIds.filter((id) =>
+        id.includes("pumpkin"),
+      );
+      const randomPumpkin =
+        pumpkinIds[Math.floor(Math.random() * pumpkinIds.length)];
+
       const finalSelectionIds = [randomPumpkin, ...selectedIds];
-      
+
       console.log("🎃 Selected decorations:", finalSelectionIds);
-      
+
       // Add each selected decoration
       for (const decorationId of finalSelectionIds) {
         try {
@@ -916,14 +1007,14 @@ export async function processHalloweenVisualizationWithGemini({
           console.log(`❌ Error loading decoration: ${decorationId}`, error);
         }
       }
-      
+
       // Add spooky atmosphere
       try {
-        const spookyConfig = HALLOWEEN_STYLE_CONFIG['really_spooky'];
+        const spookyConfig = HALLOWEEN_STYLE_CONFIG["really_spooky"];
         if (spookyConfig) {
           console.log(`✓ Adding spooky mode atmosphere: ${spookyConfig.name}`);
           modifications.push(spookyConfig.prompt);
-          appliedDecorations.push('really_spooky');
+          appliedDecorations.push("really_spooky");
         }
       } catch (error) {
         console.log(`❌ Error loading spooky mode configuration`, error);
@@ -941,18 +1032,21 @@ export async function processHalloweenVisualizationWithGemini({
             console.log(`❌ Halloween decoration not found: ${decorationId}`);
           }
         } catch (error) {
-          console.log(`❌ Error loading Halloween decoration: ${decorationId}`, error);
+          console.log(
+            `❌ Error loading Halloween decoration: ${decorationId}`,
+            error,
+          );
         }
       }
 
       // Step 5: If nightMode is true, add the "night_mode" configuration
       if (nightMode) {
         try {
-          const nightConfig = HALLOWEEN_STYLE_CONFIG['night_mode'];
+          const nightConfig = HALLOWEEN_STYLE_CONFIG["night_mode"];
           if (nightConfig) {
             console.log(`✓ Adding night mode atmosphere: ${nightConfig.name}`);
             modifications.push(nightConfig.prompt);
-            appliedDecorations.push('night_mode');
+            appliedDecorations.push("night_mode");
           }
         } catch (error) {
           console.log(`❌ Error loading night mode configuration`, error);
@@ -962,11 +1056,13 @@ export async function processHalloweenVisualizationWithGemini({
       // Step 6: If spookyMode is true (with specific decorations), add the "really_spooky" configuration
       if (spookyMode) {
         try {
-          const spookyConfig = HALLOWEEN_STYLE_CONFIG['really_spooky'];
+          const spookyConfig = HALLOWEEN_STYLE_CONFIG["really_spooky"];
           if (spookyConfig) {
-            console.log(`✓ Adding spooky mode atmosphere: ${spookyConfig.name}`);
+            console.log(
+              `✓ Adding spooky mode atmosphere: ${spookyConfig.name}`,
+            );
             modifications.push(spookyConfig.prompt);
-            appliedDecorations.push('really_spooky');
+            appliedDecorations.push("really_spooky");
           }
         } catch (error) {
           console.log(`❌ Error loading spooky mode configuration`, error);
@@ -977,14 +1073,18 @@ export async function processHalloweenVisualizationWithGemini({
     // Step 7: If no modifications, use fallback prompt
     if (modifications.length === 0) {
       console.log("⚠️ No valid Halloween decorations found, using fallback");
-      modifications.push("Add festive Halloween decorations to the home and yard while preserving all existing features");
+      modifications.push(
+        "Add festive Halloween decorations to the home and yard while preserving all existing features",
+      );
     }
 
     console.log(`✓ Using ${modifications.length} Halloween decoration prompts`);
 
     // Step 8: Combine all modification prompts with proper formatting
-    const decorationList = modifications.map((mod, idx) => `${idx + 1}. ${mod}`).join("\n\n");
-    
+    const decorationList = modifications
+      .map((mod, idx) => `${idx + 1}. ${mod}`)
+      .join("\n\n");
+
     const finalPrompt = `ADD these Halloween decorations to the property:
 
 ${decorationList}
@@ -1011,53 +1111,57 @@ Create a complete Halloween scene with ALL the decorations specified above visib
       {
         inlineData: {
           data: base64Image,
-          mimeType: "image/jpeg"
-        }
-      }
+          mimeType: "image/jpeg",
+        },
+      },
     ];
 
     // Add retry logic for Gemini API failures
     let response;
     let lastError;
     const maxRetries = 3;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`🎃 Gemini API attempt ${attempt}/${maxRetries}`);
-        
+
         response = await ai.models.generateContent({
-          model: "gemini-2.5-flash-image-preview",
+          model: "gemini-2.5-flash-image",
           contents: [
-            { 
-              role: "user", 
-              parts: contentParts
-            }
+            {
+              role: "user",
+              parts: contentParts,
+            },
           ],
           config: {
             responseModalities: [Modality.TEXT, Modality.IMAGE],
           },
         });
-        
+
         console.log(`✓ Gemini API succeeded on attempt ${attempt}`);
         break;
-        
       } catch (error: any) {
         lastError = error;
-        console.log(`❌ Gemini API attempt ${attempt} failed:`, error.message || error);
-        
+        console.log(
+          `❌ Gemini API attempt ${attempt} failed:`,
+          error.message || error,
+        );
+
         if (attempt === maxRetries) {
           console.log(`❌ All ${maxRetries} Gemini API attempts failed`);
           throw error;
         }
-        
+
         const delay = Math.pow(2, attempt) * 1000;
         console.log(`⏳ Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
 
     if (!response) {
-      throw new Error("Failed to get response from Gemini API after all retries");
+      throw new Error(
+        "Failed to get response from Gemini API after all retries",
+      );
     }
 
     // Extract the generated image from Gemini response
@@ -1068,23 +1172,32 @@ Create a complete Halloween scene with ALL the decorations specified above visib
       if (content && content.parts) {
         for (const part of content.parts) {
           if (part.inlineData && part.inlineData.data) {
-            const rawGeneratedBuffer = Buffer.from(part.inlineData.data, "base64");
-            
-            const originalMetadata = await sharp(processedImage.buffer).metadata();
+            const rawGeneratedBuffer = Buffer.from(
+              part.inlineData.data,
+              "base64",
+            );
+
+            const originalMetadata = await sharp(
+              processedImage.buffer,
+            ).metadata();
             const targetWidth = originalMetadata.width || 1920;
             const targetHeight = originalMetadata.height || 1080;
-            
-            console.log(`🎃 Resizing Halloween image to match original: ${targetWidth}x${targetHeight}`);
-            
+
+            console.log(
+              `🎃 Resizing Halloween image to match original: ${targetWidth}x${targetHeight}`,
+            );
+
             generatedImageBuffer = await sharp(rawGeneratedBuffer)
-              .resize(targetWidth, targetHeight, { 
+              .resize(targetWidth, targetHeight, {
                 fit: "fill",
-                withoutEnlargement: false 
+                withoutEnlargement: false,
               })
               .jpeg({ quality: 85 })
               .toBuffer();
-            
-            console.log("✓ Gemini generated and resized Halloween image successfully");
+
+            console.log(
+              "✓ Gemini generated and resized Halloween image successfully",
+            );
             break;
           }
         }
@@ -1095,12 +1208,13 @@ Create a complete Halloween scene with ALL the decorations specified above visib
     return {
       editedImageBuffer: generatedImageBuffer,
       appliedDecorations: appliedDecorations,
-      prompt: finalPrompt
+      prompt: finalPrompt,
     };
-
   } catch (error) {
     console.error("Gemini Halloween processing error:", error);
-    throw new Error(`Halloween processing failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    throw new Error(
+      `Halloween processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 
@@ -1112,79 +1226,93 @@ export async function processChristmasLightsWithGemini(
   imageBuffer: Buffer,
   lightType: string,
   lightColor: string,
-  addSnow: boolean
+  addSnow: boolean,
 ): Promise<{
   editedImageBuffer: Buffer;
   prompt: string;
   appliedFeatures: string[];
 }> {
   try {
-    console.log(`🎄 Starting Christmas lights processing: ${lightType}, ${lightColor}, snow=${addSnow}`);
+    console.log(
+      `🎄 Starting Christmas lights processing: ${lightType}, ${lightColor}, snow=${addSnow}`,
+    );
 
     // Step 1: Process and resize image to max 1920x1080
     const processedImage = await processImageSize(imageBuffer);
-    console.log(`✓ Image processed: ${processedImage.width}x${processedImage.height}`);
+    console.log(
+      `✓ Image processed: ${processedImage.width}x${processedImage.height}`,
+    );
 
     // Step 2: Build light type details
     const appliedFeatures: string[] = [];
-    let lightTypeDetails = '';
-    
+    let lightTypeDetails = "";
+
     switch (lightType) {
-      case 'c9-rope':
-        lightTypeDetails = 'C9 Rope Lights (classic large bulb style, 1.25" diameter bulbs)';
+      case "c9-rope":
+        lightTypeDetails =
+          'C9 Rope Lights (classic large bulb style, 1.25" diameter bulbs)';
         break;
-      case 'c7-rope':
-        lightTypeDetails = 'C7 Rope Lights (medium bulb classic style, 1" diameter bulbs, slightly smaller than C9)';
+      case "c7-rope":
+        lightTypeDetails =
+          'C7 Rope Lights (medium bulb classic style, 1" diameter bulbs, slightly smaller than C9)';
         break;
-      case 'icicle':
-        lightTypeDetails = 'Icicle Lights (hanging dripping effect, vertical strands hanging from roofline creating icicle appearance)';
+      case "icicle":
+        lightTypeDetails =
+          "Icicle Lights (hanging dripping effect, vertical strands hanging from roofline creating icicle appearance)";
         break;
-      case 'mini-lights':
-        lightTypeDetails = 'Mini Lights (small traditional bulbs, 0.5" diameter, densely packed classic Christmas style)';
+      case "mini-lights":
+        lightTypeDetails =
+          'Mini Lights (small traditional bulbs, 0.5" diameter, densely packed classic Christmas style)';
         break;
-      case 'led-rope':
-        lightTypeDetails = 'LED Rope Lights (modern continuous glow, smooth tube appearance without individual bulb separation)';
+      case "led-rope":
+        lightTypeDetails =
+          "LED Rope Lights (modern continuous glow, smooth tube appearance without individual bulb separation)";
         break;
       default:
-        lightTypeDetails = 'C9 Rope Lights (classic large bulb style)';
+        lightTypeDetails = "C9 Rope Lights (classic large bulb style)";
     }
 
     // Step 3: Build color temperature details based on selection
-    let colorDetails = '';
-    let colorTemp = '';
+    let colorDetails = "";
+    let colorTemp = "";
 
     switch (lightColor) {
-      case 'warm-white':
-        colorTemp = 'Warm White with 2700K color temperature';
-        colorDetails = 'soft golden glow like candlelight or traditional incandescent bulbs. The lights should have a cozy, inviting yellowish tone that feels nostalgic and warm.';
+      case "warm-white":
+        colorTemp = "Warm White with 2700K color temperature";
+        colorDetails =
+          "soft golden glow like candlelight or traditional incandescent bulbs. The lights should have a cozy, inviting yellowish tone that feels nostalgic and warm.";
         appliedFeatures.push(`${lightTypeDetails} - Warm White (2700K)`);
         break;
-      case 'pure-white':
-        colorTemp = 'Pure White with 4000K color temperature';
-        colorDetails = 'true white with no yellow or blue tint. Clean, neutral, modern brightness that appears as genuine white light without any color cast.';
+      case "pure-white":
+        colorTemp = "Pure White with 4000K color temperature";
+        colorDetails =
+          "true white with no yellow or blue tint. Clean, neutral, modern brightness that appears as genuine white light without any color cast.";
         appliedFeatures.push(`${lightTypeDetails} - Pure White (4000K)`);
         break;
-      case 'cool-white':
-        colorTemp = 'Cool White with 8000K color temperature';
-        colorDetails = 'bright white with icy bluish hue. Crisp, energetic winter wonderland appearance with a clear blue-white tone like fresh snow under bright sky.';
+      case "cool-white":
+        colorTemp = "Cool White with 8000K color temperature";
+        colorDetails =
+          "bright white with icy bluish hue. Crisp, energetic winter wonderland appearance with a clear blue-white tone like fresh snow under bright sky.";
         appliedFeatures.push(`${lightTypeDetails} - Cool White (8000K)`);
         break;
-      case 'rgb-multicolor':
-        colorTemp = 'RGB Multicolor';
-        colorDetails = 'vibrant red, green, blue, yellow, and other festive colors. Dynamic mix of traditional Christmas colors creating a cheerful, colorful display. Each bulb should be a different bright color.';
+      case "rgb-multicolor":
+        colorTemp = "RGB Multicolor";
+        colorDetails =
+          "vibrant red, green, blue, yellow, and other festive colors. Dynamic mix of traditional Christmas colors creating a cheerful, colorful display. Each bulb should be a different bright color.";
         appliedFeatures.push(`${lightTypeDetails} - RGB Multicolor`);
         break;
       default:
-        colorTemp = 'Warm White';
-        colorDetails = 'soft golden glow';
+        colorTemp = "Warm White";
+        colorDetails = "soft golden glow";
         appliedFeatures.push(lightTypeDetails);
     }
 
     // Step 4: Add snow if requested
-    let snowDetails = '';
+    let snowDetails = "";
     if (addSnow) {
-      snowDetails = '\n\n4. ADD fresh snow covering: Light blanket of fresh white snow on roof, yard, landscaping, and ground. Natural accumulation with realistic texture and depth. Snow should look freshly fallen with clean white appearance.';
-      appliedFeatures.push('Fresh Snow');
+      snowDetails =
+        "\n\n4. ADD fresh snow covering: Light blanket of fresh white snow on roof, yard, landscaping, and ground. Natural accumulation with realistic texture and depth. Snow should look freshly fallen with clean white appearance.";
+      appliedFeatures.push("Fresh Snow");
     }
 
     // Step 5: Build the complete prompt with nighttime conversion
@@ -1211,8 +1339,8 @@ export async function processChristmasLightsWithGemini(
    - DO NOT create multiple rows or layers of lights
    - ONE continuous dense line of lights along the roofline ONLY
    - Lights should be THE PRIMARY light source illuminating the home from the roofline
-   - ${lightType === 'icicle' ? 'Dense vertical strands hanging down from roofline only, creating thick icicle dripping effect' : 'Each individual bulb clearly visible with proper glow and accurate color'}
-   - ${lightType === 'led-rope' ? 'Smooth continuous tube glow without individual bulb separation' : 'Individual bulbs tightly spaced creating nearly continuous coverage'}
+   - ${lightType === "icicle" ? "Dense vertical strands hanging down from roofline only, creating thick icicle dripping effect" : "Each individual bulb clearly visible with proper glow and accurate color"}
+   - ${lightType === "led-rope" ? "Smooth continuous tube glow without individual bulb separation" : "Individual bulbs tightly spaced creating nearly continuous coverage"}
    - For RGB multicolor, ensure each closely-spaced bulb shows a different vibrant color (red, green, blue, yellow, orange, pink) in a repeating pattern
 
 3. LIGHTING EFFECTS: The densely-packed Christmas lights should cast realistic, abundant glow onto the house exterior. With so many closely-spaced lights, the illumination should be bright and festive. The colored light from the bulbs should illuminate nearby surfaces (roof, walls, trim) with their corresponding color. Warm whites cast golden glow, cool whites cast bluish glow, RGB casts colorful multi-hued glow. Make the lighting look professionally done, abundant, and realistic.${snowDetails}
@@ -1227,7 +1355,7 @@ CRITICAL RULES:
 - Color temperature MUST BE ACCURATE - ${colorTemp} has specific appearance described above
 - Light TYPE must match ${lightTypeDetails} exactly - get the size and style right
 - Keep the house structure, landscaping, and all existing features exactly as they are
-- Only add lights${addSnow ? ', snow,' : ''} and nighttime conversion - nothing else
+- Only add lights${addSnow ? ", snow," : ""} and nighttime conversion - nothing else
 - Maintain 1920x1080 pixel dimensions
 - Make it look like a professional Christmas lights installation photograph taken at night with DENSE bulb coverage on roofline ONLY
 
@@ -1246,50 +1374,54 @@ Create a stunning nighttime Christmas scene with DENSELY-PACKED, ABUNDANT ${ligh
       {
         inlineData: {
           data: base64Image,
-          mimeType: "image/jpeg"
-        }
-      }
+          mimeType: "image/jpeg",
+        },
+      },
     ];
 
     let response;
     const maxRetries = 3;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`🎄 Gemini API attempt ${attempt}/${maxRetries}`);
-        
+
         response = await ai.models.generateContent({
-          model: "gemini-2.5-flash-image-preview",
+          model: "gemini-2.5-flash-image",
           contents: [
-            { 
-              role: "user", 
-              parts: contentParts
-            }
+            {
+              role: "user",
+              parts: contentParts,
+            },
           ],
           config: {
             responseModalities: [Modality.TEXT, Modality.IMAGE],
           },
         });
-        
+
         console.log(`✓ Gemini API succeeded on attempt ${attempt}`);
         break;
-        
       } catch (error: any) {
-        console.log(`❌ Gemini API attempt ${attempt} failed:`, error.message || error);
-        
+        console.log(
+          `❌ Gemini API attempt ${attempt} failed:`,
+          error.message || error,
+        );
+
         if (attempt === maxRetries) {
           console.log(`❌ All ${maxRetries} Gemini API attempts failed`);
           throw error;
         }
-        
+
         const delay = Math.pow(2, attempt) * 1000;
         console.log(`⏳ Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
 
     if (!response) {
-      throw new Error("Failed to get response from Gemini API after all retries");
+      throw new Error(
+        "Failed to get response from Gemini API after all retries",
+      );
     }
 
     // Step 6: Extract generated image from response
@@ -1300,23 +1432,32 @@ Create a stunning nighttime Christmas scene with DENSELY-PACKED, ABUNDANT ${ligh
       if (content && content.parts) {
         for (const part of content.parts) {
           if (part.inlineData && part.inlineData.data) {
-            const rawGeneratedBuffer = Buffer.from(part.inlineData.data, "base64");
-            
-            const originalMetadata = await sharp(processedImage.buffer).metadata();
+            const rawGeneratedBuffer = Buffer.from(
+              part.inlineData.data,
+              "base64",
+            );
+
+            const originalMetadata = await sharp(
+              processedImage.buffer,
+            ).metadata();
             const targetWidth = originalMetadata.width || 1920;
             const targetHeight = originalMetadata.height || 1080;
-            
-            console.log(`🎄 Resizing Christmas image to match original: ${targetWidth}x${targetHeight}`);
-            
+
+            console.log(
+              `🎄 Resizing Christmas image to match original: ${targetWidth}x${targetHeight}`,
+            );
+
             generatedImageBuffer = await sharp(rawGeneratedBuffer)
-              .resize(targetWidth, targetHeight, { 
+              .resize(targetWidth, targetHeight, {
                 fit: "fill",
-                withoutEnlargement: false 
+                withoutEnlargement: false,
               })
               .jpeg({ quality: 85 })
               .toBuffer();
-            
-            console.log("✓ Gemini generated Christmas lights image successfully");
+
+            console.log(
+              "✓ Gemini generated Christmas lights image successfully",
+            );
             break;
           }
         }
@@ -1326,11 +1467,12 @@ Create a stunning nighttime Christmas scene with DENSELY-PACKED, ABUNDANT ${ligh
     return {
       editedImageBuffer: generatedImageBuffer,
       appliedFeatures: appliedFeatures,
-      prompt: finalPrompt
+      prompt: finalPrompt,
     };
-
   } catch (error) {
     console.error("Gemini Christmas lights processing error:", error);
-    throw new Error(`Christmas lights processing failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    throw new Error(
+      `Christmas lights processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
