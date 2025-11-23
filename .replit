@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
+modules = ["nodejs-20", "web", "python-3.11", "postgresql-16"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -25,6 +25,10 @@ externalPort = 3000
 
 [[ports]]
 localPort = 8000
+
+[[ports]]
+localPort = 34257
+externalPort = 5000
 
 [[ports]]
 localPort = 34475
@@ -78,3 +82,8 @@ args = "npm run dev"
 
 [agent]
 integrations = ["javascript_stripe:1.0.0", "javascript_log_in_with_replit:1.0.0", "javascript_database:1.0.0"]
+
+[userenv]
+
+[userenv.development]
+ADMIN_PASSWORD = "admin123"

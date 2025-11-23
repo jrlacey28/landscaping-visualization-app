@@ -1312,7 +1312,7 @@ export default function AdminDashboard() {
                                     variant="destructive"
                                     className="h-8 px-2 text-xs"
                                     onClick={() => {
-                                      if (confirm(`Are you sure you want to delete ${user.user.firstName} ${user.user.lastName}? This action cannot be undone.`)) {
+                                      if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}? This action cannot be undone.`)) {
                                         deleteUserMutation.mutate(user.id);
                                       }
                                     }}
@@ -1703,7 +1703,7 @@ export default function AdminDashboard() {
                 setExpandedDescriptions(newExpanded);
               };
               
-              const truncateText = (text: string, maxLength: number = 100) => {
+              const truncateText = (text: string | null, maxLength: number = 100) => {
                 if (!text) return 'No details provided';
                 return text.length <= maxLength ? text : text.substring(0, maxLength) + '...';
               };

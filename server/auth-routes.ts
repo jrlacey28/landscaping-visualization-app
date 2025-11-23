@@ -446,9 +446,11 @@ export function registerAuthRoutes(app: Express) {
   app.get('/api/customers', requireAdminAuth, async (req, res) => {
     try {
       const users = await storage.getAllUsersWithUsage();
+      console.log(`[Admin] Fetched ${users.length} users for admin dashboard`);
+      
       res.json({ success: true, data: users });
     } catch (error: any) {
-      console.error('Get customers error:', error);
+      console.error('[Admin] Get customers error:', error);
       res.status(500).json({ error: 'Failed to get customers' });
     }
   });
