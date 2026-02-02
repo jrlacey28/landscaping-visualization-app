@@ -1255,6 +1255,7 @@ export default function AdminDashboard() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <Select
                                     value={
+                                      user.subscription?.planId === 'price_1S5X1sBY2SPm2HvOuDHNzsIp' ? 'basic' :
                                       user.subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto' ? 'contractor' :
                                       user.subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' ? 'business_pro' :
                                       'free'
@@ -1262,6 +1263,7 @@ export default function AdminDashboard() {
                                     onValueChange={(value) => {
                                       const planIdMap: Record<string, string> = {
                                         'free': 'free',
+                                        'basic': 'price_1S5X1sBY2SPm2HvOuDHNzsIp',
                                         'contractor': 'price_1S5X2XBY2SPm2HvO2he9Unto',
                                         'business_pro': 'price_1SGN4YBY2SPm2HvOrpREWCn1'
                                       };
@@ -1275,6 +1277,7 @@ export default function AdminDashboard() {
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="free">Free</SelectItem>
+                                      <SelectItem value="basic">Basic ($20)</SelectItem>
                                       <SelectItem value="contractor">Contractor ($100)</SelectItem>
                                       <SelectItem value="business_pro">Business Pro ($300)</SelectItem>
                                     </SelectContent>
