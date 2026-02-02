@@ -48,9 +48,9 @@ const featureOptions = [
 ];
 
 const hotTubOptions = [
-  { value: "built_in_hot_tub", label: "Built-in Hot Tub" },
-  { value: "standalone_hot_tub", label: "Standalone Hot Tub" },
-  { value: "infinity_hot_tub", label: "Infinity Edge Hot Tub" },
+  { value: "built_in_hottub", label: "Built-in Hot Tub" },
+  { value: "portable_hottub", label: "Portable Hot Tub" },
+  { value: "swim_spa", label: "Swim Spa" },
 ];
 
 const saunaOptions = [

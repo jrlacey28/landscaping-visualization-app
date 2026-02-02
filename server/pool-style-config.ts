@@ -4,7 +4,7 @@ export interface PoolStyleConfig {
   prompt: string;
   referenceImageUrl: string;
   referenceImages?: string[]; 
-  category: "poolType" | "poolSize" | "decking" | "landscaping" | "features";
+  category: "poolType" | "poolSize" | "decking" | "landscaping" | "features" | "hotTub" | "sauna";
   regionType: "pool" | "poolArea" | "landscape" | "outdoor";
 }
 
@@ -145,6 +145,58 @@ export const POOL_STYLE_CONFIG: Record<string, PoolStyleConfig> = {
     referenceImageUrl: "https://mycdn.com/pool-lighting.jpg",
     category: "features",
     regionType: "poolArea",
+  },
+
+  // Hot Tub Options
+  built_in_hottub: {
+    id: "built_in_hottub",
+    name: "Built-In Hot Tub",
+    prompt: "Add a luxurious built-in hot tub to this backyard. Professional in-ground spa with custom stone or tile surround, integrated seating, powerful jets, and elegant lighting. Position it as a dedicated spa area with proper decking around it. Keep all house structure, existing landscaping, and surroundings exactly unchanged.",
+    referenceImageUrl: "https://mycdn.com/built-in-hottub.jpg",
+    category: "hotTub",
+    regionType: "outdoor",
+  },
+  portable_hottub: {
+    id: "portable_hottub",
+    name: "Portable Hot Tub",
+    prompt: "Add a high-end portable hot tub to this backyard. Modern above-ground spa with attractive cabinet finish, comfortable seating for 4-6 people, and integrated controls. Place on a suitable patio or deck area with clear access. Maintain all existing house structure, landscaping, and yard features exactly as they are.",
+    referenceImageUrl: "https://mycdn.com/portable-hottub.jpg",
+    category: "hotTub",
+    regionType: "outdoor",
+  },
+  swim_spa: {
+    id: "swim_spa",
+    name: "Swim Spa",
+    prompt: "Add a combination swim spa to this backyard. Elongated spa unit with swimming current jets on one end and relaxation seating on the other, featuring modern cabinet design and integrated steps. Position appropriately in the yard space while preserving all existing home features, landscaping, and surroundings unchanged.",
+    referenceImageUrl: "https://mycdn.com/swim-spa.jpg",
+    category: "hotTub",
+    regionType: "outdoor",
+  },
+
+  // Sauna Options
+  outdoor_sauna: {
+    id: "outdoor_sauna",
+    name: "Outdoor Sauna",
+    prompt: "Add a traditional outdoor sauna to this backyard. Classic wood-clad sauna cabin with proper ventilation, attractive entrance, and small porch or deck area. Natural wood exterior that complements the landscape. Position in a suitable location while maintaining all existing house structure, landscaping, and yard features exactly as shown.",
+    referenceImageUrl: "https://mycdn.com/outdoor-sauna.jpg",
+    category: "sauna",
+    regionType: "outdoor",
+  },
+  barrel_sauna: {
+    id: "barrel_sauna",
+    name: "Barrel Sauna",
+    prompt: "Add a charming barrel sauna to this backyard. Distinctive cylindrical sauna with beautiful wood barrel construction, glass door, and proper base supports. Rustic yet elegant design that creates a spa-like retreat. Keep all existing house structure, landscaping, trees, and surroundings exactly unchanged.",
+    referenceImageUrl: "https://mycdn.com/barrel-sauna.jpg",
+    category: "sauna",
+    regionType: "outdoor",
+  },
+  modern_sauna: {
+    id: "modern_sauna",
+    name: "Modern Glass Sauna",
+    prompt: "Add a contemporary glass-front sauna to this backyard. Modern sauna cabin with large glass panels, clean lines, and minimalist wood interior visible from outside. Sleek architectural design with ambient lighting. Position elegantly in the yard while preserving all existing home features, landscaping, and surroundings unchanged.",
+    referenceImageUrl: "https://mycdn.com/modern-sauna.jpg",
+    category: "sauna",
+    regionType: "outdoor",
   },
 };
 
