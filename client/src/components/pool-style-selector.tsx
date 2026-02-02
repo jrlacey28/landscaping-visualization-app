@@ -8,6 +8,8 @@ interface PoolStyleSelectorProps {
     decking: string;
     landscaping: string;
     features: string;
+    hotTub: string;
+    sauna: string;
   };
   onStyleChange: (styles: any) => void;
   primaryColor?: string;
@@ -45,6 +47,18 @@ const featureOptions = [
   { value: "pool_with_lighting", label: "Pool with LED Lighting" },
 ];
 
+const hotTubOptions = [
+  { value: "built_in_hot_tub", label: "Built-in Hot Tub" },
+  { value: "standalone_hot_tub", label: "Standalone Hot Tub" },
+  { value: "infinity_hot_tub", label: "Infinity Edge Hot Tub" },
+];
+
+const saunaOptions = [
+  { value: "outdoor_sauna", label: "Outdoor Sauna" },
+  { value: "barrel_sauna", label: "Barrel Sauna" },
+  { value: "modern_sauna", label: "Modern Glass Sauna" },
+];
+
 const PoolStyleSelector = React.memo(function PoolStyleSelector({ selectedStyles, onStyleChange, primaryColor = "#10b981", secondaryColor = "#059669" }: PoolStyleSelectorProps) {
   const [activeToggles, setActiveToggles] = useState({
     poolType: !!selectedStyles.poolType,
@@ -52,9 +66,11 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({ selectedStyles
     decking: !!selectedStyles.decking,
     landscaping: !!selectedStyles.landscaping,
     features: !!selectedStyles.features,
+    hotTub: !!selectedStyles.hotTub,
+    sauna: !!selectedStyles.sauna,
   });
 
-  const handleToggleChange = (category: 'poolType' | 'poolSize' | 'decking' | 'landscaping' | 'features', enabled: boolean) => {
+  const handleToggleChange = (category: 'poolType' | 'poolSize' | 'decking' | 'landscaping' | 'features' | 'hotTub' | 'sauna', enabled: boolean) => {
     setActiveToggles(prev => ({ ...prev, [category]: enabled }));
 
     if (!enabled) {
@@ -66,7 +82,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({ selectedStyles
     }
   };
 
-  const handleOptionSelect = (category: 'poolType' | 'poolSize' | 'decking' | 'landscaping' | 'features', value: string) => {
+  const handleOptionSelect = (category: 'poolType' | 'poolSize' | 'decking' | 'landscaping' | 'features' | 'hotTub' | 'sauna', value: string) => {
     onStyleChange({
       ...selectedStyles,
       [category]: value,
@@ -258,6 +274,82 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({ selectedStyles
                     value={option.value}
                     checked={selectedStyles.features === option.value}
                     onChange={() => handleOptionSelect('features', option.value)}
+                    className="w-4 h-4 text-white border-white/30 focus:ring-white"
+                  />
+                  <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Hot Tub Card */}
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
+             style={{
+               borderColor: activeToggles.hotTub ? secondaryColor : `${secondaryColor}cc`,
+               background: activeToggles.hotTub 
+                 ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
+                 : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
+             }}
+             onClick={() => handleToggleChange('hotTub', !activeToggles.hotTub)}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white drop-shadow-sm">Hot Tub</h3>
+            <Switch
+              checked={activeToggles.hotTub}
+              onCheckedChange={(checked) => handleToggleChange('hotTub', checked)}
+              onClick={(e) => e.stopPropagation()}
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+            />
+          </div>
+
+          {activeToggles.hotTub && (
+            <div className="space-y-3">
+              {hotTubOptions.map((option) => (
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="radio"
+                    name="hotTub"
+                    value={option.value}
+                    checked={selectedStyles.hotTub === option.value}
+                    onChange={() => handleOptionSelect('hotTub', option.value)}
+                    className="w-4 h-4 text-white border-white/30 focus:ring-white"
+                  />
+                  <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Sauna Card */}
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
+             style={{
+               borderColor: activeToggles.sauna ? primaryColor : `${primaryColor}cc`,
+               background: activeToggles.sauna 
+                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
+                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+             }}
+             onClick={() => handleToggleChange('sauna', !activeToggles.sauna)}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white drop-shadow-sm">Sauna</h3>
+            <Switch
+              checked={activeToggles.sauna}
+              onCheckedChange={(checked) => handleToggleChange('sauna', checked)}
+              onClick={(e) => e.stopPropagation()}
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+            />
+          </div>
+
+          {activeToggles.sauna && (
+            <div className="space-y-3">
+              {saunaOptions.map((option) => (
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="radio"
+                    name="sauna"
+                    value={option.value}
+                    checked={selectedStyles.sauna === option.value}
+                    onChange={() => handleOptionSelect('sauna', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>

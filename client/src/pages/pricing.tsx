@@ -90,18 +90,32 @@ export default function PricingPage() {
       ctaLink: "/auth"
     },
     {
+      name: "Basic",
+      description: "For solo-operators ready to get started",
+      monthlyPrice: 20,
+      yearlyPrice: 240,
+      features: [
+        "50 visualizations per month",
+        "Basic AI-powered design suggestions",
+        "Standard templates",
+        "Standard sharing options"
+      ],
+      cta: "Get Started",
+      ctaLink: "prod_T1aCuerVdmVioK"
+    },
+    {
       name: "Contractor",
       description: "For small business owners ready to impress clients",
       monthlyPrice: 100,
       yearlyPrice: 1200,
       popular: true,
       features: [
-        "100 visualizations per month",
+        "200 visualizations per month",
         "Full-resolution downloads (no watermarks)",
         "Priority rendering speeds"
       ],
       cta: "Get Started",
-      ctaLink: "price_1S5X2XBY2SPm2HvO2he9Unto" // Using existing Pro price ID for Contractor
+      ctaLink: "price_1S5X2XBY2SPm2HvO2he9Unto"
     },
     {
       name: "Business Pro",
@@ -109,7 +123,7 @@ export default function PricingPage() {
       monthlyPrice: 300,
       yearlyPrice: 3600,
       features: [
-        "500 visualizations per month",
+        "650 visualizations per month",
         "Team access for up to 3 users",
         "Custom embed widget",
         "Advanced customization chat",
@@ -117,7 +131,7 @@ export default function PricingPage() {
         "Additional users: $50/month each"
       ],
       cta: "Get Started",
-      ctaLink: "price_1SGN4YBY2SPm2HvOrpREWCn1" // New Business Pro price ID
+      ctaLink: "price_1SGN4YBY2SPm2HvOrpREWCn1"
     },
     {
       name: "Enterprise",
@@ -172,11 +186,11 @@ export default function PricingPage() {
       <Header tenant={effectiveTenant} />
       
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        {/* Main Pricing Tiers: Free, Contractor, Business Pro */}
+        {/* Main Pricing Tiers: Free, Basic, Contractor, Business Pro */}
         <PricingSection
           title="Pricing"
           subtitle="Select the perfect plan for your business needs. All plans include our core AI visualization features."
-          tiers={pricingTiers.slice(0, 3)} // Free, Contractor, Business Pro
+          tiers={pricingTiers.slice(0, 4)} // Free, Basic, Contractor, Business Pro
           frequencies={["Monthly"]}
         />
 
@@ -191,7 +205,7 @@ export default function PricingPage() {
           
           <div className="flex justify-center w-full max-w-md">
             <PricingCard
-              tier={pricingTiers[3]} // Enterprise tier
+              tier={pricingTiers[4]} // Enterprise tier
               paymentFrequency="Monthly"
             />
           </div>

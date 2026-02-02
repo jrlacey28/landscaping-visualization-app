@@ -43,6 +43,8 @@ export default function Pools() {
     decking: "",
     landscaping: "",
     features: "",
+    hotTub: "",
+    sauna: "",
   });
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
@@ -192,6 +194,8 @@ export default function Pools() {
                         decking: "",
                         landscaping: "",
                         features: "",
+                        hotTub: "",
+                        sauna: "",
                       });
                     }}
                   >
@@ -250,6 +254,8 @@ export default function Pools() {
                             decking: "",
                             landscaping: "",
                             features: "",
+                            hotTub: "",
+                            sauna: "",
                           });
                         }}
                         className="border-slate-400 text-slate-600 hover:bg-slate-100"
@@ -297,7 +303,9 @@ export default function Pools() {
                         selectedPoolStyles.poolSize ||
                         selectedPoolStyles.decking ||
                         selectedPoolStyles.landscaping ||
-                        selectedPoolStyles.features
+                        selectedPoolStyles.features ||
+                        selectedPoolStyles.hotTub ||
+                        selectedPoolStyles.sauna
                       )
                     }
                     onClick={async () => {
@@ -435,7 +443,9 @@ export default function Pools() {
                     !selectedPoolStyles.poolSize &&
                     !selectedPoolStyles.decking &&
                     !selectedPoolStyles.landscaping &&
-                    !selectedPoolStyles.features && (
+                    !selectedPoolStyles.features &&
+                    !selectedPoolStyles.hotTub &&
+                    !selectedPoolStyles.sauna && (
                       <p className="text-sm text-slate-500 text-center">
                         Please select at least one pool feature option to generate
                         your design
