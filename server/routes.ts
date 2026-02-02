@@ -863,7 +863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const { selectedPoolType, selectedPoolSize, selectedDecking, selectedLandscaping, selectedFeatures, customPrompt } = req.body;
+      const { selectedPoolType, selectedPoolSize, selectedDecking, selectedLandscaping, selectedFeatures, selectedHotTub, selectedSauna, customPrompt } = req.body;
       const userId = req.user.id;
 
       // Validate custom prompt access (Business Pro feature)
@@ -914,7 +914,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           poolSize: selectedPoolSize || undefined,
           decking: selectedDecking || undefined,
           landscaping: selectedLandscaping || undefined,
-          features: selectedFeatures || undefined
+          features: selectedFeatures || undefined,
+          hotTub: selectedHotTub || undefined,
+          sauna: selectedSauna || undefined
         };
 
         // Import the pool style config to get detailed prompts
@@ -944,6 +946,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (selectedFeatures && POOL_STYLE_CONFIG[selectedFeatures]) {
           poolStylesForProcessing[selectedFeatures] = POOL_STYLE_CONFIG[selectedFeatures];
           detailedPrompts.push(POOL_STYLE_CONFIG[selectedFeatures].prompt);
+        }
+        if (selectedHotTub && POOL_STYLE_CONFIG[selectedHotTub]) {
+          poolStylesForProcessing[selectedHotTub] = POOL_STYLE_CONFIG[selectedHotTub];
+          detailedPrompts.push(POOL_STYLE_CONFIG[selectedHotTub].prompt);
+        }
+        if (selectedSauna && POOL_STYLE_CONFIG[selectedSauna]) {
+          poolStylesForProcessing[selectedSauna] = POOL_STYLE_CONFIG[selectedSauna];
+          detailedPrompts.push(POOL_STYLE_CONFIG[selectedSauna].prompt);
         }
 
         // Process with Gemini using the pool-specific processing function

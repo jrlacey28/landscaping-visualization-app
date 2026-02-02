@@ -219,12 +219,16 @@ export const uploadPoolImage = async (file: File, userId: number, selectedPoolSt
   const deckingValue = selectedPoolStyles.decking || '';
   const landscapingValue = selectedPoolStyles.landscaping || '';
   const featuresValue = selectedPoolStyles.features || '';
+  const hotTubValue = selectedPoolStyles.hotTub || '';
+  const saunaValue = selectedPoolStyles.sauna || '';
 
   formData.append('selectedPoolType', poolTypeValue);
   formData.append('selectedPoolSize', poolSizeValue);
   formData.append('selectedDecking', deckingValue);
   formData.append('selectedLandscaping', landscapingValue);
   formData.append('selectedFeatures', featuresValue);
+  formData.append('selectedHotTub', hotTubValue);
+  formData.append('selectedSauna', saunaValue);
   
   if (customPrompt) {
     formData.append('customPrompt', customPrompt);
