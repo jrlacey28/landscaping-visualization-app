@@ -119,6 +119,10 @@ async function initializeDatabase() {
       });
       console.log("Updated demo tenant company name to DreamBuilder");
     }
+
+    // Ensure subscription plans have correct visualization limits
+    await storage.ensureSubscriptionPlanLimits();
+    console.log("Subscription plan limits verified/updated");
   } catch (error) {
     console.error("Database initialization error:", error);
   }

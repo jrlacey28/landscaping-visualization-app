@@ -101,7 +101,7 @@ export default function PricingPage() {
         "Standard sharing options"
       ],
       cta: "Get Started",
-      ctaLink: "prod_T1aCuerVdmVioK"
+      ctaLink: "price_1S5X1sBY2SPm2HvOuDHNzsIp"
     },
     {
       name: "Contractor",

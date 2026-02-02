@@ -119,6 +119,9 @@ export interface IStorage {
   getTeamMemberByJoinCode(joinCode: string): Promise<(TeamMember & { team: Team }) | undefined>;
   acceptTeamInvitationByJoinCode(joinCode: string, userId: number): Promise<TeamMember>;
   hasBusinessProAccess(userId: number): Promise<boolean>;
+  
+  // Plan initialization
+  ensureSubscriptionPlanLimits(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1270,6 +1273,51 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error checking Business Pro access for user ${userId}:`, error);
       return false;
+    }
+  }
+
+  async ensureSubscriptionPlanLimits(): Promise<void> {
+    // Upsert subscription plans to correct visualization limits on app startup
+    const planConfigs = [
+      { id: 'price_1S5X1sBY2SPm2HvOuDHNzsIp', name: 'Basic', description: 'For solo-operators ready to get started', price: 2000, interval: 'month', visualizationLimit: 50, embedAccess: false, active: true },
+      { id: 'price_1S5X2XBY2SPm2HvO2he9Unto', name: 'Contractor', description: 'For small business owners ready to impress clients', price: 10000, interval: 'month', visualizationLimit: 200, embedAccess: true, active: true },
+      { id: 'price_1SGN4YBY2SPm2HvOrpREWCn1', name: 'Business Pro', description: 'For growing teams and advanced features', price: 30000, interval: 'month', visualizationLimit: 650, embedAccess: true, active: true },
+    ];
+
+    for (const config of planConfigs) {
+      try {
+        const existingPlan = await this.getSubscriptionPlan(config.id);
+        if (existingPlan) {
+          // Update existing plan if values differ
+          if (existingPlan.visualizationLimit !== config.visualizationLimit || 
+              existingPlan.active !== config.active ||
+              existingPlan.embedAccess !== config.embedAccess) {
+            await this.db.update(subscriptionPlans)
+              .set({ 
+                visualizationLimit: config.visualizationLimit,
+                active: config.active,
+                embedAccess: config.embedAccess
+              })
+              .where(eq(subscriptionPlans.id, config.id));
+            console.log(`Updated ${config.name} plan: limit=${config.visualizationLimit}, active=${config.active}`);
+          }
+        } else {
+          // Insert missing plan
+          await this.db.insert(subscriptionPlans).values({
+            id: config.id,
+            name: config.name,
+            description: config.description,
+            price: config.price,
+            interval: config.interval,
+            visualizationLimit: config.visualizationLimit,
+            embedAccess: config.embedAccess,
+            active: config.active
+          });
+          console.log(`Created ${config.name} plan: limit=${config.visualizationLimit}, active=${config.active}`);
+        }
+      } catch (error) {
+        console.error(`Failed to ensure ${config.name} plan:`, error);
+      }
     }
   }
 }
