@@ -1,4 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { registerAuthRoutes } from "./auth-routes";
 import { setupGoogleAuth } from "./google-auth";
@@ -44,6 +46,38 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Enforce SESSION_SECRET in production for security
+if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+  throw new Error('SESSION_SECRET environment variable is required in production');
+}
+
+// Configure session middleware BEFORE any routes that need session access
+// This must happen before registerAuthRoutes() and registerRoutes()
+const PgSession = connectPgSimple(session);
+
+const sessionConfig: any = {
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    httpOnly: true,
+    sameSite: 'lax' as const
+  }
+};
+
+// Use PostgreSQL session store in production
+if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
+  sessionConfig.store = new PgSession({
+    conString: process.env.DATABASE_URL,
+    tableName: 'session',
+    createTableIfMissing: true,
+  });
+}
+
+app.use(session(sessionConfig));
 
 app.use((req, res, next) => {
   const start = Date.now();

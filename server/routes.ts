@@ -5,8 +5,6 @@ import multer from "multer";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
-import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
 
 import { storage } from "./storage";
 import { db } from "./db";
@@ -31,36 +29,8 @@ if (!fs.existsSync(uploadsDir)) {
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Enforce SESSION_SECRET in production for security
-  if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
-    throw new Error('SESSION_SECRET environment variable is required in production');
-  }
-
-  // Configure session middleware with production-ready store
-  const PgSession = connectPgSimple(session);
-  
-  const sessionConfig: any = {
-    secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { 
-      secure: process.env.NODE_ENV === 'production', // Auto-detect HTTPS in production
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      httpOnly: true, // Prevent client-side access for security
-      sameSite: 'lax' // CSRF protection
-    }
-  };
-
-  // Use PostgreSQL session store in production, memory store in development
-  if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
-    sessionConfig.store = new PgSession({
-      conString: process.env.DATABASE_URL,
-      tableName: 'session', // Table name for session storage
-      createTableIfMissing: true,
-    });
-  }
-
-  app.use(session(sessionConfig));
+  // Session middleware is now configured in server/index.ts BEFORE this function is called
+  // This ensures all routes (including auth routes) have access to sessions
 
   // Admin authentication middleware
   const requireAdminAuth = (req: any, res: any, next: any) => {
