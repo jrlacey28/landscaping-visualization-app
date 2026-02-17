@@ -8,6 +8,9 @@ import compression from "compression";
 
 const app = express();
 
+// Ensure req.ip is derived from X-Forwarded-For when behind a proxy
+app.set("trust proxy", 1);
+
 // Add compression middleware for better performance
 app.use(compression());
 

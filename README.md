@@ -115,6 +115,24 @@ npm run dev
 - `GET /api/visualizations/:id/status` - Check generation status
 - `POST /api/leads` - Submit lead capture form
 
+## Rate Limiting
+
+The API uses a dual-window (burst + steady) limiter keyed by `IP + user key` (`Bearer` token user id when available, otherwise anonymous/session).
+
+### Protected endpoints
+
+- `POST /api/auth/login`: burst `8/min`, steady `30/15min`
+- `POST /api/admin/login`: burst `5/min`, steady `20/15min`
+- `POST /api/stripe/webhook`: burst `20/min`, steady `150/10min`
+- Cost-based routes (`/api/upload`, `/api/landscape/upload`, `/api/pools/upload`, `/api/analyze`):
+  - burst budget `12 cost/min`, steady budget `70 cost/15min`
+  - request cost is computed from `content-length` (roughly 2-5 cost points based on upload size)
+
+When a limit is exceeded, the API returns HTTP `429` with:
+- `error`, `code`, `message`
+- `rateLimit.policy` (`burst` or `steady`)
+- `rateLimit.retryAfterSeconds` and `Retry-After` header
+
 ## AI Models Used
 
 - **Stable Diffusion XL Inpainting** (`stability-ai/stable-diffusion-xl-inpainting`)
