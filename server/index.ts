@@ -5,8 +5,42 @@ import { setupGoogleAuth } from "./google-auth";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import compression from "compression";
+import session from "express-session";
+import { RedisSessionStore } from "./redis-session-store";
 
 const app = express();
+
+const isProduction = process.env.NODE_ENV === "production";
+if (isProduction && !process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET environment variable is required in production");
+}
+
+const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
+
+app.set("trust proxy", 1);
+
+app.use(session({
+  store: new RedisSessionStore({ url: redisUrl }),
+  secret: process.env.SESSION_SECRET || "development-session-secret",
+  resave: false,
+  saveUninitialized: false,
+  proxy: true,
+  cookie: {
+    secure: "auto",
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000,
+  },
+}));
+
+app.use((req, _res, next) => {
+  if (req.path.startsWith("/api/admin")) {
+    req.session.cookie.sameSite = "strict";
+  } else {
+    req.session.cookie.sameSite = "lax";
+  }
+  next();
+});
 
 // Add compression middleware for better performance
 app.use(compression());
