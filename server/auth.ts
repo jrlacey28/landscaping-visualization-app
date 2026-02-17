@@ -5,7 +5,14 @@ import type { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import type { User, InsertUser } from '@shared/schema';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-production';
+const isDevelopment = process.env.NODE_ENV === 'development';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET && !isDevelopment) {
+  throw new Error('JWT_SECRET environment variable is required when NODE_ENV is not development');
+}
+
+const EFFECTIVE_JWT_SECRET = JWT_SECRET || 'dev-secret-key-change-in-production';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 export interface AuthRequest extends Request {
@@ -26,14 +33,14 @@ export class AuthService {
   static generateToken(user: User): string {
     return jwt.sign(
       { userId: user.id, email: user.email },
-      JWT_SECRET,
+      EFFECTIVE_JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
   }
 
   static verifyToken(token: string): { userId: number; email: string } | null {
     try {
-      return jwt.verify(token, JWT_SECRET) as { userId: number; email: string };
+      return jwt.verify(token, EFFECTIVE_JWT_SECRET) as { userId: number; email: string };
     } catch {
       return null;
     }

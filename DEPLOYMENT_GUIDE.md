@@ -73,7 +73,13 @@ When deploying, make sure to set these environment variables:
 DATABASE_URL=your_postgresql_database_url
 REPLICATE_API_TOKEN=your_replicate_token
 OPENAI_API_KEY=your_openai_key
+JWT_SECRET=a_long_random_secret_for_signing_tokens
+JWT_EXPIRES_IN=15m
 ```
+
+JWT settings:
+- `JWT_SECRET` is mandatory outside development (`NODE_ENV` other than `development`) and startup will fail if it is not configured.
+- Use short access-token expirations (example: `15m`) and implement refresh tokens to rotate sessions safely.
 
 ## Repository Features
 

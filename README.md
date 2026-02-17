@@ -72,7 +72,13 @@ visualizations: id, tenantId, originalImageUrl, generatedImageUrl,
 DATABASE_URL=postgresql://...
 REPLICATE_API_TOKEN=your_replicate_token
 OPENAI_API_KEY=your_openai_key
+JWT_SECRET=a_long_random_secret_for_signing_tokens
+JWT_EXPIRES_IN=15m
 ```
+
+Notes:
+- `JWT_SECRET` is required in non-development environments and the server will fail to start if it is missing.
+- Prefer short-lived access tokens (for example `15m`) and pair them with refresh tokens for secure session rotation.
 
 ## Installation
 
