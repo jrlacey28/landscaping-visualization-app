@@ -1,9 +1,11 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Users table for customer accounts
+export const userRoleEnum = pgEnum("user_role", ["customer", "admin", "super_admin"]);
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
@@ -19,6 +21,23 @@ export const users = pgTable("users", {
   emailVerificationToken: text("email_verification_token"),
   resetPasswordToken: text("reset_password_token"),
   resetPasswordExpires: timestamp("reset_password_expires"),
+  role: userRoleEnum("role").default("customer").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const adminUsers = pgTable("admin_users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: userRoleEnum("role").default("admin").notNull(),
+  mfaEnabled: boolean("mfa_enabled").default(false).notNull(),
+  mfaSecretHash: text("mfa_secret_hash"),
+  failedLoginAttempts: integer("failed_login_attempts").default(0).notNull(),
+  lastFailedLoginAt: timestamp("last_failed_login_at"),
+  lockedUntil: timestamp("locked_until"),
+  lastLoginAt: timestamp("last_login_at"),
+  isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -293,6 +312,15 @@ export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans
   createdAt: true,
 });
 
+export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastFailedLoginAt: true,
+  lockedUntil: true,
+  lastLoginAt: true,
+});
+
 export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
   id: true,
   createdAt: true,
@@ -341,6 +369,8 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
 export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 export type UserUsage = typeof userUsage.$inferSelect;

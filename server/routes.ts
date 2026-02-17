@@ -5,7 +5,6 @@ import multer from "multer";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
-import session from "express-session";
 
 import { storage } from "./storage";
 import { insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertTenantSchema } from "@shared/schema";
@@ -13,6 +12,7 @@ import { z } from "zod";
 import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage } from "./gemini-service";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
+import { adminLoginHandler, adminLogoutHandler, adminStatusHandler, requireAdminAuth } from "./admin-auth";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -25,60 +25,14 @@ if (!fs.existsSync(uploadsDir)) {
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Configure session middleware
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { 
-      secure: process.env.NODE_ENV === 'production', // Auto-detect HTTPS in production
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      httpOnly: true, // Prevent client-side access for security
-      sameSite: 'lax' // CSRF protection
-    }
-  }));
-
-  // Admin authentication middleware
-  const requireAdminAuth = (req: any, res: any, next: any) => {
-    if (req.session?.isAdmin) {
-      next();
-    } else {
-      res.status(401).json({ error: "Admin authentication required" });
-    }
-  };
-
   // Admin login endpoint
-  app.post("/api/admin/login", (req, res) => {
-    const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    
-    if (!adminPassword) {
-      console.error("ADMIN_PASSWORD environment variable not found");
-      return res.status(500).json({ error: "Admin password not configured" });
-    }
-    
-    if (password === adminPassword) {
-      req.session.isAdmin = true;
-      res.json({ success: true, message: "Authenticated successfully" });
-    } else {
-      res.status(401).json({ error: "Invalid password" });
-    }
-  });
+  app.post("/api/admin/login", adminLoginHandler);
 
   // Admin logout endpoint
-  app.post("/api/admin/logout", (req, res) => {
-    req.session.destroy((err: any) => {
-      if (err) {
-        return res.status(500).json({ error: "Could not log out" });
-      }
-      res.json({ success: true, message: "Logged out successfully" });
-    });
-  });
+  app.post("/api/admin/logout", adminLogoutHandler);
 
   // Check admin auth status
-  app.get("/api/admin/status", (req, res) => {
-    res.json({ isAuthenticated: !!req.session?.isAdmin });
-  });
+  app.get("/api/admin/status", adminStatusHandler);
 
   // Admin: Update user plan by Stripe price ID
   app.post("/api/admin/update-user-plan", requireAdminAuth, async (req, res) => {
@@ -278,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId } = req.params;
       const { embedOverride } = req.body; // true, false, or null
-      const adminEmail = req.session?.adminEmail || 'admin';
+      const adminEmail = (req as any).admin?.email || 'admin';
       
       const override = await storage.setUserEmbedOverride(
         parseInt(userId),
