@@ -87,3 +87,23 @@ Your repository includes:
 - Lead capture system
 
 The repository is public and ready for deployment on platforms like Vercel, Railway, or back to Replit.
+## Rate Limiting Configuration
+
+Production API rate limiting is enabled with combined `IP + user-key` identities for better abuse resistance behind shared NATs and logged-in users.
+
+### Endpoint policies
+
+- `POST /api/auth/login`: `8 requests / 1 minute` burst, `30 requests / 15 minutes` steady
+- `POST /api/admin/login`: `5 requests / 1 minute` burst, `20 requests / 15 minutes` steady
+- `POST /api/stripe/webhook`: `20 requests / 1 minute` burst, `150 requests / 10 minutes` steady
+- `POST /api/upload`, `POST /api/landscape/upload`, `POST /api/pools/upload`, `POST /api/analyze`:
+  - cost-based budget of `12 cost / minute` burst and `70 cost / 15 minutes` steady
+  - cost derived from `content-length` upload size bands
+
+### Reverse proxy requirement
+
+`server/index.ts` sets `trust proxy = 1` so the app can correctly read client IPs from `X-Forwarded-For` in production proxy environments.
+
+### 429 response contract
+
+Rate-limited responses include a JSON payload with `code = RATE_LIMIT_EXCEEDED`, policy metadata (`burst` or `steady`), and `Retry-After` to support client retries.

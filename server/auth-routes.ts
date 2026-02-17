@@ -8,6 +8,7 @@ import { AuthService, authenticateToken, requireProPlan, type AuthRequest } from
 import { insertUserSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
+import { createTwoTierRateLimiter } from "./rate-limit";
 
 // Initialize Stripe
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -15,6 +16,18 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-08-27.basil',
+});
+
+const authLoginRateLimit = createTwoTierRateLimiter({
+  name: "auth-login",
+  burst: { windowMs: 60 * 1000, max: 8 },
+  steady: { windowMs: 15 * 60 * 1000, max: 30 },
+});
+
+const stripeWebhookRateLimit = createTwoTierRateLimiter({
+  name: "stripe-webhook",
+  burst: { windowMs: 60 * 1000, max: 20 },
+  steady: { windowMs: 10 * 60 * 1000, max: 150 },
 });
 
 export function registerAuthRoutes(app: Express) {
@@ -34,7 +47,7 @@ export function registerAuthRoutes(app: Express) {
   app.use(passport.session());
 
   // Stripe webhook (must be before express.json middleware)
-  app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (req, res) => {
+  app.post('/api/stripe/webhook', stripeWebhookRateLimit, express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -130,7 +143,7 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  app.post('/api/auth/login', async (req, res) => {
+  app.post('/api/auth/login', authLoginRateLimit, async (req, res) => {
     try {
       const { email, password } = req.body;
       if (!email || !password) {
