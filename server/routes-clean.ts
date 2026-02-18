@@ -10,7 +10,87 @@ import { z } from "zod";
 import { generateLandscapePrompt } from "./openai";
 import { processImageWithSAM2AndGPT4o, waitForSAM2Completion, generateImageWithGPT4o } from "./clean-sam2-gpt4o";
 
-const upload = multer({ storage: multer.memoryStorage() });
+const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+const MAX_UPLOAD_FILES = 1;
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+]);
+const FORMAT_TO_EXTENSION: Record<string, string> = {
+  jpeg: "jpg",
+  png: "png",
+  webp: "webp",
+  avif: "avif",
+};
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: MAX_UPLOAD_SIZE_BYTES,
+    files: MAX_UPLOAD_FILES,
+  },
+  fileFilter: (_req, file, cb) => {
+    if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
+      return cb(new Error("Unsupported file type. Please upload a JPG, PNG, WEBP, or AVIF image."));
+    }
+    cb(null, true);
+  },
+});
+
+async function sanitizeUploadedImage(file: Express.Multer.File) {
+  const image = sharp(file.buffer, { failOn: "error" });
+  const metadata = await image.metadata();
+  const format = metadata.format?.toLowerCase();
+
+  if (!format || !(format in FORMAT_TO_EXTENSION)) {
+    throw new Error("Unsupported or invalid image content.");
+  }
+
+  // Decode + re-encode so we persist only clean raster image bytes.
+  let sanitizedBuffer: Buffer;
+  switch (format) {
+    case "jpeg":
+      sanitizedBuffer = await image.rotate().jpeg({ quality: 92 }).toBuffer();
+      break;
+    case "png":
+      sanitizedBuffer = await image.rotate().png().toBuffer();
+      break;
+    case "webp":
+      sanitizedBuffer = await image.rotate().webp({ quality: 92 }).toBuffer();
+      break;
+    case "avif":
+      sanitizedBuffer = await image.rotate().avif({ quality: 50 }).toBuffer();
+      break;
+    default:
+      throw new Error("Unsupported or invalid image format.");
+  }
+
+  return {
+    buffer: sanitizedBuffer,
+    extension: FORMAT_TO_EXTENSION[format],
+  };
+}
+
+const uploadSingleImage = (req: any, res: any, next: any) => {
+  upload.single("image")(req, res, (err: any) => {
+    if (!err) {
+      return next();
+    }
+
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({ error: `File too large. Max size is ${Math.round(MAX_UPLOAD_SIZE_BYTES / 1024 / 1024)}MB.` });
+      }
+      if (err.code === "LIMIT_FILE_COUNT") {
+        return res.status(400).json({ error: "Only one image file is allowed." });
+      }
+    }
+
+    return res.status(400).json({ error: err.message || "Invalid upload." });
+  });
+};
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), "public", "uploads");
@@ -37,19 +117,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Simple image upload without processing
-  app.post("/api/upload-image", upload.single("image"), async (req, res) => {
+  app.post("/api/upload-image", uploadSingleImage, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      // Generate unique filename
+      const sanitizedImage = await sanitizeUploadedImage(req.file);
+
+      // Generate unique filename with normalized extension
       const timestamp = Date.now();
-      const filename = `${timestamp}-${req.file.originalname}`;
+      const filename = `${timestamp}.${sanitizedImage.extension}`;
       const filepath = path.join(uploadsDir, filename);
 
-      // Save file
-      fs.writeFileSync(filepath, req.file.buffer);
+      // Save file locally for now. Consider moving uploads to object storage (S3/GCS)
+      // and serving through a dedicated assets domain/CDN.
+      fs.writeFileSync(filepath, sanitizedImage.buffer);
 
       // Return URL
       const imageUrl = `/uploads/${filename}`;
@@ -61,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SAM-2 + OpenAI GPT-4o workflow
-  app.post("/api/upload", upload.single("image"), async (req, res) => {
+  app.post("/api/upload", uploadSingleImage, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -73,7 +156,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Tenant ID is required" });
       }
 
-      const originalImageBuffer = req.file.buffer;
+      const sanitizedImage = await sanitizeUploadedImage(req.file);
+      const originalImageBuffer = sanitizedImage.buffer;
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
 
       // Create visualization record
