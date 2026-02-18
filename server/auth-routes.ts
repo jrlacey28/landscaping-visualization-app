@@ -5,9 +5,9 @@ import passport from "passport";
 import Stripe from "stripe";
 import { storage } from "./storage";
 import { AuthService, authenticateToken, requireProPlan, type AuthRequest } from "./auth";
-import { insertUserSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
+import { adminLoginHandler, adminLogoutHandler, adminStatusHandler, requireAdminAuth } from "./admin-auth";
 import { createTwoTierRateLimiter } from "./rate-limit";
 
 // Initialize Stripe
@@ -171,6 +171,10 @@ export function registerAuthRoutes(app: Express) {
       res.status(401).json({ error: error.message });
     }
   });
+
+  app.post('/api/admin/login', adminLoginHandler);
+  app.post('/api/admin/logout', adminLogoutHandler);
+  app.get('/api/admin/status', adminStatusHandler);
 
   app.get('/api/auth/me', authenticateToken, async (req, res) => {
     try {
@@ -337,15 +341,6 @@ export function registerAuthRoutes(app: Express) {
       res.status(500).json({ error: 'Failed to track usage' });
     }
   });
-
-  // Define admin auth middleware
-  const requireAdminAuth = (req: any, res: any, next: any) => {
-    if (req.session?.isAdmin) {
-      next();
-    } else {
-      res.status(401).json({ error: "Admin authentication required" });
-    }
-  };
 
   // Customer management routes (admin only)
   app.get('/api/customers', requireAdminAuth, async (req, res) => {
