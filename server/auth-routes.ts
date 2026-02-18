@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import express from "express";
 import session from "express-session";
+import { randomBytes, timingSafeEqual } from "crypto";
 import passport from "passport";
 import Stripe from "stripe";
 import { storage } from "./storage";
@@ -38,7 +39,8 @@ export function registerAuthRoutes(app: Express) {
     saveUninitialized: false,
     cookie: {
       secure: false, // Set to true in production with HTTPS
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'strict'
     }
   }));
 
@@ -347,6 +349,35 @@ export function registerAuthRoutes(app: Express) {
     }
   };
 
+  const issueAdminCsrfToken = (req: any, _res: any, next: any) => {
+    req.session.adminCsrfToken = randomBytes(32).toString("hex");
+    next();
+  };
+
+  const requireAdminCsrf = (req: any, res: any, next: any) => {
+    const sentToken = req.get("x-csrf-token") || req.body?._csrf;
+    const sessionToken = req.session?.adminCsrfToken;
+
+    if (!sentToken || !sessionToken) {
+      return res.status(403).json({ error: "Invalid CSRF token" });
+    }
+
+    const sentBuffer = Buffer.from(sentToken);
+    const sessionBuffer = Buffer.from(sessionToken);
+    if (
+      sentBuffer.length !== sessionBuffer.length ||
+      !timingSafeEqual(sentBuffer, sessionBuffer)
+    ) {
+      return res.status(403).json({ error: "Invalid CSRF token" });
+    }
+
+    next();
+  };
+
+  app.get('/api/admin/csrf-token', requireAdminAuth, issueAdminCsrfToken, (req, res) => {
+    res.json({ csrfToken: req.session.adminCsrfToken });
+  });
+
   // Customer management routes (admin only)
   app.get('/api/customers', requireAdminAuth, async (req, res) => {
     try {
@@ -359,7 +390,7 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // Admin: Update user plan
-  app.post("/api/admin/update-user-plan", requireAdminAuth, async (req, res) => {
+  app.post("/api/admin/update-user-plan", requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const { userId, planId } = req.body;
 
@@ -418,7 +449,7 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // Admin: Reset user monthly usage
-  app.post("/api/admin/reset-user-usage", requireAdminAuth, async (req, res) => {
+  app.post("/api/admin/reset-user-usage", requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const { userId } = req.body;
 
@@ -444,7 +475,7 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // Admin: Set custom usage limit for user
-  app.post("/api/admin/set-user-limit", requireAdminAuth, async (req, res) => {
+  app.post("/api/admin/set-user-limit", requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const { userId, limit } = req.body;
 
@@ -465,7 +496,7 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // Admin: Set user plan by Stripe price ID
-  app.post("/api/admin/set-user-plan-stripe", requireAdminAuth, async (req, res) => {
+  app.post("/api/admin/set-user-plan-stripe", requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const { userId, stripePriceId } = req.body;
 
