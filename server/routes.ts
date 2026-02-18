@@ -14,7 +14,87 @@ import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImag
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 
-const upload = multer({ storage: multer.memoryStorage() });
+const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+const MAX_UPLOAD_FILES = 1;
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+]);
+const FORMAT_TO_EXTENSION: Record<string, string> = {
+  jpeg: "jpg",
+  png: "png",
+  webp: "webp",
+  avif: "avif",
+};
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: MAX_UPLOAD_SIZE_BYTES,
+    files: MAX_UPLOAD_FILES,
+  },
+  fileFilter: (_req, file, cb) => {
+    if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
+      return cb(new Error("Unsupported file type. Please upload a JPG, PNG, WEBP, or AVIF image."));
+    }
+    cb(null, true);
+  },
+});
+
+async function sanitizeUploadedImage(file: Express.Multer.File) {
+  const image = sharp(file.buffer, { failOn: "error" });
+  const metadata = await image.metadata();
+  const format = metadata.format?.toLowerCase();
+
+  if (!format || !(format in FORMAT_TO_EXTENSION)) {
+    throw new Error("Unsupported or invalid image content.");
+  }
+
+  // Decode + re-encode to ensure only safe raster bytes are stored and processed.
+  let sanitizedBuffer: Buffer;
+  switch (format) {
+    case "jpeg":
+      sanitizedBuffer = await image.rotate().jpeg({ quality: 92 }).toBuffer();
+      break;
+    case "png":
+      sanitizedBuffer = await image.rotate().png().toBuffer();
+      break;
+    case "webp":
+      sanitizedBuffer = await image.rotate().webp({ quality: 92 }).toBuffer();
+      break;
+    case "avif":
+      sanitizedBuffer = await image.rotate().avif({ quality: 50 }).toBuffer();
+      break;
+    default:
+      throw new Error("Unsupported or invalid image format.");
+  }
+
+  return {
+    buffer: sanitizedBuffer,
+    extension: FORMAT_TO_EXTENSION[format],
+  };
+}
+
+const uploadSingleImage = (req: any, res: any, next: any) => {
+  upload.single("image")(req, res, (err: any) => {
+    if (!err) {
+      return next();
+    }
+
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({ error: `File too large. Max size is ${Math.round(MAX_UPLOAD_SIZE_BYTES / 1024 / 1024)}MB.` });
+      }
+      if (err.code === "LIMIT_FILE_COUNT") {
+        return res.status(400).json({ error: "Only one image file is allowed." });
+      }
+    }
+
+    return res.status(400).json({ error: err.message || "Invalid upload." });
+  });
+};
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
@@ -433,20 +513,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload image to public directory and return URL
-  app.post("/api/upload-image", upload.single("image"), async (req, res) => {
+  app.post("/api/upload-image", uploadSingleImage, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      // Generate unique filename
+      const sanitizedImage = await sanitizeUploadedImage(req.file);
+
+      // Generate unique filename with normalized extension
       const timestamp = Date.now();
-      const extension = path.extname(req.file.originalname) || '.jpg';
-      const filename = `upload_${timestamp}${extension}`;
+      const filename = `upload_${timestamp}.${sanitizedImage.extension}`;
       const filepath = path.join(uploadsDir, filename);
 
-      // Save file to public directory
-      fs.writeFileSync(filepath, req.file.buffer);
+      // Save file locally for now. Consider moving uploads to object storage (S3/GCS)
+      // and serving through a dedicated assets domain/CDN.
+      fs.writeFileSync(filepath, sanitizedImage.buffer);
 
       // Return public URL
       const publicUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
@@ -481,7 +563,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Gemini-powered landscape editing workflow
-  app.post("/api/upload", upload.single("image"), async (req, res) => {
+  app.post("/api/upload", uploadSingleImage, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -501,7 +583,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Process image with size constraints (max 1920x1080)
-      const originalImageBuffer = req.file.buffer;
+      const sanitizedImage = await sanitizeUploadedImage(req.file);
+      const originalImageBuffer = sanitizedImage.buffer;
 
       // Create base64 for storage
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
@@ -660,7 +743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Pool-specific API routes - completely separate from roofing/siding
   
   // Pool visualization upload
-  app.post("/api/pools/upload", upload.single("image"), async (req, res) => {
+  app.post("/api/pools/upload", uploadSingleImage, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -680,7 +763,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Process image with size constraints (max 1920x1080)
-      const originalImageBuffer = req.file.buffer;
+      const sanitizedImage = await sanitizeUploadedImage(req.file);
+      const originalImageBuffer = sanitizedImage.buffer;
 
       // Create base64 for storage
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
@@ -853,13 +937,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Gemini-powered image analysis endpoint
-  app.post("/api/analyze", upload.single("image"), async (req, res) => {
+  app.post("/api/analyze", uploadSingleImage, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      const analysis = await analyzeLandscapeImage(req.file.buffer);
+      const sanitizedImage = await sanitizeUploadedImage(req.file);
+      const analysis = await analyzeLandscapeImage(sanitizedImage.buffer);
 
       res.json({
         success: true,
@@ -879,7 +964,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Landscape-specific API routes
   
   // Landscape visualization upload
-  app.post("/api/landscape/upload", upload.single("image"), async (req, res) => {
+  app.post("/api/landscape/upload", uploadSingleImage, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -899,7 +984,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Process image with size constraints (max 1920x1080)
-      const originalImageBuffer = req.file.buffer;
+      const sanitizedImage = await sanitizeUploadedImage(req.file);
+      const originalImageBuffer = sanitizedImage.buffer;
 
       // Create base64 for storage
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
