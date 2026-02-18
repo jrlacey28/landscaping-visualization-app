@@ -72,7 +72,13 @@ visualizations: id, tenantId, originalImageUrl, generatedImageUrl,
 DATABASE_URL=postgresql://...
 REPLICATE_API_TOKEN=your_replicate_token
 OPENAI_API_KEY=your_openai_key
+JWT_SECRET=a_long_random_secret_for_signing_tokens
+JWT_EXPIRES_IN=15m
 ```
+
+Notes:
+- `JWT_SECRET` is required in non-development environments and the server will fail to start if it is missing.
+- Prefer short-lived access tokens (for example `15m`) and pair them with refresh tokens for secure session rotation.
 
 ## Installation
 
@@ -114,6 +120,24 @@ npm run dev
 - `POST /api/upload` - Upload image and generate visualization
 - `GET /api/visualizations/:id/status` - Check generation status
 - `POST /api/leads` - Submit lead capture form
+
+## Rate Limiting
+
+The API uses a dual-window (burst + steady) limiter keyed by `IP + user key` (`Bearer` token user id when available, otherwise anonymous/session).
+
+### Protected endpoints
+
+- `POST /api/auth/login`: burst `8/min`, steady `30/15min`
+- `POST /api/admin/login`: burst `5/min`, steady `20/15min`
+- `POST /api/stripe/webhook`: burst `20/min`, steady `150/10min`
+- Cost-based routes (`/api/upload`, `/api/landscape/upload`, `/api/pools/upload`, `/api/analyze`):
+  - burst budget `12 cost/min`, steady budget `70 cost/15min`
+  - request cost is computed from `content-length` (roughly 2-5 cost points based on upload size)
+
+When a limit is exceeded, the API returns HTTP `429` with:
+- `error`, `code`, `message`
+- `rateLimit.policy` (`burst` or `steady`)
+- `rateLimit.retryAfterSeconds` and `Retry-After` header
 
 ## AI Models Used
 

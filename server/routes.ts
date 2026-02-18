@@ -13,8 +13,22 @@ import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImag
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 import { adminLoginHandler, adminLogoutHandler, adminStatusHandler, requireAdminAuth } from "./admin-auth";
+import { createTwoTierRateLimiter, uploadCostByContentLength } from "./rate-limit";
 
 const upload = multer({ storage: multer.memoryStorage() });
+
+const adminLoginRateLimit = createTwoTierRateLimiter({
+  name: "admin-login",
+  burst: { windowMs: 60 * 1000, max: 5 },
+  steady: { windowMs: 15 * 60 * 1000, max: 20 },
+});
+
+const costlyUploadRateLimit = createTwoTierRateLimiter({
+  name: "costly-upload",
+  burst: { windowMs: 60 * 1000, max: 12 },
+  steady: { windowMs: 15 * 60 * 1000, max: 70 },
+  cost: uploadCostByContentLength,
+});
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
@@ -27,6 +41,22 @@ if (!fs.existsSync(uploadsDir)) {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Admin login endpoint
   app.post("/api/admin/login", adminLoginHandler);
+  app.post("/api/admin/login", adminLoginRateLimit, (req, res) => {
+    const { password } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    
+    if (!adminPassword) {
+      console.error("ADMIN_PASSWORD environment variable not found");
+      return res.status(500).json({ error: "Admin password not configured" });
+    }
+    
+    if (password === adminPassword) {
+      req.session.isAdmin = true;
+      res.json({ success: true, message: "Authenticated successfully" });
+    } else {
+      res.status(401).json({ error: "Invalid password" });
+    }
+  });
 
   // Admin logout endpoint
   app.post("/api/admin/logout", adminLogoutHandler);
@@ -435,7 +465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Gemini-powered landscape editing workflow
-  app.post("/api/upload", upload.single("image"), async (req, res) => {
+  app.post("/api/upload", costlyUploadRateLimit, upload.single("image"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -614,7 +644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Pool-specific API routes - completely separate from roofing/siding
   
   // Pool visualization upload
-  app.post("/api/pools/upload", upload.single("image"), async (req, res) => {
+  app.post("/api/pools/upload", costlyUploadRateLimit, upload.single("image"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -807,7 +837,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Gemini-powered image analysis endpoint
-  app.post("/api/analyze", upload.single("image"), async (req, res) => {
+  app.post("/api/analyze", costlyUploadRateLimit, upload.single("image"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -833,7 +863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Landscape-specific API routes
   
   // Landscape visualization upload
-  app.post("/api/landscape/upload", upload.single("image"), async (req, res) => {
+  app.post("/api/landscape/upload", costlyUploadRateLimit, upload.single("image"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });

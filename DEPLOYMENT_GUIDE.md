@@ -73,7 +73,13 @@ When deploying, make sure to set these environment variables:
 DATABASE_URL=your_postgresql_database_url
 REPLICATE_API_TOKEN=your_replicate_token
 OPENAI_API_KEY=your_openai_key
+JWT_SECRET=a_long_random_secret_for_signing_tokens
+JWT_EXPIRES_IN=15m
 ```
+
+JWT settings:
+- `JWT_SECRET` is mandatory outside development (`NODE_ENV` other than `development`) and startup will fail if it is not configured.
+- Use short access-token expirations (example: `15m`) and implement refresh tokens to rotate sessions safely.
 
 ## Repository Features
 
@@ -87,3 +93,23 @@ Your repository includes:
 - Lead capture system
 
 The repository is public and ready for deployment on platforms like Vercel, Railway, or back to Replit.
+## Rate Limiting Configuration
+
+Production API rate limiting is enabled with combined `IP + user-key` identities for better abuse resistance behind shared NATs and logged-in users.
+
+### Endpoint policies
+
+- `POST /api/auth/login`: `8 requests / 1 minute` burst, `30 requests / 15 minutes` steady
+- `POST /api/admin/login`: `5 requests / 1 minute` burst, `20 requests / 15 minutes` steady
+- `POST /api/stripe/webhook`: `20 requests / 1 minute` burst, `150 requests / 10 minutes` steady
+- `POST /api/upload`, `POST /api/landscape/upload`, `POST /api/pools/upload`, `POST /api/analyze`:
+  - cost-based budget of `12 cost / minute` burst and `70 cost / 15 minutes` steady
+  - cost derived from `content-length` upload size bands
+
+### Reverse proxy requirement
+
+`server/index.ts` sets `trust proxy = 1` so the app can correctly read client IPs from `X-Forwarded-For` in production proxy environments.
+
+### 429 response contract
+
+Rate-limited responses include a JSON payload with `code = RATE_LIMIT_EXCEEDED`, policy metadata (`burst` or `steady`), and `Retry-After` to support client retries.
