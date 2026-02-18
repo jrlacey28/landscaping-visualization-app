@@ -5,6 +5,7 @@ import multer from "multer";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
+import { randomBytes, timingSafeEqual } from "crypto";
 import session from "express-session";
 
 import { storage } from "./storage";
@@ -13,6 +14,7 @@ import { z } from "zod";
 import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage } from "./gemini-service";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
+import { createTwoTierRateLimiter, uploadCostByContentLength } from "./rate-limit";
 
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 const MAX_UPLOAD_FILES = 1;
@@ -96,6 +98,19 @@ const uploadSingleImage = (req: any, res: any, next: any) => {
   });
 };
 
+const adminLoginRateLimit = createTwoTierRateLimiter({
+  name: "admin-login",
+  burst: { windowMs: 60 * 1000, max: 5 },
+  steady: { windowMs: 15 * 60 * 1000, max: 20 },
+});
+
+const costlyUploadRateLimit = createTwoTierRateLimiter({
+  name: "costly-upload",
+  burst: { windowMs: 60 * 1000, max: 12 },
+  steady: { windowMs: 15 * 60 * 1000, max: 70 },
+  cost: uploadCostByContentLength,
+});
+
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -114,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       secure: process.env.NODE_ENV === 'production', // Auto-detect HTTPS in production
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       httpOnly: true, // Prevent client-side access for security
-      sameSite: 'lax' // CSRF protection
+      sameSite: 'strict' // Tighten CSRF protection for admin sessions
     }
   }));
 
@@ -127,8 +142,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
+  const issueAdminCsrfToken = (req: any, _res: any, next: any) => {
+    req.session.adminCsrfToken = randomBytes(32).toString("hex");
+    next();
+  };
+
+  const requireAdminCsrf = (req: any, res: any, next: any) => {
+    const sentToken = req.get("x-csrf-token") || req.body?._csrf;
+    const sessionToken = req.session?.adminCsrfToken;
+
+    if (!sentToken || !sessionToken) {
+      return res.status(403).json({ error: "Invalid CSRF token" });
+    }
+
+    const sentBuffer = Buffer.from(sentToken);
+    const sessionBuffer = Buffer.from(sessionToken);
+    if (
+      sentBuffer.length !== sessionBuffer.length ||
+      !timingSafeEqual(sentBuffer, sessionBuffer)
+    ) {
+      return res.status(403).json({ error: "Invalid CSRF token" });
+    }
+
+    next();
+  };
+
   // Admin login endpoint
-  app.post("/api/admin/login", (req, res) => {
+  app.post("/api/admin/login", adminLoginRateLimit, (req, res) => {
     const { password } = req.body;
     const adminPassword = process.env.ADMIN_PASSWORD;
     
@@ -139,14 +179,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     if (password === adminPassword) {
       req.session.isAdmin = true;
+      req.session.adminCsrfToken = randomBytes(32).toString("hex");
       res.json({ success: true, message: "Authenticated successfully" });
     } else {
       res.status(401).json({ error: "Invalid password" });
     }
   });
 
+  app.get("/api/admin/csrf-token", requireAdminAuth, issueAdminCsrfToken, (req, res) => {
+    res.json({ csrfToken: req.session.adminCsrfToken });
+  });
+
   // Admin logout endpoint
-  app.post("/api/admin/logout", (req, res) => {
+  app.post("/api/admin/logout", requireAdminAuth, requireAdminCsrf, (req, res) => {
     req.session.destroy((err: any) => {
       if (err) {
         return res.status(500).json({ error: "Could not log out" });
@@ -161,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin: Update user plan by Stripe price ID
-  app.post("/api/admin/update-user-plan", requireAdminAuth, async (req, res) => {
+  app.post("/api/admin/update-user-plan", requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const { userId, planId } = req.body;
       console.log(`[ADMIN] Update user plan request - userId: ${userId}, planId: ${planId}`);
@@ -197,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin: Reset user monthly usage
-  app.post("/api/admin/reset-user-usage", requireAdminAuth, async (req, res) => {
+  app.post("/api/admin/reset-user-usage", requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const { userId } = req.body;
       
@@ -223,7 +268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin: Set custom usage limit for user
-  app.post("/api/admin/set-user-limit", requireAdminAuth, async (req, res) => {
+  app.post("/api/admin/set-user-limit", requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const { userId, limit } = req.body;
       
@@ -254,7 +299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/plans", requireAdminAuth, async (req, res) => {
+  app.post("/api/admin/plans", requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const planData = req.body;
       const plan = await storage.createSubscriptionPlan(planData);
@@ -265,7 +310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/plans/:id", requireAdminAuth, async (req, res) => {
+  app.patch("/api/admin/plans/:id", requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const { id } = req.params;
       const planData = req.body;
@@ -277,7 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/plans/:id", requireAdminAuth, async (req, res) => {
+  app.delete("/api/admin/plans/:id", requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deleteSubscriptionPlan(id);
@@ -354,7 +399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/admin/user/:userId/embed-override', requireAdminAuth, async (req, res) => {
+  app.post('/api/admin/user/:userId/embed-override', requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const { userId } = req.params;
       const { embedOverride } = req.body; // true, false, or null
@@ -476,7 +521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create tenant (admin only)
-  app.post("/api/tenants", requireAdminAuth, async (req, res) => {
+  app.post("/api/tenants", requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const tenantData = insertTenantSchema.parse(req.body);
       const tenant = await storage.createTenant(tenantData);
@@ -491,7 +536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update tenant
-  app.patch("/api/tenants/:id", requireAdminAuth, async (req, res) => {
+  app.patch("/api/tenants/:id", requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const { id } = req.params;
       // Convert string dates to Date objects before validation
@@ -564,6 +609,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Gemini-powered landscape editing workflow
   app.post("/api/upload", uploadSingleImage, async (req, res) => {
+  app.post("/api/upload", costlyUploadRateLimit, upload.single("image"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -717,7 +763,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete lead (admin)
-  app.delete("/api/leads/:id", requireAdminAuth, async (req, res) => {
+  app.delete("/api/leads/:id", requireAdminAuth, requireAdminCsrf, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deleteLead(parseInt(id));
@@ -744,6 +790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Pool visualization upload
   app.post("/api/pools/upload", uploadSingleImage, async (req, res) => {
+  app.post("/api/pools/upload", costlyUploadRateLimit, upload.single("image"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -938,6 +985,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Gemini-powered image analysis endpoint
   app.post("/api/analyze", uploadSingleImage, async (req, res) => {
+  app.post("/api/analyze", costlyUploadRateLimit, upload.single("image"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -965,6 +1013,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Landscape visualization upload
   app.post("/api/landscape/upload", uploadSingleImage, async (req, res) => {
+  app.post("/api/landscape/upload", costlyUploadRateLimit, upload.single("image"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
