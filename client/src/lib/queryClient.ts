@@ -11,7 +11,7 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
-  options?: { headers?: Record<string, string> }
+  options?: Omit<RequestInit, "headers"> & { headers?: Record<string, string> }
 ): Promise<Response> {
   const headers: Record<string, string> = {
     ...(data ? { "Content-Type": "application/json" } : {}),
@@ -19,6 +19,7 @@ export async function apiRequest(
   };
 
   const res = await fetch(url, {
+    ...options,
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,

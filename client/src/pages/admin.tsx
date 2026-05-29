@@ -24,7 +24,7 @@ export default function AdminPage() {
     }
   };
 
-  const { data: tenants, isLoading } = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ["tenants"],
     queryFn: async () => {
       const response = await fetch("/api/tenants", {
@@ -67,5 +67,5 @@ export default function AdminPage() {
     );
   }
 
-  return <AdminDashboard tenants={tenants || []} />;
+  return <AdminDashboard />;
 }

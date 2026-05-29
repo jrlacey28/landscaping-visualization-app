@@ -41,9 +41,9 @@ export default function BugFeatureForm() {
     mutationFn: async (data: FeedbackFormData) => {
       // Auto-fill user info
       const leadData = {
-        firstName: user?.name?.split(" ")[0] || "User",
-        lastName: user?.name?.split(" ").slice(1).join(" ") || "",
-        email: user?.email || "",
+        firstName: user?.user.firstName || "User",
+        lastName: user?.user.lastName || "",
+        email: user?.user.email || "",
         phone: "",
         projectDetails: `[${data.type.toUpperCase()}] ${data.title}\n\n${data.description}`,
         leadType: "bugs_features",

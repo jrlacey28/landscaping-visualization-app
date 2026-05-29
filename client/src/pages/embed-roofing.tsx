@@ -74,6 +74,7 @@ export default function EmbedRoofingPage() {
   const [selectedStyles, setSelectedStyles] = useState({
     roof: { enabled: false, type: "" },
     siding: { enabled: false, type: "" },
+    windows: { enabled: false, type: "" },
     surpriseMe: { enabled: false, type: "" },
   });
 
@@ -233,6 +234,7 @@ export default function EmbedRoofingPage() {
                         setSelectedStyles({
                           roof: { enabled: false, type: "" },
                           siding: { enabled: false, type: "" },
+                          windows: { enabled: false, type: "" },
                           surpriseMe: { enabled: false, type: "" },
                         });
                       }}
@@ -253,7 +255,7 @@ export default function EmbedRoofingPage() {
                       if (contactType === 'email' && contactLink) {
                         window.open(contactLink, '_blank');
                       } else if (tenant?.phone) {
-                        window.open(`tel:${effectiveTenant.phone.replace(/[\(\)\-\s]/g, '')}`, '_self');
+                        window.open(`tel:${effectiveTenant.phone?.replace(/[\(\)\-\s]/g, '')}`, '_self');
                       }
                     }}
                   >
@@ -274,6 +276,7 @@ export default function EmbedRoofingPage() {
               selectedStyles={{
                 roof: selectedStyles.roof.type,
                 siding: selectedStyles.siding.type,
+                windows: selectedStyles.windows.type,
                 surpriseMe: selectedStyles.surpriseMe.type,
               }}
               onStyleChange={(styles) => {
@@ -286,11 +289,16 @@ export default function EmbedRoofingPage() {
                     enabled: !!styles.siding,
                     type: styles.siding,
                   },
+                  windows: {
+                    enabled: !!styles.windows,
+                    type: styles.windows,
+                  },
                   surpriseMe: { enabled: !!styles.surpriseMe, type: styles.surpriseMe },
                 });
               }}
               primaryColor={primaryColor}
               secondaryColor={secondaryColor}
+              showWindows={false}
             />
           </div>
         )}
@@ -309,6 +317,7 @@ export default function EmbedRoofingPage() {
                 !(
                   selectedStyles.roof.enabled ||
                   selectedStyles.siding.enabled ||
+                  selectedStyles.windows.enabled ||
                   selectedStyles.surpriseMe.enabled
                 )
               }

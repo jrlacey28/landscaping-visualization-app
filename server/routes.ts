@@ -11,7 +11,7 @@ import { db } from "./db";
 import { users, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations, christmasLightsVisualizations, teamMembers, teams, leads, userUsage, subscriptions, tenants, insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertHalloweenVisualizationSchema, insertChristmasLightsVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage, processHalloweenVisualizationWithGemini, processChristmasLightsWithGemini } from "./gemini-service";
+import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage, processInteriorVisualizationWithGemini, processHalloweenVisualizationWithGemini, processChristmasLightsWithGemini } from "./gemini-service";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 import { authenticateToken, AuthRequest } from "./auth";
@@ -650,13 +650,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const { selectedRoof, selectedSiding, selectedSurpriseMe, customPrompt } = req.body;
+      const { selectedRoof, selectedSiding, selectedSurpriseMe, selectedWindows, customPrompt } = req.body;
       const userId = req.user.id;
+      const hasBusinessPro = await storage.hasBusinessProAccess(userId);
 
       // Validate custom prompt access (Business Pro feature)
       let validatedCustomPrompt = undefined;
       if (customPrompt && customPrompt.trim()) {
-        const hasBusinessPro = await storage.hasBusinessProAccess(userId);
         if (hasBusinessPro) {
           validatedCustomPrompt = customPrompt;
         } else {
@@ -697,13 +697,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const selectedStyles = {
           roof: selectedRoof || undefined,
           siding: selectedSiding || undefined,
-          surpriseMe: selectedSurpriseMe || undefined
+          surpriseMe: selectedSurpriseMe || undefined,
+          windows: selectedWindows || undefined
         };
 
         const result = await processLandscapeWithGemini({
           imageBuffer: originalImageBuffer,
           selectedStyles,
-          customPrompt: validatedCustomPrompt
+          customPrompt: validatedCustomPrompt,
+          usePremiumModel: hasBusinessPro
         });
 
         // Convert edited image to base64 for storage
@@ -776,6 +778,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking visualization status:", error);
       res.status(500).json({ error: "Failed to check status" });
+    }
+  });
+
+  // Interior visualization upload (requires authentication)
+  app.post("/api/interior/upload", authenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const service = z.enum(["painting", "bathroom", "kitchen", "living_room"]).parse(req.body.service);
+      const selectedStylesRaw = typeof req.body.selectedStyles === "string" ? req.body.selectedStyles : "";
+      const selectedStyleRaw = typeof req.body.selectedStyle === "string" ? req.body.selectedStyle : "";
+      let selectedStyles: string[];
+
+      if (selectedStylesRaw) {
+        selectedStyles = z.array(z.string().min(1)).min(1).max(24).parse(JSON.parse(selectedStylesRaw));
+      } else {
+        selectedStyles = [z.string().min(1).parse(selectedStyleRaw)];
+      }
+
+      const customColorName = typeof req.body.customColorName === "string" ? req.body.customColorName : "";
+      const customColorHex = typeof req.body.customColorHex === "string" ? req.body.customColorHex : "";
+      const customPrompt = typeof req.body.customPrompt === "string" ? req.body.customPrompt : "";
+      const userId = req.user.id;
+      const hasBusinessPro = await storage.hasBusinessProAccess(userId);
+
+      let validatedCustomPrompt = undefined;
+      if (customPrompt && customPrompt.trim()) {
+        if (hasBusinessPro) {
+          validatedCustomPrompt = customPrompt;
+        } else {
+          console.log(`User ${userId} attempted to use custom prompt without Business Pro access`);
+        }
+      }
+
+      try {
+        await checkUserUsageLimits(userId, 'visualization');
+      } catch (limitError: any) {
+        return res.status(429).json({ error: limitError.message });
+      }
+
+      const originalImageBuffer = req.file.buffer;
+      const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
+
+      const visualization = await storage.createVisualization({
+        tenantId: null,
+        userId,
+        originalImageUrl: base64Image,
+        selectedRoof: service,
+        selectedSiding: selectedStyles.join(","),
+        selectedSurpriseMe: null,
+        status: "processing",
+      });
+
+      await storage.createOrUpdateUserUsage(userId, 'visualization');
+
+      try {
+        const result = await processInteriorVisualizationWithGemini({
+          imageBuffer: originalImageBuffer,
+          service,
+          selectedStyles,
+          customColorName,
+          customColorHex,
+          customPrompt: validatedCustomPrompt,
+          usePremiumModel: hasBusinessPro
+        });
+
+        const editedBase64 = `data:image/jpeg;base64,${result.editedImageBuffer.toString('base64')}`;
+        const predictionId = `interior_gemini_${Date.now()}`;
+
+        await storage.updateVisualization(visualization.id, {
+          replicateId: predictionId,
+          generatedImageUrl: editedBase64,
+          status: "completed",
+        });
+
+        res.json({
+          visualizationId: visualization.id,
+          replicateId: predictionId,
+          status: "completed",
+          generatedImageUrl: editedBase64,
+          appliedStyles: result.appliedStyles,
+          prompt: result.prompt
+        });
+      } catch (geminiError: any) {
+        console.error("Interior Gemini processing error:", geminiError);
+        await storage.updateVisualization(visualization.id, {
+          status: "failed",
+        });
+
+        res.status(500).json({
+          error: "Interior AI processing failed. Please try again.",
+          visualizationId: visualization.id
+        });
+      }
+    } catch (error: any) {
+      console.error("Interior upload error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid interior request", details: error.errors });
+      }
+      res.status(500).json({ error: "Upload failed. Please try again." });
     }
   });
 
@@ -865,11 +973,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { selectedPoolType, selectedPoolSize, selectedDecking, selectedLandscaping, selectedFeatures, selectedHotTub, selectedSauna, customPrompt } = req.body;
       const userId = req.user.id;
+      const hasBusinessPro = await storage.hasBusinessProAccess(userId);
 
       // Validate custom prompt access (Business Pro feature)
       let validatedCustomPrompt = undefined;
       if (customPrompt && customPrompt.trim()) {
-        const hasBusinessPro = await storage.hasBusinessProAccess(userId);
         if (hasBusinessPro) {
           validatedCustomPrompt = customPrompt;
         } else {
@@ -960,7 +1068,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = await processPoolWithGemini({
           imageBuffer: originalImageBuffer,
           selectedStyles: poolStylesForProcessing,
-          customPrompt: validatedCustomPrompt
+          customPrompt: validatedCustomPrompt,
+          usePremiumModel: hasBusinessPro
         });
 
         // Convert edited image to base64 for storage
@@ -1112,11 +1221,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { selectedCurbing, selectedLandscape, selectedPatios, customPrompt } = req.body;
       const userId = req.user.id;
+      const hasBusinessPro = await storage.hasBusinessProAccess(userId);
 
       // Validate custom prompt access (Business Pro feature)
       let validatedCustomPrompt = undefined;
       if (customPrompt && customPrompt.trim()) {
-        const hasBusinessPro = await storage.hasBusinessProAccess(userId);
         if (hasBusinessPro) {
           validatedCustomPrompt = customPrompt;
         } else {
@@ -1166,7 +1275,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = await processLandscapeVisualizationWithGemini({
           imageBuffer: originalImageBuffer,
           selectedStyles: selectedLandscapeStyles,
-          customPrompt: validatedCustomPrompt
+          customPrompt: validatedCustomPrompt,
+          usePremiumModel: hasBusinessPro
         });
 
         // Convert processed image to base64 for storage
@@ -1258,6 +1368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { selectedDecorations, nightMode, spookyMode } = req.body;
       const userId = req.user.id;
+      const hasBusinessPro = await storage.hasBusinessProAccess(userId);
 
       // Check user usage limits before processing
       try {
@@ -1299,7 +1410,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           imageBuffer: originalImageBuffer,
           selectedDecorations: selectedDecorations || '',
           nightMode: nightMode === 'true' || nightMode === true,
-          spookyMode: spookyMode === 'true' || spookyMode === true
+          spookyMode: spookyMode === 'true' || spookyMode === true,
+          usePremiumModel: hasBusinessPro
         });
 
         // Convert edited image to base64 for storage
@@ -1386,6 +1498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { lightType, lightColor, addSnow } = req.body;
       const userId = req.user.id;
+      const hasBusinessPro = await storage.hasBusinessProAccess(userId);
 
       // Check user usage limits before processing
       try {
@@ -1427,7 +1540,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           originalImageBuffer,
           lightType || 'c9_rope_lights',
           lightColor || 'warm_white',
-          addSnow === 'true' || addSnow === true
+          addSnow === 'true' || addSnow === true,
+          hasBusinessPro
         );
 
         // Convert edited image to base64 for storage

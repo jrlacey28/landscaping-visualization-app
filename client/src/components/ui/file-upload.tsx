@@ -6,10 +6,11 @@ import { StarBorder } from "./star-border";
 interface FileUploadProps {
   onFileSelect: (file: File, previewUrl: string) => void;
   uploadedImage: string | null;
-  theme?: "default" | "pool" | "landscape" | "halloween" | "christmas";
+  theme?: "default" | "pool" | "landscape" | "halloween" | "christmas" | "interior";
+  uploadButtonClassName?: string;
 }
 
-export default function FileUpload({ onFileSelect, uploadedImage, theme = "default" }: FileUploadProps) {
+export default function FileUpload({ onFileSelect, uploadedImage, theme = "default", uploadButtonClassName = "" }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -107,7 +108,8 @@ export default function FileUpload({ onFileSelect, uploadedImage, theme = "defau
             <p className="text-xl font-bold text-stone-800 mb-2">Drop your photo here</p>
             <p className="text-base text-stone-600 mb-4">or click to browse files</p>
             <StarBorder className={`mt-4 ${
-              theme === "pool" 
+              uploadButtonClassName ||
+              (theme === "pool"
                 ? "bg-gradient-to-r from-blue-600 via-green-500 to-blue-600 hover:from-blue-700 hover:via-green-600 hover:to-blue-700"
                 : theme === "landscape"
                 ? "bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-700 hover:via-teal-600 hover:to-emerald-700"
@@ -115,7 +117,10 @@ export default function FileUpload({ onFileSelect, uploadedImage, theme = "defau
                 ? "bg-gradient-to-r from-orange-600 via-purple-500 to-orange-600 hover:from-orange-700 hover:via-purple-600 hover:to-orange-700"
                 : theme === "christmas"
                 ? "bg-gradient-to-r from-red-600 via-green-500 to-red-600 hover:from-red-700 hover:via-green-600 hover:to-red-700"
+                : theme === "interior"
+                ? "bg-gradient-to-r from-blue-600 via-rose-500 to-blue-600 hover:from-blue-700 hover:via-rose-600 hover:to-blue-700"
                 : ""
+              )
             }`}>
               <Upload className="h-4 w-4 mr-2" />
               Upload
@@ -125,7 +130,7 @@ export default function FileUpload({ onFileSelect, uploadedImage, theme = "defau
         <div className="flex justify-center space-x-4 text-sm text-muted-foreground pt-4">
           <div className="flex items-center space-x-1">
             <div className="w-2 h-2 bg-primary rounded-full"></div>
-            <span>Clear and well-lit images of house work best</span>
+            <span>{theme === "interior" ? "Clear and well-lit room photos work best" : "Clear and well-lit images of house work best"}</span>
           </div>
           <div className="flex items-center space-x-1">
             <div className="w-2 h-2 bg-secondary rounded-full"></div>

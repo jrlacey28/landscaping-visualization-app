@@ -6,11 +6,13 @@ interface StyleSelectorProps {
   selectedStyles: {
     roof: string;
     siding: string;
+    windows: string;
     surpriseMe: string;
   };
-  onStyleChange: (styles: { roof: string; siding: string; surpriseMe: string }) => void;
+  onStyleChange: (styles: { roof: string; siding: string; windows: string; surpriseMe: string }) => void;
   primaryColor?: string;
   secondaryColor?: string;
+  showWindows?: boolean;
 }
 
 const roofStyles = [
@@ -62,10 +64,18 @@ const sidingColors = [
   { value: "savannah_wicker", label: "Savannah Wicker", hex: "#D8CAB1" },
 ];
 
-export default function StyleSelector({ selectedStyles, onStyleChange, primaryColor = "#475569", secondaryColor = "#64748b" }: StyleSelectorProps) {
+const windowOptions = [
+  { value: "windows_black_frames", label: "Black Frames" },
+  { value: "windows_white_frames", label: "White Frames" },
+  { value: "windows_bronze_frames", label: "Bronze Frames" },
+  { value: "windows_modern_grid", label: "Modern Grid" },
+];
+
+export default function StyleSelector({ selectedStyles, onStyleChange, primaryColor = "#475569", secondaryColor = "#64748b", showWindows = true }: StyleSelectorProps) {
   const [activeToggles, setActiveToggles] = useState({
     roof: !!selectedStyles.roof,
     siding: !!selectedStyles.siding,
+    windows: !!selectedStyles.windows,
     surpriseMe: !!selectedStyles.surpriseMe,
   });
   
@@ -74,12 +84,13 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
   const [selectedSidingStyle, setSelectedSidingStyle] = useState("");
   const [selectedSidingColor, setSelectedSidingColor] = useState("");
 
-  const handleToggleChange = (category: 'roof' | 'siding' | 'surpriseMe', enabled: boolean) => {
+  const handleToggleChange = (category: 'roof' | 'siding' | 'windows' | 'surpriseMe', enabled: boolean) => {
     // Handle mutual exclusivity between surprise me and other options
     if (category === 'surpriseMe' && enabled) {
       // If enabling surprise me, disable roof and siding
-      setActiveToggles({ roof: false, siding: false, surpriseMe: true });
+      setActiveToggles(prev => ({ ...prev, roof: false, siding: false, surpriseMe: true }));
       onStyleChange({
+        ...selectedStyles,
         roof: "",
         siding: "",
         surpriseMe: selectedStyles.surpriseMe || "random_roof_and_siding",
@@ -106,7 +117,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
     }
   };
 
-  const handleOptionSelect = (category: 'roof' | 'siding' | 'surpriseMe', value: string) => {
+  const handleOptionSelect = (category: 'roof' | 'siding' | 'windows' | 'surpriseMe', value: string) => {
     // Ensure the toggle stays active when making a selection
     setActiveToggles(prev => ({ ...prev, [category]: true }));
     
@@ -119,7 +130,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
   return (
     <div className="space-y-6">
 
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Roof Card */}
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
@@ -269,6 +280,47 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
             </div>
           )}
         </div>
+
+        {/* Windows Card */}
+        {showWindows && (
+        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
+             style={{
+               borderColor: activeToggles.windows ? primaryColor : `${primaryColor}cc`,
+               background: activeToggles.windows
+                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)`
+                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+             }}
+             onClick={() => handleToggleChange('windows', !activeToggles.windows)}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white drop-shadow-sm">Windows</h3>
+            <Switch
+              checked={activeToggles.windows}
+              onCheckedChange={(checked) => handleToggleChange('windows', checked)}
+              onClick={(e) => e.stopPropagation()}
+              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+            />
+          </div>
+
+          {activeToggles.windows && (
+            <div className="space-y-3">
+              <p className="text-sm text-white/80 mb-2">Choose Option:</p>
+              {windowOptions.map((option) => (
+                <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="radio"
+                    name="windowOption"
+                    value={option.value}
+                    checked={selectedStyles.windows === option.value}
+                    onChange={() => handleOptionSelect('windows', option.value)}
+                    className="w-4 h-4 text-white border-white/30 focus:ring-white"
+                  />
+                  <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+        )}
 
         {/* Surprise Me Card */}
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"

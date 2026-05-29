@@ -10,7 +10,7 @@ export default function Home() {
   const { tenant } = useTenant(); // Removed isLoading to prevent blocking
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   
-  const animatedTexts = ["Roof", "Siding", "Landscape", "Patio", "Pool"];
+  const animatedTexts = ["Roof", "Siding", "Landscape", "Patio", "Pool", "Kitchen", "Bathroom", "Paint"];
 
   // Cycle through animated texts
   useEffect(() => {

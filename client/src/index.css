@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#root {
+  color-scheme: only light !important;
+  background-color: #ffffff;
+}
+
+input,
+textarea,
+select,
+button {
+  color-scheme: only light !important;
+}
+
 @keyframes slide-down {
   0% {
     transform: translateY(-30px);
@@ -121,25 +135,26 @@ img {
 }
 
 .dark {
-  --background: 210 11% 8%; /* #131619 */
-  --foreground: 0 0% 98%; /* #FAFAFA */
-  --muted: 210 11% 15%; /* #2A2F36 */
+  color-scheme: only light !important;
+  --background: 0 0% 100%; /* #FFFFFF */
+  --foreground: 210 11% 15%; /* #2A2F36 */
+  --muted: 210 11% 96%; /* #F4F5F6 */
   --muted-foreground: 210 10% 45%; /* #6B7280 */
-  --popover: 210 11% 8%; /* #131619 */
-  --popover-foreground: 0 0% 98%; /* #FAFAFA */
-  --card: 210 11% 8%; /* #131619 */
-  --card-foreground: 0 0% 98%; /* #FAFAFA */
-  --border: 210 11% 20%; /* #3C434B */
-  --input: 210 11% 20%; /* #3C434B */
-  --primary: 210 100% 50%; /* #0080FF */
-  --primary-foreground: 210 11% 8%; /* #131619 */
+  --popover: 0 0% 100%; /* #FFFFFF */
+  --popover-foreground: 210 11% 15%; /* #2A2F36 */
+  --card: 0 0% 100%; /* #FFFFFF */
+  --card-foreground: 210 11% 15%; /* #2A2F36 */
+  --border: 210 11% 88%; /* #DDDFE2 */
+  --input: 210 11% 88%; /* #DDDFE2 */
+  --primary: 210 100% 34%; /* #0056B3 */
+  --primary-foreground: 0 0% 98%; /* #FAFAFA */
   --secondary: 210 11% 25%; /* #3C434B */
   --secondary-foreground: 0 0% 98%; /* #FAFAFA */
   --accent: 210 11% 88%; /* #DDDFE2 */
-  --accent-foreground: 210 11% 8%; /* #131619 */
-  --destructive: 0 62.8% 30.6%; /* #991B1B */
-  --destructive-foreground: 0 0% 98%; /* #FAFAFA */
-  --ring: 210 100% 50%; /* #0080FF */
+  --accent-foreground: 0 0% 98%; /* #FAFAFA */
+  --destructive: 0 84% 60%; /* #EF4444 */
+  --destructive-foreground: 210 20% 98%; /* #F8FAFC */
+  --ring: 210 100% 34%; /* #0056B3 */
 }
 
 @layer base {

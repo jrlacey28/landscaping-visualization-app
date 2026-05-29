@@ -28,11 +28,8 @@ export default function JoinTeam() {
 
     setJoining(true);
     try {
-      const res = await apiRequest("/api/teams/join-with-code", {
-        method: "POST",
-        body: JSON.stringify({ joinCode: joinCode.trim().toUpperCase() }),
-        headers: { "Content-Type": "application/json" },
-        credentials: "include"
+      const res = await apiRequest("POST", "/api/teams/join-with-code", {
+        joinCode: joinCode.trim().toUpperCase(),
       });
 
       if (!res.ok) {

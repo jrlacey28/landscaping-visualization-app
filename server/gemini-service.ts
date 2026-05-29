@@ -21,6 +21,15 @@ const getGeminiApiKey = () => {
 
 const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
 
+const STANDARD_IMAGE_MODEL =
+  process.env.GEMINI_STANDARD_IMAGE_MODEL || "gemini-2.5-flash-image";
+const BUSINESS_IMAGE_MODEL =
+  process.env.GEMINI_BUSINESS_IMAGE_MODEL || "gemini-3.1-flash-image-preview";
+
+function getImageGenerationModel(usePremiumModel?: boolean): string {
+  return usePremiumModel ? BUSINESS_IMAGE_MODEL : STANDARD_IMAGE_MODEL;
+}
+
 interface ProcessedImage {
   buffer: Buffer;
   width: number;
@@ -34,6 +43,7 @@ interface RoofingEditRequest {
     roof?: string;
     siding?: string;
     surpriseMe?: string;
+    windows?: string;
   };
 }
 
@@ -202,14 +212,17 @@ export async function processLandscapeWithGemini({
   imageBuffer,
   selectedStyles,
   customPrompt,
+  usePremiumModel = false,
 }: {
   imageBuffer: Buffer;
   selectedStyles: {
     roof?: string;
     siding?: string;
     surpriseMe?: string;
+    windows?: string;
   };
   customPrompt?: string;
+  usePremiumModel?: boolean;
 }): Promise<{
   editedImageBuffer: Buffer;
   appliedStyles: string[];
@@ -271,6 +284,17 @@ export async function processLandscapeWithGemini({
       }
     }
 
+    if (selectedStyles.windows) {
+      try {
+        const styleConfig = getStyleConfig(selectedStyles.windows);
+        console.log(`Found window style: ${styleConfig.name}`);
+        modifications.push(styleConfig.prompt);
+        appliedStyles.push(selectedStyles.windows);
+      } catch (error) {
+        console.log(`Window style not found: ${selectedStyles.windows}`);
+      }
+    }
+
     if (modifications.length === 0) {
       console.log("❌ No valid modifications found");
       throw new Error("No valid modifications selected");
@@ -284,11 +308,11 @@ export async function processLandscapeWithGemini({
 ${modifications.join("\n\n")}
 
 CRITICAL PRESERVATION RULES:
-- Keep the house structure, windows, doors, and trim exactly the same
+- Keep the house structure, doors, and trim exactly the same unless a selected window option explicitly changes window frames
 - Preserve all existing landscaping, trees, shrubs, and plants
-- Maintain the exact driveway, walkways, and yard layout  
+- Maintain the exact driveway, walkways, and yard layout
 - Keep the same property layout and overall design
-- Only modify the specific roof/siding features listed above
+- Only modify the specific roof/siding/window features listed above
 - Maintain original lighting, shadows, and perspective
 - Keep image dimensions at 1920x1080 pixels
 - Result must look natural and professionally installed
@@ -352,8 +376,11 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
       }
     }
 
+    const imageModel = getImageGenerationModel(usePremiumModel);
+    console.log(`Using Gemini image model: ${imageModel}`);
+
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
+      model: imageModel,
       contents: [
         {
           role: "user",
@@ -428,10 +455,12 @@ export async function processPoolWithGemini({
   imageBuffer,
   selectedStyles,
   customPrompt,
+  usePremiumModel = false,
 }: {
   imageBuffer: Buffer;
   selectedStyles: Record<string, any>;
   customPrompt?: string;
+  usePremiumModel?: boolean;
 }): Promise<{
   editedImageBuffer: Buffer;
   appliedStyles: string[];
@@ -519,8 +548,11 @@ Apply ONLY the pool installations specified above. Do not redesign the yard or d
       },
     ];
 
+    const imageModel = getImageGenerationModel(usePremiumModel);
+    console.log(`Using Gemini image model: ${imageModel}`);
+
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
+      model: imageModel,
       contents: [
         {
           role: "user",
@@ -624,6 +656,7 @@ export async function processLandscapeVisualizationWithGemini({
   imageBuffer,
   selectedStyles,
   customPrompt,
+  usePremiumModel = false,
 }: {
   imageBuffer: Buffer;
   selectedStyles: {
@@ -632,6 +665,7 @@ export async function processLandscapeVisualizationWithGemini({
     patios?: string;
   };
   customPrompt?: string;
+  usePremiumModel?: boolean;
 }): Promise<{
   editedImageBuffer: Buffer;
   appliedStyles: string[];
@@ -820,8 +854,11 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
       try {
         console.log(`🌿 Gemini API attempt ${attempt}/${maxRetries}`);
 
+        const imageModel = getImageGenerationModel(usePremiumModel);
+        console.log(`Using Gemini image model: ${imageModel}`);
+
         response = await ai.models.generateContent({
-          model: "gemini-2.5-flash-image",
+          model: imageModel,
           contents: [
             {
               role: "user",
@@ -918,6 +955,188 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
 }
 
 /**
+ * Processes interior visualization requests - painting, bathrooms, kitchens, and living rooms
+ */
+export async function processInteriorVisualizationWithGemini({
+  imageBuffer,
+  service,
+  selectedStyles,
+  customColorName,
+  customColorHex,
+  customPrompt,
+  usePremiumModel = false,
+}: {
+  imageBuffer: Buffer;
+  service: "painting" | "bathroom" | "kitchen" | "living_room";
+  selectedStyles: string[];
+  customColorName?: string;
+  customColorHex?: string;
+  customPrompt?: string;
+  usePremiumModel?: boolean;
+}): Promise<{
+  editedImageBuffer: Buffer;
+  appliedStyles: string[];
+  prompt: string;
+}> {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || !apiKey.trim()) {
+      throw new Error(
+        "GEMINI_API_KEY not found in secrets. Please add your Google Gemini API key to the Secrets tool.",
+      );
+    }
+
+    const processedImage = await processImageSize(imageBuffer);
+    const { getInteriorStyleConfig } = await import("./interior-style-config");
+    const styleConfigs = selectedStyles.map((styleId) =>
+      getInteriorStyleConfig(service, styleId),
+    );
+
+    const serviceLabels: Record<typeof service, string> = {
+      painting: "interior painting",
+      bathroom: "bathroom redesign",
+      kitchen: "kitchen redesign",
+      living_room: "living room design",
+    };
+
+    let modificationPrompt = styleConfigs
+      .map((styleConfig, index) => `${index + 1}. ${styleConfig.prompt}`)
+      .join("\n\n");
+
+    if (service === "painting" && selectedStyles.includes("custom_paint_color")) {
+      const customColorDetails = [
+        customColorName ? `name: ${customColorName}` : null,
+        customColorHex ? `hex: ${customColorHex}` : null,
+      ].filter(Boolean).join(", ");
+
+      if (customColorDetails) {
+        modificationPrompt += `\n\nCUSTOM PAINT COLOR DETAILS: Use the exact user-selected paint color (${customColorDetails}) for the wall repaint. Match it as closely as possible while preserving realistic indoor lighting and shadows.`;
+      }
+    }
+
+    let finalPrompt = `INTERIOR DESIGN VISUALIZATION INSTRUCTIONS:
+
+Service: ${serviceLabels[service]}
+Selected options: ${styleConfigs.map((styleConfig) => styleConfig.name).join(", ")}
+
+${modificationPrompt}
+
+CRITICAL PRESERVATION RULES:
+- Preserve the original room shape, camera angle, perspective, and proportions
+- Keep windows, doors, ceiling height, and architectural openings in their original positions
+- If several individual options are selected, apply all of them together in one cohesive design
+- Maintain realistic indoor lighting and natural shadows
+- Do not add exterior landscaping or outdoor elements
+- Do not change the image crop, aspect ratio, or viewpoint
+- Result must look like a realistic professional remodel photograph
+- Keep image dimensions at 1920x1080 pixels
+
+Apply ONLY the requested ${serviceLabels[service]} changes and keep the result practical, buildable, and cohesive with the existing room.`;
+
+    if (customPrompt && customPrompt.trim()) {
+      finalPrompt += `\n\nADDITIONAL CUSTOM INSTRUCTIONS:\n${customPrompt.trim()}`;
+      console.log("Custom prompt added to interior generation");
+    }
+
+    const base64Image = processedImage.buffer.toString("base64");
+    const contentParts: any[] = [
+      { text: finalPrompt },
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: "image/jpeg",
+        },
+      },
+    ];
+
+    let response;
+    const maxRetries = 3;
+    const imageModel = getImageGenerationModel(usePremiumModel);
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Interior Gemini API attempt ${attempt}/${maxRetries}`);
+        console.log(`Using Gemini image model: ${imageModel}`);
+
+        response = await ai.models.generateContent({
+          model: imageModel,
+          contents: [
+            {
+              role: "user",
+              parts: contentParts,
+            },
+          ],
+          config: {
+            responseModalities: [Modality.TEXT, Modality.IMAGE],
+          },
+        });
+
+        break;
+      } catch (error: any) {
+        console.log(
+          `Interior Gemini API attempt ${attempt} failed:`,
+          error.message || error,
+        );
+
+        if (attempt === maxRetries) {
+          throw error;
+        }
+
+        const delay = Math.pow(2, attempt) * 1000;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    if (!response) {
+      throw new Error("Failed to get response from Gemini API after all retries");
+    }
+
+    let generatedImageBuffer = processedImage.buffer;
+
+    if (response.candidates && response.candidates.length > 0) {
+      const content = response.candidates[0].content;
+      if (content && content.parts) {
+        for (const part of content.parts) {
+          if (part.inlineData && part.inlineData.data) {
+            const rawGeneratedBuffer = Buffer.from(
+              part.inlineData.data,
+              "base64",
+            );
+
+            const originalMetadata = await sharp(
+              processedImage.buffer,
+            ).metadata();
+            const targetWidth = originalMetadata.width || 1920;
+            const targetHeight = originalMetadata.height || 1080;
+
+            generatedImageBuffer = await sharp(rawGeneratedBuffer)
+              .resize(targetWidth, targetHeight, {
+                fit: "fill",
+                withoutEnlargement: false,
+              })
+              .jpeg({ quality: 92 })
+              .toBuffer();
+
+            break;
+          }
+        }
+      }
+    }
+
+    return {
+      editedImageBuffer: generatedImageBuffer,
+      appliedStyles: [service, ...selectedStyles],
+      prompt: finalPrompt,
+    };
+  } catch (error) {
+    console.error("Gemini interior processing error:", error);
+    throw new Error(
+      `Interior processing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+  }
+}
+
+/**
  * Processes Halloween visualization requests - decorations and spooky atmosphere
  */
 export async function processHalloweenVisualizationWithGemini({
@@ -925,11 +1144,13 @@ export async function processHalloweenVisualizationWithGemini({
   selectedDecorations,
   nightMode,
   spookyMode,
+  usePremiumModel = false,
 }: {
   imageBuffer: Buffer;
   selectedDecorations: string;
   nightMode: boolean;
   spookyMode: boolean;
+  usePremiumModel?: boolean;
 }): Promise<{
   editedImageBuffer: Buffer;
   appliedDecorations: string[];
@@ -1125,8 +1346,11 @@ Create a complete Halloween scene with ALL the decorations specified above visib
       try {
         console.log(`🎃 Gemini API attempt ${attempt}/${maxRetries}`);
 
+        const imageModel = getImageGenerationModel(usePremiumModel);
+        console.log(`Using Gemini image model: ${imageModel}`);
+
         response = await ai.models.generateContent({
-          model: "gemini-2.5-flash-image",
+          model: imageModel,
           contents: [
             {
               role: "user",
@@ -1227,6 +1451,7 @@ export async function processChristmasLightsWithGemini(
   lightType: string,
   lightColor: string,
   addSnow: boolean,
+  usePremiumModel = false,
 ): Promise<{
   editedImageBuffer: Buffer;
   prompt: string;
@@ -1386,8 +1611,11 @@ Create a stunning nighttime Christmas scene with DENSELY-PACKED, ABUNDANT ${ligh
       try {
         console.log(`🎄 Gemini API attempt ${attempt}/${maxRetries}`);
 
+        const imageModel = getImageGenerationModel(usePremiumModel);
+        console.log(`Using Gemini image model: ${imageModel}`);
+
         response = await ai.models.generateContent({
-          model: "gemini-2.5-flash-image",
+          model: imageModel,
           contents: [
             {
               role: "user",

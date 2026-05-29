@@ -4,8 +4,8 @@ export interface StyleConfig {
   prompt: string;
   referenceImageUrl: string;
   referenceImages?: string[]; 
-  category: "roof" | "siding" | "surprise";
-  regionType: "roof" | "exterior" | "random";
+  category: "roof" | "siding" | "windows" | "surprise";
+  regionType: "roof" | "exterior" | "windows" | "random";
 }
 
 // Base style templates for dynamic prompt generation
@@ -229,7 +229,41 @@ export const STYLE_CONFIG: Record<string, StyleConfig> = {
     category: "siding",
     regionType: "exterior",
   },
-  
+
+  // Window Options
+  windows_black_frames: {
+    id: "windows_black_frames",
+    name: "Windows - Black Frames",
+    prompt: "Update only the visible window frames and exterior window trim to slim matte black frames. Keep the exact same window sizes, glass panes, placement, muntin pattern, siding, roof, doors, landscaping, and house architecture unchanged. The windows should look professionally installed and realistic.",
+    referenceImageUrl: "https://mycdn.com/windows-black-frames.jpg",
+    category: "windows",
+    regionType: "windows",
+  },
+  windows_white_frames: {
+    id: "windows_white_frames",
+    name: "Windows - White Frames",
+    prompt: "Update only the visible window frames and exterior window trim to clean bright white frames. Preserve the exact same window sizes, glass panes, placement, muntin pattern, siding, roof, doors, landscaping, and house architecture. Make the trim look freshly installed and realistic.",
+    referenceImageUrl: "https://mycdn.com/windows-white-frames.jpg",
+    category: "windows",
+    regionType: "windows",
+  },
+  windows_bronze_frames: {
+    id: "windows_bronze_frames",
+    name: "Windows - Bronze Frames",
+    prompt: "Update only the visible window frames and exterior window trim to warm dark bronze frames. Keep every window in the same position and size with the same glass and grille layout. Preserve roof, siding, doors, architecture, landscaping, and lighting exactly as shown.",
+    referenceImageUrl: "https://mycdn.com/windows-bronze-frames.jpg",
+    category: "windows",
+    regionType: "windows",
+  },
+  windows_modern_grid: {
+    id: "windows_modern_grid",
+    name: "Windows - Modern Grid",
+    prompt: "Update only the visible windows with a tasteful modern black grid style while preserving each existing window opening, size, placement, and proportion. Do not add new windows or remove existing windows. Preserve roof, siding, doors, trim placement, landscaping, and architecture.",
+    referenceImageUrl: "https://mycdn.com/windows-modern-grid.jpg",
+    category: "windows",
+    regionType: "windows",
+  },
+
   // Surprise Me Option
   random_roof_and_siding: {
     id: "random_roof_and_siding",
@@ -258,6 +292,12 @@ export const REGION_STYLE_MAPPING = {
     "fiber_cement_beige", 
     "wood_siding_natural",
     "brick_veneer_red",
+  ] as const,
+  windows: [
+    "windows_black_frames",
+    "windows_white_frames",
+    "windows_bronze_frames",
+    "windows_modern_grid",
   ] as const,
   random: ["random_roof_and_siding"] as const,
 };

@@ -127,6 +127,7 @@ export default function PricingPage() {
         "Team access for up to 3 users",
         "Custom embed widget",
         "Advanced customization chat",
+        "Higher quality image model",
         "Priority rendering speeds",
         "Additional users: $50/month each"
       ],

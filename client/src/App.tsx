@@ -22,6 +22,7 @@ import TermsPage from "@/pages/terms";
 const RoofingSiding = lazy(() => import("@/pages/roofing-siding"));
 const Pools = lazy(() => import("@/pages/pools"));
 const Landscape = lazy(() => import("@/pages/landscape"));
+const InteriorDesign = lazy(() => import("@/pages/interior-design"));
 const Halloween = lazy(() => import("@/pages/halloween"));
 const ChristmasLights = lazy(() => import("@/pages/christmas-lights"));
 const Admin = lazy(() => import("@/pages/admin"));
@@ -53,6 +54,10 @@ function Router() {
       <Route path="/roofing-siding" component={() => <LazyRoute Component={RoofingSiding} />} />
       <Route path="/landscape" component={() => <LazyRoute Component={Landscape} />} />
       <Route path="/pools" component={() => <LazyRoute Component={Pools} />} />
+      <Route path="/painting" component={() => <LazyRoute Component={InteriorDesign} />} />
+      <Route path="/bathroom-redesign" component={() => <LazyRoute Component={InteriorDesign} />} />
+      <Route path="/kitchen-redesign" component={() => <LazyRoute Component={InteriorDesign} />} />
+      <Route path="/living-room-design" component={() => <LazyRoute Component={InteriorDesign} />} />
       <Route path="/halloween" component={() => <LazyRoute Component={Halloween} />} />
       <Route path="/christmas-lights" component={() => <LazyRoute Component={ChristmasLights} />} />
       <Route path="/admin" component={() => <LazyRoute Component={Admin} />} />

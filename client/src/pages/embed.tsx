@@ -260,7 +260,7 @@ export default function EmbedPage() {
                       if (contactType === 'email' && contactLink) {
                         window.open(contactLink, '_blank');
                       } else if (tenant?.phone) {
-                        window.open(`tel:${effectiveTenant.phone.replace(/[\(\)\-\s]/g, '')}`, '_self');
+                        window.open(`tel:${effectiveTenant.phone?.replace(/[\(\)\-\s]/g, '')}`, '_self');
                       }
                     }}
                   >

@@ -6,7 +6,7 @@ export default function ContactPage() {
   const { tenant } = useTenant()
 
   // Create fallback tenant if API call fails
-  const effectiveTenant = tenant || {
+  const effectiveTenant = (tenant || {
     id: 1,
     slug: "demo",
     companyName: "DreamBuilder",
@@ -23,7 +23,7 @@ export default function ContactPage() {
     monthlyGenerationLimit: 1000,
     currentMonthGenerations: 0,
     createdAt: new Date(),
-  };
+  }) as any;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-black">

@@ -17,10 +17,12 @@ export const uploadImageWithFastSAM2 = async (file: File, tenantId: number, sele
   const roofValue = selectedStyles.roof.enabled && selectedStyles.roof.type ? selectedStyles.roof.type : '';
   const sidingValue = selectedStyles.siding.enabled && selectedStyles.siding.type ? selectedStyles.siding.type : '';
   const surpriseMeValue = selectedStyles.surpriseMe.enabled && selectedStyles.surpriseMe.type ? selectedStyles.surpriseMe.type : '';
+  const windowsValue = selectedStyles.windows?.enabled && selectedStyles.windows?.type ? selectedStyles.windows.type : '';
 
   formData.append('selectedRoof', roofValue);
   formData.append('selectedSiding', sidingValue);
   formData.append('selectedSurpriseMe', surpriseMeValue);
+  formData.append('selectedWindows', windowsValue);
 
   const response = await fetch('/api/fast-edit', {
     method: 'POST',
@@ -60,10 +62,12 @@ export const uploadImage = async (file: File, userId: number, selectedStyles: an
   const roofValue = selectedStyles.roof.enabled && selectedStyles.roof.type ? selectedStyles.roof.type : '';
   const sidingValue = selectedStyles.siding.enabled && selectedStyles.siding.type ? selectedStyles.siding.type : '';
   const surpriseMeValue = selectedStyles.surpriseMe.enabled && selectedStyles.surpriseMe.type ? selectedStyles.surpriseMe.type : '';
+  const windowsValue = selectedStyles.windows?.enabled && selectedStyles.windows?.type ? selectedStyles.windows.type : '';
 
   formData.append('selectedRoof', roofValue);
   formData.append('selectedSiding', sidingValue);
   formData.append('selectedSurpriseMe', surpriseMeValue);
+  formData.append('selectedWindows', windowsValue);
 
   if (maskData) {
     formData.append('maskData', maskData);
@@ -110,6 +114,48 @@ export const checkVisualizationStatus = async (visualizationId: number) => {
 
   if (!response.ok) {
     throw new Error('Failed to check status');
+  }
+
+  return response.json();
+};
+
+export const uploadInteriorImage = async (
+  file: File,
+  service: "painting" | "bathroom" | "kitchen" | "living_room",
+  selectedStyles: string[],
+  customColor?: { name?: string; hex?: string },
+  customPrompt?: string,
+) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  formData.append('service', service);
+  formData.append('selectedStyles', JSON.stringify(selectedStyles));
+
+  if (customColor?.name) {
+    formData.append('customColorName', customColor.name);
+  }
+
+  if (customColor?.hex) {
+    formData.append('customColorHex', customColor.hex);
+  }
+
+  if (customPrompt) {
+    formData.append('customPrompt', customPrompt);
+  }
+
+  const token = getAuthToken();
+  const response = await fetch('/api/interior/upload', {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(`Interior upload failed: ${errorData.error || 'Unknown error'}`);
   }
 
   return response.json();

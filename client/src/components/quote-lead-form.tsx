@@ -90,8 +90,13 @@ export default function QuoteLeadForm({
   };
 
   // Format service name for display
-  const serviceDisplay = service === "roofing-siding" ? "Roofing & Siding" : 
-                         service === "pools" ? "Pool Installation" : "Landscaping";
+  const serviceDisplay = service === "roofing-siding" ? "Roofing & Siding" :
+                         service === "pools" ? "Pool Installation" :
+                         service === "painting" ? "Painting" :
+                         service === "bathroom-redesign" ? "Bathroom Redesign" :
+                         service === "kitchen-redesign" ? "Kitchen Redesign" :
+                         service === "living-room-design" ? "Living Room Design" :
+                         "Landscaping";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">

@@ -45,6 +45,7 @@ export default function RoofingSiding() {
   const [selectedStyles, setSelectedStyles] = useState({
     roof: { enabled: false, type: "" },
     siding: { enabled: false, type: "" },
+    windows: { enabled: false, type: "" },
     surpriseMe: { enabled: false, type: "" },
   });
   const [showLeadForm, setShowLeadForm] = useState(false);
@@ -198,6 +199,7 @@ export default function RoofingSiding() {
                       setSelectedStyles({
                         roof: { enabled: false, type: "" },
                         siding: { enabled: false, type: "" },
+                        windows: { enabled: false, type: "" },
                         surpriseMe: { enabled: false, type: "" },
                       });
                     }}
@@ -251,6 +253,7 @@ export default function RoofingSiding() {
                           setSelectedStyles({
                             roof: { enabled: false, type: "" },
                             siding: { enabled: false, type: "" },
+                            windows: { enabled: false, type: "" },
                             surpriseMe: { enabled: false, type: "" },
                           });
                           setMaskData(null);
@@ -271,7 +274,7 @@ export default function RoofingSiding() {
                       Choose Your Features
                     </h3>
                     <p className="text-slate-600">
-                      Select the roofing and siding options you'd like to see
+                      Select the roofing, siding, and window options you'd like to see
                     </p>
                   </div>
 
@@ -279,6 +282,7 @@ export default function RoofingSiding() {
                     selectedStyles={{
                       roof: selectedStyles.roof.type,
                       siding: selectedStyles.siding.type,
+                      windows: selectedStyles.windows.type,
                       surpriseMe: selectedStyles.surpriseMe.type,
                     }}
                     onStyleChange={(styles) => {
@@ -290,6 +294,10 @@ export default function RoofingSiding() {
                         siding: {
                           enabled: !!styles.siding,
                           type: styles.siding,
+                        },
+                        windows: {
+                          enabled: !!styles.windows,
+                          type: styles.windows,
                         },
                         surpriseMe: { enabled: !!styles.surpriseMe, type: styles.surpriseMe },
                       });
@@ -314,6 +322,8 @@ export default function RoofingSiding() {
                           selectedStyles.roof.type) ||
                         (selectedStyles.siding.enabled &&
                           selectedStyles.siding.type) ||
+                        (selectedStyles.windows.enabled &&
+                          selectedStyles.windows.type) ||
                         (selectedStyles.surpriseMe.enabled &&
                           selectedStyles.surpriseMe.type)
                       )
@@ -455,6 +465,8 @@ export default function RoofingSiding() {
                     !selectedStyles.roof.type) &&
                     (!selectedStyles.siding.enabled ||
                       !selectedStyles.siding.type) &&
+                    (!selectedStyles.windows.enabled ||
+                      !selectedStyles.windows.type) &&
                     (!selectedStyles.surpriseMe.enabled ||
                       !selectedStyles.surpriseMe.type) && (
                       <p className="text-sm text-slate-500 text-center">

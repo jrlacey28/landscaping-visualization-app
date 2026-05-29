@@ -20,7 +20,7 @@ export default function EmbedPoolsPage() {
   const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant(tenantSlug);
 
   // Create fallback tenant if API call fails
-  const effectiveTenant = tenant || {
+  const effectiveTenant = (tenant || {
     id: 1,
     slug: "demo",
     companyName: companyName || "DreamBuilder",
@@ -37,7 +37,7 @@ export default function EmbedPoolsPage() {
     monthlyGenerationLimit: 1000,
     currentMonthGenerations: 0,
     createdAt: new Date(),
-  };
+  }) as any;
 
   // Check if tenant is active
   if (effectiveTenant && !effectiveTenant.active) {
@@ -77,6 +77,8 @@ export default function EmbedPoolsPage() {
     decking: "",
     landscaping: "",
     features: "",
+    hotTub: "",
+    sauna: "",
   });
 
   // Apply custom branding

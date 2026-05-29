@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API);
+const resendApiKey = process.env.RESEND_API || process.env.RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 interface SendTeamInvitationEmailParams {
   toEmail: string;
@@ -18,6 +19,11 @@ export async function sendTeamInvitationEmail({
   joinCode
 }: SendTeamInvitationEmailParams): Promise<boolean> {
   try {
+    if (!resend) {
+      console.warn("RESEND_API is not configured; skipping team invitation email.");
+      return false;
+    }
+
     // Use onboarding@resend.dev for testing, or configure your verified domain
     const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
     

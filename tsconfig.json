@@ -1,6 +1,16 @@
 {
   "include": ["client/src/**/*", "shared/**/*", "server/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "**/*.test.ts",
+    "server/routes-clean.ts",
+    "server/fast-sam2-openai.ts",
+    "server/sam.ts",
+    "server/sam2-openai.ts",
+    "server/sam2-workflow.ts"
+  ],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
