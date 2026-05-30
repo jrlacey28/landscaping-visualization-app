@@ -15,16 +15,28 @@ if (!GOOGLE_CLIENT_SECRET) {
 const googleClientSecret = GOOGLE_CLIENT_SECRET;
 
 function getGoogleCallbackUrl(req?: Request) {
-  if (process.env.GOOGLE_CALLBACK_URL) {
-    return process.env.GOOGLE_CALLBACK_URL;
+  const configuredBaseUrl =
+    process.env.APP_URL ||
+    process.env.PRODUCTION_URL ||
+    process.env.GOOGLE_CALLBACK_URL?.replace(/\/api\/auth\/google\/callback\/?$/, "");
+
+  if (configuredBaseUrl) {
+    return `${configuredBaseUrl.replace(/\/$/, "")}/api/auth/google/callback`;
+  }
+
+  const forwardedHost = req?.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const host = forwardedHost || req?.get("host");
+  if (host) {
+    const forwardedProto = req?.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    const protocol = forwardedProto || (host.includes("localhost") ? "http" : "https");
+    return `${protocol}://${host}/api/auth/google/callback`;
   }
 
   if (process.env.REPLIT_DOMAINS) {
     return `https://${process.env.REPLIT_DOMAINS.split(",")[0]}/api/auth/google/callback`;
   }
 
-  const host = req?.get("host") || `localhost:${process.env.PORT || 5000}`;
-  return `http://${host}/api/auth/google/callback`;
+  return `http://localhost:${process.env.PORT || 5000}/api/auth/google/callback`;
 }
 
 export function setupGoogleAuth(app: Express) {
