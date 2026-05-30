@@ -7,7 +7,7 @@ import path from "path";
 import fs from "fs";
 
 import { storage } from "./storage";
-import { db } from "./db";
+import { databaseUrl, db, dbDriver, dbUsesSsl, getDatabaseHost, serverBuild } from "./db";
 import { users, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations, christmasLightsVisualizations, generationProjects, projectGenerations, teamMembers, teams, leads, userUsage, subscriptions, tenants, insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertHalloweenVisualizationSchema, insertChristmasLightsVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -19,6 +19,14 @@ import jwt from 'jsonwebtoken';
 import { sendTeamInvitationEmail } from "./email-service";
 
 const upload = multer({ storage: multer.memoryStorage() });
+
+function sanitizeDatabaseError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return message
+    .replace(databaseUrl || "", "[DATABASE_URL]")
+    .replace(/postgres(?:ql)?:\/\/[^@\s]+@/gi, "postgres://[redacted]@");
+}
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
@@ -195,12 +203,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check database connection
       let dbStatus = 'unknown';
       let dbHost = 'unknown';
+      let dbError: string | undefined;
       try {
         await storage.getUser(1); // Simple query to test DB
         dbStatus = 'connected';
-        dbHost = process.env.DATABASE_URL?.split('@')[1]?.split('/')[0] || 'unknown';
+        dbHost = getDatabaseHost();
       } catch (e) {
         dbStatus = 'failed';
+        dbHost = getDatabaseHost();
+        dbError = sanitizeDatabaseError(e);
       }
 
       // Check Stripe configuration
@@ -242,6 +253,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
+        build: {
+          server: serverBuild,
+        },
         environment: {
           NODE_ENV: process.env.NODE_ENV || 'unknown',
           isProduction,
@@ -250,8 +264,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         database: {
           status: dbStatus,
+          driver: dbDriver,
+          ssl: dbUsesSsl,
           host: dbHost,
-          url_set: Boolean(process.env.DATABASE_URL),
+          url_set: Boolean(databaseUrl || process.env.DATABASE_URL),
+          error: dbError,
         },
         stripe: {
           secret_key_set: stripeSecretSet,

@@ -1,11 +1,13 @@
 import "dotenv/config";
 import fs from "fs";
 import path from "path";
-import { Pool } from "pg";
+import { Pool, type PoolConfig } from "pg";
 import { drizzle as drizzleNodePostgres } from "drizzle-orm/node-postgres";
 import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
 import { PGlite } from "@electric-sql/pglite";
 import * as schema from "@shared/schema";
+
+export const serverBuild = "2026-05-30-db-pg-ssl";
 
 function getReplitDatabaseUrl() {
   if (process.env.NODE_ENV !== "production") {
@@ -35,9 +37,35 @@ if (!useLocalDatabase && !databaseUrl) {
   );
 }
 
+export const dbDriver = useLocalDatabase ? "pglite" : "node-postgres";
+export const dbUsesSsl =
+  !useLocalDatabase &&
+  process.env.DATABASE_SSL !== "false" &&
+  (process.env.DATABASE_SSL === "true" ||
+    process.env.NODE_ENV === "production" ||
+    /sslmode=require|neon\.tech|supabase\.co/i.test(databaseUrl || ""));
+
+const poolConfig: PoolConfig = {
+  connectionString: databaseUrl,
+};
+
+if (dbUsesSsl) {
+  poolConfig.ssl = { rejectUnauthorized: false };
+}
+
 export const pool = useLocalDatabase
   ? undefined
-  : new Pool({ connectionString: databaseUrl });
+  : new Pool(poolConfig);
+
+export function getDatabaseHost() {
+  if (!databaseUrl) return "local";
+
+  try {
+    return new URL(databaseUrl).host;
+  } catch {
+    return "unknown";
+  }
+}
 
 const localDatabasePath = process.env.LOCAL_DATABASE_PATH || ".local/pglite";
 if (useLocalDatabase) {
