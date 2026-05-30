@@ -250,22 +250,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const PROFESSIONAL_PLAN_ID = 'price_1SGN4YBY2SPm2HvOrpREWCn1';
       let paidUsers = 0;
       let embedEnabledUsers = 0;
+      let embedStatsIssue = dbStatus === 'failed' ? 'skipped because database health check failed' : 'ok';
       
-      try {
-        const users = await storage.getAllUsersWithUsage();
-        for (const user of users) {
-          if (
-            user.subscription?.planId === CONTRACTOR_PLAN_ID ||
-            user.subscription?.planId === PROFESSIONAL_PLAN_ID ||
-            (user.usage?.planName && ['Contractor', 'Professional'].includes(user.usage.planName))
-          ) {
-            paidUsers++;
+      if (dbStatus === 'connected') {
+        try {
+          const users = await withTimeout(
+            storage.getAllUsersWithUsage(),
+            5_000,
+            "Paid user health check",
+          );
+          for (const user of users) {
+            if (
+              user.subscription?.planId === CONTRACTOR_PLAN_ID ||
+              user.subscription?.planId === PROFESSIONAL_PLAN_ID ||
+              (user.usage?.planName && ['Contractor', 'Professional'].includes(user.usage.planName))
+            ) {
+              paidUsers++;
+            }
+            const hasEmbed = await withTimeout(
+              storage.computeEmbedAccess(user.id),
+              2_000,
+              `Embed access health check for user ${user.id}`,
+            );
+            if (hasEmbed) embedEnabledUsers++;
           }
-          const hasEmbed = await storage.computeEmbedAccess(user.id);
-          if (hasEmbed) embedEnabledUsers++;
+          embedStatsIssue = paidUsers > embedEnabledUsers ? 'Some paid users missing embed access' : 'ok';
+        } catch (e) {
+          console.error('Error checking users:', e);
+          embedStatsIssue = sanitizeDatabaseError(e);
         }
-      } catch (e) {
-        console.error('Error checking users:', e);
       }
 
       res.json({
@@ -307,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         embedStats: {
           paidUsers,
           embedEnabledUsers,
-          issue: paidUsers > embedEnabledUsers ? 'Some paid users missing embed access' : 'ok',
+          issue: embedStatsIssue,
         },
         debug: {
           cookies_sent: req.headers.cookie || 'none',

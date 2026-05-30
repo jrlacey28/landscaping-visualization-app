@@ -47,6 +47,10 @@ export const dbUsesSsl =
 
 const poolConfig: PoolConfig = {
   connectionString: databaseUrl,
+  connectionTimeoutMillis: Number(process.env.DATABASE_CONNECT_TIMEOUT_MS || 5_000),
+  idleTimeoutMillis: Number(process.env.DATABASE_IDLE_TIMEOUT_MS || 30_000),
+  query_timeout: Number(process.env.DATABASE_QUERY_TIMEOUT_MS || 5_000),
+  statement_timeout: Number(process.env.DATABASE_STATEMENT_TIMEOUT_MS || 5_000),
 };
 
 if (dbUsesSsl) {
