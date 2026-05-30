@@ -9,24 +9,7 @@ import * as schema from "@shared/schema";
 
 export const serverBuild = "2026-05-30-db-pg-ssl";
 
-function getReplitDatabaseUrl() {
-  if (process.env.NODE_ENV !== "production") {
-    return undefined;
-  }
-
-  try {
-    if (fs.existsSync("/tmp/replitdb")) {
-      const dbUrl = fs.readFileSync("/tmp/replitdb", "utf-8").trim();
-      if (dbUrl) return dbUrl;
-    }
-  } catch {
-    console.log("Could not read /tmp/replitdb, falling back to DATABASE_URL");
-  }
-
-  return undefined;
-}
-
-export const databaseUrl = getReplitDatabaseUrl() || process.env.DATABASE_URL;
+export const databaseUrl = process.env.DATABASE_URL;
 const useLocalDatabase =
   process.env.USE_LOCAL_DB === "true" ||
   (!databaseUrl && process.env.NODE_ENV !== "production");
