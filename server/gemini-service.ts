@@ -319,7 +319,7 @@ CRITICAL PRESERVATION RULES:
 
 Apply ONLY the specified modifications above. Do not redesign or dramatically alter the home.`;
 
-    // Add custom prompt if provided (Business Pro feature)
+    // Add custom prompt if provided (Professional feature)
     if (customPrompt && customPrompt.trim()) {
       finalPrompt += `\n\nADDITIONAL CUSTOM INSTRUCTIONS:\n${customPrompt.trim()}`;
       console.log("✓ Custom prompt added to generation");
@@ -524,7 +524,7 @@ CRITICAL PRESERVATION RULES:
 
 Apply ONLY the pool installations specified above. Do not redesign the yard or dramatically alter existing features.`;
 
-    // Add custom prompt if provided (Business Pro feature)
+    // Add custom prompt if provided (Professional feature)
     if (customPrompt && customPrompt.trim()) {
       finalPrompt += `\n\nADDITIONAL CUSTOM INSTRUCTIONS:\n${customPrompt.trim()}`;
       console.log("✓ Custom prompt added to pool generation");
@@ -821,7 +821,7 @@ CRITICAL PRESERVATION RULES:
 
 Apply ONLY the landscape modifications specified above. Do not redesign the entire yard or dramatically alter existing features.`;
 
-    // Add custom prompt if provided (Business Pro feature)
+    // Add custom prompt if provided (Professional feature)
     if (customPrompt && customPrompt.trim()) {
       finalPrompt += `\n\nADDITIONAL CUSTOM INSTRUCTIONS:\n${customPrompt.trim()}`;
       console.log("✓ Custom prompt added to landscape generation");

@@ -8,7 +8,7 @@ import fs from "fs";
 
 import { storage } from "./storage";
 import { db } from "./db";
-import { users, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations, christmasLightsVisualizations, teamMembers, teams, leads, userUsage, subscriptions, tenants, insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertHalloweenVisualizationSchema, insertChristmasLightsVisualizationSchema, insertTenantSchema } from "@shared/schema";
+import { users, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations, christmasLightsVisualizations, generationProjects, projectGenerations, teamMembers, teams, leads, userUsage, subscriptions, tenants, insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertHalloweenVisualizationSchema, insertChristmasLightsVisualizationSchema, insertTenantSchema } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage, processInteriorVisualizationWithGemini, processHalloweenVisualizationWithGemini, processChristmasLightsWithGemini } from "./gemini-service";
@@ -24,6 +24,154 @@ const upload = multer({ storage: multer.memoryStorage() });
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const generationServices = [
+  "roofing-siding",
+  "interior",
+  "pools",
+  "landscape",
+  "halloween",
+  "christmas-lights",
+] as const;
+
+type GenerationService = typeof generationServices[number];
+
+const interiorServiceSlugs = new Set(["painting", "bathroom", "kitchen", "living_room"]);
+
+const serviceLabels: Record<GenerationService, string> = {
+  "roofing-siding": "Roofing & Siding",
+  interior: "Interior",
+  pools: "Pools",
+  landscape: "Landscape",
+  halloween: "Halloween",
+  "christmas-lights": "Christmas Lights",
+};
+
+function isGenerationService(value: unknown): value is GenerationService {
+  return typeof value === "string" && generationServices.includes(value as GenerationService);
+}
+
+function humanize(value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+
+  return String(value)
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function styleLine(label: string, value: unknown) {
+  const formatted = humanize(value);
+  return formatted ? `${label}: ${formatted}` : null;
+}
+
+function compactStyles(values: Array<string | null | undefined | false>) {
+  return values.filter(Boolean) as string[];
+}
+
+function getVisualizationService(visualization: any): GenerationService {
+  return interiorServiceSlugs.has(visualization.selectedRoof || "") ? "interior" : "roofing-siding";
+}
+
+function getStyleSummary(service: GenerationService, visualization: any) {
+  if (service === "roofing-siding") {
+    return compactStyles([
+      styleLine("Roof", visualization.selectedRoof),
+      styleLine("Siding", visualization.selectedSiding),
+      styleLine("Surprise", visualization.selectedSurpriseMe),
+    ]);
+  }
+
+  if (service === "interior") {
+    const selectedStyles = typeof visualization.selectedSiding === "string"
+      ? visualization.selectedSiding.split(",").map((style: string) => humanize(style)).filter(Boolean)
+      : [];
+
+    return compactStyles([
+      styleLine("Room", visualization.selectedRoof),
+      selectedStyles.length ? `Styles: ${selectedStyles.join(", ")}` : null,
+    ]);
+  }
+
+  if (service === "pools") {
+    return compactStyles([
+      styleLine("Type", visualization.selectedPoolType),
+      styleLine("Size", visualization.selectedPoolSize),
+      styleLine("Decking", visualization.selectedDecking),
+      styleLine("Landscaping", visualization.selectedLandscaping),
+      styleLine("Features", visualization.selectedFeatures),
+    ]);
+  }
+
+  if (service === "landscape") {
+    return compactStyles([
+      styleLine("Curbing", visualization.selectedCurbing),
+      styleLine("Landscape", visualization.selectedLandscape),
+      styleLine("Patio", visualization.selectedPatios),
+    ]);
+  }
+
+  if (service === "halloween") {
+    return compactStyles([
+      styleLine("Decorations", visualization.selectedDecorations),
+      visualization.nightMode ? "Night Mode" : null,
+      visualization.spookyMode ? "Spooky Mode" : null,
+    ]);
+  }
+
+  return compactStyles([
+    styleLine("Light Type", visualization.lightType),
+    styleLine("Color", visualization.lightColor),
+    visualization.addSnow ? "Snow Added" : null,
+  ]);
+}
+
+function normalizeGeneration(visualization: any, service: GenerationService, assignments: any[]) {
+  return {
+    id: `${service}:${visualization.id}`,
+    visualizationId: visualization.id,
+    service,
+    serviceLabel: serviceLabels[service],
+    status: visualization.status || "completed",
+    originalImageUrl: visualization.originalImageUrl,
+    generatedImageUrl: visualization.generatedImageUrl,
+    createdAt: visualization.createdAt,
+    styles: getStyleSummary(service, visualization),
+    assignments,
+  };
+}
+
+async function getOwnedGenerationForService(userId: number, service: GenerationService, visualizationId: number) {
+  if (service === "pools") {
+    const generation = await storage.getPoolVisualization(visualizationId);
+    return generation?.userId === userId ? generation : undefined;
+  }
+
+  if (service === "landscape") {
+    const generation = await storage.getLandscapeVisualization(visualizationId);
+    return generation?.userId === userId ? generation : undefined;
+  }
+
+  if (service === "halloween") {
+    const generation = await storage.getHalloweenVisualization(visualizationId);
+    return generation?.userId === userId ? generation : undefined;
+  }
+
+  if (service === "christmas-lights") {
+    const generation = await storage.getChristmasLightsVisualization(visualizationId);
+    return generation?.userId === userId ? generation : undefined;
+  }
+
+  const generation = await storage.getVisualization(visualizationId);
+  if (!generation || generation.userId !== userId) {
+    return undefined;
+  }
+
+  return getVisualizationService(generation) === service ? generation : undefined;
 }
 
 
@@ -68,16 +216,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isProduction = process.env.NODE_ENV === 'production';
       const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || 'unknown';
 
-      // Check Pro plan configuration
-      const PRO_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
-      let proUsers = 0;
+      // Check paid plan configuration
+      const CONTRACTOR_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
+      const PROFESSIONAL_PLAN_ID = 'price_1SGN4YBY2SPm2HvOrpREWCn1';
+      let paidUsers = 0;
       let embedEnabledUsers = 0;
       
       try {
         const users = await storage.getAllUsersWithUsage();
         for (const user of users) {
-          if (user.subscription?.planId === PRO_PLAN_ID || user.usage?.planName === 'Pro') {
-            proUsers++;
+          if (
+            user.subscription?.planId === CONTRACTOR_PLAN_ID ||
+            user.subscription?.planId === PROFESSIONAL_PLAN_ID ||
+            (user.usage?.planName && ['Contractor', 'Professional'].includes(user.usage.planName))
+          ) {
+            paidUsers++;
           }
           const hasEmbed = await storage.computeEmbedAccess(user.id);
           if (hasEmbed) embedEnabledUsers++;
@@ -104,7 +257,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           secret_key_set: stripeSecretSet,
           webhook_secret_set: stripeWebhookSet,
           public_key_set: stripePublicSet,
-          pro_plan_id: PRO_PLAN_ID,
+          contractor_plan_id: CONTRACTOR_PLAN_ID,
+          professional_plan_id: PROFESSIONAL_PLAN_ID,
         },
         session: {
           secret_set: sessionSecretSet,
@@ -116,9 +270,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         },
         embedStats: {
-          proUsers,
+          paidUsers,
           embedEnabledUsers,
-          issue: proUsers > embedEnabledUsers ? 'Some Pro users missing embed access' : 'ok',
+          issue: paidUsers > embedEnabledUsers ? 'Some paid users missing embed access' : 'ok',
         },
         debug: {
           cookies_sent: req.headers.cookie || 'none',
@@ -171,8 +325,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         usage: usage,
         computedEmbedAccess: hasEmbed,
         checks: {
-          hasProPlanId: subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto',
-          usageSaysPro: usage.planName === 'Pro',
+          hasContractorPlanId: subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto',
+          hasProfessionalPlanId: subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1',
+          usageSaysPaid: ['Contractor', 'Professional'].includes(usage.planName),
           usageSaysCustom: usage.planName === 'Custom',
         }
       });
@@ -234,6 +389,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db.delete(poolVisualizations).where(eq(poolVisualizations.userId, userIdNum));
       await db.delete(landscapeVisualizations).where(eq(landscapeVisualizations.userId, userIdNum));
       await db.delete(halloweenVisualizations).where(eq(halloweenVisualizations.userId, userIdNum));
+      await db.delete(christmasLightsVisualizations).where(eq(christmasLightsVisualizations.userId, userIdNum));
+      await db.delete(projectGenerations).where(eq(projectGenerations.userId, userIdNum));
+      await db.delete(generationProjects).where(eq(generationProjects.userId, userIdNum));
       
       // Delete ALL team member records (both active memberships and pending invitations)
       // First, get all teams owned by this user
@@ -362,10 +520,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const usersWithData = await storage.getAllUsersWithUsage();
       
-      // Compute embed access for each user - SIMPLE: Pro users get it
+      // Compute embed access for each user - paid users get it
       const usersWithEmbedAccess = await Promise.all(
         usersWithData.map(async (user) => {
-          // Simple check: Pro users get embed access
           const hasEmbedAccess = await storage.computeEmbedAccess(user.id);
           
           return {
@@ -639,6 +796,307 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return { subscription, plan };
   }
 
+  const projectSchema = z.object({
+    name: z.string().trim().min(1, "Project name is required").max(120),
+    address: z.string().trim().max(200).optional().nullable(),
+    notes: z.string().trim().max(1000).optional().nullable(),
+  });
+
+  const projectGenerationSchema = z.object({
+    service: z.enum(generationServices),
+    visualizationId: z.number().int().positive(),
+  });
+
+  app.get("/api/generation-projects", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const [projects, assignments] = await Promise.all([
+        storage.getGenerationProjectsByUser(req.user.id),
+        storage.getProjectGenerationsByUser(req.user.id),
+      ]);
+
+      const projectStats = new Map<number, { count: number; lastSavedAt: Date | null }>();
+      for (const assignment of assignments) {
+        const stats = projectStats.get(assignment.projectId) || { count: 0, lastSavedAt: null };
+        stats.count += 1;
+        if (!stats.lastSavedAt || (assignment.createdAt && assignment.createdAt > stats.lastSavedAt)) {
+          stats.lastSavedAt = assignment.createdAt || null;
+        }
+        projectStats.set(assignment.projectId, stats);
+      }
+
+      res.json({
+        projects: projects.map((project) => ({
+          ...project,
+          generationCount: projectStats.get(project.id)?.count || 0,
+          lastSavedAt: projectStats.get(project.id)?.lastSavedAt || null,
+        })),
+      });
+    } catch (error) {
+      console.error("Error fetching generation projects:", error);
+      res.status(500).json({ error: "Failed to fetch generation projects" });
+    }
+  });
+
+  app.post("/api/generation-projects", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const payload = projectSchema.parse(req.body);
+      const project = await storage.createGenerationProject({
+        userId: req.user.id,
+        name: payload.name,
+        address: payload.address || null,
+        notes: payload.notes || null,
+      });
+
+      res.status(201).json({ project });
+    } catch (error) {
+      console.error("Error creating generation project:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid project data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create generation project" });
+    }
+  });
+
+  app.patch("/api/generation-projects/:projectId", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const projectId = parseInt(req.params.projectId);
+      const payload = projectSchema.partial().parse(req.body);
+      const project = await storage.updateGenerationProject(projectId, req.user.id, {
+        name: payload.name,
+        address: payload.address,
+        notes: payload.notes,
+      });
+
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      res.json({ project });
+    } catch (error) {
+      console.error("Error updating generation project:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid project data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update generation project" });
+    }
+  });
+
+  app.delete("/api/generation-projects/:projectId", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const projectId = parseInt(req.params.projectId);
+      const project = await storage.getGenerationProject(projectId, req.user.id);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      await storage.deleteGenerationProject(projectId, req.user.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting generation project:", error);
+      res.status(500).json({ error: "Failed to delete generation project" });
+    }
+  });
+
+  app.get("/api/generations", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const userId = req.user.id;
+      const serviceFilter = isGenerationService(req.query.service) ? req.query.service : "all";
+      const projectFilter = typeof req.query.projectId === "string" ? req.query.projectId : "all";
+
+      const [projects, projectAssignments] = await Promise.all([
+        storage.getGenerationProjectsByUser(userId),
+        storage.getProjectGenerationsByUser(userId),
+      ]);
+
+      const projectsById = new Map(projects.map((project) => [project.id, project]));
+      let filteredAssignments = projectAssignments;
+
+      if (projectFilter !== "all" && projectFilter !== "unassigned") {
+        const projectId = parseInt(projectFilter);
+        if (!Number.isInteger(projectId) || !projectsById.has(projectId)) {
+          return res.status(404).json({ error: "Project not found" });
+        }
+      }
+
+      const assignmentsByGeneration = new Map<string, any[]>();
+      for (const assignment of filteredAssignments) {
+        const project = projectsById.get(assignment.projectId);
+        if (!project) continue;
+
+        const key = `${assignment.service}:${assignment.visualizationId}`;
+        const currentAssignments = assignmentsByGeneration.get(key) || [];
+        currentAssignments.push({
+          id: assignment.id,
+          projectId: assignment.projectId,
+          projectName: project.name,
+          createdAt: assignment.createdAt,
+        });
+        assignmentsByGeneration.set(key, currentAssignments);
+      }
+
+      const shouldLoad = (service: GenerationService) => serviceFilter === "all" || serviceFilter === service;
+      const generations: any[] = [];
+
+      if (shouldLoad("roofing-siding") || shouldLoad("interior")) {
+        const userVisualizations = await storage.getVisualizationsByUser(userId);
+        for (const visualization of userVisualizations) {
+          const service = getVisualizationService(visualization);
+          if (!shouldLoad(service)) continue;
+
+          generations.push(normalizeGeneration(
+            visualization,
+            service,
+            assignmentsByGeneration.get(`${service}:${visualization.id}`) || []
+          ));
+        }
+      }
+
+      if (shouldLoad("pools")) {
+        const poolGenerations = await storage.getPoolVisualizationsByUser(userId);
+        for (const visualization of poolGenerations) {
+          generations.push(normalizeGeneration(
+            visualization,
+            "pools",
+            assignmentsByGeneration.get(`pools:${visualization.id}`) || []
+          ));
+        }
+      }
+
+      if (shouldLoad("landscape")) {
+        const landscapeGenerations = await storage.getLandscapeVisualizationsByUser(userId);
+        for (const visualization of landscapeGenerations) {
+          generations.push(normalizeGeneration(
+            visualization,
+            "landscape",
+            assignmentsByGeneration.get(`landscape:${visualization.id}`) || []
+          ));
+        }
+      }
+
+      if (shouldLoad("halloween")) {
+        const halloweenGenerations = await storage.getHalloweenVisualizationsByUser(userId);
+        for (const visualization of halloweenGenerations) {
+          generations.push(normalizeGeneration(
+            visualization,
+            "halloween",
+            assignmentsByGeneration.get(`halloween:${visualization.id}`) || []
+          ));
+        }
+      }
+
+      if (shouldLoad("christmas-lights")) {
+        const christmasGenerations = await storage.getChristmasLightsVisualizationsByUser(userId);
+        for (const visualization of christmasGenerations) {
+          generations.push(normalizeGeneration(
+            visualization,
+            "christmas-lights",
+            assignmentsByGeneration.get(`christmas-lights:${visualization.id}`) || []
+          ));
+        }
+      }
+
+      const filteredGenerations = generations
+        .filter((generation) => {
+          if (projectFilter === "all") return true;
+          if (projectFilter === "unassigned") return generation.assignments.length === 0;
+
+          const projectId = parseInt(projectFilter);
+          return generation.assignments.some((assignment: any) => assignment.projectId === projectId);
+        })
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      res.json({ generations: filteredGenerations });
+    } catch (error) {
+      console.error("Error fetching generation library:", error);
+      res.status(500).json({ error: "Failed to fetch generation library" });
+    }
+  });
+
+  app.post("/api/generation-projects/:projectId/generations", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const projectId = parseInt(req.params.projectId);
+      const project = await storage.getGenerationProject(projectId, req.user.id);
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+
+      const payload = projectGenerationSchema.parse(req.body);
+      const generation = await getOwnedGenerationForService(req.user.id, payload.service, payload.visualizationId);
+      if (!generation) {
+        return res.status(404).json({ error: "Generation not found" });
+      }
+
+      const existingAssignment = await storage.getProjectGenerationForVisualization(
+        projectId,
+        req.user.id,
+        payload.service,
+        payload.visualizationId
+      );
+
+      if (existingAssignment) {
+        return res.json({ projectGeneration: existingAssignment });
+      }
+
+      const projectGeneration = await storage.addProjectGeneration({
+        projectId,
+        userId: req.user.id,
+        service: payload.service,
+        visualizationId: payload.visualizationId,
+      });
+
+      const coverImageUrl = generation.generatedImageUrl || generation.originalImageUrl || null;
+      if (!project.coverImageUrl && coverImageUrl) {
+        await storage.updateGenerationProject(projectId, req.user.id, { coverImageUrl });
+      }
+
+      res.status(201).json({ projectGeneration });
+    } catch (error) {
+      console.error("Error saving generation to project:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid generation data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to save generation to project" });
+    }
+  });
+
+  app.delete("/api/project-generations/:assignmentId", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      await storage.removeProjectGeneration(parseInt(req.params.assignmentId), req.user.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing generation from project:", error);
+      res.status(500).json({ error: "Failed to remove generation from project" });
+    }
+  });
+
   // Gemini-powered roofing/siding editing workflow (requires authentication)
   app.post("/api/upload", authenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
     try {
@@ -654,13 +1112,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const hasBusinessPro = await storage.hasBusinessProAccess(userId);
 
-      // Validate custom prompt access (Business Pro feature)
+      // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
       if (customPrompt && customPrompt.trim()) {
         if (hasBusinessPro) {
           validatedCustomPrompt = customPrompt;
         } else {
-          console.log(`User ${userId} attempted to use custom prompt without Business Pro access`);
+          console.log(`User ${userId} attempted to use custom prompt without Professional access`);
         }
       }
 
@@ -814,7 +1272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (hasBusinessPro) {
           validatedCustomPrompt = customPrompt;
         } else {
-          console.log(`User ${userId} attempted to use custom prompt without Business Pro access`);
+          console.log(`User ${userId} attempted to use custom prompt without Professional access`);
         }
       }
 
@@ -975,13 +1433,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const hasBusinessPro = await storage.hasBusinessProAccess(userId);
 
-      // Validate custom prompt access (Business Pro feature)
+      // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
       if (customPrompt && customPrompt.trim()) {
         if (hasBusinessPro) {
           validatedCustomPrompt = customPrompt;
         } else {
-          console.log(`User ${userId} attempted to use custom prompt without Business Pro access`);
+          console.log(`User ${userId} attempted to use custom prompt without Professional access`);
         }
       }
 
@@ -1223,13 +1681,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const hasBusinessPro = await storage.hasBusinessProAccess(userId);
 
-      // Validate custom prompt access (Business Pro feature)
+      // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
       if (customPrompt && customPrompt.trim()) {
         if (hasBusinessPro) {
           validatedCustomPrompt = customPrompt;
         } else {
-          console.log(`User ${userId} attempted to use custom prompt without Business Pro access`);
+          console.log(`User ${userId} attempted to use custom prompt without Professional access`);
         }
       }
 
@@ -1691,7 +2149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Team management routes for Business Pro users
+  // Team management routes for Professional users
   app.get("/api/teams/my-team", authenticateToken as any, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
@@ -1738,10 +2196,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "You already have a team" });
       }
       
-      // Check if user has Business Pro subscription
+      // Check if user has Professional subscription
       const subscription = await storage.getUserActiveSubscription(userId);
       if (!subscription || subscription.planId !== 'price_1SGN4YBY2SPm2HvOrpREWCn1') {
-        return res.status(403).json({ error: "Business Pro subscription required" });
+        return res.status(403).json({ error: "Professional subscription required" });
       }
       
       const team = await storage.createTeam({

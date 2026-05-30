@@ -189,6 +189,26 @@ export const christmasLightsVisualizations = pgTable("christmas_lights_visualiza
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const generationProjects = pgTable("generation_projects", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  address: text("address"),
+  notes: text("notes"),
+  coverImageUrl: text("cover_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const projectGenerations = pgTable("project_generations", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => generationProjects.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  service: text("service").notNull(),
+  visualizationId: integer("visualization_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Teams for Business Pro plan
 export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
@@ -237,6 +257,8 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   landscapeVisualizations: many(landscapeVisualizations),
   halloweenVisualizations: many(halloweenVisualizations),
   christmasLightsVisualizations: many(christmasLightsVisualizations),
+  generationProjects: many(generationProjects),
+  projectGenerations: many(projectGenerations),
   leads: many(leads),
   featureOverrides: one(userFeatureOverrides),
   ownedTeam: one(teams),
@@ -330,6 +352,25 @@ export const christmasLightsVisualizationsRelations = relations(christmasLightsV
   tenant: one(tenants, {
     fields: [christmasLightsVisualizations.tenantId],
     references: [tenants.id],
+  }),
+}));
+
+export const generationProjectsRelations = relations(generationProjects, ({ one, many }) => ({
+  user: one(users, {
+    fields: [generationProjects.userId],
+    references: [users.id],
+  }),
+  generations: many(projectGenerations),
+}));
+
+export const projectGenerationsRelations = relations(projectGenerations, ({ one }) => ({
+  user: one(users, {
+    fields: [projectGenerations.userId],
+    references: [users.id],
+  }),
+  project: one(generationProjects, {
+    fields: [projectGenerations.projectId],
+    references: [generationProjects.id],
   }),
 }));
 
@@ -452,6 +493,17 @@ export const insertChristmasLightsVisualizationSchema = createInsertSchema(chris
   createdAt: true,
 });
 
+export const insertGenerationProjectSchema = createInsertSchema(generationProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProjectGenerationSchema = createInsertSchema(projectGenerations).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertUserFeatureOverridesSchema = createInsertSchema(userFeatureOverrides).omit({
   id: true,
   createdAt: true,
@@ -492,6 +544,10 @@ export type HalloweenVisualization = typeof halloweenVisualizations.$inferSelect
 export type InsertHalloweenVisualization = z.infer<typeof insertHalloweenVisualizationSchema>;
 export type ChristmasLightsVisualization = typeof christmasLightsVisualizations.$inferSelect;
 export type InsertChristmasLightsVisualization = z.infer<typeof insertChristmasLightsVisualizationSchema>;
+export type GenerationProject = typeof generationProjects.$inferSelect;
+export type InsertGenerationProject = z.infer<typeof insertGenerationProjectSchema>;
+export type ProjectGeneration = typeof projectGenerations.$inferSelect;
+export type InsertProjectGeneration = z.infer<typeof insertProjectGenerationSchema>;
 export type UserFeatureOverrides = typeof userFeatureOverrides.$inferSelect;
 export type InsertUserFeatureOverrides = z.infer<typeof insertUserFeatureOverridesSchema>;
 export type Team = typeof teams.$inferSelect;

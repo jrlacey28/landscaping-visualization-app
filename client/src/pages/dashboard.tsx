@@ -275,42 +275,41 @@ export default function Dashboard() {
                     </p>
                     <div className="space-y-2">
                       <Button 
-                        onClick={() => handleUpgrade('price_1S5X1sBY2SPm2HvOuDHNzsIp')}
-                        disabled={loading}
-                        className="w-full"
-                        variant="outline"
-                      >
-                        Upgrade to Basic ($29/mo)
-                      </Button>
-                      <Button 
                         onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
                         disabled={loading}
                         className="w-full"
                       >
-                        Upgrade to Pro ($99/mo)
+                        Upgrade to Contractor ($300/mo)
+                      </Button>
+                      <Button
+                        onClick={() => handleUpgrade('price_1SGN4YBY2SPm2HvOrpREWCn1')}
+                        disabled={loading}
+                        className="w-full"
+                      >
+                        Upgrade to Professional ($500/mo)
                       </Button>
                     </div>
                   </div>
                 )}
 
-                {user.subscription?.planId === 'price_1S5X1sBY2SPm2HvOuDHNzsIp' && (
+                {user.subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto' && (
                   <div className="space-y-3">
                     <p className="text-sm text-gray-600">
-                      Upgrade to Pro for unlimited visualizations and embed features!
+                      Upgrade to Professional for team collaboration and higher monthly usage.
                     </p>
                     <Button 
-                      onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
+                      onClick={() => handleUpgrade('price_1SGN4YBY2SPm2HvOrpREWCn1')}
                       disabled={loading}
                       className="w-full"
                     >
-                      Upgrade to Pro ($99/mo)
+                      Upgrade to Professional ($500/mo)
                     </Button>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Team Management for Business Pro users */}
+            {/* Team Management for Professional users */}
             <TeamManagement 
               userId={user.user.id} 
               subscription={user.subscription}
@@ -372,7 +371,7 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <Button 
-                    onClick={() => handleUpgrade('price_1S5X1sBY2SPm2HvOuDHNzsIp')}
+                    onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
                     disabled={loading}
                     className="w-full"
                   >

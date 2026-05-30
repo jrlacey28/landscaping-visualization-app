@@ -48,20 +48,30 @@ async function seedSubscriptionPlans() {
       {
         id: 'price_1S5X1sBY2SPm2HvOuDHNzsIp',
         name: 'Basic',
-        description: 'Basic plan with more visualizations',
+        description: 'Legacy Basic plan',
         price: 2000, // $20 in cents
         interval: 'month',
-        visualization_limit: 100,
+        visualization_limit: 50,
         embed_access: false,
-        active: true
+        active: false
       },
       {
         id: 'price_1S5X2XBY2SPm2HvO2he9Unto',
-        name: 'Pro',
-        description: 'Pro plan with premium features',
-        price: 10000, // $100 in cents
+        name: 'Contractor',
+        description: 'For small business owners ready to impress clients',
+        price: 30000, // $300 in cents
         interval: 'month',
         visualization_limit: 200,
+        embed_access: true,
+        active: true
+      },
+      {
+        id: 'price_1SGN4YBY2SPm2HvOrpREWCn1',
+        name: 'Professional',
+        description: 'For growing teams and advanced features',
+        price: 50000, // $500 in cents
+        interval: 'month',
+        visualization_limit: 650,
         embed_access: true,
         active: true
       },

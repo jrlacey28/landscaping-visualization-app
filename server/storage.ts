@@ -1,11 +1,12 @@
 import { 
   users, subscriptions, subscriptionPlans, userUsage, tenants, leads, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations, christmasLightsVisualizations,
-  userFeatureOverrides, teams, teamMembers,
+  generationProjects, projectGenerations, userFeatureOverrides, teams, teamMembers,
   type User, type InsertUser, type Subscription, type InsertSubscription, type SubscriptionPlan, type UserUsage, type InsertUserUsage,
   type Tenant, type InsertTenant, type Lead, type InsertLead, type Visualization, type InsertVisualization, 
   type PoolVisualization, type InsertPoolVisualization, type LandscapeVisualization, type InsertLandscapeVisualization,
   type HalloweenVisualization, type InsertHalloweenVisualization,
   type ChristmasLightsVisualization, type InsertChristmasLightsVisualization,
+  type GenerationProject, type InsertGenerationProject, type ProjectGeneration, type InsertProjectGeneration,
   type UserFeatureOverrides, type InsertUserFeatureOverrides,
   type Team, type InsertTeam, type TeamMember, type InsertTeamMember
 } from "@shared/schema";
@@ -89,6 +90,18 @@ export interface IStorage {
   getChristmasLightsVisualizationsByUser(userId: number): Promise<ChristmasLightsVisualization[]>;
   createChristmasLightsVisualization(christmasVisualization: InsertChristmasLightsVisualization): Promise<ChristmasLightsVisualization>;
   updateChristmasLightsVisualization(id: number, christmasVisualization: Partial<InsertChristmasLightsVisualization>): Promise<ChristmasLightsVisualization>;
+
+  // Generation project methods
+  getGenerationProject(id: number, userId: number): Promise<GenerationProject | undefined>;
+  getGenerationProjectsByUser(userId: number): Promise<GenerationProject[]>;
+  createGenerationProject(project: InsertGenerationProject): Promise<GenerationProject>;
+  updateGenerationProject(id: number, userId: number, project: Partial<InsertGenerationProject>): Promise<GenerationProject | undefined>;
+  deleteGenerationProject(id: number, userId: number): Promise<void>;
+  getProjectGenerationsByUser(userId: number): Promise<ProjectGeneration[]>;
+  getProjectGenerationsByProject(projectId: number, userId: number): Promise<ProjectGeneration[]>;
+  getProjectGenerationForVisualization(projectId: number, userId: number, service: string, visualizationId: number): Promise<ProjectGeneration | undefined>;
+  addProjectGeneration(generation: InsertProjectGeneration): Promise<ProjectGeneration>;
+  removeProjectGeneration(id: number, userId: number): Promise<void>;
 
   // Admin methods
   getAllUsersWithUsage(): Promise<Array<User & { usage?: UserUsage; subscription?: Subscription }>>;
@@ -545,13 +558,17 @@ export class DatabaseStorage implements IStorage {
           id: stripePriceId,
           name: `Plan ${stripePriceId}`,
           description: `Plan created for Stripe price ID: ${stripePriceId}`,
-          price: 2000, // Default $20.00 in cents
+          price: 30000, // Default $300.00 in cents
           interval: 'month',
           visualizationLimit: 100, // Default limit
           embedAccess: false,
           active: true
         })
         .returning();
+    }
+
+    if (!plan.active) {
+      throw new Error('Selected plan is no longer available');
     }
 
     // Properly deactivate any existing active subscription for this user
@@ -640,6 +657,117 @@ export class DatabaseStorage implements IStorage {
       .from(landscapeVisualizations)
       .where(eq(landscapeVisualizations.userId, userId))
       .orderBy(desc(landscapeVisualizations.createdAt));
+  }
+
+  async getGenerationProject(id: number, userId: number): Promise<GenerationProject | undefined> {
+    const [project] = await this.db
+      .select()
+      .from(generationProjects)
+      .where(and(
+        eq(generationProjects.id, id),
+        eq(generationProjects.userId, userId)
+      ));
+    return project || undefined;
+  }
+
+  async getGenerationProjectsByUser(userId: number): Promise<GenerationProject[]> {
+    return await this.db
+      .select()
+      .from(generationProjects)
+      .where(eq(generationProjects.userId, userId))
+      .orderBy(desc(generationProjects.updatedAt), desc(generationProjects.createdAt));
+  }
+
+  async createGenerationProject(insertProject: InsertGenerationProject): Promise<GenerationProject> {
+    const [project] = await this.db
+      .insert(generationProjects)
+      .values(insertProject)
+      .returning();
+    return project;
+  }
+
+  async updateGenerationProject(id: number, userId: number, insertProject: Partial<InsertGenerationProject>): Promise<GenerationProject | undefined> {
+    const [project] = await this.db
+      .update(generationProjects)
+      .set({ ...insertProject, updatedAt: new Date() })
+      .where(and(
+        eq(generationProjects.id, id),
+        eq(generationProjects.userId, userId)
+      ))
+      .returning();
+    return project || undefined;
+  }
+
+  async deleteGenerationProject(id: number, userId: number): Promise<void> {
+    await this.db
+      .delete(generationProjects)
+      .where(and(
+        eq(generationProjects.id, id),
+        eq(generationProjects.userId, userId)
+      ));
+  }
+
+  async getProjectGenerationsByUser(userId: number): Promise<ProjectGeneration[]> {
+    return await this.db
+      .select()
+      .from(projectGenerations)
+      .where(eq(projectGenerations.userId, userId))
+      .orderBy(desc(projectGenerations.createdAt));
+  }
+
+  async getProjectGenerationsByProject(projectId: number, userId: number): Promise<ProjectGeneration[]> {
+    return await this.db
+      .select()
+      .from(projectGenerations)
+      .where(and(
+        eq(projectGenerations.projectId, projectId),
+        eq(projectGenerations.userId, userId)
+      ))
+      .orderBy(desc(projectGenerations.createdAt));
+  }
+
+  async getProjectGenerationForVisualization(projectId: number, userId: number, service: string, visualizationId: number): Promise<ProjectGeneration | undefined> {
+    const [generation] = await this.db
+      .select()
+      .from(projectGenerations)
+      .where(and(
+        eq(projectGenerations.projectId, projectId),
+        eq(projectGenerations.userId, userId),
+        eq(projectGenerations.service, service),
+        eq(projectGenerations.visualizationId, visualizationId)
+      ));
+    return generation || undefined;
+  }
+
+  async addProjectGeneration(insertGeneration: InsertProjectGeneration): Promise<ProjectGeneration> {
+    const [generation] = await this.db
+      .insert(projectGenerations)
+      .values(insertGeneration)
+      .returning();
+
+    await this.db
+      .update(generationProjects)
+      .set({ updatedAt: new Date() })
+      .where(eq(generationProjects.id, insertGeneration.projectId));
+
+    return generation;
+  }
+
+  async removeProjectGeneration(id: number, userId: number): Promise<void> {
+    const [generation] = await this.db
+      .delete(projectGenerations)
+      .where(and(
+        eq(projectGenerations.id, id),
+        eq(projectGenerations.userId, userId)
+      ))
+      .returning();
+
+    if (generation) {
+      await this.db
+        .update(generationProjects)
+        .set({ updatedAt: new Date() })
+        .where(eq(generationProjects.id, generation.projectId));
+    }
   }
 
   async getTenant(id: number): Promise<Tenant | undefined> {
@@ -772,11 +900,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateVisualization(id: number, insertVisualization: Partial<InsertVisualization>): Promise<Visualization> {
+    const existingVisualization = await this.getVisualization(id);
     const [visualization] = await this.db
       .update(visualizations)
       .set(insertVisualization)
       .where(eq(visualizations.id, id))
       .returning();
+
+    if (
+      insertVisualization.status === 'completed' &&
+      existingVisualization?.status !== 'completed' &&
+      visualization.tenantId
+    ) {
+      await this.trackUsage(visualization.tenantId, 'visualization');
+    }
+
     return visualization;
   }
 
@@ -806,11 +944,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updatePoolVisualization(id: number, insertPoolVisualization: Partial<InsertPoolVisualization>): Promise<PoolVisualization> {
+    const existingVisualization = await this.getPoolVisualization(id);
     const [poolVisualization] = await this.db
       .update(poolVisualizations)
       .set(insertPoolVisualization)
       .where(eq(poolVisualizations.id, id))
       .returning();
+
+    if (
+      insertPoolVisualization.status === 'completed' &&
+      existingVisualization?.status !== 'completed' &&
+      poolVisualization.tenantId
+    ) {
+      await this.trackUsage(poolVisualization.tenantId, 'pool');
+    }
+
     return poolVisualization;
   }
 
@@ -840,6 +988,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateLandscapeVisualization(id: number, updates: Partial<InsertLandscapeVisualization & { replicateId?: string; status?: string; generatedImageUrl?: string }>) {
+    const existingVisualization = await this.getLandscapeVisualization(id);
     const [updated] = await this.db
       .update(landscapeVisualizations)
       .set(updates)
@@ -847,7 +996,11 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     // Track usage when landscape generation completes
-    if (updates.status === 'completed' && updated.tenantId) {
+    if (
+      updates.status === 'completed' &&
+      existingVisualization?.status !== 'completed' &&
+      updated.tenantId
+    ) {
       await this.trackUsage(updated.tenantId, 'landscape');
     }
 
@@ -888,11 +1041,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateHalloweenVisualization(id: number, insertHalloweenVisualization: Partial<InsertHalloweenVisualization>): Promise<HalloweenVisualization> {
+    const existingVisualization = await this.getHalloweenVisualization(id);
     const [halloweenVisualization] = await this.db
       .update(halloweenVisualizations)
       .set(insertHalloweenVisualization)
       .where(eq(halloweenVisualizations.id, id))
       .returning();
+
+    if (
+      insertHalloweenVisualization.status === 'completed' &&
+      existingVisualization?.status !== 'completed' &&
+      halloweenVisualization.tenantId
+    ) {
+      await this.trackUsage(halloweenVisualization.tenantId, 'visualization');
+    }
+
     return halloweenVisualization;
   }
 
@@ -930,19 +1093,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateChristmasLightsVisualization(id: number, insertChristmasVisualization: Partial<InsertChristmasLightsVisualization>): Promise<ChristmasLightsVisualization> {
+    const existingVisualization = await this.getChristmasLightsVisualization(id);
     const [christmasVisualization] = await this.db
       .update(christmasLightsVisualizations)
       .set(insertChristmasVisualization)
       .where(eq(christmasLightsVisualizations.id, id))
       .returning();
+
+    if (
+      insertChristmasVisualization.status === 'completed' &&
+      existingVisualization?.status !== 'completed' &&
+      christmasVisualization.tenantId
+    ) {
+      await this.trackUsage(christmasVisualization.tenantId, 'visualization');
+    }
+
     return christmasVisualization;
   }
 
   async trackUsage(tenantId: number, type: 'visualization' | 'landscape' | 'pool'): Promise<void> {
-    // Usage tracking temporarily disabled
-    // TODO: Implement proper usage tracking when usageStats table is created
+    await this.incrementTenantGenerations(tenantId);
     console.log(`Usage tracked for tenant ${tenantId}, type: ${type}`);
-    return Promise.resolve();
   }
 
   async getUsageStats(tenantId: number, days: number = 30): Promise<any[]> {
@@ -1031,14 +1202,14 @@ export class DatabaseStorage implements IStorage {
       // Get the effective user's subscription (either own or team owner's)
       const subscription = await this.getUserActiveSubscription(effectiveUserId);
       
-      // Check for Contractor and Business Pro plan IDs
+      // Check for Contractor and Professional plan IDs
       const CONTRACTOR_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
       const BUSINESS_PRO_PLAN_ID = 'price_1SGN4YBY2SPm2HvOrpREWCn1';
       
       // If they have these exact plan IDs and it's active, they get embed
       if (subscription && subscription.status === 'active') {
         if (subscription.planId === CONTRACTOR_PLAN_ID || subscription.planId === BUSINESS_PRO_PLAN_ID) {
-          console.log(`[Embed] User ${userId} - HAS ${subscription.planId === BUSINESS_PRO_PLAN_ID ? 'BUSINESS PRO' : 'CONTRACTOR'} PLAN ${isTeamMember ? '(via team)' : ''} - EMBED ENABLED`);
+          console.log(`[Embed] User ${userId} - HAS ${subscription.planId === BUSINESS_PRO_PLAN_ID ? 'PROFESSIONAL' : 'CONTRACTOR'} PLAN ${isTeamMember ? '(via team)' : ''} - EMBED ENABLED`);
           return true;
         }
       }
@@ -1061,7 +1232,7 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      console.log(`[Embed] User ${userId} - Not Pro/Contractor/Business Pro/Custom - NO EMBED`);
+      console.log(`[Embed] User ${userId} - Not Contractor/Professional/Custom - NO EMBED`);
       return false;
     } catch (error) {
       console.error(`[Embed] Error checking embed access for user ${userId}:`, error);
@@ -1248,7 +1419,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async hasBusinessProAccess(userId: number): Promise<boolean> {
-    // Check if user has Business Pro access (either as owner or team member)
+    // Check if user has Professional access (either as owner or team member)
     const BUSINESS_PRO_PLAN_ID = 'price_1SGN4YBY2SPm2HvOrpREWCn1';
     
     try {
@@ -1257,21 +1428,21 @@ export class DatabaseStorage implements IStorage {
       const effectiveUserId = teamAccess.effectiveUserId;
       
       if (teamAccess.isMember) {
-        console.log(`[Business Pro] User ${userId} is team member, checking owner ${effectiveUserId}'s subscription`);
+        console.log(`[Professional] User ${userId} is team member, checking owner ${effectiveUserId}'s subscription`);
       }
       
-      // Check if the effective user has Business Pro subscription
+      // Check if the effective user has Professional subscription
       const subscription = await this.getUserActiveSubscription(effectiveUserId);
       const hasAccess = subscription?.status === 'active' && subscription?.planId === BUSINESS_PRO_PLAN_ID;
       
       if (hasAccess && teamAccess.isMember) {
-        console.log(`[Business Pro] Team member ${userId} has Business Pro access via owner ${effectiveUserId}`);
+        console.log(`[Professional] Team member ${userId} has Professional access via owner ${effectiveUserId}`);
       }
       
       return hasAccess;
       
     } catch (error) {
-      console.error(`Error checking Business Pro access for user ${userId}:`, error);
+      console.error(`Error checking Professional access for user ${userId}:`, error);
       return false;
     }
   }
@@ -1279,9 +1450,11 @@ export class DatabaseStorage implements IStorage {
   async ensureSubscriptionPlanLimits(): Promise<void> {
     // Upsert subscription plans to correct visualization limits on app startup
     const planConfigs = [
-      { id: 'price_1S5X1sBY2SPm2HvOuDHNzsIp', name: 'Basic', description: 'For solo-operators ready to get started', price: 2000, interval: 'month', visualizationLimit: 50, embedAccess: false, active: true },
-      { id: 'price_1S5X2XBY2SPm2HvO2he9Unto', name: 'Contractor', description: 'For small business owners ready to impress clients', price: 10000, interval: 'month', visualizationLimit: 200, embedAccess: true, active: true },
-      { id: 'price_1SGN4YBY2SPm2HvOrpREWCn1', name: 'Business Pro', description: 'For growing teams and advanced features', price: 30000, interval: 'month', visualizationLimit: 650, embedAccess: true, active: true },
+      { id: 'free', name: 'Free', description: 'Free plan with limited visualizations', price: 0, interval: 'month', visualizationLimit: 5, embedAccess: false, active: true },
+      { id: 'price_1S5X1sBY2SPm2HvOuDHNzsIp', name: 'Basic', description: 'Legacy Basic plan', price: 2000, interval: 'month', visualizationLimit: 50, embedAccess: false, active: false },
+      { id: 'price_1S5X2XBY2SPm2HvO2he9Unto', name: 'Contractor', description: 'For small business owners ready to impress clients', price: 30000, interval: 'month', visualizationLimit: 200, embedAccess: true, active: true },
+      { id: 'price_1SGN4YBY2SPm2HvOrpREWCn1', name: 'Professional', description: 'For growing teams and advanced features', price: 50000, interval: 'month', visualizationLimit: 650, embedAccess: true, active: true },
+      { id: 'custom', name: 'Custom', description: 'Admin-managed custom plan', price: 0, interval: 'month', visualizationLimit: 100, embedAccess: false, active: true },
     ];
 
     for (const config of planConfigs) {
@@ -1289,11 +1462,18 @@ export class DatabaseStorage implements IStorage {
         const existingPlan = await this.getSubscriptionPlan(config.id);
         if (existingPlan) {
           // Update existing plan if values differ
-          if (existingPlan.visualizationLimit !== config.visualizationLimit || 
+          if (existingPlan.name !== config.name ||
+              existingPlan.description !== config.description ||
+              existingPlan.price !== config.price ||
+              existingPlan.visualizationLimit !== config.visualizationLimit || 
               existingPlan.active !== config.active ||
               existingPlan.embedAccess !== config.embedAccess) {
             await this.db.update(subscriptionPlans)
               .set({ 
+                name: config.name,
+                description: config.description,
+                price: config.price,
+                interval: config.interval,
                 visualizationLimit: config.visualizationLimit,
                 active: config.active,
                 embedAccess: config.embedAccess

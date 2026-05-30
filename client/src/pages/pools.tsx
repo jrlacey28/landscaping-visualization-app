@@ -285,7 +285,7 @@ export default function Pools() {
                     secondaryColor="#06b6d4"
                   />
 
-                  {/* Custom Prompt Chat for Business Pro users */}
+                  {/* Custom Prompt Chat for Professional users */}
                   <InlinePromptChat
                     isBusinessPro={user?.hasBusinessProAccess || false}
                     customPrompt={customPrompt}
@@ -349,7 +349,7 @@ export default function Pools() {
                           originalFile,
                           user.user.id, // Use user ID for proper tracking
                           selectedPoolStyles,
-                          customPrompt  // Pass custom prompt for Business Pro users
+                          customPrompt  // Pass custom prompt for Professional users
                         );
 
                         if (result.poolVisualizationId) {

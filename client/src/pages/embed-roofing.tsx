@@ -6,6 +6,12 @@ import { Button } from "../components/ui/button";
 import { Upload, Sparkles, Download, Eye, Camera, Phone, XCircle } from "lucide-react";
 import { SparklesText } from "@/components/ui/sparkles-text";
 import { uploadLandscapeImage, checkLandscapeVisualizationStatus } from "../lib/api";
+import {
+  DEFAULT_EMBED_BACKGROUND_COLOR,
+  getEmbedBackground,
+  getEmbedThemeClasses,
+  parseEmbedBackgroundScheme,
+} from "@/lib/embed-theme";
 
 export default function EmbedRoofingPage() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -15,7 +21,11 @@ export default function EmbedRoofingPage() {
   const companyName = urlParams.get('companyName') || '';
   const showHeader = urlParams.get('showHeader') !== 'false';
   const contactType = urlParams.get('contactType') || 'phone';
+  const contactPhone = urlParams.get('contactPhone') || '';
   const contactLink = urlParams.get('contactLink') || '';
+  const logoUrlParam = urlParams.get('logoUrl') || '';
+  const backgroundScheme = parseEmbedBackgroundScheme(urlParams.get('backgroundScheme'));
+  const backgroundColor = urlParams.get('backgroundColor') || DEFAULT_EMBED_BACKGROUND_COLOR;
   
   const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant(tenantSlug);
 
@@ -24,10 +34,11 @@ export default function EmbedRoofingPage() {
     id: 1,
     slug: "demo",
     companyName: companyName || "DreamBuilder",
-    logoUrl: "",
+    logoUrl: logoUrlParam,
     primaryColor: primaryColor,
     secondaryColor: secondaryColor,
-    phone: "(555) 123-4567",
+    phone: contactPhone || "(555) 123-4567",
+    contactPhone: contactPhone,
     email: "info@dreambuilder.com",
     address: "123 Main St, Anytown USA",
     description: "Professional AI-powered roofing and siding visualization services",
@@ -38,6 +49,15 @@ export default function EmbedRoofingPage() {
     currentMonthGenerations: 0,
     createdAt: new Date(),
   };
+
+  const resolvedLogoUrl = logoUrlParam || effectiveTenant.logoUrl || "";
+  const pageBackground = getEmbedBackground(
+    backgroundScheme,
+    primaryColor,
+    secondaryColor,
+    backgroundColor,
+  );
+  const themeClasses = getEmbedThemeClasses(backgroundScheme);
 
   // Check if tenant is active
   if (effectiveTenant && !effectiveTenant.active) {
@@ -100,25 +120,32 @@ export default function EmbedRoofingPage() {
   // Skip loading and error states - use fallback tenant data for embed to work without API access
 
   return (
-    <div className="min-h-screen p-2" style={{ background: `linear-gradient(to bottom right, ${primaryColor}dd, ${secondaryColor}dd, ${primaryColor}cc)` }}>
+    <div className="min-h-screen p-2" style={{ background: pageBackground }}>
       <div className="max-w-4xl mx-auto">
         {showHeader && (
-          <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+          <div className="text-center mb-8 pt-4">
+            {resolvedLogoUrl && (
+              <img
+                src={resolvedLogoUrl}
+                alt={`${companyName || effectiveTenant.companyName} logo`}
+                className="mx-auto mb-4 max-h-20 max-w-[220px] object-contain"
+              />
+            )}
+            <h1 className={`text-3xl md:text-4xl font-bold mb-2 ${themeClasses.headerText}`}>
               {companyName || effectiveTenant.companyName} Roofing & Siding Visualizer
             </h1>
-            <p className="text-lg text-blue-100">
+            <p className={`text-lg ${themeClasses.subheadingText}`}>
               Transform your home with AI-powered roofing and siding visualization
             </p>
           </div>
         )}
 
         {/* Image Upload */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 mb-4">
-          <h2 className="text-xl font-semibold text-white mb-4 text-center">Upload Your Home Photo</h2>
+        <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
+          <h2 className={`text-xl font-semibold mb-4 text-center ${themeClasses.panelTitle}`}>Upload Your Home Photo</h2>
           
           {!uploadedImage ? (
-            <div className="border-2 border-dashed border-white/30 rounded-lg p-8 text-center">
+            <div className={`border-2 border-dashed ${themeClasses.uploadBorder} rounded-lg p-8 text-center`}>
               <input
                 type="file"
                 accept="image/*"
@@ -130,10 +157,10 @@ export default function EmbedRoofingPage() {
                 htmlFor="image-upload"
                 className="cursor-pointer flex flex-col items-center space-y-4"
               >
-                <Upload className="h-12 w-12 text-white/70" />
+                <Upload className={`h-12 w-12 ${themeClasses.uploadIcon}`} />
                 <div>
-                  <p className="text-white font-medium">Click to upload your photo</p>
-                  <p className="text-white/70 text-sm">PNG, JPG up to 10MB</p>
+                  <p className={`${themeClasses.uploadPrimaryText} font-medium`}>Click to upload your photo</p>
+                  <p className={`${themeClasses.uploadSecondaryText} text-sm`}>PNG, JPG up to 10MB</p>
                 </div>
               </label>
             </div>
@@ -252,10 +279,11 @@ export default function EmbedRoofingPage() {
                       background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
                     }}
                     onClick={() => {
-                      if (contactType === 'email' && contactLink) {
+                      const quotePhone = contactPhone || effectiveTenant.contactPhone || effectiveTenant.phone;
+                      if (contactType === 'link' && contactLink) {
                         window.open(contactLink, '_blank');
-                      } else if (tenant?.phone) {
-                        window.open(`tel:${effectiveTenant.phone?.replace(/[\(\)\-\s]/g, '')}`, '_self');
+                      } else if (quotePhone) {
+                        window.open(`tel:${quotePhone.replace(/[\(\)\-\s]/g, '')}`, '_self');
                       }
                     }}
                   >
@@ -270,8 +298,8 @@ export default function EmbedRoofingPage() {
 
         {/* Style Selection */}
         {uploadedImage && (
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 mb-4">
-            <h2 className="text-xl font-semibold text-white mb-4">Choose Your Style</h2>
+          <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
+            <h2 className={`text-xl font-semibold mb-4 ${themeClasses.panelTitle}`}>Choose Your Style</h2>
             <StyleSelector
               selectedStyles={{
                 roof: selectedStyles.roof.type,

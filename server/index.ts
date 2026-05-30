@@ -44,8 +44,18 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use((req, res, next) => {
+  if (req.originalUrl === '/api/stripe/webhook') {
+    return next();
+  }
+  return express.json({ limit: '50mb' })(req, res, next);
+});
+app.use((req, res, next) => {
+  if (req.originalUrl === '/api/stripe/webhook') {
+    return next();
+  }
+  return express.urlencoded({ extended: true, limit: '50mb' })(req, res, next);
+});
 
 // Enforce SESSION_SECRET in production for security
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {

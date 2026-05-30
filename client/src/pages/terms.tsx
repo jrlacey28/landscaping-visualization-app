@@ -91,8 +91,8 @@ export default function TermsPage() {
                 <h2 className="text-xl font-semibold mb-3 text-white">5. Subscription Plans and Billing</h2>
                 <div className="space-y-3">
                   <p><strong>Free Plan:</strong> 5 visualizations per month</p>
-                  <p><strong>Contractor Plan:</strong> $100/month - 100 visualizations per month</p>
-                  <p><strong>Business Pro Plan:</strong> $300/month - 500 visualizations per month with team collaboration</p>
+                  <p><strong>Contractor Plan:</strong> $300/month - 200 visualizations per month</p>
+                  <p><strong>Professional Plan:</strong> $500/month - 650 visualizations per month with team collaboration</p>
                   <p><strong>Enterprise Plan:</strong> $750/month - Unlimited visualizations plus white-label features</p>
                   <div className="mt-4">
                     <p className="mb-2"><strong>Billing Terms:</strong></p>

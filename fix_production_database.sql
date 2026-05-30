@@ -1,14 +1,15 @@
 -- PRODUCTION DATABASE FIX - RUN THIS IN YOUR DATABASE PANEL SQL EDITOR
 -- This fixes the subscription_plans table based on your screenshot
 
--- Step 1: Update the Pro plan (price_1S5X2XBY2SPm2HvO...) to be Contractor with 100 visualizations
+-- Step 1: Update the Pro plan (price_1S5X2XBY2SPm2HvO...) to be Contractor with 200 visualizations
 UPDATE subscription_plans 
 SET 
     name = 'Contractor',
     description = 'For small business owners ready to impress clients',
-    visualization_limit = 100,
-    price = 10000,
-    embed_access = false
+    visualization_limit = 200,
+    price = 30000,
+    embed_access = true,
+    active = true
 WHERE id = 'price_1S5X2XBY2SPm2HvO2he9Unto';
 
 -- Step 2: Deactivate the Basic plan (price_1S5X1sBY2SPm2HvO...)
@@ -21,7 +22,7 @@ UPDATE subscription_plans
 SET active = false
 WHERE id IN ('price_1SGDb6kBY2SPm2HvOL9qjHhK', 'price_1SGDe8BY2SPm2HvOLf0zJc6Y');
 
--- Step 4: Insert Business Pro plan (only if it doesn't exist)
+-- Step 4: Insert Professional plan (only if it doesn't exist)
 INSERT INTO subscription_plans (
     id, 
     name, 
@@ -35,21 +36,21 @@ INSERT INTO subscription_plans (
 )
 VALUES (
     'price_1SGN4YBY2SPm2HvOrpREWCn1', 
-    'Business Pro', 
+    'Professional', 
     'For growing teams and advanced features', 
-    30000, 
+    50000, 
     'month', 
-    500, 
+    650, 
     true, 
     true,
     NOW()
 )
 ON CONFLICT (id) DO UPDATE 
 SET 
-    name = 'Business Pro',
+    name = 'Professional',
     description = 'For growing teams and advanced features',
-    price = 30000,
-    visualization_limit = 500,
+    price = 50000,
+    visualization_limit = 650,
     embed_access = true,
     active = true;
 

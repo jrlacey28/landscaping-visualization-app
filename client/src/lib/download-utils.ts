@@ -27,16 +27,16 @@ export async function downloadImageWithWatermark({
     // Draw the original image
     ctx.drawImage(img, 0, 0);
     
-    // Check if user has a paid subscription (Contractor, Business Pro, or Enterprise)
-    // OR if they are part of a Business Pro team
+    // Check if user has a paid subscription (Contractor, Professional, or Enterprise)
+    // OR if they are part of a Professional team
     const hasPaidPlan = (subscription && 
       subscription.status === 'active' && 
       subscription.planId && 
       subscription.planId !== 'free' &&
       subscription.planId !== '' &&
       subscription.planId !== null) ||
-      // Also check if user is part of a team (gets Business Pro benefits)
-      (user && user.usage && user.usage.planName === 'Business Pro (Team)');
+      // Also check if user is part of a team (gets Professional benefits)
+      (user && user.usage && ['Professional (Team)', 'Business Pro (Team)'].includes(user.usage.planName));
     
     if (!hasPaidPlan) {
       // Add watermark for free users - simple logo + text only

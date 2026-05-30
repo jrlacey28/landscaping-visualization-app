@@ -50,7 +50,7 @@ export default function TeamManagement({ userId, subscription }: TeamManagementP
   const [creatingTeam, setCreatingTeam] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
 
-  // Check if user has Business Pro subscription (either own or through team)
+  // Check if user has Professional subscription (either own or through team)
   const hasBusinessPro = user?.hasBusinessProAccess || false;
 
   useEffect(() => {
@@ -215,19 +215,19 @@ export default function TeamManagement({ userId, subscription }: TeamManagementP
       <Card>
         <CardHeader>
           <CardTitle>Team Management</CardTitle>
-          <CardDescription>Upgrade to Business Pro to manage team members</CardDescription>
+          <CardDescription>Upgrade to Professional to manage team members</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
             <p className="text-gray-600 mb-4">
-              Business Pro includes team collaboration features for up to 3 users
+              Professional includes team collaboration features for up to 3 users
             </p>
             <Button 
               onClick={() => window.location.href = '/pricing'}
               className="bg-gradient-to-r from-purple-600 to-purple-700"
             >
-              Upgrade to Business Pro
+              Upgrade to Professional
             </Button>
           </div>
         </CardContent>
@@ -246,7 +246,7 @@ export default function TeamManagement({ userId, subscription }: TeamManagementP
   }
 
   if (!team) {
-    // Only show create team option if user owns Business Pro (not just a member)
+    // Only show create team option if user owns Professional (not just a member)
     const isDirectBusinessPro = subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' && 
                                 subscription?.status === 'active';
     
@@ -255,13 +255,13 @@ export default function TeamManagement({ userId, subscription }: TeamManagementP
         <Card>
           <CardHeader>
             <CardTitle>Team Member Access</CardTitle>
-            <CardDescription>You have Business Pro access through your team</CardDescription>
+            <CardDescription>You have Professional access through your team</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-4">
               <Users className="h-12 w-12 mx-auto text-blue-600 mb-4" />
               <p className="text-gray-600">
-                You're part of a team with Business Pro features.
+                You're part of a team with Professional features.
                 Contact your team owner to manage team settings.
               </p>
             </div>
@@ -323,7 +323,7 @@ export default function TeamManagement({ userId, subscription }: TeamManagementP
                 <User className="h-5 w-5 text-blue-600" />
                 <div>
                   <p className="font-medium">You (Member)</p>
-                  <p className="text-sm text-gray-600">Business Pro access</p>
+                  <p className="text-sm text-gray-600">Professional access</p>
                 </div>
               </div>
               <Badge>Member</Badge>
@@ -331,7 +331,7 @@ export default function TeamManagement({ userId, subscription }: TeamManagementP
             
             <div className="mt-4 p-4 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-900">
-                You have access to all Business Pro features through your team.
+                You have access to all Professional features through your team.
                 Contact your team owner for team management.
               </p>
             </div>

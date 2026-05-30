@@ -337,7 +337,7 @@ export const uploadLandscapeImage = async (file: File, userId: number, selectedL
   formData.append('selectedLandscape', landscapeValue);
   formData.append('selectedPatios', patiosValue);
   
-  // Add custom prompt if provided (Business Pro feature)
+  // Add custom prompt if provided (Professional feature)
   if (customPrompt) {
     formData.append('customPrompt', customPrompt);
   }

@@ -12,6 +12,7 @@ import { useTenant } from '@/hooks/use-tenant';
 import EmbedCodeGenerator from '@/components/embed-code-generator';
 import BugFeatureForm from '@/components/bug-feature-form';
 import TeamManagement from '@/components/team-management';
+import SavedGenerations from '@/components/saved-generations';
 import { RefreshCw, ChevronDown, ChevronUp, Users, Loader2 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -271,6 +272,8 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
+            <SavedGenerations />
+
             <Collapsible open={embedToolsOpen} onOpenChange={setEmbedToolsOpen}>
               <Card>
                 <CardHeader>
@@ -307,7 +310,7 @@ export default function Dashboard() {
                       <div className="text-center space-y-4">
                         <div className="text-6xl opacity-50">🔒</div>
                         <div>
-                          <h3 className="font-semibold text-gray-900 mb-2">Pro Feature Required</h3>
+                          <h3 className="font-semibold text-gray-900 mb-2">Professional Feature Required</h3>
                           <p className="text-gray-600 text-sm mb-4">
                             Embed our visualization tools directly on your website to provide your customers with an interactive design experience.
                           </p>
@@ -316,7 +319,7 @@ export default function Dashboard() {
                             disabled={checkoutLoading}
                             className="w-full max-w-xs"
                           >
-                            Upgrade to Business Pro
+                            Upgrade to Professional
                           </Button>
                         </div>
                       </div>
@@ -326,13 +329,13 @@ export default function Dashboard() {
               </Card>
             </Collapsible>
 
-            {/* Team Management - Business Pro Feature */}
+            {/* Team Management - Professional Feature */}
             <TeamManagement 
               userId={user.user.id} 
               subscription={user.subscription}
             />
 
-            {/* Join a Team Card - Only show if NOT Business Pro and NOT in a team */}
+            {/* Join a Team Card - Only show if NOT Professional and NOT in a team */}
             {!user.hasBusinessProAccess && 
              (!user.teams || user.teams.length === 0) && (
               <Card>
@@ -523,7 +526,7 @@ export default function Dashboard() {
                         disabled={checkoutLoading}
                         className="w-full"
                       >
-                        Upgrade to Contractor ($100/mo)
+                        Upgrade to Contractor ($300/mo)
                       </Button>
                       <Button 
                         onClick={() => handleUpgrade('price_1SGN4YBY2SPm2HvOrpREWCn1')}
@@ -531,7 +534,7 @@ export default function Dashboard() {
                         className="w-full"
                         variant="default"
                       >
-                        Upgrade to Business Pro ($300/mo)
+                        Upgrade to Professional ($500/mo)
                       </Button>
                     </div>
                   </div>
@@ -540,7 +543,7 @@ export default function Dashboard() {
                 {user.subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto' && user.subscription?.status === 'active' && (
                   <div className="space-y-3 border-t pt-4">
                     <p className="text-sm text-gray-600">
-                      You're on the Contractor plan with 100 visualizations/month!
+                      You're on the Contractor plan with 200 visualizations/month!
                     </p>
                     <div className="space-y-2">
                       <Button 
@@ -548,7 +551,7 @@ export default function Dashboard() {
                         disabled={checkoutLoading}
                         className="w-full"
                       >
-                        Upgrade to Business Pro ($300/mo)
+                        Upgrade to Professional ($500/mo)
                       </Button>
                       <Button 
                         onClick={handleCancel}
@@ -565,7 +568,7 @@ export default function Dashboard() {
                 {user.hasBusinessProAccess && (
                   <div className="space-y-3 border-t pt-4">
                     <p className="text-sm text-gray-600">
-                      You have Business Pro access with 500 visualizations/month and team features!
+                      You have Professional access with 650 visualizations/month and team features!
                     </p>
                     <div className="space-y-2">
                       <Button 

@@ -275,7 +275,7 @@ export default function Landscape() {
                     secondaryColor="#14b8a6"
                   />
 
-                  {/* Custom Prompt Chat for Business Pro users */}
+                  {/* Custom Prompt Chat for Professional users */}
                   <InlinePromptChat
                     isBusinessPro={user?.hasBusinessProAccess || false}
                     customPrompt={customPrompt}

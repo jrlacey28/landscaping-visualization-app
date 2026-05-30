@@ -16,7 +16,21 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 export function registerAuthRoutes(app: Express) {
-  // Stripe webhook (must be before express.json middleware)
+  const getAppBaseUrl = (req: any) => {
+    const configuredUrl =
+      process.env.APP_URL ||
+      process.env.PRODUCTION_URL ||
+      (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : undefined) ||
+      (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : undefined);
+
+    if (configuredUrl) {
+      return configuredUrl.replace(/\/$/, '');
+    }
+
+    return `${req.protocol}://${req.get('host')}`;
+  };
+
+  // Stripe webhook. server/index.ts leaves this route unparsed so express.raw can verify the signature.
   app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -151,7 +165,7 @@ export function registerAuthRoutes(app: Express) {
       // Use the centralized, robust embed access computation
       const hasEmbedAccess = await storage.computeEmbedAccess(user.id);
       
-      // Check for Business Pro access (including team membership)
+      // Check for Professional access (including team membership)
       const hasBusinessProAccess = await storage.hasBusinessProAccess(user.id);
       
       // Get team membership information
@@ -221,12 +235,19 @@ export function registerAuthRoutes(app: Express) {
       if (!plan) {
         return res.status(404).json({ error: 'Plan not found' });
       }
+      if (!plan.active) {
+        return res.status(400).json({ error: 'This plan is no longer available' });
+      }
+      if (plan.price <= 0) {
+        return res.status(400).json({ error: 'Checkout is only available for paid plans' });
+      }
 
       // Create Stripe checkout session
-      const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      const baseUrl = getAppBaseUrl(req);
 
       const session = await stripe.checkout.sessions.create({
         customer_email: user.email,
+        client_reference_id: user.id.toString(),
         line_items: [{
           price: planId, // Using Stripe Price ID directly
           quantity: 1,
@@ -237,6 +258,12 @@ export function registerAuthRoutes(app: Express) {
         metadata: {
           userId: user.id.toString(),
           planId: planId,
+        },
+        subscription_data: {
+          metadata: {
+            userId: user.id.toString(),
+            planId: planId,
+          },
         },
       });
 
@@ -348,7 +375,8 @@ export function registerAuthRoutes(app: Express) {
             status: activeSubscription.status
           } : null,
           usageCheck,
-          expectedProPlanId: 'price_1S5X2XBY2SPm2HvO2he9Unto'
+          expectedContractorPlanId: 'price_1S5X2XBY2SPm2HvO2he9Unto',
+          expectedProfessionalPlanId: 'price_1SGN4YBY2SPm2HvOrpREWCn1'
         }
       });
     } catch (error: any) {
@@ -476,8 +504,10 @@ export function registerAuthRoutes(app: Express) {
       // Map display names to actual database plan IDs
       const planMapping: Record<string, string> = {
         'Free': 'free',
-        'Basic': 'price_1S5X1sBY2SPm2HvOuDHNzsIp', // PRODUCTION Basic price ID
-        'Pro': 'price_1S5X2XBY2SPm2HvO2he9Unto',     // PRODUCTION Pro price ID
+        'Contractor': 'price_1S5X2XBY2SPm2HvO2he9Unto',
+        'Professional': 'price_1SGN4YBY2SPm2HvOrpREWCn1',
+        'Pro': 'price_1S5X2XBY2SPm2HvO2he9Unto',
+        'Business Pro': 'price_1SGN4YBY2SPm2HvOrpREWCn1',
         'Enterprise': 'enterprise'
       };
 
@@ -488,6 +518,11 @@ export function registerAuthRoutes(app: Express) {
       if (planId === 'Free' || actualPlanId === 'free') {
         newSubscription = await storage.createFreeSubscription(userId);
       } else {
+        const selectedPlan = await storage.getSubscriptionPlan(actualPlanId);
+        if (!selectedPlan || !selectedPlan.active) {
+          return res.status(400).json({ error: "Selected plan is not available" });
+        }
+
         // Create admin-managed subscription for paid plans
         const now = new Date();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
@@ -584,26 +619,82 @@ export function registerAuthRoutes(app: Express) {
   });
 
   // Helper functions for Stripe webhooks
-  async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
-    const userId = session.metadata?.userId;
-    const planId = session.metadata?.planId;
+  function getSubscriptionPeriod(subscription: Stripe.Subscription) {
+    const sub = subscription as any;
+    const item = sub.items?.data?.[0];
+    const periodStart = sub.current_period_start || item?.current_period_start;
+    const periodEnd = sub.current_period_end || item?.current_period_end;
 
-    if (!userId || !planId) {
+    return {
+      currentPeriodStart: periodStart ? new Date(periodStart * 1000) : new Date(),
+      currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    };
+  }
+
+  function getSubscriptionPlanId(subscription: Stripe.Subscription) {
+    const sub = subscription as any;
+    return sub.metadata?.planId || sub.items?.data?.[0]?.price?.id;
+  }
+
+  async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
+    const userId = session.metadata?.userId || session.client_reference_id;
+    let planId = session.metadata?.planId;
+    const stripeSubscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+
+    if (!userId || !stripeSubscriptionId) {
       console.error('Missing metadata in checkout session');
       return;
     }
 
     try {
-      // Create subscription record
+      const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId, {
+        expand: ['items.data.price'],
+      });
+      planId = planId || getSubscriptionPlanId(stripeSubscription);
+
+      if (!planId) {
+        console.error('Missing plan ID in checkout subscription');
+        return;
+      }
+
+      const userIdNum = parseInt(userId);
+      const { currentPeriodStart, currentPeriodEnd } = getSubscriptionPeriod(stripeSubscription);
+      const existingSubscriptions = await storage.getUserSubscriptions(userIdNum);
+      const existingStripeSubscription = existingSubscriptions.find(
+        (subscription) => subscription.stripeSubscriptionId === stripeSubscriptionId
+      );
+
+      if (existingStripeSubscription) {
+        await storage.updateSubscription(existingStripeSubscription.id, {
+          planId,
+          stripeCustomerId: stripeSubscription.customer as string,
+          stripeSubscriptionId,
+          status: stripeSubscription.status,
+          currentPeriodStart,
+          currentPeriodEnd,
+          cancelAtPeriodEnd: !!(stripeSubscription as any).cancel_at_period_end,
+        } as any);
+        return;
+      }
+
+      const activeSubscription = existingSubscriptions.find((subscription) => subscription.status === 'active');
+      if (activeSubscription) {
+        await storage.updateSubscription(activeSubscription.id, {
+          status: 'inactive',
+          cancelAtPeriodEnd: false,
+        });
+      }
+
       await storage.createSubscription({
         userId: parseInt(userId),
-        planId: planId,
-        stripeCustomerId: session.customer as string,
-        stripeSubscriptionId: session.subscription as string,
-        status: 'active',
-        currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-      });
+        planId,
+        stripeCustomerId: stripeSubscription.customer as string,
+        stripeSubscriptionId,
+        status: stripeSubscription.status,
+        currentPeriodStart,
+        currentPeriodEnd,
+        cancelAtPeriodEnd: !!(stripeSubscription as any).cancel_at_period_end,
+      } as any);
     } catch (error) {
       console.error('Error creating subscription:', error);
     }
@@ -611,13 +702,48 @@ export function registerAuthRoutes(app: Express) {
 
   async function handleSubscriptionChange(subscription: Stripe.Subscription) {
     try {
-      const status = subscription.status === 'active' ? 'active' : 
-                    subscription.status === 'past_due' ? 'past_due' : 'inactive';
+      const planId = getSubscriptionPlanId(subscription);
+      const { currentPeriodStart, currentPeriodEnd } = getSubscriptionPeriod(subscription);
+      const updateData: any = {
+        status: subscription.status,
+        currentPeriodStart,
+        currentPeriodEnd,
+        cancelAtPeriodEnd: !!(subscription as any).cancel_at_period_end,
+      };
 
-      await storage.updateSubscriptionByStripeId(subscription.id, {
-        status: status,
-        currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
-        currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
+      if (planId) {
+        updateData.planId = planId;
+      }
+
+      const updatedSubscription = await storage.updateSubscriptionByStripeId(subscription.id, updateData);
+      if (updatedSubscription) {
+        return;
+      }
+
+      const userId = (subscription as any).metadata?.userId;
+      if (!userId || !planId) {
+        console.error('Subscription change has no matching local subscription and no metadata to create one');
+        return;
+      }
+
+      const userIdNum = parseInt(userId);
+      const activeSubscription = await storage.getUserActiveSubscription(userIdNum);
+      if (activeSubscription) {
+        await storage.updateSubscription(activeSubscription.id, {
+          status: 'inactive',
+          cancelAtPeriodEnd: false,
+        });
+      }
+
+      await storage.createSubscription({
+        userId: userIdNum,
+        planId,
+        stripeCustomerId: subscription.customer as string,
+        stripeSubscriptionId: subscription.id,
+        status: subscription.status,
+        currentPeriodStart,
+        currentPeriodEnd,
+        cancelAtPeriodEnd: !!(subscription as any).cancel_at_period_end,
       } as any);
     } catch (error) {
       console.error('Error updating subscription:', error);

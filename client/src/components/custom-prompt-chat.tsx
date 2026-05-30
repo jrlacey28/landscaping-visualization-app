@@ -95,7 +95,7 @@ export default function CustomPromptChat({
         >
           <Sparkles className="h-4 w-4 mr-2" />
           Customize with AI Chat
-          <Badge className="ml-2 bg-yellow-500 text-black">Business Pro</Badge>
+          <Badge className="ml-2 bg-yellow-500 text-black">Professional</Badge>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl h-[600px] flex flex-col">
