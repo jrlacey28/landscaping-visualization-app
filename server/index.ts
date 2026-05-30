@@ -7,6 +7,7 @@ import { setupGoogleAuth } from "./google-auth";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import compression from "compression";
+import { databaseUrl, pool } from "./db";
 
 const app = express();
 
@@ -79,9 +80,9 @@ const sessionConfig: any = {
 };
 
 // Use PostgreSQL session store in production
-if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
+if (process.env.NODE_ENV === 'production' && databaseUrl && pool) {
   sessionConfig.store = new PgSession({
-    conString: process.env.DATABASE_URL,
+    pool,
     tableName: 'session',
     createTableIfMissing: true,
   });

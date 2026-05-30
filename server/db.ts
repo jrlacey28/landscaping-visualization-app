@@ -1,14 +1,11 @@
 import "dotenv/config";
 import fs from "fs";
 import path from "path";
-import { Pool, neonConfig } from "@neondatabase/serverless";
-import { drizzle as drizzleNeon } from "drizzle-orm/neon-serverless";
+import { Pool } from "pg";
+import { drizzle as drizzleNodePostgres } from "drizzle-orm/node-postgres";
 import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
 import { PGlite } from "@electric-sql/pglite";
-import ws from "ws";
 import * as schema from "@shared/schema";
-
-neonConfig.webSocketConstructor = ws;
 
 function getReplitDatabaseUrl() {
   if (process.env.NODE_ENV !== "production") {
@@ -27,7 +24,7 @@ function getReplitDatabaseUrl() {
   return undefined;
 }
 
-const databaseUrl = getReplitDatabaseUrl() || process.env.DATABASE_URL;
+export const databaseUrl = getReplitDatabaseUrl() || process.env.DATABASE_URL;
 const useLocalDatabase =
   process.env.USE_LOCAL_DB === "true" ||
   (!databaseUrl && process.env.NODE_ENV !== "production");
@@ -51,4 +48,4 @@ const localClient = useLocalDatabase ? new PGlite(localDatabasePath) : undefined
 
 export const db = useLocalDatabase
   ? drizzlePglite(localClient!, { schema })
-  : drizzleNeon({ client: pool!, schema });
+  : drizzleNodePostgres(pool!, { schema });
