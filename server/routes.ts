@@ -28,6 +28,24 @@ function sanitizeDatabaseError(error: unknown) {
     .replace(/postgres(?:ql)?:\/\/[^@\s]+@/gi, "postgres://[redacted]@");
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
+  let timeout: NodeJS.Timeout | undefined;
+
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      timeout = setTimeout(
+        () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+        timeoutMs,
+      );
+    }),
+  ]).finally(() => {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  });
+}
+
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -205,7 +223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let dbHost = 'unknown';
       let dbError: string | undefined;
       try {
-        await storage.getUser(1); // Simple query to test DB
+        await withTimeout(storage.getUser(1), 5_000, "Database health check");
         dbStatus = 'connected';
         dbHost = getDatabaseHost();
       } catch (e) {

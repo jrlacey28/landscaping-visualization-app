@@ -139,9 +139,30 @@ async function initializeDatabase() {
   }
 }
 
-(async () => {
-  await initializeDatabase();
+async function initializeDatabaseInBackground() {
+  const timeoutMs = 15_000;
+  let timeout: NodeJS.Timeout | undefined;
 
+  try {
+    await Promise.race([
+      initializeDatabase(),
+      new Promise((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error(`Database initialization timed out after ${timeoutMs}ms`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } catch (error) {
+    console.error("Database initialization did not complete during startup:", error);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
+}
+
+(async () => {
   // Register authentication routes first (includes Stripe webhook and sets up sessions)
   registerAuthRoutes(app);
   
@@ -185,5 +206,6 @@ async function initializeDatabase() {
     host: "0.0.0.0",
   }, () => {
     log(`serving on port ${port}`);
+    void initializeDatabaseInBackground();
   });
 })();
