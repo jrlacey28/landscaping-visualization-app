@@ -375,7 +375,7 @@ export function registerAuthRoutes(app: Express) {
             status: activeSubscription.status
           } : null,
           usageCheck,
-          expectedContractorPlanId: 'price_1S5X2XBY2SPm2HvO2he9Unto',
+          expectedContractorPlanId: 'price_1TcynuBY2SPm2HvO1Eri2ogI',
           expectedProfessionalPlanId: 'price_1SGN4YBY2SPm2HvOrpREWCn1'
         }
       });
@@ -504,9 +504,9 @@ export function registerAuthRoutes(app: Express) {
       // Map display names to actual database plan IDs
       const planMapping: Record<string, string> = {
         'Free': 'free',
-        'Contractor': 'price_1S5X2XBY2SPm2HvO2he9Unto',
+        'Contractor': 'price_1TcynuBY2SPm2HvO1Eri2ogI',
         'Professional': 'price_1SGN4YBY2SPm2HvOrpREWCn1',
-        'Pro': 'price_1S5X2XBY2SPm2HvO2he9Unto',
+        'Pro': 'price_1TcynuBY2SPm2HvO1Eri2ogI',
         'Business Pro': 'price_1SGN4YBY2SPm2HvOrpREWCn1',
         'Enterprise': 'enterprise'
       };

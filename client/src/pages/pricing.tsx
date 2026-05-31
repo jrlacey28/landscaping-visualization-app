@@ -94,14 +94,13 @@ export default function PricingPage() {
       description: "For small business owners ready to impress clients",
       monthlyPrice: 300,
       yearlyPrice: 3600,
-      popular: true,
       features: [
         "200 visualizations per month",
         "Full-resolution downloads (no watermarks)",
         "Priority rendering speeds"
       ],
       cta: "Get Started",
-      ctaLink: "price_1S5X2XBY2SPm2HvO2he9Unto"
+      ctaLink: "price_1TcynuBY2SPm2HvO1Eri2ogI"
     },
     {
       name: "Professional",
@@ -190,11 +189,13 @@ export default function PricingPage() {
             </p>
           </div>
           
-          <div className="flex justify-center w-full max-w-md">
-            <PricingCard
-              tier={pricingTiers[3]} // Enterprise tier
-              paymentFrequency="Monthly"
-            />
+          <div className="flex justify-center w-full max-w-7xl">
+            <div className="w-full lg:w-1/3">
+              <PricingCard
+                tier={pricingTiers[3]} // Enterprise tier
+                paymentFrequency="Monthly"
+              />
+            </div>
           </div>
         </section>
       </main>

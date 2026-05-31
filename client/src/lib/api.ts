@@ -7,6 +7,28 @@ const getAuthToken = () => {
   return localStorage.getItem('auth_token');
 };
 
+type UploadRequestOptions = {
+  source?: 'site' | 'embed';
+  tenantId?: number | null;
+  tenantSlug?: string | null;
+};
+
+function appendUploadContext(formData: FormData, options?: UploadRequestOptions) {
+  if (!options) return;
+
+  if (options.source) {
+    formData.append('source', options.source);
+  }
+
+  if (options.tenantId) {
+    formData.append('tenantId', options.tenantId.toString());
+  }
+
+  if (options.tenantSlug) {
+    formData.append('tenantSlug', options.tenantSlug);
+  }
+}
+
 // Additional API utilities can be added here
 export const uploadImageWithFastSAM2 = async (file: File, tenantId: number, selectedStyles: any) => {
   const formData = new FormData();
@@ -53,10 +75,18 @@ export const checkFastEditStatus = async (segmentationId: string) => {
 };
 
 // Keep legacy upload for backward compatibility
-export const uploadImage = async (file: File, userId: number, selectedStyles: any, maskData?: string, customPrompt?: string) => {
+export const uploadImage = async (
+  file: File,
+  userId: number,
+  selectedStyles: any,
+  maskData?: string,
+  customPrompt?: string,
+  options?: UploadRequestOptions,
+) => {
   const formData = new FormData();
   formData.append('image', file);
   // Note: tenantId is no longer needed - backend will determine it
+  appendUploadContext(formData, options);
 
   // Format the selected styles to match backend expectations
   const roofValue = selectedStyles.roof.enabled && selectedStyles.roof.type ? selectedStyles.roof.type : '';
@@ -125,11 +155,13 @@ export const uploadInteriorImage = async (
   selectedStyles: string[],
   customColor?: { name?: string; hex?: string },
   customPrompt?: string,
+  options?: UploadRequestOptions,
 ) => {
   const formData = new FormData();
   formData.append('image', file);
   formData.append('service', service);
   formData.append('selectedStyles', JSON.stringify(selectedStyles));
+  appendUploadContext(formData, options);
 
   if (customColor?.name) {
     formData.append('customColorName', customColor.name);
@@ -254,10 +286,17 @@ export const analyzeLandscapeImage = async (file: File) => {
 };
 
 // Pool-specific API functions
-export const uploadPoolImage = async (file: File, userId: number, selectedPoolStyles: any, customPrompt?: string) => {
+export const uploadPoolImage = async (
+  file: File,
+  userId: number,
+  selectedPoolStyles: any,
+  customPrompt?: string,
+  options?: UploadRequestOptions,
+) => {
   const formData = new FormData();
   formData.append('image', file);
   // Note: tenantId is no longer needed - backend will determine it
+  appendUploadContext(formData, options);
 
   // Format the selected pool styles to match backend expectations
   const poolTypeValue = selectedPoolStyles.poolType || '';
@@ -323,10 +362,17 @@ export const checkPoolVisualizationStatus = async (poolVisualizationId: number) 
 };
 
 // Landscape-specific API functions
-export const uploadLandscapeImage = async (file: File, userId: number, selectedLandscapeStyles: any, customPrompt?: string) => {
+export const uploadLandscapeImage = async (
+  file: File,
+  userId: number,
+  selectedLandscapeStyles: any,
+  customPrompt?: string,
+  options?: UploadRequestOptions,
+) => {
   const formData = new FormData();
   formData.append('image', file);
   // Note: tenantId is no longer needed - backend will determine it
+  appendUploadContext(formData, options);
 
   // Format the selected landscape styles to match backend expectations
   const curbingValue = selectedLandscapeStyles.curbing || '';
@@ -384,9 +430,17 @@ export const checkLandscapeVisualizationStatus = async (landscapeVisualizationId
   return response.json();
 };
 
-export const uploadHalloweenImage = async (file: File, userId: number, decorations: string[], nightMode: boolean, spookyMode: boolean) => {
+export const uploadHalloweenImage = async (
+  file: File,
+  userId: number,
+  decorations: string[],
+  nightMode: boolean,
+  spookyMode: boolean,
+  options?: UploadRequestOptions,
+) => {
   const formData = new FormData();
   formData.append('image', file);
+  appendUploadContext(formData, options);
   formData.append('decorations', decorations.join(','));
   formData.append('nightMode', nightMode.toString());
   formData.append('spookyMode', spookyMode.toString());
@@ -430,9 +484,17 @@ export const checkHalloweenVisualizationStatus = async (halloweenVisualizationId
   return response.json();
 };
 
-export const uploadChristmasLightsImage = async (file: File, userId: number, lightType: string, lightColor: string, addSnow: boolean) => {
+export const uploadChristmasLightsImage = async (
+  file: File,
+  userId: number,
+  lightType: string,
+  lightColor: string,
+  addSnow: boolean,
+  options?: UploadRequestOptions,
+) => {
   const formData = new FormData();
   formData.append('image', file);
+  appendUploadContext(formData, options);
   formData.append('lightType', lightType);
   formData.append('lightColor', lightColor);
   formData.append('addSnow', addSnow.toString());

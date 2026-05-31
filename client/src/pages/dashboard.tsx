@@ -275,7 +275,7 @@ export default function Dashboard() {
                     </p>
                     <div className="space-y-2">
                       <Button 
-                        onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
+                        onClick={() => handleUpgrade('price_1TcynuBY2SPm2HvO1Eri2ogI')}
                         disabled={loading}
                         className="w-full"
                       >
@@ -292,7 +292,7 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {user.subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto' && (
+                {user.subscription?.planId === 'price_1TcynuBY2SPm2HvO1Eri2ogI' && (
                   <div className="space-y-3">
                     <p className="text-sm text-gray-600">
                       Upgrade to Professional for team collaboration and higher monthly usage.
@@ -371,7 +371,7 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <Button 
-                    onClick={() => handleUpgrade('price_1S5X2XBY2SPm2HvO2he9Unto')}
+                    onClick={() => handleUpgrade('price_1TcynuBY2SPm2HvO1Eri2ogI')}
                     disabled={loading}
                     className="w-full"
                   >

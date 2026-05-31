@@ -57,7 +57,7 @@ interface RoofingEditResult {
  * Processes and resizes image to max 1920x1080 while maintaining aspect ratio
  */
 async function processImageSize(imageBuffer: Buffer): Promise<ProcessedImage> {
-  const image = sharp(imageBuffer);
+  const image = sharp(imageBuffer).rotate();
   const metadata = await image.metadata();
 
   let processedImage = image;
@@ -83,6 +83,32 @@ async function processImageSize(imageBuffer: Buffer): Promise<ProcessedImage> {
     height: finalMetadata.height || 1080,
     format: "jpeg",
   };
+}
+
+function imageDimensionsInstruction(processedImage: ProcessedImage): string {
+  return `Keep the output at ${processedImage.width}x${processedImage.height} pixels and preserve the original image aspect ratio exactly. Do not stretch, squeeze, letterbox, or convert the image to 16:9.`;
+}
+
+async function resizeGeneratedImageToOriginalAspect(
+  rawGeneratedBuffer: Buffer,
+  processedImage: ProcessedImage,
+  quality: number,
+  label: string,
+): Promise<Buffer> {
+  const generatedMetadata = await sharp(rawGeneratedBuffer).metadata();
+
+  console.log(
+    `${label}: fitting Gemini output ${generatedMetadata.width || "unknown"}x${generatedMetadata.height || "unknown"} to original ${processedImage.width}x${processedImage.height} without stretching`,
+  );
+
+  // "fill" forces width and height independently and distorts mismatched outputs.
+  // "cover" preserves the generated image aspect ratio while matching the original canvas.
+  return sharp(rawGeneratedBuffer)
+    .resize(processedImage.width, processedImage.height, {
+      fit: "cover",
+    })
+    .jpeg({ quality })
+    .toBuffer();
 }
 
 /**
@@ -197,7 +223,7 @@ CRITICAL PRESERVATION RULES:
 - Keep the driveway, walkways, and outdoor fixtures identical
 - Only modify the specific roof/siding features listed above
 - Maintain the original perspective, lighting, and shadows
-- Keep image dimensions at 1920x1080 pixels
+- Preserve the original image dimensions and aspect ratio. Do not stretch, squeeze, or convert the image to 16:9.
 - The final result must look naturally integrated and professionally installed
 
 Make ONLY the specified changes above. Do not redesign or dramatically alter the home structure or surroundings.`;
@@ -314,7 +340,7 @@ CRITICAL PRESERVATION RULES:
 - Keep the same property layout and overall design
 - Only modify the specific roof/siding/window features listed above
 - Maintain original lighting, shadows, and perspective
-- Keep image dimensions at 1920x1080 pixels
+- ${imageDimensionsInstruction(processedImage)}
 - Result must look natural and professionally installed
 
 Apply ONLY the specified modifications above. Do not redesign or dramatically alter the home.`;
@@ -406,7 +432,7 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
               "base64",
             );
 
-            // Force the generated image to match original dimensions
+            // Fit the generated image to original dimensions without stretching.
             const originalMetadata = await sharp(
               processedImage.buffer,
             ).metadata();
@@ -417,14 +443,12 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
               `📐 Resizing Gemini output to match original: ${targetWidth}x${targetHeight}`,
             );
 
-            // Resize generated image to match original dimensions exactly
-            generatedImageBuffer = await sharp(rawGeneratedBuffer)
-              .resize(targetWidth, targetHeight, {
-                fit: "fill", // Force exact dimensions
-                background: { r: 255, g: 255, b: 255, alpha: 1 }, // White background if needed
-              })
-              .jpeg({ quality: 95 })
-              .toBuffer();
+            generatedImageBuffer = await resizeGeneratedImageToOriginalAspect(
+              rawGeneratedBuffer,
+              processedImage,
+              95,
+              "Roofing image",
+            );
 
             console.log(
               "✓ Gemini generated and resized roofing image successfully",
@@ -518,7 +542,7 @@ CRITICAL PRESERVATION RULES:
 - Keep the same property layout and overall yard design
 - Only add the pool and related features as specified above
 - Maintain original lighting, shadows, and perspective
-- Keep image dimensions at 1920x1080 pixels
+- ${imageDimensionsInstruction(processedImage)}
 - Result must look natural and professionally installed
 - Pool should fit harmoniously in the available yard space
 
@@ -578,7 +602,7 @@ Apply ONLY the pool installations specified above. Do not redesign the yard or d
               "base64",
             );
 
-            // Force the generated image to match original dimensions
+            // Fit the generated image to original dimensions without stretching.
             const originalMetadata = await sharp(
               processedImage.buffer,
             ).metadata();
@@ -589,14 +613,12 @@ Apply ONLY the pool installations specified above. Do not redesign the yard or d
               `🏊 Resizing pool image to match original: ${targetWidth}x${targetHeight}`,
             );
 
-            // Resize generated image to match original dimensions exactly
-            generatedImageBuffer = await sharp(rawGeneratedBuffer)
-              .resize(targetWidth, targetHeight, {
-                fit: "fill", // Force exact dimensions
-                background: { r: 255, g: 255, b: 255, alpha: 1 }, // White background if needed
-              })
-              .jpeg({ quality: 95 })
-              .toBuffer();
+            generatedImageBuffer = await resizeGeneratedImageToOriginalAspect(
+              rawGeneratedBuffer,
+              processedImage,
+              95,
+              "Pool image",
+            );
 
             console.log(
               "✓ Gemini generated and resized pool image successfully",
@@ -815,7 +837,7 @@ CRITICAL PRESERVATION RULES:
 - Keep the same property layout and overall yard design
 - Only add or modify the specific landscape features listed above
 - Maintain original lighting, shadows, and perspective
-- Keep image dimensions at 1920x1080 pixels
+- ${imageDimensionsInstruction(processedImage)}
 - Result must look natural and professionally installed
 - Landscape changes should enhance the existing property
 
@@ -912,7 +934,7 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
               "base64",
             );
 
-            // Force the generated image to match original dimensions
+            // Fit the generated image to original dimensions without stretching.
             const originalMetadata = await sharp(
               processedImage.buffer,
             ).metadata();
@@ -923,14 +945,12 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
               `🌿 Resizing landscape image to match original: ${targetWidth}x${targetHeight}`,
             );
 
-            // Resize generated image to match original dimensions exactly
-            generatedImageBuffer = await sharp(rawGeneratedBuffer)
-              .resize(targetWidth, targetHeight, {
-                fit: "fill",
-                withoutEnlargement: false,
-              })
-              .jpeg({ quality: 85 })
-              .toBuffer();
+            generatedImageBuffer = await resizeGeneratedImageToOriginalAspect(
+              rawGeneratedBuffer,
+              processedImage,
+              85,
+              "Landscape image",
+            );
 
             console.log(
               "✓ Gemini generated and resized landscape image successfully",
@@ -1029,7 +1049,7 @@ CRITICAL PRESERVATION RULES:
 - Do not add exterior landscaping or outdoor elements
 - Do not change the image crop, aspect ratio, or viewpoint
 - Result must look like a realistic professional remodel photograph
-- Keep image dimensions at 1920x1080 pixels
+- ${imageDimensionsInstruction(processedImage)}
 
 Apply ONLY the requested ${serviceLabels[service]} changes and keep the result practical, buildable, and cohesive with the existing room.`;
 
@@ -1103,19 +1123,12 @@ Apply ONLY the requested ${serviceLabels[service]} changes and keep the result p
               "base64",
             );
 
-            const originalMetadata = await sharp(
-              processedImage.buffer,
-            ).metadata();
-            const targetWidth = originalMetadata.width || 1920;
-            const targetHeight = originalMetadata.height || 1080;
-
-            generatedImageBuffer = await sharp(rawGeneratedBuffer)
-              .resize(targetWidth, targetHeight, {
-                fit: "fill",
-                withoutEnlargement: false,
-              })
-              .jpeg({ quality: 92 })
-              .toBuffer();
+            generatedImageBuffer = await resizeGeneratedImageToOriginalAspect(
+              rawGeneratedBuffer,
+              processedImage,
+              92,
+              "Interior image",
+            );
 
             break;
           }
@@ -1313,7 +1326,7 @@ ${decorationList}
 RULES:
 - Add ALL decorations listed above - each one must appear in the result
 - Keep house, landscaping, driveway exactly as they are  
-- Keep image at 1920x1080 pixels
+- ${imageDimensionsInstruction(processedImage)}
 - Make decorations look realistic and professionally placed
 - If multiple decorations are listed, include every single one
 
@@ -1411,13 +1424,12 @@ Create a complete Halloween scene with ALL the decorations specified above visib
               `🎃 Resizing Halloween image to match original: ${targetWidth}x${targetHeight}`,
             );
 
-            generatedImageBuffer = await sharp(rawGeneratedBuffer)
-              .resize(targetWidth, targetHeight, {
-                fit: "fill",
-                withoutEnlargement: false,
-              })
-              .jpeg({ quality: 85 })
-              .toBuffer();
+            generatedImageBuffer = await resizeGeneratedImageToOriginalAspect(
+              rawGeneratedBuffer,
+              processedImage,
+              85,
+              "Halloween image",
+            );
 
             console.log(
               "✓ Gemini generated and resized Halloween image successfully",
@@ -1581,7 +1593,7 @@ CRITICAL RULES:
 - Light TYPE must match ${lightTypeDetails} exactly - get the size and style right
 - Keep the house structure, landscaping, and all existing features exactly as they are
 - Only add lights${addSnow ? ", snow," : ""} and nighttime conversion - nothing else
-- Maintain 1920x1080 pixel dimensions
+- ${imageDimensionsInstruction(processedImage)}
 - Make it look like a professional Christmas lights installation photograph taken at night with DENSE bulb coverage on roofline ONLY
 
 Create a stunning nighttime Christmas scene with DENSELY-PACKED, ABUNDANT ${lightTypeDetails} in ${colorTemp} illuminating the home with many closely-spaced bulbs installed ONLY along the roofline.`;
@@ -1675,13 +1687,12 @@ Create a stunning nighttime Christmas scene with DENSELY-PACKED, ABUNDANT ${ligh
               `🎄 Resizing Christmas image to match original: ${targetWidth}x${targetHeight}`,
             );
 
-            generatedImageBuffer = await sharp(rawGeneratedBuffer)
-              .resize(targetWidth, targetHeight, {
-                fit: "fill",
-                withoutEnlargement: false,
-              })
-              .jpeg({ quality: 85 })
-              .toBuffer();
+            generatedImageBuffer = await resizeGeneratedImageToOriginalAspect(
+              rawGeneratedBuffer,
+              processedImage,
+              85,
+              "Christmas image",
+            );
 
             console.log(
               "✓ Gemini generated Christmas lights image successfully",

@@ -346,6 +346,12 @@ export default function EmbedPage() {
                     originalFile,
                     effectiveTenant.id,
                     selectedLandscapeStyles,
+                    undefined,
+                    {
+                      source: "embed",
+                      tenantId: effectiveTenant.id,
+                      tenantSlug,
+                    },
                   );
 
                   if (result.landscapeVisualizationId) {

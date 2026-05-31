@@ -15,7 +15,7 @@ export default function ImageComparison({ beforeImage, afterImage }: ImageCompar
         <img
           src={beforeImage}
           alt="Original property photo"
-          className="w-full h-48 md:h-64 object-cover"
+          className="block h-auto w-full"
         />
         <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
           Before
@@ -30,7 +30,7 @@ export default function ImageComparison({ beforeImage, afterImage }: ImageCompar
         <img
           src={afterImage}
           alt="AI-generated landscape visualization"
-          className="w-full h-48 md:h-64 object-cover"
+          className="h-full w-full object-contain"
         />
         <div className="absolute top-4 right-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
           After

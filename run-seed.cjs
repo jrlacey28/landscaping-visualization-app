@@ -57,6 +57,16 @@ async function seedSubscriptionPlans() {
       },
       {
         id: 'price_1S5X2XBY2SPm2HvO2he9Unto',
+        name: 'Contractor (Legacy)',
+        description: 'Legacy Contractor plan retained for existing subscriptions',
+        price: 30000, // $300 in cents
+        interval: 'month',
+        visualization_limit: 200,
+        embed_access: true,
+        active: false
+      },
+      {
+        id: 'price_1TcynuBY2SPm2HvO1Eri2ogI',
         name: 'Contractor',
         description: 'For small business owners ready to impress clients',
         price: 30000, // $300 in cents

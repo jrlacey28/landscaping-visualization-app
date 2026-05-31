@@ -155,7 +155,7 @@ export default function RoofingSiding() {
                         ? "Original photo"
                         : "AI Generated roofing & siding design"
                     }
-                    className="w-full aspect-video object-cover rounded-xl shadow-lg"
+                    className="mx-auto block h-auto w-auto max-h-[72vh] max-w-full object-contain rounded-xl bg-slate-100 shadow-lg"
                   />
                 </div>
 
@@ -230,7 +230,7 @@ export default function RoofingSiding() {
                       <img
                         src={uploadedImage}
                         alt="Uploaded house photo"
-                        className="w-full aspect-video object-cover shadow-lg transition-all duration-300"
+                        className="mx-auto block h-auto w-auto max-h-[72vh] max-w-full object-contain bg-slate-100 shadow-lg transition-all duration-300"
                       />
                       {isGenerating && (
                         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl flex items-center justify-center">

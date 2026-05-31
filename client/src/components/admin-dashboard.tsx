@@ -1255,14 +1255,14 @@ export default function AdminDashboard() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <Select
                                     value={
-                                      user.subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto' ? 'contractor' :
+                                      user.subscription?.planId === 'price_1TcynuBY2SPm2HvO1Eri2ogI' ? 'contractor' :
                                       user.subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' ? 'professional' :
                                       'free'
                                     }
                                     onValueChange={(value) => {
                                       const planIdMap: Record<string, string> = {
                                         'free': 'free',
-                                        'contractor': 'price_1S5X2XBY2SPm2HvO2he9Unto',
+                                        'contractor': 'price_1TcynuBY2SPm2HvO1Eri2ogI',
                                         'professional': 'price_1SGN4YBY2SPm2HvOrpREWCn1'
                                       };
                                       const planId = planIdMap[value];

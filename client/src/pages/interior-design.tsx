@@ -179,6 +179,7 @@ export default function InteriorDesign() {
   const [location, navigate] = useLocation();
   const { toast } = useToast();
   const config = serviceConfigs[location] || serviceConfigs["/painting"];
+  const isPaintingService = config.service === "painting";
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
@@ -254,6 +255,21 @@ export default function InteriorDesign() {
   }, [config.styles]);
 
   const customPaintSelected = selectedStyleIds.includes("custom_paint_color");
+  const pageContainerClass = isPaintingService
+    ? "max-w-4xl mx-auto px-2 sm:px-6 lg:px-8"
+    : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8";
+  const heroSectionClass = isPaintingService ? "py-4 sm:py-8 md:py-10" : "py-10";
+  const heroTitleClass = isPaintingService
+    ? "text-3xl sm:text-4xl md:text-5xl leading-tight font-bold text-white mb-0"
+    : "text-4xl md:text-5xl font-bold text-white mb-0";
+  const uploadCardContentClass = isPaintingService ? "p-5 sm:p-8 md:p-12" : "p-12";
+  const resultCardContentClass = isPaintingService ? "p-3 sm:p-6 md:p-8" : "p-8";
+  const previewImageClass = isPaintingService
+    ? "w-full max-h-[75vh] object-contain rounded-lg bg-slate-100 shadow-lg"
+    : "mx-auto block h-auto w-auto max-h-[72vh] max-w-full object-contain rounded-xl bg-slate-100 shadow-lg";
+  const uploadedPreviewImageClass = isPaintingService
+    ? "w-full max-h-[75vh] object-contain bg-slate-100 shadow-lg transition-all duration-300"
+    : "mx-auto block h-auto w-auto max-h-[72vh] max-w-full object-contain bg-slate-100 shadow-lg transition-all duration-300";
 
   const handleGroupToggle = (group: string, enabled: boolean) => {
     const groupStyles = styleGroups[group] || [];
@@ -418,13 +434,13 @@ export default function InteriorDesign() {
       className={`min-h-screen ${config.background} flex flex-col`}
       style={brandColors}
     >
-      <Header tenant={effectiveTenant} />
+      <Header tenant={effectiveTenant} compactMobile={isPaintingService} />
 
-      <section className="py-10">
+      <section className={heroSectionClass}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-0">
+          <h2 className={heroTitleClass}>
             {config.title}
-            <span className={`text-transparent bg-gradient-to-r ${config.accent} bg-clip-text block`}>
+            <span className={`text-transparent bg-gradient-to-r ${config.accent} bg-clip-text block ${isPaintingService ? "mt-1 sm:mt-0" : ""}`}>
               Before You Build
             </span>
           </h2>
@@ -432,15 +448,15 @@ export default function InteriorDesign() {
       </section>
 
       <main className="flex-1 pb-32">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className={pageContainerClass}>
           {!uploadedImage ? (
             <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
-              <CardContent className="p-12">
-                <div className="text-center mb-8">
-                  <h3 className="text-3xl font-bold text-slate-800 mb-4">
+              <CardContent className={uploadCardContentClass}>
+                <div className={`text-center ${isPaintingService ? "mb-5 sm:mb-8" : "mb-8"}`}>
+                  <h3 className={`${isPaintingService ? "text-2xl sm:text-3xl" : "text-3xl"} font-bold text-slate-800 mb-4`}>
                     {config.uploadTitle}
                   </h3>
-                  <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                  <p className={`${isPaintingService ? "text-base sm:text-lg" : "text-lg"} text-slate-600 max-w-2xl mx-auto`}>
                     {config.uploadDescription}
                   </p>
                 </div>
@@ -457,16 +473,16 @@ export default function InteriorDesign() {
             </Card>
           ) : generatedImage ? (
             <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
-              <CardContent className="p-8">
-                <div className="mb-6">
+              <CardContent className={resultCardContentClass}>
+                <div className={isPaintingService ? "mb-4 sm:mb-6" : "mb-6"}>
                   <img
                     src={showingOriginal ? uploadedImage : generatedImage}
                     alt={showingOriginal ? "Original room photo" : `${selectedStyleLabel} design`}
-                    className="w-full aspect-video object-cover rounded-xl shadow-lg"
+                    className={previewImageClass}
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${isPaintingService ? "gap-3 sm:gap-4 mb-3 sm:mb-4" : "gap-4 mb-4"}`}>
                   <Button
                     size="lg"
                     className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
@@ -516,14 +532,14 @@ export default function InteriorDesign() {
             </Card>
           ) : (
             <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-md">
-              <CardContent className="p-8">
-                <div className="text-center mb-8">
+              <CardContent className={resultCardContentClass}>
+                <div className={`text-center ${isPaintingService ? "mb-5 sm:mb-8" : "mb-8"}`}>
                   <div className="max-w-4xl mx-auto relative">
                     <div className="relative overflow-hidden rounded-xl">
                       <img
                         src={uploadedImage}
                         alt="Uploaded room photo"
-                        className="w-full aspect-video object-cover shadow-lg transition-all duration-300"
+                        className={uploadedPreviewImageClass}
                       />
                       {isGenerating && (
                         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl flex items-center justify-center">

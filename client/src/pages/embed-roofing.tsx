@@ -5,7 +5,7 @@ import StyleSelector from "../components/style-selector";
 import { Button } from "../components/ui/button";
 import { Upload, Sparkles, Download, Eye, Camera, Phone, XCircle } from "lucide-react";
 import { SparklesText } from "@/components/ui/sparkles-text";
-import { uploadLandscapeImage, checkLandscapeVisualizationStatus } from "../lib/api";
+import { uploadImage, checkVisualizationStatus } from "../lib/api";
 import {
   DEFAULT_EMBED_BACKGROUND_COLOR,
   getEmbedBackground,
@@ -360,22 +360,22 @@ export default function EmbedRoofingPage() {
                     return;
                   }
 
-                  // Map roofing/siding styles to landscape format for Gemini processing
-                  const landscapeStyles = {
-                    curbing: selectedStyles.roof.enabled ? selectedStyles.roof.type : '',
-                    landscape: selectedStyles.siding.enabled ? selectedStyles.siding.type : '',
-                    patios: selectedStyles.surpriseMe.enabled ? selectedStyles.surpriseMe.type : ''
-                  };
-
-                  const result = await uploadLandscapeImage(
+                  const result = await uploadImage(
                     originalFile,
                     effectiveTenant.id,
-                    landscapeStyles
+                    selectedStyles,
+                    undefined,
+                    undefined,
+                    {
+                      source: "embed",
+                      tenantId: effectiveTenant.id,
+                      tenantSlug,
+                    },
                   );
 
-                  if (result.landscapeVisualizationId) {
-                    const status = await checkLandscapeVisualizationStatus(
-                      result.landscapeVisualizationId,
+                  if (result.visualizationId) {
+                    const status = await checkVisualizationStatus(
+                      result.visualizationId,
                     );
                     setVisualizationResult(status);
                   }

@@ -14,7 +14,7 @@ import { z } from "zod";
 import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage, processInteriorVisualizationWithGemini, processHalloweenVisualizationWithGemini, processChristmasLightsWithGemini } from "./gemini-service";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
-import { authenticateToken, AuthRequest } from "./auth";
+import { authenticateToken, optionalAuthenticateToken, AuthRequest } from "./auth";
 import jwt from 'jsonwebtoken';
 import { sendTeamInvitationEmail } from "./email-service";
 
@@ -171,29 +171,41 @@ function normalizeGeneration(visualization: any, service: GenerationService, ass
   };
 }
 
+async function isGenerationOwnedByUser(userId: number, generation: any) {
+  if (!generation) return false;
+  if (generation.userId === userId) return true;
+
+  if (generation.tenantId) {
+    const tenant = await storage.getTenant(generation.tenantId);
+    return tenant?.userId === userId;
+  }
+
+  return false;
+}
+
 async function getOwnedGenerationForService(userId: number, service: GenerationService, visualizationId: number) {
   if (service === "pools") {
     const generation = await storage.getPoolVisualization(visualizationId);
-    return generation?.userId === userId ? generation : undefined;
+    return await isGenerationOwnedByUser(userId, generation) ? generation : undefined;
   }
 
   if (service === "landscape") {
     const generation = await storage.getLandscapeVisualization(visualizationId);
-    return generation?.userId === userId ? generation : undefined;
+    return await isGenerationOwnedByUser(userId, generation) ? generation : undefined;
   }
 
   if (service === "halloween") {
     const generation = await storage.getHalloweenVisualization(visualizationId);
-    return generation?.userId === userId ? generation : undefined;
+    return await isGenerationOwnedByUser(userId, generation) ? generation : undefined;
   }
 
   if (service === "christmas-lights") {
     const generation = await storage.getChristmasLightsVisualization(visualizationId);
-    return generation?.userId === userId ? generation : undefined;
+    return await isGenerationOwnedByUser(userId, generation) ? generation : undefined;
   }
 
   const generation = await storage.getVisualization(visualizationId);
-  if (!generation || generation.userId !== userId) {
+  if (!(await isGenerationOwnedByUser(userId, generation))) {
     return undefined;
   }
 
@@ -246,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || 'unknown';
 
       // Check paid plan configuration
-      const CONTRACTOR_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
+      const CONTRACTOR_PLAN_ID = 'price_1TcynuBY2SPm2HvO1Eri2ogI';
       const PROFESSIONAL_PLAN_ID = 'price_1SGN4YBY2SPm2HvOrpREWCn1';
       let paidUsers = 0;
       let embedEnabledUsers = 0;
@@ -373,7 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         usage: usage,
         computedEmbedAccess: hasEmbed,
         checks: {
-          hasContractorPlanId: subscription?.planId === 'price_1S5X2XBY2SPm2HvO2he9Unto',
+          hasContractorPlanId: subscription?.planId === 'price_1TcynuBY2SPm2HvO1Eri2ogI',
           hasProfessionalPlanId: subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1',
           usageSaysPaid: ['Contractor', 'Professional'].includes(usage.planName),
           usageSaysCustom: usage.planName === 'Custom',
@@ -844,6 +856,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return { subscription, plan };
   }
 
+  class GenerationRequestError extends Error {
+    status: number;
+
+    constructor(status: number, message: string) {
+      super(message);
+      this.status = status;
+    }
+  }
+
+  function parsePositiveId(value: unknown) {
+    if (typeof value !== "string" && typeof value !== "number") return null;
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  }
+
+  async function getTenantFromGenerationRequest(req: AuthRequest) {
+    const tenantId = parsePositiveId(req.body.tenantId);
+    if (tenantId) {
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        throw new GenerationRequestError(404, "Embed account not found");
+      }
+      return tenant;
+    }
+
+    if (typeof req.body.tenantSlug === "string" && req.body.tenantSlug.trim()) {
+      const tenant = await storage.getTenantBySlug(req.body.tenantSlug.trim());
+      if (!tenant) {
+        throw new GenerationRequestError(404, "Embed account not found");
+      }
+      return tenant;
+    }
+
+    return null;
+  }
+
+  async function resolveGenerationOwner(req: AuthRequest, usageType: 'visualization' | 'landscape' | 'pool') {
+    const tenant = await getTenantFromGenerationRequest(req);
+    const isEmbedGeneration = req.body.source === "embed" || (!req.user && !!tenant);
+
+    if (isEmbedGeneration) {
+      if (!tenant) {
+        throw new GenerationRequestError(401, "Authentication or embed account is required");
+      }
+
+      if (!tenant.userId) {
+        throw new GenerationRequestError(403, "This embed is not connected to an account");
+      }
+
+      let checkedTenant;
+      try {
+        checkedTenant = await checkTenantUsageLimits(tenant.id);
+      } catch (error: any) {
+        throw new GenerationRequestError(429, error.message || "Embed usage limit reached");
+      }
+
+      const hasEmbedAccess = await storage.computeEmbedAccess(tenant.userId);
+      if (!hasEmbedAccess) {
+        throw new GenerationRequestError(403, "Embed access is not enabled for this account");
+      }
+
+      return {
+        userId: tenant.userId,
+        tenantId: checkedTenant.id,
+        shouldTrackUserUsage: false,
+        hasBusinessPro: await storage.hasBusinessProAccess(tenant.userId),
+      };
+    }
+
+    if (!req.user) {
+      throw new GenerationRequestError(401, "Authentication required");
+    }
+
+    try {
+      await checkUserUsageLimits(req.user.id, usageType);
+    } catch (error: any) {
+      throw new GenerationRequestError(429, error.message || "Usage limit reached");
+    }
+
+    return {
+      userId: req.user.id,
+      tenantId: null,
+      shouldTrackUserUsage: true,
+      hasBusinessPro: await storage.hasBusinessProAccess(req.user.id),
+    };
+  }
+
+  function handleGenerationRequestError(res: any, error: unknown) {
+    if (error instanceof GenerationRequestError) {
+      res.status(error.status).json({ error: error.message });
+      return true;
+    }
+
+    return false;
+  }
+
   const projectSchema = z.object({
     name: z.string().trim().min(1, "Project name is required").max(120),
     address: z.string().trim().max(200).optional().nullable(),
@@ -971,9 +1079,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const serviceFilter = isGenerationService(req.query.service) ? req.query.service : "all";
       const projectFilter = typeof req.query.projectId === "string" ? req.query.projectId : "all";
 
-      const [projects, projectAssignments] = await Promise.all([
+      const [projects, projectAssignments, userTenant] = await Promise.all([
         storage.getGenerationProjectsByUser(userId),
         storage.getProjectGenerationsByUser(userId),
+        storage.getTenantByUserId(userId),
       ]);
 
       const projectsById = new Map(projects.map((project) => [project.id, project]));
@@ -1004,6 +1113,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const shouldLoad = (service: GenerationService) => serviceFilter === "all" || serviceFilter === service;
       const generations: any[] = [];
+      const addGeneration = (visualization: any, service: GenerationService) => {
+        const key = `${service}:${visualization.id}`;
+        if (generations.some((generation) => generation.id === key)) return;
+
+        generations.push(normalizeGeneration(
+          visualization,
+          service,
+          assignmentsByGeneration.get(key) || []
+        ));
+      };
 
       if (shouldLoad("roofing-siding") || shouldLoad("interior")) {
         const userVisualizations = await storage.getVisualizationsByUser(userId);
@@ -1011,55 +1130,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const service = getVisualizationService(visualization);
           if (!shouldLoad(service)) continue;
 
-          generations.push(normalizeGeneration(
-            visualization,
-            service,
-            assignmentsByGeneration.get(`${service}:${visualization.id}`) || []
-          ));
+          addGeneration(visualization, service);
+        }
+
+        if (userTenant) {
+          const tenantVisualizations = await storage.getVisualizationsByTenant(userTenant.id);
+          for (const visualization of tenantVisualizations) {
+            const service = getVisualizationService(visualization);
+            if (!shouldLoad(service)) continue;
+
+            addGeneration(visualization, service);
+          }
         }
       }
 
       if (shouldLoad("pools")) {
         const poolGenerations = await storage.getPoolVisualizationsByUser(userId);
         for (const visualization of poolGenerations) {
-          generations.push(normalizeGeneration(
-            visualization,
-            "pools",
-            assignmentsByGeneration.get(`pools:${visualization.id}`) || []
-          ));
+          addGeneration(visualization, "pools");
+        }
+
+        if (userTenant) {
+          const tenantPoolGenerations = await storage.getPoolVisualizationsByTenant(userTenant.id);
+          for (const visualization of tenantPoolGenerations) {
+            addGeneration(visualization, "pools");
+          }
         }
       }
 
       if (shouldLoad("landscape")) {
         const landscapeGenerations = await storage.getLandscapeVisualizationsByUser(userId);
         for (const visualization of landscapeGenerations) {
-          generations.push(normalizeGeneration(
-            visualization,
-            "landscape",
-            assignmentsByGeneration.get(`landscape:${visualization.id}`) || []
-          ));
+          addGeneration(visualization, "landscape");
+        }
+
+        if (userTenant) {
+          const tenantLandscapeGenerations = await storage.getLandscapeVisualizationsByTenant(userTenant.id);
+          for (const visualization of tenantLandscapeGenerations) {
+            addGeneration(visualization, "landscape");
+          }
         }
       }
 
       if (shouldLoad("halloween")) {
         const halloweenGenerations = await storage.getHalloweenVisualizationsByUser(userId);
         for (const visualization of halloweenGenerations) {
-          generations.push(normalizeGeneration(
-            visualization,
-            "halloween",
-            assignmentsByGeneration.get(`halloween:${visualization.id}`) || []
-          ));
+          addGeneration(visualization, "halloween");
+        }
+
+        if (userTenant) {
+          const tenantHalloweenGenerations = await storage.getHalloweenVisualizationsByTenant(userTenant.id);
+          for (const visualization of tenantHalloweenGenerations) {
+            addGeneration(visualization, "halloween");
+          }
         }
       }
 
       if (shouldLoad("christmas-lights")) {
         const christmasGenerations = await storage.getChristmasLightsVisualizationsByUser(userId);
         for (const visualization of christmasGenerations) {
-          generations.push(normalizeGeneration(
-            visualization,
-            "christmas-lights",
-            assignmentsByGeneration.get(`christmas-lights:${visualization.id}`) || []
-          ));
+          addGeneration(visualization, "christmas-lights");
+        }
+
+        if (userTenant) {
+          const tenantChristmasGenerations = await storage.getChristmasLightsVisualizationsByTenant(userTenant.id);
+          for (const visualization of tenantChristmasGenerations) {
+            addGeneration(visualization, "christmas-lights");
+          }
         }
       }
 
@@ -1145,20 +1282,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Gemini-powered roofing/siding editing workflow (requires authentication)
-  app.post("/api/upload", authenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+  // Gemini-powered roofing/siding editing workflow (account or embed-owned)
+  app.post("/api/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      if (!req.user) {
-        return res.status(401).json({ error: "Authentication required" });
+      let generationOwner;
+      try {
+        generationOwner = await resolveGenerationOwner(req, 'visualization');
+      } catch (error) {
+        if (handleGenerationRequestError(res, error)) return;
+        throw error;
       }
 
       const { selectedRoof, selectedSiding, selectedSurpriseMe, selectedWindows, customPrompt } = req.body;
-      const userId = req.user.id;
-      const hasBusinessPro = await storage.hasBusinessProAccess(userId);
+      const userId = generationOwner.userId;
+      const hasBusinessPro = generationOwner.hasBusinessPro;
 
       // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
@@ -1170,24 +1311,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Check user usage limits before processing
-      try {
-        await checkUserUsageLimits(userId, 'visualization');
-      } catch (limitError: any) {
-        return res.status(429).json({ error: limitError.message });
-      }
-
       // Process image with size constraints (max 1920x1080)
       const originalImageBuffer = req.file.buffer;
 
       // Create base64 for storage
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
 
-      // Don't track tenant for authenticated users - only track user
-      // Create visualization record with user ID only
       const visualization = await storage.createVisualization({
-        tenantId: null, // No tenant tracking for authenticated users
-        userId: userId, // Track the actual user
+        tenantId: generationOwner.tenantId,
+        userId: userId,
         originalImageUrl: base64Image,
         selectedRoof: selectedRoof || null,
         selectedSiding: selectedSiding || null,
@@ -1195,8 +1327,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      // Track user-level usage
-      await storage.createOrUpdateUserUsage(userId, 'visualization');
+      if (generationOwner.shouldTrackUserUsage) {
+        await storage.createOrUpdateUserUsage(userId, 'visualization');
+      }
 
       // Process with Gemini AI
       try {
@@ -1287,15 +1420,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Interior visualization upload (requires authentication)
-  app.post("/api/interior/upload", authenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+  // Interior visualization upload (account or embed-owned)
+  app.post("/api/interior/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      if (!req.user) {
-        return res.status(401).json({ error: "Authentication required" });
+      let generationOwner;
+      try {
+        generationOwner = await resolveGenerationOwner(req, 'visualization');
+      } catch (error) {
+        if (handleGenerationRequestError(res, error)) return;
+        throw error;
       }
 
       const service = z.enum(["painting", "bathroom", "kitchen", "living_room"]).parse(req.body.service);
@@ -1312,8 +1449,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customColorName = typeof req.body.customColorName === "string" ? req.body.customColorName : "";
       const customColorHex = typeof req.body.customColorHex === "string" ? req.body.customColorHex : "";
       const customPrompt = typeof req.body.customPrompt === "string" ? req.body.customPrompt : "";
-      const userId = req.user.id;
-      const hasBusinessPro = await storage.hasBusinessProAccess(userId);
+      const userId = generationOwner.userId;
+      const hasBusinessPro = generationOwner.hasBusinessPro;
 
       let validatedCustomPrompt = undefined;
       if (customPrompt && customPrompt.trim()) {
@@ -1324,17 +1461,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      try {
-        await checkUserUsageLimits(userId, 'visualization');
-      } catch (limitError: any) {
-        return res.status(429).json({ error: limitError.message });
-      }
-
       const originalImageBuffer = req.file.buffer;
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
 
       const visualization = await storage.createVisualization({
-        tenantId: null,
+        tenantId: generationOwner.tenantId,
         userId,
         originalImageUrl: base64Image,
         selectedRoof: service,
@@ -1343,7 +1474,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      await storage.createOrUpdateUserUsage(userId, 'visualization');
+      if (generationOwner.shouldTrackUserUsage) {
+        await storage.createOrUpdateUserUsage(userId, 'visualization');
+      }
 
       try {
         const result = await processInteriorVisualizationWithGemini({
@@ -1466,20 +1599,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Pool-specific API routes - completely separate from roofing/siding
   
-  // Pool visualization upload (requires authentication)
-  app.post("/api/pools/upload", authenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+  // Pool visualization upload (account or embed-owned)
+  app.post("/api/pools/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      if (!req.user) {
-        return res.status(401).json({ error: "Authentication required" });
+      let generationOwner;
+      try {
+        generationOwner = await resolveGenerationOwner(req, 'pool');
+      } catch (error) {
+        if (handleGenerationRequestError(res, error)) return;
+        throw error;
       }
 
       const { selectedPoolType, selectedPoolSize, selectedDecking, selectedLandscaping, selectedFeatures, selectedHotTub, selectedSauna, customPrompt } = req.body;
-      const userId = req.user.id;
-      const hasBusinessPro = await storage.hasBusinessProAccess(userId);
+      const userId = generationOwner.userId;
+      const hasBusinessPro = generationOwner.hasBusinessPro;
 
       // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
@@ -1491,24 +1628,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Check user usage limits before processing
-      try {
-        await checkUserUsageLimits(userId, 'pool');
-      } catch (limitError: any) {
-        return res.status(429).json({ error: limitError.message });
-      }
-
       // Process image with size constraints (max 1920x1080)
       const originalImageBuffer = req.file.buffer;
 
       // Create base64 for storage
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
 
-      // Don't track tenant for authenticated users - only track user
-      // Create pool visualization record with user ID only
       const poolVisualization = await storage.createPoolVisualization({
-        tenantId: null, // No tenant tracking for authenticated users
-        userId: userId, // Track the actual user
+        tenantId: generationOwner.tenantId,
+        userId: userId,
         originalImageUrl: base64Image,
         selectedPoolType: selectedPoolType || null,
         selectedPoolSize: selectedPoolSize || null,
@@ -1518,8 +1646,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      // Track user-level usage
-      await storage.createOrUpdateUserUsage(userId, 'pool');
+      if (generationOwner.shouldTrackUserUsage) {
+        await storage.createOrUpdateUserUsage(userId, 'pool');
+      }
 
       // Process with Gemini AI using pool-specific prompts
       try {
@@ -1714,20 +1843,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Landscape-specific API routes
   
-  // Landscape visualization upload (requires authentication)
-  app.post("/api/landscape/upload", authenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+  // Landscape visualization upload (account or embed-owned)
+  app.post("/api/landscape/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      if (!req.user) {
-        return res.status(401).json({ error: "Authentication required" });
+      let generationOwner;
+      try {
+        generationOwner = await resolveGenerationOwner(req, 'landscape');
+      } catch (error) {
+        if (handleGenerationRequestError(res, error)) return;
+        throw error;
       }
 
       const { selectedCurbing, selectedLandscape, selectedPatios, customPrompt } = req.body;
-      const userId = req.user.id;
-      const hasBusinessPro = await storage.hasBusinessProAccess(userId);
+      const userId = generationOwner.userId;
+      const hasBusinessPro = generationOwner.hasBusinessPro;
 
       // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
@@ -1739,24 +1872,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Check user usage limits before processing
-      try {
-        await checkUserUsageLimits(userId, 'landscape');
-      } catch (limitError: any) {
-        return res.status(429).json({ error: limitError.message });
-      }
-
       // Process image with size constraints (max 1920x1080)
       const originalImageBuffer = req.file.buffer;
 
       // Create base64 for storage
       const base64Image = `data:image/jpeg;base64,${originalImageBuffer.toString('base64')}`;
 
-      // Don't track tenant for authenticated users - only track user
-      // Create landscape visualization record with user ID only
       const landscapeVisualization = await storage.createLandscapeVisualization({
-        tenantId: null, // No tenant tracking for authenticated users
-        userId: userId, // Track the actual user
+        tenantId: generationOwner.tenantId,
+        userId: userId,
         originalImageUrl: base64Image,
         selectedCurbing: selectedCurbing || null,
         selectedLandscape: selectedLandscape || null,
@@ -1764,8 +1888,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      // Track user-level usage
-      await storage.createOrUpdateUserUsage(userId, 'landscape');
+      if (generationOwner.shouldTrackUserUsage) {
+        await storage.createOrUpdateUserUsage(userId, 'landscape');
+      }
 
       // Process with Gemini AI using landscape-specific prompts
       try {
@@ -1861,27 +1986,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Halloween-specific API routes
   
-  // Halloween visualization upload (requires authentication)
-  app.post("/api/halloween/upload", authenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+  // Halloween visualization upload (account or embed-owned)
+  app.post("/api/halloween/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      if (!req.user) {
-        return res.status(401).json({ error: "Authentication required" });
-      }
-
-      const { selectedDecorations, nightMode, spookyMode } = req.body;
-      const userId = req.user.id;
-      const hasBusinessPro = await storage.hasBusinessProAccess(userId);
-
-      // Check user usage limits before processing
+      let generationOwner;
       try {
-        await checkUserUsageLimits(userId, 'visualization');
-      } catch (limitError: any) {
-        return res.status(429).json({ error: limitError.message });
+        generationOwner = await resolveGenerationOwner(req, 'visualization');
+      } catch (error) {
+        if (handleGenerationRequestError(res, error)) return;
+        throw error;
       }
+
+      const { selectedDecorations, decorations, nightMode, spookyMode } = req.body;
+      const selectedDecorationList = selectedDecorations || decorations;
+      const userId = generationOwner.userId;
+      const hasBusinessPro = generationOwner.hasBusinessPro;
 
       // Process image with size constraints (max 1920x1080)
       const originalImageBuffer = req.file.buffer;
@@ -1891,22 +2014,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create halloween visualization record with user ID only
       const halloweenVisualization = await storage.createHalloweenVisualization({
-        tenantId: null,
+        tenantId: generationOwner.tenantId,
         userId: userId,
         originalImageUrl: base64Image,
-        selectedDecorations: selectedDecorations || null,
+        selectedDecorations: selectedDecorationList || null,
         nightMode: nightMode === 'true' || nightMode === true,
         spookyMode: spookyMode === 'true' || spookyMode === true,
         status: "processing",
       });
 
-      // Track user-level usage
-      await storage.createOrUpdateUserUsage(userId, 'visualization');
+      if (generationOwner.shouldTrackUserUsage) {
+        await storage.createOrUpdateUserUsage(userId, 'visualization');
+      }
 
       // Process with Halloween AI
       try {
-        console.log('🎃 Processing Halloween visualization:', {
-          decorations: selectedDecorations,
+        console.log('Processing Halloween visualization:', {
+          decorations: selectedDecorationList,
           nightMode: nightMode,
           spookyMode: spookyMode
         });
@@ -1914,7 +2038,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Call Halloween processing function
         const result = await processHalloweenVisualizationWithGemini({
           imageBuffer: originalImageBuffer,
-          selectedDecorations: selectedDecorations || '',
+          selectedDecorations: selectedDecorationList || '',
           nightMode: nightMode === 'true' || nightMode === true,
           spookyMode: spookyMode === 'true' || spookyMode === true,
           usePremiumModel: hasBusinessPro
@@ -1991,27 +2115,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Christmas Lights-specific API routes
   
-  // Christmas Lights visualization upload (requires authentication)
-  app.post("/api/christmas-lights/upload", authenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+  // Christmas Lights visualization upload (account or embed-owned)
+  app.post("/api/christmas-lights/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      if (!req.user) {
-        return res.status(401).json({ error: "Authentication required" });
+      let generationOwner;
+      try {
+        generationOwner = await resolveGenerationOwner(req, 'visualization');
+      } catch (error) {
+        if (handleGenerationRequestError(res, error)) return;
+        throw error;
       }
 
       const { lightType, lightColor, addSnow } = req.body;
-      const userId = req.user.id;
-      const hasBusinessPro = await storage.hasBusinessProAccess(userId);
-
-      // Check user usage limits before processing
-      try {
-        await checkUserUsageLimits(userId, 'visualization');
-      } catch (limitError: any) {
-        return res.status(429).json({ error: limitError.message });
-      }
+      const userId = generationOwner.userId;
+      const hasBusinessPro = generationOwner.hasBusinessPro;
 
       // Process image with size constraints (max 1920x1080)
       const originalImageBuffer = req.file.buffer;
@@ -2021,7 +2142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create Christmas lights visualization record with user ID only
       const christmasVisualization = await storage.createChristmasLightsVisualization({
-        tenantId: null,
+        tenantId: generationOwner.tenantId,
         userId: userId,
         originalImageUrl: base64Image,
         lightType: lightType || 'c9_rope_lights',
@@ -2030,8 +2151,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      // Track user-level usage
-      await storage.createOrUpdateUserUsage(userId, 'visualization');
+      if (generationOwner.shouldTrackUserUsage) {
+        await storage.createOrUpdateUserUsage(userId, 'visualization');
+      }
 
       // Process with Christmas Lights AI
       try {

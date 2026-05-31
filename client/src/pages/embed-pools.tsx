@@ -359,6 +359,12 @@ export default function EmbedPoolsPage() {
                     originalFile,
                     effectiveTenant.id,
                     selectedPoolStyles,
+                    undefined,
+                    {
+                      source: "embed",
+                      tenantId: effectiveTenant.id,
+                      tenantSlug,
+                    },
                   );
 
                   if (result.poolVisualizationId) {

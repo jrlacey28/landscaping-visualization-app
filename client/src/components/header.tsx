@@ -15,9 +15,10 @@ import { useAuth } from "@/hooks/use-auth";
 
 interface HeaderProps {
   tenant: Tenant;
+  compactMobile?: boolean;
 }
 
-export default function Header({ tenant }: HeaderProps) {
+export default function Header({ tenant, compactMobile = false }: HeaderProps) {
   const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
   const currentService = location === "/pools" ? "pools" : "roofing";
@@ -25,11 +26,11 @@ export default function Header({ tenant }: HeaderProps) {
   return (
     <header className="relative z-50">
       <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-6">
-          <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer">
+        <div className={`flex justify-between items-center ${compactMobile ? "py-4 sm:py-6" : "py-6"}`}>
+          <Link href="/" className={`flex items-center hover:opacity-80 transition-opacity cursor-pointer ${compactMobile ? "space-x-2 sm:space-x-3" : "space-x-3"}`}>
             {/* Logo */}
             <svg
-              className="w-12 h-12 text-white"
+              className={`${compactMobile ? "w-10 h-10 sm:w-12 sm:h-12" : "w-12 h-12"} text-white`}
               viewBox="0 0 128.37 135.86"
               fill="currentColor"
             >
@@ -37,10 +38,10 @@ export default function Header({ tenant }: HeaderProps) {
               <path fill="#fff" d="M102.82,0c-2.69,20.69-4.87,22.87-25.55,25.55,20.69,2.69,22.87,4.87,25.55,25.55,2.69-20.69,4.87-22.87,25.55-25.55-20.69-2.69-22.87-4.87-25.55-25.55Z"/>
             </svg>
             <div>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className={`${compactMobile ? "text-xl sm:text-2xl" : "text-2xl"} font-bold text-white`}>
                 {tenant.companyName}
               </h1>
-              <p className="text-sm text-slate-300">Powered by Solst LLC</p>
+              <p className={`${compactMobile ? "text-xs sm:text-sm" : "text-sm"} text-slate-300`}>Powered by Solst LLC</p>
             </div>
           </Link>
           <nav className="hidden md:flex items-center space-x-8">

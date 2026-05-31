@@ -205,6 +205,40 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
   }
 };
 
+// Best-effort auth for public flows, such as embedded visualizers.
+// Sets req.user when a valid session/JWT exists, then always continues.
+export const optionalAuthenticateToken = async (req: AuthRequest, _res: Response, next: NextFunction) => {
+  try {
+    if (req.isAuthenticated && req.isAuthenticated() && (req as any).user) {
+      const sessionUser = (req as any).user;
+      const user = await storage.getUser(sessionUser.id);
+      if (user) {
+        req.user = user;
+        req.userId = user.id;
+        return next();
+      }
+    }
+
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (token) {
+      const decoded = AuthService.verifyToken(token);
+      if (decoded) {
+        const user = await storage.getUser(decoded.userId);
+        if (user) {
+          req.user = user;
+          req.userId = user.id;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Optional authentication error:', error);
+  }
+
+  next();
+};
+
 // Middleware to check if user has an active subscription
 export const requireSubscription = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

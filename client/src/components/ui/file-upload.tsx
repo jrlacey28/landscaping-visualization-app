@@ -63,7 +63,7 @@ export default function FileUpload({ onFileSelect, uploadedImage, theme = "defau
         <img
           src={uploadedImage}
           alt="Uploaded home photo"
-          className="w-full h-64 object-cover rounded-lg"
+          className="mx-auto block h-auto w-auto max-h-[70vh] max-w-full object-contain rounded-lg bg-slate-100"
         />
         <Button
           variant="destructive"

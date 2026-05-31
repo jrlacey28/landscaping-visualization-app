@@ -189,7 +189,7 @@ export default function ChristmasLights() {
                         ? "Original photo"
                         : "AI Generated Christmas lights"
                     }
-                    className="w-full aspect-video object-cover rounded-xl shadow-lg"
+                    className="mx-auto block h-auto w-auto max-h-[72vh] max-w-full object-contain rounded-xl bg-slate-100 shadow-lg"
                     loading="lazy"
                     decoding="async"
                     style={{ willChange: "transform" }}
@@ -254,7 +254,7 @@ export default function ChristmasLights() {
                       <img
                         src={uploadedImage}
                         alt="Uploaded home photo"
-                        className="w-full aspect-video object-cover shadow-lg transition-all duration-300"
+                        className="mx-auto block h-auto w-auto max-h-[72vh] max-w-full object-contain bg-slate-100 shadow-lg transition-all duration-300"
                         loading="lazy"
                         decoding="async"
                         style={{ willChange: "transform" }}

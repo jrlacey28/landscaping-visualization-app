@@ -1203,7 +1203,7 @@ export class DatabaseStorage implements IStorage {
       const subscription = await this.getUserActiveSubscription(effectiveUserId);
       
       // Check for Contractor and Professional plan IDs
-      const CONTRACTOR_PLAN_ID = 'price_1S5X2XBY2SPm2HvO2he9Unto';
+      const CONTRACTOR_PLAN_ID = 'price_1TcynuBY2SPm2HvO1Eri2ogI';
       const BUSINESS_PRO_PLAN_ID = 'price_1SGN4YBY2SPm2HvOrpREWCn1';
       
       // If they have these exact plan IDs and it's active, they get embed
@@ -1452,7 +1452,8 @@ export class DatabaseStorage implements IStorage {
     const planConfigs = [
       { id: 'free', name: 'Free', description: 'Free plan with limited visualizations', price: 0, interval: 'month', visualizationLimit: 5, embedAccess: false, active: true },
       { id: 'price_1S5X1sBY2SPm2HvOuDHNzsIp', name: 'Basic', description: 'Legacy Basic plan', price: 2000, interval: 'month', visualizationLimit: 50, embedAccess: false, active: false },
-      { id: 'price_1S5X2XBY2SPm2HvO2he9Unto', name: 'Contractor', description: 'For small business owners ready to impress clients', price: 30000, interval: 'month', visualizationLimit: 200, embedAccess: true, active: true },
+      { id: 'price_1S5X2XBY2SPm2HvO2he9Unto', name: 'Contractor (Legacy)', description: 'Legacy Contractor plan retained for existing subscriptions', price: 30000, interval: 'month', visualizationLimit: 200, embedAccess: true, active: false },
+      { id: 'price_1TcynuBY2SPm2HvO1Eri2ogI', name: 'Contractor', description: 'For small business owners ready to impress clients', price: 30000, interval: 'month', visualizationLimit: 200, embedAccess: true, active: true },
       { id: 'price_1SGN4YBY2SPm2HvOrpREWCn1', name: 'Professional', description: 'For growing teams and advanced features', price: 50000, interval: 'month', visualizationLimit: 650, embedAccess: true, active: true },
       { id: 'custom', name: 'Custom', description: 'Admin-managed custom plan', price: 0, interval: 'month', visualizationLimit: 100, embedAccess: false, active: true },
     ];

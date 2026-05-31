@@ -186,7 +186,7 @@ export default function AuthPage() {
   };
 
   const getPlanName = (planId: string) => {
-    if (planId === 'price_1S5X2XBY2SPm2HvO2he9Unto') return 'Contractor Plan';
+    if (planId === 'price_1TcynuBY2SPm2HvO1Eri2ogI') return 'Contractor Plan';
     if (planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1') return 'Professional Plan';
     return 'Selected Plan';
   };
