@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Eye, Folder, ImageIcon, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Eye, Folder, ImageIcon, Loader2, Plus, Save, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,9 +76,23 @@ interface GenerationImages {
   generatedImageUrl?: string | null;
 }
 
+interface GenerationThumbnail {
+  thumbnailImageUrl?: string | null;
+}
+
+interface GenerationsResponse {
+  generations: SavedGeneration[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  partial?: boolean;
+}
+
 const NO_PROJECT_VALUE = "none";
 const MAX_VISIBLE_STYLES = 2;
 const MAX_VISIBLE_ASSIGNMENTS = 2;
+const GENERATIONS_PAGE_SIZE = 10;
 
 const serviceOptions: Array<{ value: "all" | GenerationService; label: string }> = [
   { value: "all", label: "All services" },
@@ -146,13 +160,17 @@ export default function SavedGenerations() {
   const queryClient = useQueryClient();
   const [serviceFilter, setServiceFilter] = useState<"all" | GenerationService>("all");
   const [projectFilter, setProjectFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [previewGeneration, setPreviewGeneration] = useState<SavedGeneration | null>(null);
   const [previewImages, setPreviewImages] = useState<GenerationImages | null>(null);
   const [newProject, setNewProject] = useState({ name: "", address: "", notes: "" });
   const [selectedProjects, setSelectedProjects] = useState<Record<string, string>>({});
   const [generationImages, setGenerationImages] = useState<Record<string, GenerationImages>>({});
+  const [generationThumbnails, setGenerationThumbnails] = useState<Record<string, string>>({});
   const [loadingImageIds, setLoadingImageIds] = useState<Record<string, boolean>>({});
+  const [loadingThumbnailIds, setLoadingThumbnailIds] = useState<Record<string, boolean>>({});
+  const requestedThumbnailIds = useRef(new Set<string>());
 
   const projectsQuery = useQuery<{ projects: GenerationProject[] }>({
     queryKey: ["generation-projects"],
@@ -164,12 +182,14 @@ export default function SavedGenerations() {
     },
   });
 
-  const generationsQuery = useQuery<{ generations: SavedGeneration[] }>({
-    queryKey: ["generations", serviceFilter, projectFilter],
+  const generationsQuery = useQuery<GenerationsResponse>({
+    queryKey: ["generations", serviceFilter, projectFilter, currentPage],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (serviceFilter !== "all") params.set("service", serviceFilter);
       if (projectFilter !== "all") params.set("projectId", projectFilter);
+      params.set("page", String(currentPage));
+      params.set("limit", String(GENERATIONS_PAGE_SIZE));
 
       const queryString = params.toString();
       const response = await apiRequest("GET", `/api/generations${queryString ? `?${queryString}` : ""}`, undefined, {
@@ -181,8 +201,69 @@ export default function SavedGenerations() {
 
   const projects = projectsQuery.data?.projects || [];
   const generations = generationsQuery.data?.generations || [];
+  const totalGenerations = generationsQuery.data?.total ?? generations.length;
+  const totalPages = generationsQuery.data?.totalPages ?? 1;
+  const serverPage = generationsQuery.data?.page ?? currentPage;
   const isLoading = projectsQuery.isLoading || generationsQuery.isLoading;
   const hasError = projectsQuery.isError || generationsQuery.isError;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [serviceFilter, projectFilter]);
+
+  useEffect(() => {
+    if (!generationsQuery.data) return;
+    if (currentPage !== serverPage) {
+      setCurrentPage(serverPage);
+    }
+  }, [currentPage, generationsQuery.data, serverPage]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadVisibleThumbnails = async () => {
+      for (const generation of generations) {
+        if (
+          cancelled ||
+          !generationHasImage(generation) ||
+          generationThumbnails[generation.id] ||
+          requestedThumbnailIds.current.has(generation.id)
+        ) {
+          continue;
+        }
+
+        requestedThumbnailIds.current.add(generation.id);
+        setLoadingThumbnailIds((current) => ({ ...current, [generation.id]: true }));
+
+        try {
+          const response = await apiRequest(
+            "GET",
+            `/api/generations/${generation.service}/${generation.visualizationId}/thumbnail`,
+            undefined,
+            { headers: authHeaders() }
+          );
+          const data = (await response.json()) as GenerationThumbnail;
+          if (!cancelled && data.thumbnailImageUrl) {
+            setGenerationThumbnails((current) => ({ ...current, [generation.id]: data.thumbnailImageUrl || "" }));
+          }
+        } catch (error) {
+          console.error("Generation thumbnail not loaded:", error);
+        } finally {
+          setLoadingThumbnailIds((current) => {
+            const next = { ...current };
+            delete next[generation.id];
+            return next;
+          });
+        }
+      }
+    };
+
+    void loadVisibleThumbnails();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [generations]);
 
   const createProjectMutation = useMutation({
     mutationFn: async () => {
@@ -350,6 +431,8 @@ export default function SavedGenerations() {
 
   const previewImageUrl = getGenerationImageUrl(previewImages);
   const isPreviewImageLoading = previewGeneration ? Boolean(loadingImageIds[previewGeneration.id]) : false;
+  const pageStart = totalGenerations === 0 ? 0 : (serverPage - 1) * GENERATIONS_PAGE_SIZE + 1;
+  const pageEnd = Math.min(serverPage * GENERATIONS_PAGE_SIZE, totalGenerations);
 
   return (
     <TooltipProvider>
@@ -362,7 +445,7 @@ export default function SavedGenerations() {
                 Previous Generations
               </CardTitle>
               <CardDescription>
-                {formatCount(projects.length, "project")} / {formatCount(generations.length, "visible generation")}
+                {formatCount(projects.length, "project")} / {formatCount(totalGenerations, "visible generation")}
               </CardDescription>
             </div>
 
@@ -488,9 +571,10 @@ export default function SavedGenerations() {
                         ? "Already saved"
                         : "Add to project";
                   const savedEverywhere = projects.length > 0 && availableProjects.length === 0;
-                  const imageUrl = getGenerationImageUrl(generationImages[generation.id]);
+                  const imageUrl = generationThumbnails[generation.id] || getGenerationImageUrl(generationImages[generation.id]);
                   const canLoadImage = generationHasImage(generation) || Boolean(imageUrl);
                   const isImageLoading = Boolean(loadingImageIds[generation.id]);
+                  const isThumbnailLoading = Boolean(loadingThumbnailIds[generation.id]);
                   const styles = generation.styles.filter(Boolean);
                   const visibleStyles = styles.slice(0, MAX_VISIBLE_STYLES);
                   const visibleAssignments = generation.assignments.slice(0, MAX_VISIBLE_ASSIGNMENTS);
@@ -518,7 +602,7 @@ export default function SavedGenerations() {
                               <Eye className="h-5 w-5 text-white" />
                             </span>
                           </>
-                        ) : isImageLoading ? (
+                        ) : isThumbnailLoading ? (
                           <div className="flex h-full w-full items-center justify-center">
                             <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                           </div>
@@ -671,6 +755,39 @@ export default function SavedGenerations() {
                     </article>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {!isLoading && !hasError && totalGenerations > 0 && (
+            <div className="flex flex-col gap-3 border-t pt-4 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                Showing {pageStart}-{pageEnd} of {totalGenerations}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={serverPage <= 1 || generationsQuery.isFetching}
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  Previous
+                </Button>
+                <span className="min-w-24 text-center">
+                  Page {serverPage} of {totalPages}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={serverPage >= totalPages || generationsQuery.isFetching}
+                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                >
+                  Next
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
               </div>
             </div>
           )}

@@ -175,6 +175,35 @@ function normalizeGeneration(visualization: any, service: GenerationService, ass
   };
 }
 
+function getPrimaryGenerationImageUrl(generation: any) {
+  return generation?.generatedImageUrl || generation?.originalImageUrl || "";
+}
+
+async function createThumbnailImageUrl(imageUrl: string) {
+  if (!imageUrl.startsWith("data:image/")) {
+    return imageUrl;
+  }
+
+  const commaIndex = imageUrl.indexOf(",");
+  if (commaIndex === -1) {
+    return imageUrl;
+  }
+
+  const header = imageUrl.slice(0, commaIndex);
+  if (!header.includes(";base64")) {
+    return imageUrl;
+  }
+
+  const imageBuffer = Buffer.from(imageUrl.slice(commaIndex + 1), "base64");
+  const thumbnailBuffer = await sharp(imageBuffer)
+    .rotate()
+    .resize({ width: 240, height: 160, fit: "cover", withoutEnlargement: true })
+    .jpeg({ quality: 72, mozjpeg: true })
+    .toBuffer();
+
+  return `data:image/jpeg;base64,${thumbnailBuffer.toString("base64")}`;
+}
+
 function imagePresence(originalImageUrlColumn: any, generatedImageUrlColumn: any) {
   return {
     hasOriginalImage: sql<boolean>`${originalImageUrlColumn} IS NOT NULL`,
@@ -1290,6 +1319,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const serviceFilter = isGenerationService(req.query.service) ? req.query.service : "all";
       const projectFilter = typeof req.query.projectId === "string" ? req.query.projectId : "all";
+      const requestedPage = Number.parseInt(String(req.query.page || "1"), 10);
+      const requestedLimit = Number.parseInt(String(req.query.limit || "10"), 10);
+      const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+      const pageSize = Number.isInteger(requestedLimit) && requestedLimit > 0
+        ? Math.min(requestedLimit, 10)
+        : 10;
 
       const generationLoadErrors: string[] = [];
       const safeLoadRows = async <T>(label: string, loader: () => Promise<T[]>): Promise<T[]> => {
@@ -1460,10 +1495,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
-      res.json({ generations: filteredGenerations, partial: generationLoadErrors.length > 0 });
+      const total = filteredGenerations.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      const currentPage = Math.min(page, totalPages);
+      const startIndex = (currentPage - 1) * pageSize;
+
+      res.json({
+        generations: filteredGenerations.slice(startIndex, startIndex + pageSize),
+        total,
+        page: currentPage,
+        pageSize,
+        totalPages,
+        partial: generationLoadErrors.length > 0,
+      });
     } catch (error) {
       console.error("Error fetching generation library:", error);
       res.status(500).json({ error: "Failed to fetch generation library" });
+    }
+  });
+
+  app.get("/api/generations/:service/:visualizationId/thumbnail", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      if (!isGenerationService(req.params.service)) {
+        return res.status(400).json({ error: "Unknown generation service" });
+      }
+
+      const visualizationId = parseInt(req.params.visualizationId);
+      if (!Number.isInteger(visualizationId) || visualizationId <= 0) {
+        return res.status(400).json({ error: "Invalid visualization id" });
+      }
+
+      const generation = await getOwnedGenerationForService(req.user.id, req.params.service, visualizationId);
+      if (!generation) {
+        return res.status(404).json({ error: "Generation not found" });
+      }
+
+      const imageUrl = getPrimaryGenerationImageUrl(generation);
+      if (!imageUrl) {
+        return res.status(404).json({ error: "Generation image not found" });
+      }
+
+      const thumbnailImageUrl = await createThumbnailImageUrl(imageUrl);
+      res.setHeader("Cache-Control", "private, max-age=3600");
+      res.json({ thumbnailImageUrl });
+    } catch (error) {
+      console.error("Error fetching generation thumbnail:", error);
+      res.status(500).json({ error: "Failed to fetch generation thumbnail" });
     }
   });
 
@@ -1534,7 +1615,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         visualizationId: payload.visualizationId,
       });
 
-      const coverImageUrl = generation.generatedImageUrl || generation.originalImageUrl || null;
+      const coverImageUrl = getPrimaryGenerationImageUrl(generation) || null;
       if (!project.coverImageUrl && coverImageUrl) {
         await storage.updateGenerationProject(projectId, req.user.id, {
           coverImageUrl: coverImageUrl.startsWith("data:") ? null : coverImageUrl,
