@@ -9,7 +9,7 @@ import fs from "fs";
 import { storage } from "./storage";
 import { databaseUrl, db, dbDriver, dbUsesSsl, getDatabaseHost, serverBuild } from "./db";
 import { users, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations, christmasLightsVisualizations, generationProjects, projectGenerations, teamMembers, teams, leads, userUsage, subscriptions, tenants, insertLeadSchema, insertVisualizationSchema, insertPoolVisualizationSchema, insertLandscapeVisualizationSchema, insertHalloweenVisualizationSchema, insertChristmasLightsVisualizationSchema, insertTenantSchema } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage, processInteriorVisualizationWithGemini, processHalloweenVisualizationWithGemini, processChristmasLightsWithGemini } from "./gemini-service";
 import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
@@ -157,18 +157,229 @@ function getStyleSummary(service: GenerationService, visualization: any) {
 }
 
 function normalizeGeneration(visualization: any, service: GenerationService, assignments: any[]) {
+  const hasOriginalImage = Boolean(visualization.hasOriginalImage ?? visualization.originalImageUrl);
+  const hasGeneratedImage = Boolean(visualization.hasGeneratedImage ?? visualization.generatedImageUrl);
+
   return {
     id: `${service}:${visualization.id}`,
     visualizationId: visualization.id,
     service,
     serviceLabel: serviceLabels[service],
     status: visualization.status || "completed",
-    originalImageUrl: visualization.originalImageUrl,
-    generatedImageUrl: visualization.generatedImageUrl,
+    hasOriginalImage,
+    hasGeneratedImage,
+    hasImage: hasOriginalImage || hasGeneratedImage,
     createdAt: visualization.createdAt,
     styles: getStyleSummary(service, visualization),
     assignments,
   };
+}
+
+function imagePresence(originalImageUrlColumn: any, generatedImageUrlColumn: any) {
+  return {
+    hasOriginalImage: sql<boolean>`${originalImageUrlColumn} IS NOT NULL`,
+    hasGeneratedImage: sql<boolean>`${generatedImageUrlColumn} IS NOT NULL`,
+  };
+}
+
+async function getGenerationProjectSummariesByUser(userId: number) {
+  return db
+    .select({
+      id: generationProjects.id,
+      userId: generationProjects.userId,
+      name: generationProjects.name,
+      address: generationProjects.address,
+      notes: generationProjects.notes,
+      createdAt: generationProjects.createdAt,
+      updatedAt: generationProjects.updatedAt,
+    })
+    .from(generationProjects)
+    .where(eq(generationProjects.userId, userId))
+    .orderBy(desc(generationProjects.updatedAt), desc(generationProjects.createdAt));
+}
+
+async function getVisualizationSummariesByUser(userId: number) {
+  return db
+    .select({
+      id: visualizations.id,
+      userId: visualizations.userId,
+      tenantId: visualizations.tenantId,
+      selectedRoof: visualizations.selectedRoof,
+      selectedSiding: visualizations.selectedSiding,
+      selectedSurpriseMe: visualizations.selectedSurpriseMe,
+      status: visualizations.status,
+      createdAt: visualizations.createdAt,
+      ...imagePresence(visualizations.originalImageUrl, visualizations.generatedImageUrl),
+    })
+    .from(visualizations)
+    .where(eq(visualizations.userId, userId))
+    .orderBy(desc(visualizations.createdAt));
+}
+
+async function getVisualizationSummariesByTenant(tenantId: number) {
+  return db
+    .select({
+      id: visualizations.id,
+      userId: visualizations.userId,
+      tenantId: visualizations.tenantId,
+      selectedRoof: visualizations.selectedRoof,
+      selectedSiding: visualizations.selectedSiding,
+      selectedSurpriseMe: visualizations.selectedSurpriseMe,
+      status: visualizations.status,
+      createdAt: visualizations.createdAt,
+      ...imagePresence(visualizations.originalImageUrl, visualizations.generatedImageUrl),
+    })
+    .from(visualizations)
+    .where(eq(visualizations.tenantId, tenantId))
+    .orderBy(desc(visualizations.createdAt));
+}
+
+async function getPoolVisualizationSummariesByUser(userId: number) {
+  return db
+    .select({
+      id: poolVisualizations.id,
+      userId: poolVisualizations.userId,
+      tenantId: poolVisualizations.tenantId,
+      selectedPoolType: poolVisualizations.selectedPoolType,
+      selectedPoolSize: poolVisualizations.selectedPoolSize,
+      selectedDecking: poolVisualizations.selectedDecking,
+      selectedLandscaping: poolVisualizations.selectedLandscaping,
+      selectedFeatures: poolVisualizations.selectedFeatures,
+      status: poolVisualizations.status,
+      createdAt: poolVisualizations.createdAt,
+      ...imagePresence(poolVisualizations.originalImageUrl, poolVisualizations.generatedImageUrl),
+    })
+    .from(poolVisualizations)
+    .where(eq(poolVisualizations.userId, userId))
+    .orderBy(desc(poolVisualizations.createdAt));
+}
+
+async function getPoolVisualizationSummariesByTenant(tenantId: number) {
+  return db
+    .select({
+      id: poolVisualizations.id,
+      userId: poolVisualizations.userId,
+      tenantId: poolVisualizations.tenantId,
+      selectedPoolType: poolVisualizations.selectedPoolType,
+      selectedPoolSize: poolVisualizations.selectedPoolSize,
+      selectedDecking: poolVisualizations.selectedDecking,
+      selectedLandscaping: poolVisualizations.selectedLandscaping,
+      selectedFeatures: poolVisualizations.selectedFeatures,
+      status: poolVisualizations.status,
+      createdAt: poolVisualizations.createdAt,
+      ...imagePresence(poolVisualizations.originalImageUrl, poolVisualizations.generatedImageUrl),
+    })
+    .from(poolVisualizations)
+    .where(eq(poolVisualizations.tenantId, tenantId))
+    .orderBy(desc(poolVisualizations.createdAt));
+}
+
+async function getLandscapeVisualizationSummariesByUser(userId: number) {
+  return db
+    .select({
+      id: landscapeVisualizations.id,
+      userId: landscapeVisualizations.userId,
+      tenantId: landscapeVisualizations.tenantId,
+      selectedCurbing: landscapeVisualizations.selectedCurbing,
+      selectedLandscape: landscapeVisualizations.selectedLandscape,
+      selectedPatios: landscapeVisualizations.selectedPatios,
+      status: landscapeVisualizations.status,
+      createdAt: landscapeVisualizations.createdAt,
+      ...imagePresence(landscapeVisualizations.originalImageUrl, landscapeVisualizations.generatedImageUrl),
+    })
+    .from(landscapeVisualizations)
+    .where(eq(landscapeVisualizations.userId, userId))
+    .orderBy(desc(landscapeVisualizations.createdAt));
+}
+
+async function getLandscapeVisualizationSummariesByTenant(tenantId: number) {
+  return db
+    .select({
+      id: landscapeVisualizations.id,
+      userId: landscapeVisualizations.userId,
+      tenantId: landscapeVisualizations.tenantId,
+      selectedCurbing: landscapeVisualizations.selectedCurbing,
+      selectedLandscape: landscapeVisualizations.selectedLandscape,
+      selectedPatios: landscapeVisualizations.selectedPatios,
+      status: landscapeVisualizations.status,
+      createdAt: landscapeVisualizations.createdAt,
+      ...imagePresence(landscapeVisualizations.originalImageUrl, landscapeVisualizations.generatedImageUrl),
+    })
+    .from(landscapeVisualizations)
+    .where(eq(landscapeVisualizations.tenantId, tenantId))
+    .orderBy(desc(landscapeVisualizations.createdAt));
+}
+
+async function getHalloweenVisualizationSummariesByUser(userId: number) {
+  return db
+    .select({
+      id: halloweenVisualizations.id,
+      userId: halloweenVisualizations.userId,
+      tenantId: halloweenVisualizations.tenantId,
+      selectedDecorations: halloweenVisualizations.selectedDecorations,
+      nightMode: halloweenVisualizations.nightMode,
+      spookyMode: halloweenVisualizations.spookyMode,
+      status: halloweenVisualizations.status,
+      createdAt: halloweenVisualizations.createdAt,
+      ...imagePresence(halloweenVisualizations.originalImageUrl, halloweenVisualizations.generatedImageUrl),
+    })
+    .from(halloweenVisualizations)
+    .where(eq(halloweenVisualizations.userId, userId))
+    .orderBy(desc(halloweenVisualizations.createdAt));
+}
+
+async function getHalloweenVisualizationSummariesByTenant(tenantId: number) {
+  return db
+    .select({
+      id: halloweenVisualizations.id,
+      userId: halloweenVisualizations.userId,
+      tenantId: halloweenVisualizations.tenantId,
+      selectedDecorations: halloweenVisualizations.selectedDecorations,
+      nightMode: halloweenVisualizations.nightMode,
+      spookyMode: halloweenVisualizations.spookyMode,
+      status: halloweenVisualizations.status,
+      createdAt: halloweenVisualizations.createdAt,
+      ...imagePresence(halloweenVisualizations.originalImageUrl, halloweenVisualizations.generatedImageUrl),
+    })
+    .from(halloweenVisualizations)
+    .where(eq(halloweenVisualizations.tenantId, tenantId))
+    .orderBy(desc(halloweenVisualizations.createdAt));
+}
+
+async function getChristmasLightsVisualizationSummariesByUser(userId: number) {
+  return db
+    .select({
+      id: christmasLightsVisualizations.id,
+      userId: christmasLightsVisualizations.userId,
+      tenantId: christmasLightsVisualizations.tenantId,
+      lightType: christmasLightsVisualizations.lightType,
+      lightColor: christmasLightsVisualizations.lightColor,
+      addSnow: christmasLightsVisualizations.addSnow,
+      status: christmasLightsVisualizations.status,
+      createdAt: christmasLightsVisualizations.createdAt,
+      ...imagePresence(christmasLightsVisualizations.originalImageUrl, christmasLightsVisualizations.generatedImageUrl),
+    })
+    .from(christmasLightsVisualizations)
+    .where(eq(christmasLightsVisualizations.userId, userId))
+    .orderBy(desc(christmasLightsVisualizations.createdAt));
+}
+
+async function getChristmasLightsVisualizationSummariesByTenant(tenantId: number) {
+  return db
+    .select({
+      id: christmasLightsVisualizations.id,
+      userId: christmasLightsVisualizations.userId,
+      tenantId: christmasLightsVisualizations.tenantId,
+      lightType: christmasLightsVisualizations.lightType,
+      lightColor: christmasLightsVisualizations.lightColor,
+      addSnow: christmasLightsVisualizations.addSnow,
+      status: christmasLightsVisualizations.status,
+      createdAt: christmasLightsVisualizations.createdAt,
+      ...imagePresence(christmasLightsVisualizations.originalImageUrl, christmasLightsVisualizations.generatedImageUrl),
+    })
+    .from(christmasLightsVisualizations)
+    .where(eq(christmasLightsVisualizations.tenantId, tenantId))
+    .orderBy(desc(christmasLightsVisualizations.createdAt));
 }
 
 async function isGenerationOwnedByUser(userId: number, generation: any) {
@@ -970,7 +1181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const [projects, assignments] = await Promise.all([
-        storage.getGenerationProjectsByUser(req.user.id),
+        getGenerationProjectSummariesByUser(req.user.id),
         storage.getProjectGenerationsByUser(req.user.id),
       ]);
 
@@ -987,6 +1198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         projects: projects.map((project) => ({
           ...project,
+          coverImageUrl: null,
           generationCount: projectStats.get(project.id)?.count || 0,
           lastSavedAt: projectStats.get(project.id)?.lastSavedAt || null,
         })),
@@ -1091,7 +1303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const [projects, projectAssignments] = await Promise.all([
-        safeLoadRows("generation projects", () => storage.getGenerationProjectsByUser(userId)),
+        safeLoadRows("generation projects", () => getGenerationProjectSummariesByUser(userId)),
         safeLoadRows("project assignments", () => storage.getProjectGenerationsByUser(userId)),
       ]);
 
@@ -1144,7 +1356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (shouldLoad("roofing-siding") || shouldLoad("interior")) {
         const userVisualizations = await safeLoadRows("account roofing/interior generations", () =>
-          storage.getVisualizationsByUser(userId)
+          getVisualizationSummariesByUser(userId)
         );
         for (const visualization of userVisualizations) {
           const service = getVisualizationService(visualization);
@@ -1155,7 +1367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (userTenant) {
           const tenantVisualizations = await safeLoadRows("embed roofing/interior generations", () =>
-            storage.getVisualizationsByTenant(userTenant.id)
+            getVisualizationSummariesByTenant(userTenant.id)
           );
           for (const visualization of tenantVisualizations) {
             const service = getVisualizationService(visualization);
@@ -1168,7 +1380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (shouldLoad("pools")) {
         const poolGenerations = await safeLoadRows("account pool generations", () =>
-          storage.getPoolVisualizationsByUser(userId)
+          getPoolVisualizationSummariesByUser(userId)
         );
         for (const visualization of poolGenerations) {
           addGeneration(visualization, "pools");
@@ -1176,7 +1388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (userTenant) {
           const tenantPoolGenerations = await safeLoadRows("embed pool generations", () =>
-            storage.getPoolVisualizationsByTenant(userTenant.id)
+            getPoolVisualizationSummariesByTenant(userTenant.id)
           );
           for (const visualization of tenantPoolGenerations) {
             addGeneration(visualization, "pools");
@@ -1186,7 +1398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (shouldLoad("landscape")) {
         const landscapeGenerations = await safeLoadRows("account landscape generations", () =>
-          storage.getLandscapeVisualizationsByUser(userId)
+          getLandscapeVisualizationSummariesByUser(userId)
         );
         for (const visualization of landscapeGenerations) {
           addGeneration(visualization, "landscape");
@@ -1194,7 +1406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (userTenant) {
           const tenantLandscapeGenerations = await safeLoadRows("embed landscape generations", () =>
-            storage.getLandscapeVisualizationsByTenant(userTenant.id)
+            getLandscapeVisualizationSummariesByTenant(userTenant.id)
           );
           for (const visualization of tenantLandscapeGenerations) {
             addGeneration(visualization, "landscape");
@@ -1204,7 +1416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (shouldLoad("halloween")) {
         const halloweenGenerations = await safeLoadRows("account halloween generations", () =>
-          storage.getHalloweenVisualizationsByUser(userId)
+          getHalloweenVisualizationSummariesByUser(userId)
         );
         for (const visualization of halloweenGenerations) {
           addGeneration(visualization, "halloween");
@@ -1212,7 +1424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (userTenant) {
           const tenantHalloweenGenerations = await safeLoadRows("embed halloween generations", () =>
-            storage.getHalloweenVisualizationsByTenant(userTenant.id)
+            getHalloweenVisualizationSummariesByTenant(userTenant.id)
           );
           for (const visualization of tenantHalloweenGenerations) {
             addGeneration(visualization, "halloween");
@@ -1222,7 +1434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (shouldLoad("christmas-lights")) {
         const christmasGenerations = await safeLoadRows("account christmas lights generations", () =>
-          storage.getChristmasLightsVisualizationsByUser(userId)
+          getChristmasLightsVisualizationSummariesByUser(userId)
         );
         for (const visualization of christmasGenerations) {
           addGeneration(visualization, "christmas-lights");
@@ -1230,7 +1442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (userTenant) {
           const tenantChristmasGenerations = await safeLoadRows("embed christmas lights generations", () =>
-            storage.getChristmasLightsVisualizationsByTenant(userTenant.id)
+            getChristmasLightsVisualizationSummariesByTenant(userTenant.id)
           );
           for (const visualization of tenantChristmasGenerations) {
             addGeneration(visualization, "christmas-lights");
@@ -1252,6 +1464,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching generation library:", error);
       res.status(500).json({ error: "Failed to fetch generation library" });
+    }
+  });
+
+  app.get("/api/generations/:service/:visualizationId/image", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      if (!isGenerationService(req.params.service)) {
+        return res.status(400).json({ error: "Unknown generation service" });
+      }
+
+      const visualizationId = parseInt(req.params.visualizationId);
+      if (!Number.isInteger(visualizationId) || visualizationId <= 0) {
+        return res.status(400).json({ error: "Invalid visualization id" });
+      }
+
+      const generation = await getOwnedGenerationForService(req.user.id, req.params.service, visualizationId);
+      if (!generation) {
+        return res.status(404).json({ error: "Generation not found" });
+      }
+
+      res.setHeader("Cache-Control", "private, max-age=300");
+      res.json({
+        originalImageUrl: generation.originalImageUrl || null,
+        generatedImageUrl: generation.generatedImageUrl || null,
+      });
+    } catch (error) {
+      console.error("Error fetching generation image:", error);
+      res.status(500).json({ error: "Failed to fetch generation image" });
     }
   });
 
@@ -1293,7 +1536,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const coverImageUrl = generation.generatedImageUrl || generation.originalImageUrl || null;
       if (!project.coverImageUrl && coverImageUrl) {
-        await storage.updateGenerationProject(projectId, req.user.id, { coverImageUrl });
+        await storage.updateGenerationProject(projectId, req.user.id, {
+          coverImageUrl: coverImageUrl.startsWith("data:") ? null : coverImageUrl,
+        });
       }
 
       res.status(201).json({ projectGeneration });

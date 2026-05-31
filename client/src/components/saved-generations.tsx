@@ -61,11 +61,19 @@ interface SavedGeneration {
   service: GenerationService;
   serviceLabel: string;
   status: string;
-  originalImageUrl: string;
+  originalImageUrl?: string | null;
   generatedImageUrl?: string | null;
+  hasOriginalImage?: boolean;
+  hasGeneratedImage?: boolean;
+  hasImage?: boolean;
   createdAt?: string | null;
   styles: string[];
   assignments: GenerationAssignment[];
+}
+
+interface GenerationImages {
+  originalImageUrl?: string | null;
+  generatedImageUrl?: string | null;
 }
 
 const NO_PROJECT_VALUE = "none";
@@ -113,8 +121,18 @@ function toFileSlug(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-function getGenerationImageUrl(generation: SavedGeneration) {
-  return generation.generatedImageUrl || generation.originalImageUrl || "";
+function getGenerationImageUrl(images?: GenerationImages | null) {
+  return images?.generatedImageUrl || images?.originalImageUrl || "";
+}
+
+function generationHasImage(generation: SavedGeneration) {
+  return Boolean(
+    generation.hasImage ??
+      generation.hasGeneratedImage ??
+      generation.hasOriginalImage ??
+      generation.generatedImageUrl ??
+      generation.originalImageUrl
+  );
 }
 
 function getGenerationFileName(generation: SavedGeneration) {
@@ -130,8 +148,11 @@ export default function SavedGenerations() {
   const [projectFilter, setProjectFilter] = useState("all");
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [previewGeneration, setPreviewGeneration] = useState<SavedGeneration | null>(null);
+  const [previewImages, setPreviewImages] = useState<GenerationImages | null>(null);
   const [newProject, setNewProject] = useState({ name: "", address: "", notes: "" });
   const [selectedProjects, setSelectedProjects] = useState<Record<string, string>>({});
+  const [generationImages, setGenerationImages] = useState<Record<string, GenerationImages>>({});
+  const [loadingImageIds, setLoadingImageIds] = useState<Record<string, boolean>>({});
 
   const projectsQuery = useQuery<{ projects: GenerationProject[] }>({
     queryKey: ["generation-projects"],
@@ -252,8 +273,64 @@ export default function SavedGenerations() {
     createProjectMutation.mutate();
   };
 
-  const handleDownloadGeneration = (generation: SavedGeneration) => {
-    const imageUrl = getGenerationImageUrl(generation);
+  const fetchGenerationImages = async (generation: SavedGeneration) => {
+    const cachedImages = generationImages[generation.id];
+    if (cachedImages) {
+      return cachedImages;
+    }
+
+    setLoadingImageIds((current) => ({ ...current, [generation.id]: true }));
+
+    try {
+      const response = await apiRequest(
+        "GET",
+        `/api/generations/${generation.service}/${generation.visualizationId}/image`,
+        undefined,
+        { headers: authHeaders() }
+      );
+      const images = (await response.json()) as GenerationImages;
+      setGenerationImages((current) => ({ ...current, [generation.id]: images }));
+      return images;
+    } finally {
+      setLoadingImageIds((current) => {
+        const next = { ...current };
+        delete next[generation.id];
+        return next;
+      });
+    }
+  };
+
+  const handlePreviewGeneration = async (generation: SavedGeneration) => {
+    setPreviewGeneration(generation);
+    setPreviewImages(null);
+
+    try {
+      const images = await fetchGenerationImages(generation);
+      setPreviewImages(images);
+    } catch (error) {
+      setPreviewGeneration(null);
+      toast({
+        title: "Preview not loaded",
+        description: error instanceof Error ? error.message : "The image could not be loaded.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadGeneration = async (generation: SavedGeneration) => {
+    let images: GenerationImages;
+    try {
+      images = await fetchGenerationImages(generation);
+    } catch (error) {
+      toast({
+        title: "Download not started",
+        description: error instanceof Error ? error.message : "The image could not be loaded.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const imageUrl = getGenerationImageUrl(images);
     if (!imageUrl) {
       toast({
         title: "Image not available",
@@ -263,7 +340,7 @@ export default function SavedGenerations() {
       return;
     }
 
-    void downloadImageWithWatermark({
+    await downloadImageWithWatermark({
       imageUrl,
       fileName: getGenerationFileName(generation),
       user,
@@ -271,7 +348,8 @@ export default function SavedGenerations() {
     });
   };
 
-  const previewImageUrl = previewGeneration ? getGenerationImageUrl(previewGeneration) : "";
+  const previewImageUrl = getGenerationImageUrl(previewImages);
+  const isPreviewImageLoading = previewGeneration ? Boolean(loadingImageIds[previewGeneration.id]) : false;
 
   return (
     <TooltipProvider>
@@ -410,7 +488,9 @@ export default function SavedGenerations() {
                         ? "Already saved"
                         : "Add to project";
                   const savedEverywhere = projects.length > 0 && availableProjects.length === 0;
-                  const imageUrl = getGenerationImageUrl(generation);
+                  const imageUrl = getGenerationImageUrl(generationImages[generation.id]);
+                  const canLoadImage = generationHasImage(generation) || Boolean(imageUrl);
+                  const isImageLoading = Boolean(loadingImageIds[generation.id]);
                   const styles = generation.styles.filter(Boolean);
                   const visibleStyles = styles.slice(0, MAX_VISIBLE_STYLES);
                   const visibleAssignments = generation.assignments.slice(0, MAX_VISIBLE_ASSIGNMENTS);
@@ -427,8 +507,8 @@ export default function SavedGenerations() {
                       <button
                         type="button"
                         className="group relative h-20 w-[88px] overflow-hidden rounded-md bg-gray-100 text-left ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-default md:w-[104px]"
-                        disabled={!imageUrl}
-                        onClick={() => setPreviewGeneration(generation)}
+                        disabled={!canLoadImage || isImageLoading}
+                        onClick={() => void handlePreviewGeneration(generation)}
                         title="Preview image"
                       >
                         {imageUrl ? (
@@ -438,6 +518,10 @@ export default function SavedGenerations() {
                               <Eye className="h-5 w-5 text-white" />
                             </span>
                           </>
+                        ) : isImageLoading ? (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                          </div>
                         ) : (
                           <div className="flex h-full w-full items-center justify-center">
                             <ImageIcon className="h-7 w-7 text-gray-400" />
@@ -502,10 +586,14 @@ export default function SavedGenerations() {
                                 size="icon"
                                 variant="outline"
                                 className="h-9 w-9"
-                                disabled={!imageUrl}
-                                onClick={() => setPreviewGeneration(generation)}
+                                disabled={!canLoadImage || isImageLoading}
+                                onClick={() => void handlePreviewGeneration(generation)}
                               >
-                                <Eye className="h-4 w-4" />
+                                {isImageLoading ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
                                 <span className="sr-only">Preview image</span>
                               </Button>
                             </TooltipTrigger>
@@ -519,10 +607,14 @@ export default function SavedGenerations() {
                                 size="icon"
                                 variant="outline"
                                 className="h-9 w-9"
-                                disabled={!imageUrl}
-                                onClick={() => handleDownloadGeneration(generation)}
+                                disabled={!canLoadImage || isImageLoading}
+                                onClick={() => void handleDownloadGeneration(generation)}
                               >
-                                <Download className="h-4 w-4" />
+                                {isImageLoading ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Download className="h-4 w-4" />
+                                )}
                                 <span className="sr-only">Download image</span>
                               </Button>
                             </TooltipTrigger>
@@ -585,7 +677,15 @@ export default function SavedGenerations() {
         </CardContent>
       </Card>
 
-      <Dialog open={Boolean(previewGeneration)} onOpenChange={(open) => !open && setPreviewGeneration(null)}>
+      <Dialog
+        open={Boolean(previewGeneration)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewGeneration(null);
+            setPreviewImages(null);
+          }
+        }}
+      >
         <DialogContent className="max-h-[92vh] max-w-5xl overflow-hidden p-0">
           <DialogHeader className="border-b p-4 pr-12">
             <DialogTitle>{previewGeneration?.serviceLabel || "Generation"}</DialogTitle>
@@ -601,6 +701,10 @@ export default function SavedGenerations() {
                 alt=""
                 className="mx-auto max-h-[70vh] w-auto max-w-full rounded-md object-contain"
               />
+            ) : isPreviewImageLoading ? (
+              <div className="flex min-h-72 items-center justify-center rounded-md bg-gray-100 text-gray-500">
+                <Loader2 className="h-7 w-7 animate-spin" />
+              </div>
             ) : (
               <div className="flex min-h-72 items-center justify-center rounded-md bg-gray-100 text-gray-500">
                 <ImageIcon className="h-10 w-10" />
@@ -611,8 +715,8 @@ export default function SavedGenerations() {
           <DialogFooter className="border-t p-4">
             <Button
               type="button"
-              disabled={!previewGeneration || !previewImageUrl}
-              onClick={() => previewGeneration && handleDownloadGeneration(previewGeneration)}
+              disabled={!previewGeneration || isPreviewImageLoading || !previewImageUrl}
+              onClick={() => previewGeneration && void handleDownloadGeneration(previewGeneration)}
             >
               <Download className="mr-2 h-4 w-4" />
               Download Image
