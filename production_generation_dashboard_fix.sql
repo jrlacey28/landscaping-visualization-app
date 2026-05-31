@@ -84,6 +84,33 @@ CREATE INDEX IF NOT EXISTS project_generations_project_id_idx
 CREATE UNIQUE INDEX IF NOT EXISTS project_generations_unique_generation_per_project_idx
   ON project_generations(project_id, user_id, service, visualization_id);
 
+-- The generation library filters by user/tenant and sorts by created_at. These
+-- indexes keep the dashboard from timing out once image rows grow.
+CREATE INDEX IF NOT EXISTS visualizations_user_id_created_at_idx
+  ON visualizations(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS visualizations_tenant_id_created_at_idx
+  ON visualizations(tenant_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS pool_visualizations_user_id_created_at_idx
+  ON pool_visualizations(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS pool_visualizations_tenant_id_created_at_idx
+  ON pool_visualizations(tenant_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS landscape_visualizations_user_id_created_at_idx
+  ON landscape_visualizations(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS landscape_visualizations_tenant_id_created_at_idx
+  ON landscape_visualizations(tenant_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS halloween_visualizations_user_id_created_at_idx
+  ON halloween_visualizations(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS halloween_visualizations_tenant_id_created_at_idx
+  ON halloween_visualizations(tenant_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS christmas_lights_visualizations_user_id_created_at_idx
+  ON christmas_lights_visualizations(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS christmas_lights_visualizations_tenant_id_created_at_idx
+  ON christmas_lights_visualizations(tenant_id, created_at DESC);
+
 COMMIT;
 
 -- Verification: both values should show table names, not null.

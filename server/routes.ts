@@ -1079,11 +1079,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const serviceFilter = isGenerationService(req.query.service) ? req.query.service : "all";
       const projectFilter = typeof req.query.projectId === "string" ? req.query.projectId : "all";
 
-      const [projects, projectAssignments, userTenant] = await Promise.all([
-        storage.getGenerationProjectsByUser(userId),
-        storage.getProjectGenerationsByUser(userId),
-        storage.getTenantByUserId(userId),
+      const generationLoadErrors: string[] = [];
+      const safeLoadRows = async <T>(label: string, loader: () => Promise<T[]>): Promise<T[]> => {
+        try {
+          return await loader();
+        } catch (error) {
+          generationLoadErrors.push(label);
+          console.error(`Error loading ${label} for generation library:`, error);
+          return [];
+        }
+      };
+
+      const [projects, projectAssignments] = await Promise.all([
+        safeLoadRows("generation projects", () => storage.getGenerationProjectsByUser(userId)),
+        safeLoadRows("project assignments", () => storage.getProjectGenerationsByUser(userId)),
       ]);
+
+      let userTenant;
+      try {
+        userTenant = await storage.getTenantByUserId(userId);
+      } catch (error) {
+        generationLoadErrors.push("tenant lookup");
+        console.error("Error loading tenant for generation library:", error);
+      }
 
       const projectsById = new Map(projects.map((project) => [project.id, project]));
       let filteredAssignments = projectAssignments;
@@ -1125,7 +1143,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       if (shouldLoad("roofing-siding") || shouldLoad("interior")) {
-        const userVisualizations = await storage.getVisualizationsByUser(userId);
+        const userVisualizations = await safeLoadRows("account roofing/interior generations", () =>
+          storage.getVisualizationsByUser(userId)
+        );
         for (const visualization of userVisualizations) {
           const service = getVisualizationService(visualization);
           if (!shouldLoad(service)) continue;
@@ -1134,7 +1154,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         if (userTenant) {
-          const tenantVisualizations = await storage.getVisualizationsByTenant(userTenant.id);
+          const tenantVisualizations = await safeLoadRows("embed roofing/interior generations", () =>
+            storage.getVisualizationsByTenant(userTenant.id)
+          );
           for (const visualization of tenantVisualizations) {
             const service = getVisualizationService(visualization);
             if (!shouldLoad(service)) continue;
@@ -1145,13 +1167,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (shouldLoad("pools")) {
-        const poolGenerations = await storage.getPoolVisualizationsByUser(userId);
+        const poolGenerations = await safeLoadRows("account pool generations", () =>
+          storage.getPoolVisualizationsByUser(userId)
+        );
         for (const visualization of poolGenerations) {
           addGeneration(visualization, "pools");
         }
 
         if (userTenant) {
-          const tenantPoolGenerations = await storage.getPoolVisualizationsByTenant(userTenant.id);
+          const tenantPoolGenerations = await safeLoadRows("embed pool generations", () =>
+            storage.getPoolVisualizationsByTenant(userTenant.id)
+          );
           for (const visualization of tenantPoolGenerations) {
             addGeneration(visualization, "pools");
           }
@@ -1159,13 +1185,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (shouldLoad("landscape")) {
-        const landscapeGenerations = await storage.getLandscapeVisualizationsByUser(userId);
+        const landscapeGenerations = await safeLoadRows("account landscape generations", () =>
+          storage.getLandscapeVisualizationsByUser(userId)
+        );
         for (const visualization of landscapeGenerations) {
           addGeneration(visualization, "landscape");
         }
 
         if (userTenant) {
-          const tenantLandscapeGenerations = await storage.getLandscapeVisualizationsByTenant(userTenant.id);
+          const tenantLandscapeGenerations = await safeLoadRows("embed landscape generations", () =>
+            storage.getLandscapeVisualizationsByTenant(userTenant.id)
+          );
           for (const visualization of tenantLandscapeGenerations) {
             addGeneration(visualization, "landscape");
           }
@@ -1173,13 +1203,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (shouldLoad("halloween")) {
-        const halloweenGenerations = await storage.getHalloweenVisualizationsByUser(userId);
+        const halloweenGenerations = await safeLoadRows("account halloween generations", () =>
+          storage.getHalloweenVisualizationsByUser(userId)
+        );
         for (const visualization of halloweenGenerations) {
           addGeneration(visualization, "halloween");
         }
 
         if (userTenant) {
-          const tenantHalloweenGenerations = await storage.getHalloweenVisualizationsByTenant(userTenant.id);
+          const tenantHalloweenGenerations = await safeLoadRows("embed halloween generations", () =>
+            storage.getHalloweenVisualizationsByTenant(userTenant.id)
+          );
           for (const visualization of tenantHalloweenGenerations) {
             addGeneration(visualization, "halloween");
           }
@@ -1187,13 +1221,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (shouldLoad("christmas-lights")) {
-        const christmasGenerations = await storage.getChristmasLightsVisualizationsByUser(userId);
+        const christmasGenerations = await safeLoadRows("account christmas lights generations", () =>
+          storage.getChristmasLightsVisualizationsByUser(userId)
+        );
         for (const visualization of christmasGenerations) {
           addGeneration(visualization, "christmas-lights");
         }
 
         if (userTenant) {
-          const tenantChristmasGenerations = await storage.getChristmasLightsVisualizationsByTenant(userTenant.id);
+          const tenantChristmasGenerations = await safeLoadRows("embed christmas lights generations", () =>
+            storage.getChristmasLightsVisualizationsByTenant(userTenant.id)
+          );
           for (const visualization of tenantChristmasGenerations) {
             addGeneration(visualization, "christmas-lights");
           }
@@ -1210,7 +1248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
-      res.json({ generations: filteredGenerations });
+      res.json({ generations: filteredGenerations, partial: generationLoadErrors.length > 0 });
     } catch (error) {
       console.error("Error fetching generation library:", error);
       res.status(500).json({ error: "Failed to fetch generation library" });
