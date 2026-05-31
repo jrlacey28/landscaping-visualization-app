@@ -11,7 +11,8 @@
     "db:push": "drizzle-kit push",
     "predb:push:local": "node -e \"require('fs').mkdirSync('.local',{recursive:true})\"",
     "db:push:local": "cross-env USE_LOCAL_DB=true drizzle-kit push --config=drizzle.local.config.ts",
-    "db:seed:local": "cross-env USE_LOCAL_DB=true node --env-file-if-exists=.env scripts/seed-local-db.mjs"
+    "db:seed:local": "cross-env USE_LOCAL_DB=true node --env-file-if-exists=.env scripts/seed-local-db.mjs",
+    "db:repair:generation-dashboard": "node --env-file-if-exists=.env scripts/repair-generation-dashboard-db.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.4.5",
