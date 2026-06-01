@@ -27,7 +27,14 @@ interface EmbedCodeGeneratorProps {
 }
 
 type ContactType = "phone" | "link";
-type VisualizerType = "landscape" | "roofing" | "pools";
+type VisualizerType =
+  | "landscape"
+  | "roofing"
+  | "pools"
+  | "painting"
+  | "kitchen"
+  | "bathroom"
+  | "living-room";
 
 interface EmbedConfig {
   width: string;
@@ -49,12 +56,20 @@ const visualizerPaths: Record<VisualizerType, string> = {
   landscape: "/embed",
   roofing: "/embed-roofing",
   pools: "/embed-pools",
+  painting: "/embed-painting",
+  kitchen: "/embed-kitchen",
+  bathroom: "/embed-bathroom",
+  "living-room": "/embed-living-room",
 };
 
 const visualizerLabels: Record<VisualizerType, string> = {
   landscape: "Landscape Visualizer",
   roofing: "Roofing & Siding Visualizer",
   pools: "Pool Visualizer",
+  painting: "Painting Visualizer",
+  kitchen: "Kitchen Visualizer",
+  bathroom: "Bathroom Visualizer",
+  "living-room": "Living Room Visualizer",
 };
 
 const selectClassName =
@@ -68,7 +83,7 @@ function buildDefaultConfig(tenant: any): EmbedConfig {
     primaryColor:
       tenant?.embedPrimaryColor || tenant?.primaryColor || "#2563EB",
     secondaryColor:
-      tenant?.embedSecondaryColor || tenant?.secondaryColor || "#059669",
+      tenant?.embedSecondaryColor || tenant?.secondaryColor || "#1D4ED8",
     backgroundScheme: DEFAULT_EMBED_BACKGROUND_SCHEME,
     backgroundColor: DEFAULT_EMBED_BACKGROUND_COLOR,
     logoUrl: tenant?.logoUrl || "",
@@ -237,6 +252,10 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
                   <option value="landscape">Landscape Visualizer</option>
                   <option value="roofing">Roofing & Siding Visualizer</option>
                   <option value="pools">Pool Visualizer</option>
+                  <option value="painting">Painting Visualizer</option>
+                  <option value="kitchen">Kitchen Visualizer</option>
+                  <option value="bathroom">Bathroom Visualizer</option>
+                  <option value="living-room">Living Room Visualizer</option>
                 </select>
               </div>
 

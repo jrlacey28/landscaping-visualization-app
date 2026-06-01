@@ -18,8 +18,8 @@ button {
 
 @keyframes slide-down {
   0% {
-    transform: translateY(-30px);
-    opacity: 0;
+    transform: translateY(-18px);
+    opacity: 0.45;
   }
   100% {
     transform: translateY(0);
@@ -29,6 +29,50 @@ button {
 
 .animate-slide-down {
   animation: slide-down 0.6s ease-out forwards;
+}
+
+@keyframes service-word {
+  0% {
+    transform: translateY(-24px);
+    opacity: 0;
+    filter: blur(2px);
+  }
+  60% {
+    opacity: 0.9;
+    filter: blur(0.5px);
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.animate-service-word {
+  animation: service-word 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes service-conveyor {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-50% - 0.5rem));
+  }
+}
+
+.service-conveyor {
+  animation: service-conveyor 34s linear infinite;
+}
+
+.service-conveyor:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .service-conveyor {
+    animation: none;
+  }
 }
 
 /* Performance optimizations */
@@ -130,8 +174,8 @@ img {
   --radius: 0.5rem;
   
   /* Custom embed colors - these get set by the embed pages */
-  --primary-color: #10b981;
-  --secondary-color: #059669;
+  --primary-color: #2563EB;
+  --secondary-color: #1D4ED8;
 }
 
 .dark {

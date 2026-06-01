@@ -29,7 +29,9 @@ const Admin = lazy(() => import("@/pages/admin"));
 const Embed = lazy(() => import("@/pages/embed"));
 const EmbedRoofing = lazy(() => import("@/pages/embed-roofing"));
 const EmbedPools = lazy(() => import("@/pages/embed-pools"));
+const EmbedInterior = lazy(() => import("@/pages/embed-interior"));
 const EmbedManager = lazy(() => import("@/pages/embed-manager"));
+const DemoEmbed = lazy(() => import("@/pages/demo-embed"));
 
 // Loading component for lazy routes
 const LoadingSpinner = () => (
@@ -65,8 +67,13 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/accept-invitation" component={AcceptInvitation} />
       <Route path="/embed" component={() => <LazyRoute Component={Embed} />} />
+      <Route path="/demo-embed" component={() => <LazyRoute Component={DemoEmbed} />} />
       <Route path="/embed-roofing" component={() => <LazyRoute Component={EmbedRoofing} />} />
       <Route path="/embed-pools" component={() => <LazyRoute Component={EmbedPools} />} />
+      <Route path="/embed-painting" component={() => <LazyRoute Component={EmbedInterior} />} />
+      <Route path="/embed-kitchen" component={() => <LazyRoute Component={EmbedInterior} />} />
+      <Route path="/embed-bathroom" component={() => <LazyRoute Component={EmbedInterior} />} />
+      <Route path="/embed-living-room" component={() => <LazyRoute Component={EmbedInterior} />} />
       <Route path="/embed-manager" component={() => <LazyRoute Component={EmbedManager} />} />
       <Route path="/pricing" component={PricingPage} />
       <Route path="/contact" component={ContactPage} />
