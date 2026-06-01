@@ -124,7 +124,9 @@ function generateStylePrompt(category: string, type: string): string {
     },
     landscape: {
       brown_mulch: "Replace the ground cover with brown wood mulch in this area only. Do not modify surrounding elements.",
-      red_mulch: "Replace the ground cover with red-tinted mulch in this specific region only. Keep everything else identical."
+      black_mulch: "Replace the ground cover with black dyed wood mulch in this area only. Do not modify surrounding elements.",
+      red_mulch: "Replace the ground cover with red-tinted mulch in this specific region only. Keep everything else identical.",
+      natural_cedar_mulch: "Replace the ground cover with natural cedar mulch in this area only. Do not modify surrounding elements."
     },
     patio: {
       flagstone_patio: "Transform this area into a natural flagstone patio only. Leave the rest of the image completely unchanged.",

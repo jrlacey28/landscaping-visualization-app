@@ -87,11 +87,47 @@ export const LANDSCAPE_STYLE_CONFIG: Record<string, LandscapeStyleConfig> = {
   },
 
   // Landscaping
+  brown_mulch: {
+    id: "brown_mulch",
+    name: "Brown Mulch",
+    prompt:
+      "Replace existing mulch in landscape beds with fresh brown organic wood mulch. Rich chocolate-brown mulch spread evenly in all existing planted areas, creating a clean professional garden appearance. Only replace mulch in existing beds - preserve the exact bed shapes, all plants, trees, house structure, and lawn areas unchanged.",
+    referenceImageUrl: "https://mycdn.com/brown-mulch-beds.jpg",
+    category: "landscape",
+    regionType: "garden",
+  },
+  black_mulch: {
+    id: "black_mulch",
+    name: "Black Mulch",
+    prompt:
+      "Replace existing mulch in landscape beds with fresh black dyed wood mulch. Deep charcoal-black mulch spread evenly in all existing planted areas for strong contrast against plants and lawn. Only replace mulch in existing beds - preserve the exact bed shapes, all plants, trees, house structure, and lawn areas unchanged.",
+    referenceImageUrl: "https://mycdn.com/black-mulch-beds.jpg",
+    category: "landscape",
+    regionType: "garden",
+  },
+  red_mulch: {
+    id: "red_mulch",
+    name: "Red Mulch",
+    prompt:
+      "Replace existing mulch in landscape beds with fresh red cedar-style mulch. Warm red-brown mulch spread evenly in all existing planted areas with a clean, vibrant landscaped look. Only replace mulch in existing beds - preserve the exact bed shapes, all plants, trees, house structure, and lawn areas unchanged.",
+    referenceImageUrl: "https://mycdn.com/red-mulch-beds.jpg",
+    category: "landscape",
+    regionType: "garden",
+  },
+  natural_cedar_mulch: {
+    id: "natural_cedar_mulch",
+    name: "Natural Cedar Mulch",
+    prompt:
+      "Replace existing mulch in landscape beds with fresh natural cedar mulch. Golden-brown cedar wood mulch spread evenly in all existing planted areas with a natural, freshly installed appearance. Only replace mulch in existing beds - preserve the exact bed shapes, all plants, trees, house structure, and lawn areas unchanged.",
+    referenceImageUrl: "https://mycdn.com/natural-cedar-mulch-beds.jpg",
+    category: "landscape",
+    regionType: "garden",
+  },
   fresh_mulch: {
     id: "fresh_mulch",
     name: "Fresh Mulch",
     prompt:
-      "Replace existing mulch in landscape beds with fresh, dark brown organic mulch. Rich, chocolate-colored wood mulch spread evenly in all existing planted areas, creating clean garden appearance. Only replace mulch in existing beds - preserve the exact bed shapes, all plants, trees, house structure, and lawn areas unchanged.",
+      "Replace existing mulch in landscape beds with fresh brown organic wood mulch. Rich chocolate-brown mulch spread evenly in all existing planted areas, creating a clean professional garden appearance. Only replace mulch in existing beds - preserve the exact bed shapes, all plants, trees, house structure, and lawn areas unchanged.",
     referenceImageUrl: "https://mycdn.com/mulch-beds.jpg",
     category: "landscape",
     regionType: "garden",

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Camera, Download, Eye, Phone, Sparkles, Upload, XCircle } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "../components/ui/select";
 import { useTenant } from "../hooks/use-tenant";
 import { checkVisualizationStatus, uploadInteriorImage } from "../lib/api";
 import {
@@ -16,6 +17,7 @@ type InteriorService = "painting" | "bathroom" | "kitchen" | "living_room";
 type InteriorOption = {
   value: string;
   label: string;
+  swatch?: string;
 };
 
 type InteriorGroup = {
@@ -47,20 +49,20 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
         id: "paintColor",
         label: "Paint Color",
         options: [
-          { value: "pure_white", label: "Pure White" },
-          { value: "soft_greige", label: "Soft Greige" },
-          { value: "sage_green", label: "Sage Green" },
-          { value: "dusty_blue", label: "Dusty Blue" },
+          { value: "pure_white", label: "Pure White", swatch: "#f8f8f2" },
+          { value: "soft_greige", label: "Soft Greige", swatch: "#cfc6b8" },
+          { value: "sage_green", label: "Sage Green", swatch: "#9ca58d" },
+          { value: "dusty_blue", label: "Dusty Blue", swatch: "#8ea3b2" },
         ],
       },
       {
         id: "accentColor",
         label: "Accent Color",
         options: [
-          { value: "navy_accent", label: "Navy Accent" },
-          { value: "charcoal_accent", label: "Charcoal Accent" },
-          { value: "terracotta", label: "Terracotta" },
-          { value: "muted_mauve", label: "Muted Mauve" },
+          { value: "navy_accent", label: "Navy Accent", swatch: "#243957" },
+          { value: "charcoal_accent", label: "Charcoal Accent", swatch: "#3f4448" },
+          { value: "terracotta", label: "Terracotta", swatch: "#b96f55" },
+          { value: "muted_mauve", label: "Muted Mauve", swatch: "#a9828b" },
         ],
       },
       {
@@ -95,30 +97,30 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
         id: "overall",
         label: "Overall Design",
         options: [
-          { value: "modern_white", label: "Modern White" },
-          { value: "warm_wood", label: "Warm Wood" },
-          { value: "two_tone", label: "Two-Tone" },
-          { value: "luxury_stone", label: "Luxury Stone" },
+          { value: "modern_white", label: "Modern White", swatch: "#f5f3ed" },
+          { value: "warm_wood", label: "Warm Wood", swatch: "#b98553" },
+          { value: "two_tone", label: "Two-Tone", swatch: "linear-gradient(135deg, #f6f3ed 0%, #f6f3ed 48%, #334155 52%, #334155 100%)" },
+          { value: "luxury_stone", label: "Luxury Stone", swatch: "#d8d2c8" },
         ],
       },
       {
         id: "cabinets",
         label: "Cabinets",
         options: [
-          { value: "cabinets_white_shaker", label: "White Shaker" },
-          { value: "cabinets_warm_oak", label: "Warm Oak" },
-          { value: "cabinets_sage_green", label: "Sage Green" },
-          { value: "cabinets_black_modern", label: "Modern Black" },
+          { value: "cabinets_white_shaker", label: "White Shaker", swatch: "#f8f8f2" },
+          { value: "cabinets_warm_oak", label: "Warm Oak", swatch: "#b98553" },
+          { value: "cabinets_sage_green", label: "Sage Green", swatch: "#8d9a78" },
+          { value: "cabinets_black_modern", label: "Modern Black", swatch: "#111827" },
         ],
       },
       {
         id: "counters",
         label: "Counters",
         options: [
-          { value: "counters_white_quartz", label: "White Quartz" },
-          { value: "counters_marble", label: "Marble Look" },
-          { value: "counters_dark_stone", label: "Dark Stone" },
-          { value: "counters_butcher_block", label: "Butcher Block" },
+          { value: "counters_white_quartz", label: "White Quartz", swatch: "#f7f4ec" },
+          { value: "counters_marble", label: "Marble Look", swatch: "linear-gradient(135deg, #ffffff 0%, #e7e2dc 42%, #f8f7f2 100%)" },
+          { value: "counters_dark_stone", label: "Dark Stone", swatch: "#2f3437" },
+          { value: "counters_butcher_block", label: "Butcher Block", swatch: "#b47b46" },
         ],
       },
       {
@@ -127,8 +129,8 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
         options: [
           { value: "backsplash_subway", label: "Subway Tile" },
           { value: "pendant_lighting", label: "Pendant Lighting" },
-          { value: "hardware_brass", label: "Brass Hardware" },
-          { value: "sink_farmhouse", label: "Farmhouse Sink" },
+          { value: "hardware_brass", label: "Brass Hardware", swatch: "#b58b43" },
+          { value: "sink_farmhouse", label: "Farmhouse Sink", swatch: "#f7f5ef" },
         ],
       },
     ],
@@ -156,9 +158,9 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
         label: "Tile",
         options: [
           { value: "large_format_tile", label: "Large Format" },
-          { value: "marble_tile", label: "Marble Tile" },
-          { value: "zellige_tile", label: "Zellige Tile" },
-          { value: "warm_stone_tile", label: "Warm Stone" },
+          { value: "marble_tile", label: "Marble Tile", swatch: "linear-gradient(135deg, #ffffff 0%, #e7e2dc 45%, #f8f7f2 100%)" },
+          { value: "zellige_tile", label: "Zellige Tile", swatch: "#dce6de" },
+          { value: "warm_stone_tile", label: "Warm Stone", swatch: "#b8a48e" },
         ],
       },
       {
@@ -166,17 +168,17 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
         label: "Vanity",
         options: [
           { value: "floating_vanity", label: "Floating Vanity" },
-          { value: "wood_vanity", label: "Wood Vanity" },
-          { value: "white_shaker_vanity", label: "White Shaker" },
+          { value: "wood_vanity", label: "Wood Vanity", swatch: "#9f7044" },
+          { value: "white_shaker_vanity", label: "White Shaker", swatch: "#f8f8f2" },
         ],
       },
       {
         id: "fixtures",
         label: "Fixtures",
         options: [
-          { value: "matte_black_fixtures", label: "Matte Black" },
-          { value: "brushed_gold_fixtures", label: "Brushed Gold" },
-          { value: "chrome_fixtures", label: "Chrome" },
+          { value: "matte_black_fixtures", label: "Matte Black", swatch: "#111827" },
+          { value: "brushed_gold_fixtures", label: "Brushed Gold", swatch: "#b58b43" },
+          { value: "chrome_fixtures", label: "Chrome", swatch: "#c4c8cc" },
         ],
       },
     ],
@@ -203,18 +205,18 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
         id: "sofa",
         label: "Sofa",
         options: [
-          { value: "couch_linen_sectional", label: "Linen Sectional" },
-          { value: "couch_leather", label: "Leather Sofa" },
-          { value: "couch_modern_curved", label: "Modern Curved" },
-          { value: "couch_blue_velvet", label: "Blue Velvet" },
+          { value: "couch_linen_sectional", label: "Linen Sectional", swatch: "#d8d0c4" },
+          { value: "couch_leather", label: "Leather Sofa", swatch: "#9a5a2f" },
+          { value: "couch_modern_curved", label: "Modern Curved", swatch: "#c7c1b8" },
+          { value: "couch_blue_velvet", label: "Blue Velvet", swatch: "#1f3a5f" },
         ],
       },
       {
         id: "decor",
         label: "Decor",
         options: [
-          { value: "area_rug", label: "Area Rug" },
-          { value: "curtains_window_treatments", label: "Curtains" },
+          { value: "area_rug", label: "Area Rug", swatch: "#b8a893" },
+          { value: "curtains_window_treatments", label: "Curtains", swatch: "#d9d4c9" },
           { value: "lighting_refresh", label: "Lighting Refresh" },
         ],
       },
@@ -242,6 +244,25 @@ const createDefaultActiveGroups = (config: InteriorEmbedConfig) =>
     groups[group.id] = true;
     return groups;
   }, {});
+
+function Swatch({ color }: { color: string }) {
+  return (
+    <span
+      className="h-4 w-4 shrink-0 rounded-full border border-white/40 shadow-inner"
+      style={{ background: color }}
+      aria-hidden="true"
+    />
+  );
+}
+
+function OptionDisplay({ option }: { option?: InteriorOption }) {
+  return (
+    <span className="flex min-w-0 items-center gap-2 text-left">
+      {option?.swatch && <Swatch color={option.swatch} />}
+      <span className="truncate">{option?.label || "Choose an option"}</span>
+    </span>
+  );
+}
 
 export default function EmbedInteriorPage() {
   const [location] = useLocation();
@@ -553,6 +574,9 @@ export default function EmbedInteriorPage() {
             <div className="grid gap-3 md:grid-cols-2">
               {config.groups.map((group) => {
                 const isActive = activeGroups[group.id];
+                const selectedOption =
+                  group.options.find((option) => option.value === selectedOptions[group.id]) ||
+                  group.options[0];
 
                 return (
                   <div
@@ -578,23 +602,27 @@ export default function EmbedInteriorPage() {
                         />
                       </button>
                     </div>
-                    <select
+                    <Select
                       value={selectedOptions[group.id] || group.options[0]?.value || ""}
-                      onChange={(event) =>
+                      onValueChange={(value) =>
                         setSelectedOptions((current) => ({
                           ...current,
-                          [group.id]: event.target.value,
+                          [group.id]: value,
                         }))
                       }
                       disabled={!isActive}
-                      className="mt-3 h-12 w-full rounded-lg border border-white/10 bg-[#111827] px-3 text-white outline-none focus:border-blue-300 disabled:cursor-not-allowed disabled:opacity-55"
                     >
-                      {group.options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="mt-3 h-12 border-white/10 bg-[#111827] text-white focus:border-blue-300 disabled:cursor-not-allowed disabled:opacity-55">
+                        <OptionDisplay option={selectedOption} />
+                      </SelectTrigger>
+                      <SelectContent className="border-white/10 bg-[#111827] text-white">
+                        {group.options.map((option) => (
+                          <SelectItem key={option.value} value={option.value} textValue={option.label}>
+                            <OptionDisplay option={option} />
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 );
               })}

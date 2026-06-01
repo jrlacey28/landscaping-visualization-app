@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 
 interface LandscapeStyleSelectorProps {
   selectedStyles: {
@@ -24,17 +25,24 @@ const curbingOptions = [
 ];
 
 const curbingColors = [
-  { value: "gray", label: "Gray" },
-  { value: "tan", label: "Tan" },
-  { value: "brown", label: "Brown" },
-  { value: "charcoal", label: "Charcoal" },
-  { value: "sandstone", label: "Sandstone" },
+  { value: "gray", label: "Gray", hex: "#808080" },
+  { value: "tan", label: "Tan", hex: "#D2B48C" },
+  { value: "brown", label: "Brown", hex: "#6B4F3A" },
+  { value: "charcoal", label: "Charcoal", hex: "#333333" },
+  { value: "sandstone", label: "Sandstone", hex: "#C2B280" },
 ];
 
 const landscapeOptions = [
-  { value: "fresh_mulch", label: "Fresh Mulch" },
-  { value: "river_rock", label: "River Rock" },
-  { value: "new_grass", label: "New Grass" },
+  { value: "mulch", label: "Fresh Mulch", swatch: "#6B4423" },
+  { value: "river_rock", label: "River Rock", swatch: "linear-gradient(135deg, #8b8174 0%, #d6c7ad 45%, #5f6368 100%)" },
+  { value: "new_grass", label: "New Grass", swatch: "#2f7d32" },
+];
+
+const mulchColors = [
+  { value: "brown_mulch", label: "Brown Mulch", hex: "#6B4423" },
+  { value: "black_mulch", label: "Black Mulch", hex: "#1F1B18" },
+  { value: "red_mulch", label: "Red Mulch", hex: "#8A2E1B" },
+  { value: "natural_cedar_mulch", label: "Natural Cedar Mulch", hex: "#B0642F" },
 ];
 
 const patioStyles = [
@@ -57,6 +65,35 @@ const patioSizes = [
   { value: "large", label: "Large" },
 ];
 
+type ColorOption = {
+  value: string;
+  label: string;
+  hex: string;
+};
+
+function isMulchValue(value: string) {
+  return value === "fresh_mulch" || mulchColors.some((color) => color.value === value);
+}
+
+function Swatch({ color, className = "h-4 w-4" }: { color: string; className?: string }) {
+  return (
+    <span
+      className={`${className} shrink-0 rounded-full border border-black/20 shadow-inner`}
+      style={{ background: color }}
+      aria-hidden="true"
+    />
+  );
+}
+
+function ColorOptionContent({ option }: { option: ColorOption }) {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <Swatch color={option.hex} />
+      <span className="truncate">{option.label}</span>
+    </span>
+  );
+}
+
 const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
   selectedStyles,
   onStyleChange,
@@ -74,11 +111,21 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
     color: 'gray'
   });
 
+  const [landscapeSelection, setLandscapeSelection] = useState(() => ({
+    type: isMulchValue(selectedStyles.landscape) ? "mulch" : selectedStyles.landscape || "mulch",
+    mulch: isMulchValue(selectedStyles.landscape) && selectedStyles.landscape !== "fresh_mulch"
+      ? selectedStyles.landscape
+      : "brown_mulch",
+  }));
+
   const [patioSelection, setPatioSelection] = useState<PatioSelection>({
     style: 'plain_concrete_patio',
     shape: 'rectangular',
     size: 'medium'
   });
+
+  const selectedCurbingColor = curbingColors.find((color) => color.value === curbingSelection.color) || curbingColors[0];
+  const selectedMulchColor = mulchColors.find((color) => color.value === landscapeSelection.mulch) || mulchColors[0];
 
   const handleToggleChange = (category: 'curbing' | 'landscape' | 'patios', enabled: boolean) => {
     setActiveToggles(prev => ({ ...prev, [category]: enabled }));
@@ -99,6 +146,11 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
         onStyleChange({
           ...selectedStyles,
           curbing: fullCurbingId,
+        });
+      } else if (category === 'landscape') {
+        onStyleChange({
+          ...selectedStyles,
+          landscape: landscapeSelection.type === "mulch" ? landscapeSelection.mulch : landscapeSelection.type,
         });
       } else if (category === 'patios') {
         // Set the default patio selection
@@ -125,6 +177,13 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
         ...selectedStyles,
         [category]: fullCurbingId,
       });
+    } else if (category === 'landscape') {
+      const newSelection = { ...landscapeSelection, type: value };
+      setLandscapeSelection(newSelection);
+      onStyleChange({
+        ...selectedStyles,
+        landscape: value === "mulch" ? newSelection.mulch : value,
+      });
     } else {
       onStyleChange({
         ...selectedStyles,
@@ -145,6 +204,17 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
     onStyleChange({
       ...selectedStyles,
       curbing: fullCurbingId,
+    });
+  };
+
+  const handleMulchColorChange = (mulch: string) => {
+    setActiveToggles(prev => ({ ...prev, landscape: true }));
+
+    const newSelection = { ...landscapeSelection, type: "mulch", mulch };
+    setLandscapeSelection(newSelection);
+    onStyleChange({
+      ...selectedStyles,
+      landscape: mulch,
     });
   };
 
@@ -205,18 +275,24 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
               {curbingSelection.type === 'natural_stone_curbing' && (
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Color</label>
-                  <select
+                  <Select
                     value={curbingSelection.color}
-                    onChange={(e) => handleCurbingColorChange(e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-full px-3 py-2 text-sm bg-white/20 border border-white/30 rounded-md text-white placeholder-white/70 focus:ring-2 focus:ring-white focus:border-transparent"
+                    onValueChange={handleCurbingColorChange}
                   >
-                    {curbingColors.map((color) => (
-                      <option key={color.value} value={color.value} className="text-gray-900">
-                        {color.label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger
+                      className="bg-white/90 border-white/30 text-slate-800"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ColorOptionContent option={selectedCurbingColor} />
+                    </SelectTrigger>
+                    <SelectContent onClick={(e) => e.stopPropagation()}>
+                      {curbingColors.map((color) => (
+                        <SelectItem key={color.value} value={color.value} textValue={color.label}>
+                          <ColorOptionContent option={color} />
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>
@@ -250,13 +326,38 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
                     type="radio"
                     name="landscape"
                     value={option.value}
-                    checked={selectedStyles.landscape === option.value}
+                    checked={option.value === "mulch" ? isMulchValue(selectedStyles.landscape) : selectedStyles.landscape === option.value}
                     onChange={() => handleOptionSelect('landscape', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
+                  <Swatch color={option.swatch} className="h-5 w-5" />
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
               ))}
+
+              {landscapeSelection.type === "mulch" && (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <label className="block text-sm font-medium text-white mb-2">Mulch Color</label>
+                  <Select
+                    value={landscapeSelection.mulch}
+                    onValueChange={handleMulchColorChange}
+                  >
+                    <SelectTrigger
+                      className="bg-white/90 border-white/30 text-slate-800"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ColorOptionContent option={selectedMulchColor} />
+                    </SelectTrigger>
+                    <SelectContent onClick={(e) => e.stopPropagation()}>
+                      {mulchColors.map((color) => (
+                        <SelectItem key={color.value} value={color.value} textValue={color.label}>
+                          <ColorOptionContent option={color} />
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
         </div>

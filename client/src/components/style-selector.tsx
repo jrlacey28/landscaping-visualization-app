@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 
 interface StyleSelectorProps {
   selectedStyles: {
@@ -65,11 +65,36 @@ const sidingColors = [
 ];
 
 const windowOptions = [
-  { value: "windows_black_frames", label: "Black Frames" },
-  { value: "windows_white_frames", label: "White Frames" },
-  { value: "windows_bronze_frames", label: "Bronze Frames" },
-  { value: "windows_modern_grid", label: "Modern Grid" },
+  { value: "windows_black_frames", label: "Black Frames", hex: "#111827" },
+  { value: "windows_white_frames", label: "White Frames", hex: "#FFFFFF" },
+  { value: "windows_bronze_frames", label: "Bronze Frames", hex: "#5C4033" },
+  { value: "windows_modern_grid", label: "Modern Grid", hex: "#111827" },
 ];
+
+type ColorOption = {
+  value: string;
+  label: string;
+  hex: string;
+};
+
+function ColorSwatch({ color, className = "h-4 w-4" }: { color: string; className?: string }) {
+  return (
+    <span
+      className={`${className} shrink-0 rounded-full border border-black/20 shadow-inner`}
+      style={{ background: color }}
+      aria-hidden="true"
+    />
+  );
+}
+
+function ColorOptionContent({ option }: { option: ColorOption }) {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <ColorSwatch color={option.hex} />
+      <span className="truncate">{option.label}</span>
+    </span>
+  );
+}
 
 export default function StyleSelector({ selectedStyles, onStyleChange, primaryColor = "#475569", secondaryColor = "#64748b", showWindows = true }: StyleSelectorProps) {
   const [activeToggles, setActiveToggles] = useState({
@@ -83,6 +108,8 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
   const [selectedRoofColor, setSelectedRoofColor] = useState("");
   const [selectedSidingStyle, setSelectedSidingStyle] = useState("");
   const [selectedSidingColor, setSelectedSidingColor] = useState("");
+  const selectedRoofColorOption = roofColors.find((color) => color.value === selectedRoofColor);
+  const selectedSidingColorOption = sidingColors.find((color) => color.value === selectedSidingColor);
 
   const handleToggleChange = (category: 'roof' | 'siding' | 'windows' | 'surpriseMe', enabled: boolean) => {
     // Handle mutual exclusivity between surprise me and other options
@@ -190,12 +217,16 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                     }}
                   >
                     <SelectTrigger className="bg-white/90 border-white/30 text-slate-800" onClick={(e) => e.stopPropagation()}>
-                      <SelectValue placeholder="Select a color" />
+                      {selectedRoofColorOption ? (
+                        <ColorOptionContent option={selectedRoofColorOption} />
+                      ) : (
+                        <span className="text-muted-foreground">Select a color</span>
+                      )}
                     </SelectTrigger>
                     <SelectContent onClick={(e) => e.stopPropagation()}>
                       {roofColors.map((color) => (
-                        <SelectItem key={color.value} value={color.value} onClick={(e) => e.stopPropagation()}>
-                          {color.label}
+                        <SelectItem key={color.value} value={color.value} textValue={color.label} onClick={(e) => e.stopPropagation()}>
+                          <ColorOptionContent option={color} />
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -265,12 +296,16 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                     }}
                   >
                     <SelectTrigger className="bg-white/90 border-white/30 text-slate-800" onClick={(e) => e.stopPropagation()}>
-                      <SelectValue placeholder="Select a color" />
+                      {selectedSidingColorOption ? (
+                        <ColorOptionContent option={selectedSidingColorOption} />
+                      ) : (
+                        <span className="text-muted-foreground">Select a color</span>
+                      )}
                     </SelectTrigger>
                     <SelectContent onClick={(e) => e.stopPropagation()}>
                       {sidingColors.map((color) => (
-                        <SelectItem key={color.value} value={color.value} onClick={(e) => e.stopPropagation()}>
-                          {color.label}
+                        <SelectItem key={color.value} value={color.value} textValue={color.label} onClick={(e) => e.stopPropagation()}>
+                          <ColorOptionContent option={color} />
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -314,6 +349,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                     onChange={() => handleOptionSelect('windows', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
+                  <ColorSwatch color={option.hex} className="h-5 w-5" />
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
               ))}

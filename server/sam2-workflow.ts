@@ -53,7 +53,9 @@ function generateTargetedPrompt(category: string, styleType: string): string {
     },
     landscape: {
       brown_mulch: "Replace the ground cover with brown wood mulch in this masked area only. Preserve everything else.",
-      red_mulch: "Replace with red-tinted mulch in this specific region only. Leave the rest identical."
+      black_mulch: "Replace with black dyed wood mulch in this masked area only. Preserve everything else.",
+      red_mulch: "Replace with red-tinted mulch in this specific region only. Leave the rest identical.",
+      natural_cedar_mulch: "Replace with natural cedar mulch in this masked area only. Preserve everything else."
     },
     patio: {
       flagstone_patio: "Convert this masked area to flagstone patio only. Keep all surrounding elements unchanged.",

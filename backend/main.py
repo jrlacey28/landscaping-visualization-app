@@ -214,10 +214,22 @@ async def get_all_styles():
             "prompt": "Brown wood mulch ground cover, organic texture, natural landscaping material"
         },
         {
+            "id": "black_mulch",
+            "name": "Black Mulch",
+            "category": "mulch",
+            "prompt": "Black dyed wood mulch ground cover, deep charcoal color, high-contrast landscaping material"
+        },
+        {
             "id": "red_mulch",
             "name": "Red Mulch",
             "category": "mulch", 
             "prompt": "Red-tinted wood mulch, vibrant color, landscaping ground cover"
+        },
+        {
+            "id": "natural_cedar_mulch",
+            "name": "Natural Cedar Mulch",
+            "category": "mulch",
+            "prompt": "Natural cedar mulch, warm golden-brown wood tone, fresh organic landscaping ground cover"
         },
         {
             "id": "flagstone_patio",

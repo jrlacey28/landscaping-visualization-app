@@ -117,27 +117,27 @@ const serviceConfigs: Record<string, InteriorServiceConfig> = {
     quoteService: "kitchen-redesign",
     allowCombinations: true,
     styles: [
-      { value: "modern_white", label: "Modern White", description: "White cabinets, stone counters, clean lines", group: "Overall Designs", overall: true },
-      { value: "warm_wood", label: "Warm Wood", description: "Natural cabinet warmth and durable surfaces", group: "Overall Designs", overall: true },
-      { value: "two_tone", label: "Two-Tone", description: "Balanced light and dark cabinet palette", group: "Overall Designs", overall: true },
-      { value: "luxury_stone", label: "Luxury Stone", description: "Premium counters, backsplash, and lighting", group: "Overall Designs", overall: true },
-      { value: "full_kitchen_refresh", label: "Cabinets + Counter + Sink", description: "A coordinated grouped upgrade", group: "Combined Upgrades", overall: true },
-      { value: "cabinets_white_shaker", label: "White Shaker Cabinets", description: "Only replace the cabinets", group: "Cabinets" },
-      { value: "cabinets_warm_oak", label: "Warm Oak Cabinets", description: "Only replace the cabinets", group: "Cabinets" },
-      { value: "cabinets_sage_green", label: "Sage Green Cabinets", description: "Only replace the cabinets", group: "Cabinets" },
-      { value: "cabinets_navy_lower", label: "Navy Lower Cabinets", description: "Lower cabinets or island only", group: "Cabinets" },
-      { value: "cabinets_black_modern", label: "Modern Black Cabinets", description: "Only replace the cabinets", group: "Cabinets" },
-      { value: "counters_white_quartz", label: "White Quartz Counters", description: "Only replace countertops", group: "Counters" },
-      { value: "counters_marble", label: "Marble-Look Counters", description: "Only replace countertops", group: "Counters" },
-      { value: "counters_dark_stone", label: "Dark Stone Counters", description: "Only replace countertops", group: "Counters" },
-      { value: "counters_butcher_block", label: "Butcher Block Counters", description: "Only replace countertops", group: "Counters" },
-      { value: "sink_farmhouse", label: "Farmhouse Sink", description: "Only replace sink and faucet", group: "Sink & Fixtures" },
-      { value: "sink_undermount", label: "Undermount Sink", description: "Only replace sink and faucet", group: "Sink & Fixtures" },
-      { value: "sink_black_workstation", label: "Black Workstation Sink", description: "Only replace sink and faucet", group: "Sink & Fixtures" },
-      { value: "backsplash_subway", label: "Subway Tile Backsplash", description: "Only replace backsplash", group: "Finishing Details" },
-      { value: "backsplash_zellige", label: "Zellige Tile Backsplash", description: "Only replace backsplash", group: "Finishing Details" },
+      { value: "modern_white", label: "Modern White", description: "White cabinets, stone counters, clean lines", group: "Overall Designs", overall: true, swatch: "#f5f3ed" },
+      { value: "warm_wood", label: "Warm Wood", description: "Natural cabinet warmth and durable surfaces", group: "Overall Designs", overall: true, swatch: "#b98553" },
+      { value: "two_tone", label: "Two-Tone", description: "Balanced light and dark cabinet palette", group: "Overall Designs", overall: true, swatch: "linear-gradient(135deg, #f6f3ed 0%, #f6f3ed 48%, #334155 52%, #334155 100%)" },
+      { value: "luxury_stone", label: "Luxury Stone", description: "Premium counters, backsplash, and lighting", group: "Overall Designs", overall: true, swatch: "#d8d2c8" },
+      { value: "full_kitchen_refresh", label: "Cabinets + Counter + Sink", description: "A coordinated grouped upgrade", group: "Combined Upgrades", overall: true, swatch: "linear-gradient(135deg, #f7f4ed 0%, #f7f4ed 35%, #b98553 36%, #b98553 68%, #a7adb4 69%, #a7adb4 100%)" },
+      { value: "cabinets_white_shaker", label: "White Shaker Cabinets", description: "Only replace the cabinets", group: "Cabinets", swatch: "#f8f8f2" },
+      { value: "cabinets_warm_oak", label: "Warm Oak Cabinets", description: "Only replace the cabinets", group: "Cabinets", swatch: "#b98553" },
+      { value: "cabinets_sage_green", label: "Sage Green Cabinets", description: "Only replace the cabinets", group: "Cabinets", swatch: "#8d9a78" },
+      { value: "cabinets_navy_lower", label: "Navy Lower Cabinets", description: "Lower cabinets or island only", group: "Cabinets", swatch: "#243957" },
+      { value: "cabinets_black_modern", label: "Modern Black Cabinets", description: "Only replace the cabinets", group: "Cabinets", swatch: "#111827" },
+      { value: "counters_white_quartz", label: "White Quartz Counters", description: "Only replace countertops", group: "Counters", swatch: "#f7f4ec" },
+      { value: "counters_marble", label: "Marble-Look Counters", description: "Only replace countertops", group: "Counters", swatch: "linear-gradient(135deg, #ffffff 0%, #e7e2dc 42%, #f8f7f2 100%)" },
+      { value: "counters_dark_stone", label: "Dark Stone Counters", description: "Only replace countertops", group: "Counters", swatch: "#2f3437" },
+      { value: "counters_butcher_block", label: "Butcher Block Counters", description: "Only replace countertops", group: "Counters", swatch: "#b47b46" },
+      { value: "sink_farmhouse", label: "Farmhouse Sink", description: "Only replace sink and faucet", group: "Sink & Fixtures", swatch: "#f7f5ef" },
+      { value: "sink_undermount", label: "Undermount Sink", description: "Only replace sink and faucet", group: "Sink & Fixtures", swatch: "#a7adb4" },
+      { value: "sink_black_workstation", label: "Black Workstation Sink", description: "Only replace sink and faucet", group: "Sink & Fixtures", swatch: "#111827" },
+      { value: "backsplash_subway", label: "Subway Tile Backsplash", description: "Only replace backsplash", group: "Finishing Details", swatch: "#f7f7f2" },
+      { value: "backsplash_zellige", label: "Zellige Tile Backsplash", description: "Only replace backsplash", group: "Finishing Details", swatch: "#dce6de" },
       { value: "pendant_lighting", label: "Pendant Lighting", description: "Only update lighting", group: "Finishing Details" },
-      { value: "hardware_brass", label: "Brass Hardware", description: "Only update hardware", group: "Finishing Details" },
+      { value: "hardware_brass", label: "Brass Hardware", description: "Only update hardware", group: "Finishing Details", swatch: "#b58b43" },
     ],
   },
   "/living-room-design": {
@@ -157,14 +157,14 @@ const serviceConfigs: Record<string, InteriorServiceConfig> = {
       { value: "scandinavian", label: "Scandinavian", description: "Light woods, airy styling, simple forms", group: "Overall Designs", overall: true },
       { value: "classic_comfort", label: "Classic Comfort", description: "Timeless furniture and balanced decor", group: "Overall Designs", overall: true },
       { value: "luxe_contemporary", label: "Luxe Contemporary", description: "Elevated textures and polished finishes", group: "Overall Designs", overall: true },
-      { value: "couch_linen_sectional", label: "Linen Sectional Sofa", description: "Only replace the main couch", group: "Sofa Options" },
-      { value: "couch_leather", label: "Leather Sofa", description: "Only replace the main couch", group: "Sofa Options" },
-      { value: "couch_modern_curved", label: "Modern Curved Sofa", description: "Only replace the main couch", group: "Sofa Options" },
-      { value: "couch_blue_velvet", label: "Blue Velvet Sofa", description: "Only replace the main couch", group: "Sofa Options" },
+      { value: "couch_linen_sectional", label: "Linen Sectional Sofa", description: "Only replace the main couch", group: "Sofa Options", swatch: "#d8d0c4" },
+      { value: "couch_leather", label: "Leather Sofa", description: "Only replace the main couch", group: "Sofa Options", swatch: "#9a5a2f" },
+      { value: "couch_modern_curved", label: "Modern Curved Sofa", description: "Only replace the main couch", group: "Sofa Options", swatch: "#c7c1b8" },
+      { value: "couch_blue_velvet", label: "Blue Velvet Sofa", description: "Only replace the main couch", group: "Sofa Options", swatch: "#1f3a5f" },
       { value: "accent_chairs", label: "Accent Chairs", description: "Add or update chairs", group: "Furniture" },
       { value: "coffee_table_refresh", label: "Coffee Table", description: "Only replace the coffee table", group: "Furniture" },
-      { value: "area_rug", label: "Area Rug", description: "Only add or replace rug", group: "Decor & Surfaces" },
-      { value: "curtains_window_treatments", label: "Curtains", description: "Only update window treatments", group: "Decor & Surfaces" },
+      { value: "area_rug", label: "Area Rug", description: "Only add or replace rug", group: "Decor & Surfaces", swatch: "#b8a893" },
+      { value: "curtains_window_treatments", label: "Curtains", description: "Only update window treatments", group: "Decor & Surfaces", swatch: "#d9d4c9" },
       { value: "lighting_refresh", label: "Lighting Refresh", description: "Only update lighting", group: "Decor & Surfaces" },
       { value: "media_wall", label: "Media Wall", description: "Only redesign the TV wall", group: "Built-Ins & Features" },
       { value: "fireplace_refresh", label: "Fireplace Refresh", description: "Only update fireplace area", group: "Built-Ins & Features" },
@@ -600,10 +600,10 @@ export default function InteriorDesign() {
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                {config.service === "painting" && selectedOption?.swatch && (
+                                {selectedOption?.swatch && (
                                   <span
                                     className="h-6 w-6 shrink-0 rounded-full border border-white/60 shadow-inner"
-                                    style={{ backgroundColor: selectedOption.swatch }}
+                                    style={{ background: selectedOption.swatch }}
                                   />
                                 )}
                                 <h4 className="text-lg font-semibold text-white drop-shadow-sm">
@@ -630,10 +630,10 @@ export default function InteriorDesign() {
                               >
                                 <SelectTrigger className="bg-white/95 border-white/40 text-slate-800">
                                   <span className="flex min-w-0 items-center gap-2 text-left">
-                                    {config.service === "painting" && selectedOption?.swatch && (
+                                    {selectedOption?.swatch && (
                                       <span
                                         className="h-5 w-5 shrink-0 rounded-full border border-black/15 shadow-inner"
-                                        style={{ backgroundColor: selectedOption.swatch }}
+                                        style={{ background: selectedOption.swatch }}
                                       />
                                     )}
                                     <span className="truncate">
@@ -645,10 +645,10 @@ export default function InteriorDesign() {
                                   {styles.map((style) => (
                                     <SelectItem key={style.value} value={style.value} textValue={style.label}>
                                       <span className="flex items-center gap-2">
-                                        {config.service === "painting" && style.swatch && (
+                                        {style.swatch && (
                                           <span
                                             className="h-4 w-4 shrink-0 rounded-full border border-black/15 shadow-inner"
-                                            style={{ backgroundColor: style.swatch }}
+                                            style={{ background: style.swatch }}
                                           />
                                         )}
                                         <span>{style.label}</span>

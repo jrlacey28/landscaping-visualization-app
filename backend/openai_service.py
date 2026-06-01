@@ -22,10 +22,14 @@ async def generate_landscape_prompt(selected_styles: Dict[str, Any]) -> str:
     
     if selected_styles.get("landscape", {}).get("enabled"):
         landscape_type = selected_styles["landscape"].get("type", "brown_mulch")
-        if landscape_type == "brown_mulch":
+        if landscape_type in ["brown_mulch", "fresh_mulch"]:
             style_descriptions.append("brown wood mulch ground cover with organic texture")
+        elif landscape_type == "black_mulch":
+            style_descriptions.append("black dyed wood mulch landscaping material with deep charcoal color")
         elif landscape_type == "red_mulch":
             style_descriptions.append("red-tinted wood mulch landscaping material")
+        elif landscape_type == "natural_cedar_mulch":
+            style_descriptions.append("natural cedar mulch landscaping material with warm golden-brown wood tones")
     
     if selected_styles.get("patio", {}).get("enabled"):
         patio_type = selected_styles["patio"].get("type", "flagstone_patio")
