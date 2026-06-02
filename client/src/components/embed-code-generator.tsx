@@ -5,15 +5,20 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Switch } from "./ui/switch";
 import {
+  AlertTriangle,
   CheckCircle,
   Copy,
   ExternalLink,
   Image,
   Layout,
+  Loader2,
   Monitor,
   Palette,
   Phone,
+  Trash2,
+  Upload,
 } from "lucide-react";
+import { uploadImageToPublic } from "@/lib/api";
 import {
   DEFAULT_EMBED_BACKGROUND_COLOR,
   DEFAULT_EMBED_BACKGROUND_SCHEME,
@@ -100,6 +105,7 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
     buildDefaultConfig(tenant),
   );
   const [copied, setCopied] = useState(false);
+  const [isLogoUploading, setIsLogoUploading] = useState(false);
 
   useEffect(() => {
     if (!tenant?.slug) return;
@@ -162,10 +168,13 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
   }, [config, tenant?.slug]);
 
   const baseUrl = window.location.origin;
+  const tenantSlug = tenant?.slug || "demo";
+  const tenantId = tenant?.id ? String(tenant.id) : "";
+  const isEmbedAccountConnected = Boolean(tenant?.id && tenant?.slug && tenant?.userId);
 
   const embedUrl = useMemo(() => {
     const params = new URLSearchParams({
-      tenant: tenant.slug,
+      tenant: tenantSlug,
       primaryColor: config.primaryColor,
       secondaryColor: config.secondaryColor,
       companyName: config.companyName || "",
@@ -177,12 +186,16 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
       backgroundColor: config.backgroundColor,
     });
 
+    if (tenantId) {
+      params.set("tenantId", tenantId);
+    }
+
     if (config.logoUrl.trim()) {
       params.set("logoUrl", config.logoUrl.trim());
     }
 
     return `${baseUrl}${visualizerPaths[config.visualizerType]}?${params.toString()}`;
-  }, [baseUrl, config, tenant.slug]);
+  }, [baseUrl, config, tenantId, tenantSlug]);
 
   const iframeCode = `<iframe
   src="${embedUrl}"
@@ -203,6 +216,32 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
     navigator.clipboard.writeText(iframeCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleLogoUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setIsLogoUploading(true);
+
+    try {
+      const result = await uploadImageToPublic(file);
+      setConfig((current) => ({
+        ...current,
+        logoUrl: result.imageUrl,
+      }));
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      alert("Logo upload failed. Please try another image.");
+    } finally {
+      setIsLogoUploading(false);
+      event.target.value = "";
+    }
   };
 
   return (
@@ -227,6 +266,18 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
           Open Preview
         </Button>
       </div>
+
+      {!isEmbedAccountConnected && (
+        <div className="mt-4 flex gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <div>
+            <p className="font-medium">This embed is not connected to a client account.</p>
+            <p className="mt-1 text-amber-800">
+              Link this tenant to a user account before using live or testing embeds so generated images and usage attach correctly.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="mt-6 grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(320px,440px)]">
         <div className="space-y-6">
@@ -317,15 +368,67 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
               </div>
 
               <div className="md:col-span-2">
-                <Label htmlFor="logoUrl">Logo URL</Label>
-                <Input
-                  id="logoUrl"
-                  value={config.logoUrl}
-                  onChange={(event) =>
-                    setConfig({ ...config, logoUrl: event.target.value })
-                  }
-                  placeholder="https://yoursite.com/logo.png"
-                />
+                <Label htmlFor="logoUpload">Logo Image</Label>
+                <div className="mt-2 flex flex-col gap-3 rounded-md border border-slate-200 p-3 sm:flex-row sm:items-center">
+                  <div className="flex h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-slate-50">
+                    {config.logoUrl ? (
+                      <img
+                        src={config.logoUrl}
+                        alt="Logo preview"
+                        className="h-full w-full object-contain p-2"
+                      />
+                    ) : (
+                      <Image className="h-7 w-7 text-slate-400" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <input
+                      id="logoUpload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoUpload}
+                      disabled={isLogoUploading}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        disabled={isLogoUploading}
+                      >
+                        <label htmlFor="logoUpload" className="cursor-pointer">
+                          {isLogoUploading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
+                          )}
+                          {isLogoUploading ? "Uploading" : "Upload Logo"}
+                        </label>
+                      </Button>
+                      {config.logoUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setConfig((current) => ({
+                              ...current,
+                              logoUrl: "",
+                            }))
+                          }
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">
+                      Upload a PNG, JPG, or SVG logo. The embed will use the uploaded image automatically.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div>

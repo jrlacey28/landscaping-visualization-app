@@ -1630,7 +1630,11 @@ export default function AdminDashboard() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                  const embedUrl = `${window.location.origin}/embed?tenant=${tenant.slug}`;
+                                  const params = new URLSearchParams({
+                                    tenant: tenant.slug,
+                                    tenantId: String(tenant.id),
+                                  });
+                                  const embedUrl = `${window.location.origin}/embed?${params.toString()}`;
                                   window.open(embedUrl, '_blank');
                                 }}
                                 className="flex items-center space-x-1"

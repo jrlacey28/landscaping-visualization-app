@@ -25,6 +25,8 @@ interface EmbedProps {
 export default function EmbedPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const tenantSlug = urlParams.get('tenant') || 'demo';
+  const tenantIdParam = urlParams.get('tenantId') || '';
+  const tenantLookup = tenantIdParam || tenantSlug;
   const primaryColor = urlParams.get('primaryColor') || '#10b981';
   const secondaryColor = urlParams.get('secondaryColor') || '#059669';
   const companyName = urlParams.get('companyName') || '';
@@ -36,7 +38,8 @@ export default function EmbedPage() {
   const backgroundScheme = parseEmbedBackgroundScheme(urlParams.get('backgroundScheme'));
   const backgroundColor = urlParams.get('backgroundColor') || DEFAULT_EMBED_BACKGROUND_COLOR;
   
-  const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant(tenantSlug);
+  const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant(tenantLookup);
+  const isDemoLookup = tenantLookup === 'demo';
 
   // Create fallback tenant if API call fails
   const effectiveTenant = tenant || {
@@ -67,32 +70,6 @@ export default function EmbedPage() {
     backgroundColor,
   );
   const themeClasses = getEmbedThemeClasses(backgroundScheme);
-
-  // Check if tenant is active
-  if (effectiveTenant && !effectiveTenant.active) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <XCircle className="h-8 w-8 text-red-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Service Temporarily Unavailable</h1>
-          <p className="text-gray-600 mb-4">
-            This service is currently not available. Please contact the company directly for assistance.
-          </p>
-          {effectiveTenant.phone && (
-            <a 
-              href={`tel:${effectiveTenant.phone.replace(/[\(\)\-\s]/g, '')}`}
-              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <Phone className="h-4 w-4 mr-2" />
-              Call {effectiveTenant.phone}
-            </a>
-          )}
-        </div>
-      </div>
-    );
-  }
   
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
@@ -125,7 +102,61 @@ export default function EmbedPage() {
     }
   };
 
-  // Skip loading and error states - use fallback tenant data for embed to work without API access
+  if (!tenant && tenantLoading && !isDemoLookup) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Loading Visualizer</h1>
+          <p className="text-gray-600">Connecting this embed to the client account.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!tenant && !tenantLoading && !isDemoLookup) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XCircle className="h-8 w-8 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Embed Account Not Found</h1>
+          <p className="text-gray-600 mb-4">
+            This visualizer is not connected to a valid client account. Please update the embed code and try again.
+          </p>
+          {tenantError && (
+            <p className="text-xs text-gray-400">Account lookup failed.</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (effectiveTenant && !effectiveTenant.active) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XCircle className="h-8 w-8 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Service Temporarily Unavailable</h1>
+          <p className="text-gray-600 mb-4">
+            This service is currently not available. Please contact the company directly for assistance.
+          </p>
+          {effectiveTenant.phone && (
+            <a
+              href={`tel:${effectiveTenant.phone.replace(/[\(\)\-\s]/g, '')}`}
+              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <Phone className="h-4 w-4 mr-2" />
+              Call {effectiveTenant.phone}
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-2" style={{ background: pageBackground }}>
@@ -350,7 +381,7 @@ export default function EmbedPage() {
                     {
                       source: "embed",
                       tenantId: effectiveTenant.id,
-                      tenantSlug,
+                      tenantSlug: effectiveTenant.slug || tenantSlug,
                     },
                   );
 

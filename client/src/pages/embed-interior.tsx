@@ -18,6 +18,7 @@ type InteriorOption = {
   value: string;
   label: string;
   swatch?: string;
+  overall?: boolean;
 };
 
 type InteriorGroup = {
@@ -33,6 +34,7 @@ type InteriorEmbedConfig = {
   subtitle: string;
   uploadLabel: string;
   resultFileName: string;
+  allowCombinations?: boolean;
   groups: InteriorGroup[];
 };
 
@@ -46,41 +48,52 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
     resultFileName: "painting-design.jpg",
     groups: [
       {
-        id: "paintColor",
-        label: "Paint Color",
+        id: "whitesNeutrals",
+        label: "Whites & Neutrals",
         options: [
           { value: "pure_white", label: "Pure White", swatch: "#f8f8f2" },
+          { value: "warm_white", label: "Warm White", swatch: "#f4ead7" },
+          { value: "modern_white", label: "Modern White", swatch: "#f2f1ec" },
           { value: "soft_greige", label: "Soft Greige", swatch: "#cfc6b8" },
-          { value: "sage_green", label: "Sage Green", swatch: "#9ca58d" },
-          { value: "dusty_blue", label: "Dusty Blue", swatch: "#8ea3b2" },
+          { value: "warm_neutral", label: "Warm Neutral", swatch: "#d7c9b6" },
+          { value: "classic_beige", label: "Classic Beige", swatch: "#d9c4a6" },
+          { value: "light_taupe", label: "Light Taupe", swatch: "#b8ab9c" },
         ],
       },
       {
-        id: "accentColor",
-        label: "Accent Color",
+        id: "greensBlues",
+        label: "Greens & Blues",
+        options: [
+          { value: "sage_green", label: "Sage Green", swatch: "#9ca58d" },
+          { value: "olive_green", label: "Olive Green", swatch: "#6f7652" },
+          { value: "dusty_blue", label: "Dusty Blue", swatch: "#8ea3b2" },
+          { value: "slate_blue", label: "Slate Blue", swatch: "#596f83" },
+        ],
+      },
+      {
+        id: "accentColors",
+        label: "Accent Colors",
         options: [
           { value: "navy_accent", label: "Navy Accent", swatch: "#243957" },
           { value: "charcoal_accent", label: "Charcoal Accent", swatch: "#3f4448" },
+        ],
+      },
+      {
+        id: "warmColors",
+        label: "Warm Colors",
+        options: [
           { value: "terracotta", label: "Terracotta", swatch: "#b96f55" },
+          { value: "soft_blush", label: "Soft Blush", swatch: "#e3b8b1" },
           { value: "muted_mauve", label: "Muted Mauve", swatch: "#a9828b" },
+          { value: "buttercream", label: "Buttercream", swatch: "#f0dda2" },
         ],
       },
       {
-        id: "finish",
-        label: "Finish",
+        id: "custom",
+        label: "Custom",
         options: [
-          { value: "matte_finish", label: "Matte Finish" },
-          { value: "eggshell_finish", label: "Eggshell Finish" },
-          { value: "satin_finish", label: "Satin Finish" },
-        ],
-      },
-      {
-        id: "roomStyle",
-        label: "Room Style",
-        options: [
-          { value: "modern_refresh", label: "Modern Refresh" },
-          { value: "warm_traditional", label: "Warm Traditional" },
-          { value: "bright_open", label: "Bright & Open" },
+          { value: "soft_color", label: "Designer Soft Color", swatch: "#c9b8d8" },
+          { value: "custom_paint_color", label: "Custom Color", swatch: "#718ae1" },
         ],
       },
     ],
@@ -92,15 +105,23 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
     subtitle: "Preview cabinets, counters, fixtures, and finishing details",
     uploadLabel: "Upload Your Kitchen Photo",
     resultFileName: "kitchen-design.jpg",
+    allowCombinations: true,
     groups: [
       {
         id: "overall",
         label: "Overall Design",
         options: [
-          { value: "modern_white", label: "Modern White", swatch: "#f5f3ed" },
-          { value: "warm_wood", label: "Warm Wood", swatch: "#b98553" },
-          { value: "two_tone", label: "Two-Tone", swatch: "linear-gradient(135deg, #f6f3ed 0%, #f6f3ed 48%, #334155 52%, #334155 100%)" },
-          { value: "luxury_stone", label: "Luxury Stone", swatch: "#d8d2c8" },
+          { value: "modern_white", label: "Modern White", swatch: "#f5f3ed", overall: true },
+          { value: "warm_wood", label: "Warm Wood", swatch: "#b98553", overall: true },
+          { value: "two_tone", label: "Two-Tone", swatch: "linear-gradient(135deg, #f6f3ed 0%, #f6f3ed 48%, #334155 52%, #334155 100%)", overall: true },
+          { value: "luxury_stone", label: "Luxury Stone", swatch: "#d8d2c8", overall: true },
+        ],
+      },
+      {
+        id: "combined",
+        label: "Combined Upgrades",
+        options: [
+          { value: "full_kitchen_refresh", label: "Cabinets + Counter + Sink", swatch: "linear-gradient(135deg, #f7f4ed 0%, #f7f4ed 35%, #b98553 36%, #b98553 68%, #a7adb4 69%, #a7adb4 100%)", overall: true },
         ],
       },
       {
@@ -110,6 +131,7 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
           { value: "cabinets_white_shaker", label: "White Shaker", swatch: "#f8f8f2" },
           { value: "cabinets_warm_oak", label: "Warm Oak", swatch: "#b98553" },
           { value: "cabinets_sage_green", label: "Sage Green", swatch: "#8d9a78" },
+          { value: "cabinets_navy_lower", label: "Navy Lower", swatch: "#243957" },
           { value: "cabinets_black_modern", label: "Modern Black", swatch: "#111827" },
         ],
       },
@@ -124,13 +146,22 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
         ],
       },
       {
-        id: "details",
-        label: "Details",
+        id: "sinkFixtures",
+        label: "Sink & Fixtures",
         options: [
-          { value: "backsplash_subway", label: "Subway Tile" },
+          { value: "sink_farmhouse", label: "Farmhouse Sink", swatch: "#f7f5ef" },
+          { value: "sink_undermount", label: "Undermount Sink", swatch: "#a7adb4" },
+          { value: "sink_black_workstation", label: "Black Workstation Sink", swatch: "#111827" },
+        ],
+      },
+      {
+        id: "finishingDetails",
+        label: "Finishing Details",
+        options: [
+          { value: "backsplash_subway", label: "Subway Tile", swatch: "#f7f7f2" },
+          { value: "backsplash_zellige", label: "Zellige Tile", swatch: "#dce6de" },
           { value: "pendant_lighting", label: "Pendant Lighting" },
           { value: "hardware_brass", label: "Brass Hardware", swatch: "#b58b43" },
-          { value: "sink_farmhouse", label: "Farmhouse Sink", swatch: "#f7f5ef" },
         ],
       },
     ],
@@ -144,41 +175,13 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
     resultFileName: "bathroom-design.jpg",
     groups: [
       {
-        id: "style",
-        label: "Style",
+        id: "options",
+        label: "Options",
         options: [
           { value: "modern_spa", label: "Modern Spa" },
           { value: "luxury_marble", label: "Luxury Marble" },
           { value: "warm_traditional", label: "Warm Traditional" },
           { value: "compact_refresh", label: "Compact Refresh" },
-        ],
-      },
-      {
-        id: "tile",
-        label: "Tile",
-        options: [
-          { value: "large_format_tile", label: "Large Format" },
-          { value: "marble_tile", label: "Marble Tile", swatch: "linear-gradient(135deg, #ffffff 0%, #e7e2dc 45%, #f8f7f2 100%)" },
-          { value: "zellige_tile", label: "Zellige Tile", swatch: "#dce6de" },
-          { value: "warm_stone_tile", label: "Warm Stone", swatch: "#b8a48e" },
-        ],
-      },
-      {
-        id: "vanity",
-        label: "Vanity",
-        options: [
-          { value: "floating_vanity", label: "Floating Vanity" },
-          { value: "wood_vanity", label: "Wood Vanity", swatch: "#9f7044" },
-          { value: "white_shaker_vanity", label: "White Shaker", swatch: "#f8f8f2" },
-        ],
-      },
-      {
-        id: "fixtures",
-        label: "Fixtures",
-        options: [
-          { value: "matte_black_fixtures", label: "Matte Black", swatch: "#111827" },
-          { value: "brushed_gold_fixtures", label: "Brushed Gold", swatch: "#b58b43" },
-          { value: "chrome_fixtures", label: "Chrome", swatch: "#c4c8cc" },
         ],
       },
     ],
@@ -190,20 +193,21 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
     subtitle: "Explore furniture, color, lighting, and decor concepts",
     uploadLabel: "Upload Your Living Room Photo",
     resultFileName: "living-room-design.jpg",
+    allowCombinations: true,
     groups: [
       {
         id: "overall",
         label: "Overall Design",
         options: [
-          { value: "modern_cozy", label: "Modern Cozy" },
-          { value: "scandinavian", label: "Scandinavian" },
-          { value: "classic_comfort", label: "Classic Comfort" },
-          { value: "luxe_contemporary", label: "Luxe Contemporary" },
+          { value: "modern_cozy", label: "Modern Cozy", overall: true },
+          { value: "scandinavian", label: "Scandinavian", overall: true },
+          { value: "classic_comfort", label: "Classic Comfort", overall: true },
+          { value: "luxe_contemporary", label: "Luxe Contemporary", overall: true },
         ],
       },
       {
-        id: "sofa",
-        label: "Sofa",
+        id: "sofaOptions",
+        label: "Sofa Options",
         options: [
           { value: "couch_linen_sectional", label: "Linen Sectional", swatch: "#d8d0c4" },
           { value: "couch_leather", label: "Leather Sofa", swatch: "#9a5a2f" },
@@ -212,8 +216,16 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
         ],
       },
       {
-        id: "decor",
-        label: "Decor",
+        id: "furniture",
+        label: "Furniture",
+        options: [
+          { value: "accent_chairs", label: "Accent Chairs" },
+          { value: "coffee_table_refresh", label: "Coffee Table" },
+        ],
+      },
+      {
+        id: "decorSurfaces",
+        label: "Decor & Surfaces",
         options: [
           { value: "area_rug", label: "Area Rug", swatch: "#b8a893" },
           { value: "curtains_window_treatments", label: "Curtains", swatch: "#d9d4c9" },
@@ -221,8 +233,8 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
         ],
       },
       {
-        id: "feature",
-        label: "Feature",
+        id: "builtInsFeatures",
+        label: "Built-Ins & Features",
         options: [
           { value: "media_wall", label: "Media Wall" },
           { value: "fireplace_refresh", label: "Fireplace Refresh" },
@@ -241,7 +253,7 @@ const createDefaultSelections = (config: InteriorEmbedConfig) =>
 
 const createDefaultActiveGroups = (config: InteriorEmbedConfig) =>
   config.groups.reduce<Record<string, boolean>>((groups, group) => {
-    groups[group.id] = true;
+    groups[group.id] = group.id === config.groups[0]?.id;
     return groups;
   }, {});
 
@@ -269,6 +281,8 @@ export default function EmbedInteriorPage() {
   const config = serviceConfigs[location] || serviceConfigs["/embed-painting"];
   const urlParams = new URLSearchParams(window.location.search);
   const tenantSlug = urlParams.get("tenant") || "demo";
+  const tenantIdParam = urlParams.get("tenantId") || "";
+  const tenantLookup = tenantIdParam || tenantSlug;
   const primaryColor = urlParams.get("primaryColor") || "#2563eb";
   const secondaryColor = urlParams.get("secondaryColor") || "#1d4ed8";
   const companyName = urlParams.get("companyName") || "";
@@ -279,7 +293,8 @@ export default function EmbedInteriorPage() {
   const logoUrlParam = urlParams.get("logoUrl") || "";
   const backgroundScheme = parseEmbedBackgroundScheme(urlParams.get("backgroundScheme"));
   const backgroundColor = urlParams.get("backgroundColor") || DEFAULT_EMBED_BACKGROUND_COLOR;
-  const { tenant } = useTenant(tenantSlug);
+  const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant(tenantLookup);
+  const isDemoLookup = tenantLookup === "demo";
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
@@ -288,6 +303,8 @@ export default function EmbedInteriorPage() {
   const [showingOriginal, setShowingOriginal] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState(() => createDefaultSelections(config));
   const [activeGroups, setActiveGroups] = useState(() => createDefaultActiveGroups(config));
+  const [customPaintName, setCustomPaintName] = useState("");
+  const [customPaintHex, setCustomPaintHex] = useState("#718ae1");
 
   useEffect(() => {
     setSelectedOptions(createDefaultSelections(config));
@@ -296,6 +313,8 @@ export default function EmbedInteriorPage() {
     setOriginalFile(null);
     setVisualizationResult(null);
     setShowingOriginal(false);
+    setCustomPaintName("");
+    setCustomPaintHex("#718ae1");
   }, [config]);
 
   useEffect(() => {
@@ -341,6 +360,7 @@ export default function EmbedInteriorPage() {
         .filter(Boolean),
     [activeGroups, config.groups, selectedOptions],
   );
+  const customPaintSelected = selectedStyleIds.includes("custom_paint_color");
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -361,14 +381,73 @@ export default function EmbedInteriorPage() {
   };
 
   const toggleGroup = (group: InteriorGroup) => {
-    setActiveGroups((current) => ({
-      ...current,
-      [group.id]: !current[group.id],
-    }));
+    const isActive = activeGroups[group.id];
+    const defaultOption = group.options[0];
+
+    if (!defaultOption) {
+      return;
+    }
+
+    if (isActive) {
+      setActiveGroups((current) => ({
+        ...current,
+        [group.id]: false,
+      }));
+      return;
+    }
+
     setSelectedOptions((current) => ({
       ...current,
-      [group.id]: current[group.id] || group.options[0]?.value || "",
+      [group.id]: current[group.id] || defaultOption.value,
     }));
+
+    if (!config.allowCombinations) {
+      setActiveGroups({ [group.id]: true });
+      return;
+    }
+
+    if (group.options.some((option) => option.overall)) {
+      setActiveGroups({ [group.id]: true });
+      return;
+    }
+
+    setActiveGroups((current) => {
+      const next = { ...current, [group.id]: true };
+      config.groups.forEach((candidate) => {
+        if (candidate.options.some((option) => option.overall)) {
+          next[candidate.id] = false;
+        }
+      });
+      return next;
+    });
+  };
+
+  const selectGroupOption = (group: InteriorGroup, value: string) => {
+    const selectedOption = group.options.find((option) => option.value === value);
+
+    if (!selectedOption) {
+      return;
+    }
+
+    setSelectedOptions((current) => ({
+      ...current,
+      [group.id]: value,
+    }));
+
+    if (!config.allowCombinations || selectedOption.overall) {
+      setActiveGroups({ [group.id]: true });
+      return;
+    }
+
+    setActiveGroups((current) => {
+      const next = { ...current, [group.id]: true };
+      config.groups.forEach((candidate) => {
+        if (candidate.options.some((option) => option.overall)) {
+          next[candidate.id] = false;
+        }
+      });
+      return next;
+    });
   };
 
   const generateDesign = async () => {
@@ -384,12 +463,12 @@ export default function EmbedInteriorPage() {
         originalFile,
         config.service,
         selectedStyleIds,
-        undefined,
+        customPaintSelected ? { name: customPaintName, hex: customPaintHex } : undefined,
         undefined,
         {
           source: "embed",
           tenantId: effectiveTenant.id,
-          tenantSlug,
+          tenantSlug: effectiveTenant.slug || tenantSlug,
         },
       );
 
@@ -426,6 +505,35 @@ export default function EmbedInteriorPage() {
       window.open(`tel:${quotePhone.replace(/[\(\)\-\s]/g, "")}`, "_self");
     }
   };
+
+  if (!tenant && tenantLoading && !isDemoLookup) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+        <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+          <h1 className="mb-2 text-2xl font-bold text-gray-900">Loading Visualizer</h1>
+          <p className="text-gray-600">Connecting this embed to the client account.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!tenant && !tenantLoading && !isDemoLookup) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4">
+        <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+            <XCircle className="h-8 w-8 text-red-600" />
+          </div>
+          <h1 className="mb-2 text-2xl font-bold text-gray-900">Embed Account Not Found</h1>
+          <p className="mb-4 text-gray-600">
+            This visualizer is not connected to a valid client account. Please update the embed code and try again.
+          </p>
+          {tenantError && <p className="text-xs text-gray-400">Account lookup failed.</p>}
+        </div>
+      </div>
+    );
+  }
 
   if (effectiveTenant && !effectiveTenant.active) {
     return (
@@ -604,12 +712,7 @@ export default function EmbedInteriorPage() {
                     </div>
                     <Select
                       value={selectedOptions[group.id] || group.options[0]?.value || ""}
-                      onValueChange={(value) =>
-                        setSelectedOptions((current) => ({
-                          ...current,
-                          [group.id]: value,
-                        }))
-                      }
+                      onValueChange={(value) => selectGroupOption(group, value)}
                       disabled={!isActive}
                     >
                       <SelectTrigger className="mt-3 h-12 border-white/10 bg-[#111827] text-white focus:border-blue-300 disabled:cursor-not-allowed disabled:opacity-55">
@@ -627,6 +730,33 @@ export default function EmbedInteriorPage() {
                 );
               })}
             </div>
+
+            {customPaintSelected && (
+              <div className="mt-4 rounded-xl border border-white/10 bg-white p-4 shadow-sm">
+                <h3 className="mb-3 font-semibold text-slate-800">Custom Paint Color</h3>
+                <div className="grid gap-4 sm:grid-cols-[96px_1fr]">
+                  <label className="space-y-2">
+                    <span className="text-sm font-medium text-slate-600">Color</span>
+                    <input
+                      type="color"
+                      value={customPaintHex}
+                      onChange={(event) => setCustomPaintHex(event.target.value)}
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white p-1"
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-sm font-medium text-slate-600">Color name or notes</span>
+                    <input
+                      type="text"
+                      value={customPaintName}
+                      onChange={(event) => setCustomPaintName(event.target.value)}
+                      placeholder="Example: soft sage, SW 6184, Benjamin Moore Hale Navy"
+                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-slate-800 outline-none focus:border-slate-600"
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
