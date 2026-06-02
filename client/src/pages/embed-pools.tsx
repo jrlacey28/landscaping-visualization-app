@@ -18,6 +18,7 @@ export default function EmbedPoolsPage() {
   const tenantSlug = urlParams.get('tenant') || 'demo';
   const tenantIdParam = urlParams.get('tenantId') || '';
   const tenantLookup = tenantIdParam || tenantSlug;
+  const accountUserIdParam = urlParams.get('accountUserId') || '';
   const primaryColor = urlParams.get('primaryColor') || '#10b981';
   const secondaryColor = urlParams.get('secondaryColor') || '#059669';
   const companyName = urlParams.get('companyName') || '';
@@ -31,6 +32,7 @@ export default function EmbedPoolsPage() {
   
   const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant(tenantLookup);
   const isDemoLookup = tenantLookup === 'demo';
+  const canUseAccountFallback = Boolean(accountUserIdParam);
 
   // Create fallback tenant if API call fails
   const effectiveTenant = (tenant || {
@@ -97,7 +99,7 @@ export default function EmbedPoolsPage() {
     }
   };
 
-  if (!tenant && tenantLoading && !isDemoLookup) {
+  if (!tenant && tenantLoading && !isDemoLookup && !canUseAccountFallback) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
@@ -109,7 +111,7 @@ export default function EmbedPoolsPage() {
     );
   }
 
-  if (!tenant && !tenantLoading && !isDemoLookup) {
+  if (!tenant && !tenantLoading && !isDemoLookup && !canUseAccountFallback) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
@@ -395,8 +397,9 @@ export default function EmbedPoolsPage() {
                     undefined,
                     {
                       source: "embed",
-                      tenantId: effectiveTenant.id,
-                      tenantSlug: effectiveTenant.slug || tenantSlug,
+                      accountUserId: accountUserIdParam ? Number(accountUserIdParam) : null,
+                      tenantId: tenant?.id || null,
+                      tenantSlug: tenant?.slug || null,
                     },
                   );
 

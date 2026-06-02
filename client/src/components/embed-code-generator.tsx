@@ -5,7 +5,6 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Switch } from "./ui/switch";
 import {
-  AlertTriangle,
   CheckCircle,
   Copy,
   ExternalLink,
@@ -29,6 +28,7 @@ import {
 
 interface EmbedCodeGeneratorProps {
   tenant: any;
+  accountUserId?: number | null;
 }
 
 type ContactType = "phone" | "link";
@@ -100,7 +100,7 @@ function buildDefaultConfig(tenant: any): EmbedConfig {
   };
 }
 
-export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) {
+export default function EmbedCodeGenerator({ tenant, accountUserId }: EmbedCodeGeneratorProps) {
   const [config, setConfig] = useState<EmbedConfig>(() =>
     buildDefaultConfig(tenant),
   );
@@ -169,8 +169,7 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
 
   const baseUrl = window.location.origin;
   const tenantSlug = tenant?.slug || "demo";
-  const tenantId = tenant?.id ? String(tenant.id) : "";
-  const isEmbedAccountConnected = Boolean(tenant?.id && tenant?.slug && tenant?.userId);
+  const embedAccountUserId = accountUserId || tenant?.userId || null;
 
   const embedUrl = useMemo(() => {
     const params = new URLSearchParams({
@@ -186,8 +185,8 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
       backgroundColor: config.backgroundColor,
     });
 
-    if (tenantId) {
-      params.set("tenantId", tenantId);
+    if (embedAccountUserId) {
+      params.set("accountUserId", String(embedAccountUserId));
     }
 
     if (config.logoUrl.trim()) {
@@ -195,7 +194,7 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
     }
 
     return `${baseUrl}${visualizerPaths[config.visualizerType]}?${params.toString()}`;
-  }, [baseUrl, config, tenantId, tenantSlug]);
+  }, [baseUrl, config, embedAccountUserId, tenantSlug]);
 
   const iframeCode = `<iframe
   src="${embedUrl}"
@@ -266,18 +265,6 @@ export default function EmbedCodeGenerator({ tenant }: EmbedCodeGeneratorProps) 
           Open Preview
         </Button>
       </div>
-
-      {!isEmbedAccountConnected && (
-        <div className="mt-4 flex gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-          <div>
-            <p className="font-medium">This embed is not connected to a client account.</p>
-            <p className="mt-1 text-amber-800">
-              Link this tenant to a user account before using live or testing embeds so generated images and usage attach correctly.
-            </p>
-          </div>
-        </div>
-      )}
 
       <div className="mt-6 grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(320px,440px)]">
         <div className="space-y-6">

@@ -276,6 +276,7 @@ export default function Dashboard() {
   const planStatus = getPlanStatus();
   const fallbackTenant = {
     id: 0,
+    userId: user.user.id,
     slug: `user-${user.user.id}`,
     companyName: user.user.businessName || `${user.user.firstName} ${user.user.lastName}`,
     primaryColor: '#10b981',
@@ -284,6 +285,7 @@ export default function Dashboard() {
     email: user.user.email,
     active: true,
   };
+  const embedTenant = tenant?.userId === user.user.id ? tenant : fallbackTenant;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -607,7 +609,7 @@ export default function Dashboard() {
               </div>
 
               {user.hasEmbedAccess ? (
-                <EmbedCodeGenerator tenant={tenant || fallbackTenant} />
+                <EmbedCodeGenerator tenant={embedTenant} accountUserId={user.user.id} />
               ) : (
                 <Card>
                   <CardContent className="flex min-h-80 items-center justify-center p-8">

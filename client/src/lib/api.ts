@@ -9,6 +9,7 @@ const getAuthToken = () => {
 
 type UploadRequestOptions = {
   source?: 'site' | 'embed';
+  accountUserId?: number | null;
   tenantId?: number | null;
   tenantSlug?: string | null;
 };
@@ -18,6 +19,10 @@ function appendUploadContext(formData: FormData, options?: UploadRequestOptions)
 
   if (options.source) {
     formData.append('source', options.source);
+  }
+
+  if (options.accountUserId) {
+    formData.append('accountUserId', options.accountUserId.toString());
   }
 
   if (options.tenantId) {

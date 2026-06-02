@@ -283,6 +283,7 @@ export default function EmbedInteriorPage() {
   const tenantSlug = urlParams.get("tenant") || "demo";
   const tenantIdParam = urlParams.get("tenantId") || "";
   const tenantLookup = tenantIdParam || tenantSlug;
+  const accountUserIdParam = urlParams.get("accountUserId") || "";
   const primaryColor = urlParams.get("primaryColor") || "#2563eb";
   const secondaryColor = urlParams.get("secondaryColor") || "#1d4ed8";
   const companyName = urlParams.get("companyName") || "";
@@ -295,6 +296,7 @@ export default function EmbedInteriorPage() {
   const backgroundColor = urlParams.get("backgroundColor") || DEFAULT_EMBED_BACKGROUND_COLOR;
   const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant(tenantLookup);
   const isDemoLookup = tenantLookup === "demo";
+  const canUseAccountFallback = Boolean(accountUserIdParam);
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
@@ -467,8 +469,9 @@ export default function EmbedInteriorPage() {
         undefined,
         {
           source: "embed",
-          tenantId: effectiveTenant.id,
-          tenantSlug: effectiveTenant.slug || tenantSlug,
+          accountUserId: accountUserIdParam ? Number(accountUserIdParam) : null,
+          tenantId: tenant?.id || null,
+          tenantSlug: tenant?.slug || null,
         },
       );
 
@@ -506,7 +509,7 @@ export default function EmbedInteriorPage() {
     }
   };
 
-  if (!tenant && tenantLoading && !isDemoLookup) {
+  if (!tenant && tenantLoading && !isDemoLookup && !canUseAccountFallback) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
         <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
@@ -518,7 +521,7 @@ export default function EmbedInteriorPage() {
     );
   }
 
-  if (!tenant && !tenantLoading && !isDemoLookup) {
+  if (!tenant && !tenantLoading && !isDemoLookup && !canUseAccountFallback) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4">
         <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">

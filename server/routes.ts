@@ -1111,11 +1111,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
   }
 
-  async function getTenantFromGenerationRequest(req: AuthRequest) {
+  async function getTenantFromGenerationRequest(req: AuthRequest, allowMissingTenant = false) {
     const tenantId = parsePositiveId(req.body.tenantId);
     if (tenantId) {
       const tenant = await storage.getTenant(tenantId);
       if (!tenant) {
+        if (allowMissingTenant) return null;
         throw new GenerationRequestError(404, "Embed account not found");
       }
       return tenant;
@@ -1124,6 +1125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (typeof req.body.tenantSlug === "string" && req.body.tenantSlug.trim()) {
       const tenant = await storage.getTenantBySlug(req.body.tenantSlug.trim());
       if (!tenant) {
+        if (allowMissingTenant) return null;
         throw new GenerationRequestError(404, "Embed account not found");
       }
       return tenant;
@@ -1133,35 +1135,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   async function resolveGenerationOwner(req: AuthRequest, usageType: 'visualization' | 'landscape' | 'pool') {
-    const tenant = await getTenantFromGenerationRequest(req);
-    const isEmbedGeneration = req.body.source === "embed" || (!req.user && !!tenant);
+    const accountUserId = parsePositiveId(req.body.accountUserId);
+    const tenant = await getTenantFromGenerationRequest(req, !!accountUserId);
+    const isEmbedGeneration = req.body.source === "embed" || (!req.user && (!!tenant || !!accountUserId));
 
     if (isEmbedGeneration) {
-      if (!tenant) {
-        throw new GenerationRequestError(401, "Authentication or embed account is required");
-      }
+      const ownerUserId = tenant?.userId || accountUserId;
 
-      if (!tenant.userId) {
+      if (!ownerUserId) {
         throw new GenerationRequestError(403, "This embed is not connected to an account");
       }
 
-      let checkedTenant;
-      try {
-        checkedTenant = await checkTenantUsageLimits(tenant.id);
-      } catch (error: any) {
-        throw new GenerationRequestError(429, error.message || "Embed usage limit reached");
-      }
-
-      const hasEmbedAccess = await storage.computeEmbedAccess(tenant.userId);
+      const hasEmbedAccess = await storage.computeEmbedAccess(ownerUserId);
       if (!hasEmbedAccess) {
         throw new GenerationRequestError(403, "Embed access is not enabled for this account");
       }
 
+      if (tenant) {
+        let checkedTenant;
+        try {
+          checkedTenant = await checkTenantUsageLimits(tenant.id);
+        } catch (error: any) {
+          throw new GenerationRequestError(429, error.message || "Embed usage limit reached");
+        }
+
+        return {
+          userId: ownerUserId,
+          tenantId: checkedTenant.id,
+          shouldTrackUserUsage: false,
+          hasBusinessPro: await storage.hasBusinessProAccess(ownerUserId),
+        };
+      }
+
+      try {
+        await checkUserUsageLimits(ownerUserId, usageType);
+      } catch (error: any) {
+        throw new GenerationRequestError(429, error.message || "Embed usage limit reached");
+      }
+
       return {
-        userId: tenant.userId,
-        tenantId: checkedTenant.id,
-        shouldTrackUserUsage: false,
-        hasBusinessPro: await storage.hasBusinessProAccess(tenant.userId),
+        userId: ownerUserId,
+        tenantId: null,
+        shouldTrackUserUsage: true,
+        hasBusinessPro: await storage.hasBusinessProAccess(ownerUserId),
       };
     }
 
