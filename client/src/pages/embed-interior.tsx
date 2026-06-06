@@ -3,8 +3,12 @@ import { useLocation } from "wouter";
 import { Camera, Download, Eye, Phone, Sparkles, Upload, XCircle } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "../components/ui/select";
+import EmbedQuoteGate from "@/components/embed-quote-gate";
+import EmbedQuoteLeadForm from "@/components/embed-quote-lead-form";
 import { useTenant } from "../hooks/use-tenant";
+import { useEmbedVisitorLimit } from "@/hooks/use-embed-visitor-limit";
 import { checkVisualizationStatus, uploadInteriorImage } from "../lib/api";
+import { getEmbedQuoteButtonText, runEmbedQuoteAction } from "@/lib/embed-quote";
 import {
   DEFAULT_EMBED_BACKGROUND_COLOR,
   getEmbedBackground,
@@ -276,9 +280,45 @@ function OptionDisplay({ option }: { option?: InteriorOption }) {
   );
 }
 
+function toTenantCustomOption(option: any): InteriorOption | null {
+  const label = String(option?.label || option?.name || option?.value || "").trim();
+  if (!label) {
+    return null;
+  }
+
+  const rawValue = String(option?.value || label)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return {
+    value: rawValue.startsWith("tenant_custom_") ? rawValue : `tenant_custom_${rawValue}`,
+    label,
+    swatch: typeof option?.swatch === "string" ? option.swatch : undefined,
+  };
+}
+
+function getTenantInteriorGroups(config: InteriorEmbedConfig, tenant: any): InteriorGroup[] {
+  const customizations = tenant?.embedCustomizations || {};
+  const byService = customizations?.interiorOptions?.[config.service];
+  const legacyBathroomOptions = config.service === "bathroom" ? customizations?.bathroomOptions : null;
+  const source = Array.isArray(byService) ? byService : Array.isArray(legacyBathroomOptions) ? legacyBathroomOptions : [];
+  const options = source.map(toTenantCustomOption).filter(Boolean) as InteriorOption[];
+
+  if (options.length === 0) {
+    return [];
+  }
+
+  return [{
+    id: "clientOptions",
+    label: "Client Options",
+    options,
+  }];
+}
+
 export default function EmbedInteriorPage() {
   const [location] = useLocation();
-  const config = serviceConfigs[location] || serviceConfigs["/embed-painting"];
+  const baseConfig = serviceConfigs[location] || serviceConfigs["/embed-painting"];
   const urlParams = new URLSearchParams(window.location.search);
   const tenantSlug = urlParams.get("tenant") || "demo";
   const tenantIdParam = urlParams.get("tenantId") || "";
@@ -297,32 +337,6 @@ export default function EmbedInteriorPage() {
   const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant(tenantLookup);
   const isDemoLookup = tenantLookup === "demo";
   const canUseAccountFallback = Boolean(accountUserIdParam);
-
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [originalFile, setOriginalFile] = useState<File | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [visualizationResult, setVisualizationResult] = useState<any>(null);
-  const [showingOriginal, setShowingOriginal] = useState(false);
-  const [selectedOptions, setSelectedOptions] = useState(() => createDefaultSelections(config));
-  const [activeGroups, setActiveGroups] = useState(() => createDefaultActiveGroups(config));
-  const [customPaintName, setCustomPaintName] = useState("");
-  const [customPaintHex, setCustomPaintHex] = useState("#718ae1");
-
-  useEffect(() => {
-    setSelectedOptions(createDefaultSelections(config));
-    setActiveGroups(createDefaultActiveGroups(config));
-    setUploadedImage(null);
-    setOriginalFile(null);
-    setVisualizationResult(null);
-    setShowingOriginal(false);
-    setCustomPaintName("");
-    setCustomPaintHex("#718ae1");
-  }, [config]);
-
-  useEffect(() => {
-    document.documentElement.style.setProperty("--primary-color", primaryColor);
-    document.documentElement.style.setProperty("--secondary-color", secondaryColor);
-  }, [primaryColor, secondaryColor]);
 
   const effectiveTenant = (tenant || {
     id: 1,
@@ -344,8 +358,58 @@ export default function EmbedInteriorPage() {
     createdAt: new Date(),
   }) as any;
 
+  const config = useMemo(() => {
+    const tenantGroups = getTenantInteriorGroups(baseConfig, effectiveTenant);
+    if (tenantGroups.length === 0) {
+      return baseConfig;
+    }
+
+    return {
+      ...baseConfig,
+      allowCombinations: true,
+      groups: [...baseConfig.groups, ...tenantGroups],
+    };
+  }, [baseConfig, tenant?.embedCustomizations]);
+
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [originalFile, setOriginalFile] = useState<File | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [visualizationResult, setVisualizationResult] = useState<any>(null);
+  const [lastGeneratedImageUrl, setLastGeneratedImageUrl] = useState<string | null>(null);
+  const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [showingOriginal, setShowingOriginal] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState(() => createDefaultSelections(config));
+  const [activeGroups, setActiveGroups] = useState(() => createDefaultActiveGroups(config));
+  const [customPaintName, setCustomPaintName] = useState("");
+  const [customPaintHex, setCustomPaintHex] = useState("#718ae1");
+
+  useEffect(() => {
+    setSelectedOptions(createDefaultSelections(config));
+    setActiveGroups(createDefaultActiveGroups(config));
+    setUploadedImage(null);
+    setOriginalFile(null);
+    setVisualizationResult(null);
+    setLastGeneratedImageUrl(null);
+    setShowQuoteForm(false);
+    setShowingOriginal(false);
+    setCustomPaintName("");
+    setCustomPaintHex("#718ae1");
+  }, [config]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty("--primary-color", primaryColor);
+    document.documentElement.style.setProperty("--secondary-color", secondaryColor);
+  }, [primaryColor, secondaryColor]);
+
   const resolvedLogoUrl = logoUrlParam || effectiveTenant.logoUrl || "";
   const displayCompanyName = companyName || effectiveTenant.companyName || "DreamBuilder";
+  const embedVisitor = useEmbedVisitorLimit({
+    tenantId: tenant?.id || null,
+    tenantSlug: tenant?.slug || null,
+  });
+  const visitorLimitReached =
+    !!embedVisitor.status?.limitEnabled && !embedVisitor.status.canGenerate;
+  const quoteButtonText = getEmbedQuoteButtonText(effectiveTenant);
   const pageBackground = getEmbedBackground(
     backgroundScheme,
     primaryColor,
@@ -373,6 +437,7 @@ export default function EmbedInteriorPage() {
 
     setOriginalFile(file);
     setVisualizationResult(null);
+    setLastGeneratedImageUrl(null);
     setShowingOriginal(false);
 
     const reader = new FileReader();
@@ -472,19 +537,32 @@ export default function EmbedInteriorPage() {
           accountUserId: accountUserIdParam ? Number(accountUserIdParam) : null,
           tenantId: tenant?.id || null,
           tenantSlug: tenant?.slug || null,
+          visitorId: embedVisitor.visitorId,
         },
       );
 
       if (result.visualizationId) {
         const status = await checkVisualizationStatus(result.visualizationId);
         setVisualizationResult(status);
+        if (status?.generatedImageUrl) {
+          setLastGeneratedImageUrl(status.generatedImageUrl);
+        }
       } else {
         setVisualizationResult(result);
+        if (result?.generatedImageUrl) {
+          setLastGeneratedImageUrl(result.generatedImageUrl);
+        }
       }
     } catch (error) {
       console.error("Error generating interior embed visualization:", error);
+      const apiError = error as any;
+      if (apiError.code === "EMBED_VISITOR_LIMIT") {
+        embedVisitor.markLimitReached(apiError.details?.embedVisitorUsage);
+        return;
+      }
       alert("Unable to generate the design. Please try again.");
     } finally {
+      embedVisitor.refresh();
       setIsGenerating(false);
     }
   };
@@ -493,20 +571,19 @@ export default function EmbedInteriorPage() {
     setUploadedImage(null);
     setOriginalFile(null);
     setVisualizationResult(null);
+    setLastGeneratedImageUrl(null);
     setShowingOriginal(false);
   };
 
   const openQuote = () => {
-    const quotePhone = contactPhone || effectiveTenant.contactPhone || effectiveTenant.phone;
-
-    if (contactType === "link" && contactLink) {
-      window.open(contactLink, "_blank");
-      return;
-    }
-
-    if (quotePhone) {
-      window.open(`tel:${quotePhone.replace(/[\(\)\-\s]/g, "")}`, "_self");
-    }
+    embedVisitor.trackQuoteClick();
+    runEmbedQuoteAction({
+      tenant: effectiveTenant,
+      contactType,
+      contactPhone,
+      contactLink,
+      openForm: () => setShowQuoteForm(true),
+    });
   };
 
   if (!tenant && tenantLoading && !isDemoLookup && !canUseAccountFallback) {
@@ -588,6 +665,30 @@ export default function EmbedInteriorPage() {
           </div>
         )}
 
+        {showQuoteForm && (
+          <EmbedQuoteLeadForm
+            tenant={effectiveTenant}
+            service={config.service}
+            selectedStyles={selectedStyleIds}
+            originalImageUrl={uploadedImage}
+            generatedImageUrl={visualizationResult?.generatedImageUrl || lastGeneratedImageUrl}
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            onClose={() => setShowQuoteForm(false)}
+          />
+        )}
+
+        {visitorLimitReached && (
+          <EmbedQuoteGate
+            status={embedVisitor.status}
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            buttonText={quoteButtonText}
+            onQuoteClick={openQuote}
+          />
+        )}
+
+        {!visitorLimitReached && (
         <div className={`${themeClasses.panel} mb-4 rounded-2xl p-4`}>
           <h2 className={`mb-4 text-center text-xl font-semibold ${themeClasses.panelTitle}`}>
             {config.uploadLabel}
@@ -667,7 +768,7 @@ export default function EmbedInteriorPage() {
                     onClick={openQuote}
                   >
                     <Phone className="mr-2 h-5 w-5" />
-                    Get Free Quote
+                    {quoteButtonText}
                   </Button>
                 </div>
               ) : (
@@ -678,8 +779,9 @@ export default function EmbedInteriorPage() {
             </div>
           )}
         </div>
+        )}
 
-        {uploadedImage && (
+        {uploadedImage && !visitorLimitReached && (
           <div className={`${themeClasses.panel} mb-4 rounded-2xl p-4`}>
             <h2 className={`mb-4 text-xl font-semibold ${themeClasses.panelTitle}`}>Choose Your Style</h2>
             <div className="grid gap-3 md:grid-cols-2">
@@ -763,7 +865,7 @@ export default function EmbedInteriorPage() {
           </div>
         )}
 
-        {uploadedImage && !completedImage && (
+        {uploadedImage && !completedImage && !visitorLimitReached && (
           <>
             <Button
               size="lg"

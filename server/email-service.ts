@@ -1,7 +1,168 @@
 import { Resend } from 'resend';
+import type { Lead, Tenant } from '@shared/schema';
 
 const resendApiKey = process.env.RESEND_API || process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
+type EmailAttachment = {
+  filename?: string | false;
+  content?: Buffer;
+  contentType?: string;
+  path?: string;
+};
+
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatSelectedStyles(selectedStyles: unknown) {
+  if (!selectedStyles) return "Not provided";
+
+  if (typeof selectedStyles === "string") return selectedStyles;
+
+  try {
+    return JSON.stringify(selectedStyles, null, 2);
+  } catch {
+    return "Provided";
+  }
+}
+
+function imageAttachmentFromUrl(imageUrl?: string | null): EmailAttachment | null {
+  if (!imageUrl) return null;
+
+  const dataUrlMatch = imageUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (dataUrlMatch) {
+    const [, contentType, base64] = dataUrlMatch;
+    const buffer = Buffer.from(base64, "base64");
+
+    // Resend supports 40MB per email. Keep this comfortably below that.
+    if (buffer.byteLength > 30 * 1024 * 1024) {
+      console.warn("Generated quote image is too large to attach; email will include lead details only.");
+      return null;
+    }
+
+    const extension = contentType.includes("png") ? "png" : "jpg";
+    return {
+      filename: `generated-design.${extension}`,
+      content: buffer,
+      contentType,
+    };
+  }
+
+  if (/^https?:\/\//i.test(imageUrl)) {
+    return {
+      filename: "generated-design.jpg",
+      path: imageUrl,
+    };
+  }
+
+  return null;
+}
+
+function imageReferenceNote(label: string, imageUrl?: string | null) {
+  if (!imageUrl) return `No ${label} image was provided.`;
+  if (imageUrl.startsWith("data:image/")) {
+    return `${label} image is saved in the dashboard lead record.`;
+  }
+  return `${label} image: ${imageUrl}`;
+}
+
+export async function sendQuoteLeadNotificationEmail({
+  tenant,
+  lead,
+  toEmail,
+}: {
+  tenant: Tenant;
+  lead: Lead;
+  toEmail: string;
+}): Promise<boolean> {
+  try {
+    if (!resend) {
+      console.warn("RESEND_API is not configured; skipping quote lead email.");
+      return false;
+    }
+
+    if (!toEmail) {
+      console.warn("No quote lead recipient email configured; skipping quote lead email.");
+      return false;
+    }
+
+    const fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev";
+    const fullName = `${lead.firstName} ${lead.lastName}`.trim();
+    const generatedImageAttachment = tenant.embedQuoteIncludeImages === false
+      ? null
+      : imageAttachmentFromUrl(lead.generatedImageUrl);
+    const attachments = generatedImageAttachment ? [generatedImageAttachment] : undefined;
+    const generatedImageNote = lead.generatedImageUrl
+      ? generatedImageAttachment
+        ? "The generated visualization is attached to this email."
+        : imageReferenceNote("Generated", lead.generatedImageUrl)
+      : "No generated visualization was attached.";
+    const originalImageNote = imageReferenceNote("Original", lead.originalImageUrl);
+    const selectedStyles = formatSelectedStyles(lead.selectedStyles);
+
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: toEmail,
+      subject: `New quote request from ${fullName || "website visitor"} - ${tenant.companyName}`,
+      attachments,
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.5;">
+          <h1 style="margin: 0 0 16px;">New quote request</h1>
+          <p style="margin: 0 0 20px;">A visitor submitted a quote request from ${escapeHtml(tenant.companyName)}'s visualizer.</p>
+          <table style="border-collapse: collapse; width: 100%; max-width: 680px;">
+            <tr><td style="padding: 8px; font-weight: 700;">Name</td><td style="padding: 8px;">${escapeHtml(fullName)}</td></tr>
+            <tr><td style="padding: 8px; font-weight: 700;">Email</td><td style="padding: 8px;"><a href="mailto:${escapeHtml(lead.email)}">${escapeHtml(lead.email)}</a></td></tr>
+            <tr><td style="padding: 8px; font-weight: 700;">Phone</td><td style="padding: 8px;">${escapeHtml(lead.phone || "Not provided")}</td></tr>
+            <tr><td style="padding: 8px; font-weight: 700;">Location</td><td style="padding: 8px;">${escapeHtml(lead.location || "Not provided")}</td></tr>
+            <tr><td style="padding: 8px; font-weight: 700;">Service</td><td style="padding: 8px;">${escapeHtml(lead.service || "Not provided")}</td></tr>
+          </table>
+          <h2 style="margin: 24px 0 8px;">Project details</h2>
+          <p style="white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px;">${escapeHtml(lead.projectDetails || "No details provided")}</p>
+          <h2 style="margin: 24px 0 8px;">Selected styles</h2>
+          <pre style="white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px;">${escapeHtml(selectedStyles)}</pre>
+          <p>${escapeHtml(generatedImageNote)}</p>
+          <p>${escapeHtml(originalImageNote)}</p>
+        </div>
+      `,
+      text: [
+        "New quote request",
+        "",
+        `Tenant: ${tenant.companyName}`,
+        `Name: ${fullName}`,
+        `Email: ${lead.email}`,
+        `Phone: ${lead.phone || "Not provided"}`,
+        `Location: ${lead.location || "Not provided"}`,
+        `Service: ${lead.service || "Not provided"}`,
+        "",
+        "Project details:",
+        lead.projectDetails || "No details provided",
+        "",
+        "Selected styles:",
+        selectedStyles,
+        "",
+        generatedImageNote,
+        originalImageNote,
+      ].join("\n"),
+    } as any);
+
+    if (error) {
+      console.error("Resend quote lead email error:", error);
+      return false;
+    }
+
+    console.log("Quote lead email sent successfully:", data?.id);
+    return true;
+  } catch (error) {
+    console.error("Failed to send quote lead email:", error);
+    return false;
+  }
+}
 
 interface SendTeamInvitationEmailParams {
   toEmail: string;

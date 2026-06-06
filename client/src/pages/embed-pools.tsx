@@ -5,7 +5,11 @@ import PoolStyleSelector from "../components/pool-style-selector";
 import { Button } from "../components/ui/button";
 import { Upload, Sparkles, Download, Eye, Camera, Phone, XCircle } from "lucide-react";
 import { SparklesText } from "@/components/ui/sparkles-text";
+import EmbedQuoteGate from "@/components/embed-quote-gate";
+import EmbedQuoteLeadForm from "@/components/embed-quote-lead-form";
+import { useEmbedVisitorLimit } from "@/hooks/use-embed-visitor-limit";
 import { uploadPoolImage, checkPoolVisualizationStatus } from "../lib/api";
+import { getEmbedQuoteButtonText, runEmbedQuoteAction } from "@/lib/embed-quote";
 import {
   DEFAULT_EMBED_BACKGROUND_COLOR,
   getEmbedBackground,
@@ -56,6 +60,13 @@ export default function EmbedPoolsPage() {
   }) as any;
 
   const resolvedLogoUrl = logoUrlParam || effectiveTenant.logoUrl || "";
+  const embedVisitor = useEmbedVisitorLimit({
+    tenantId: tenant?.id || null,
+    tenantSlug: tenant?.slug || null,
+  });
+  const visitorLimitReached =
+    !!embedVisitor.status?.limitEnabled && !embedVisitor.status.canGenerate;
+  const quoteButtonText = getEmbedQuoteButtonText(effectiveTenant);
   const pageBackground = getEmbedBackground(
     backgroundScheme,
     primaryColor,
@@ -68,6 +79,8 @@ export default function EmbedPoolsPage() {
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [poolVisualizationResult, setPoolVisualizationResult] = useState<any>(null);
+  const [lastGeneratedImageUrl, setLastGeneratedImageUrl] = useState<string | null>(null);
+  const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
   
   const [selectedPoolStyles, setSelectedPoolStyles] = useState({
@@ -96,7 +109,19 @@ export default function EmbedPoolsPage() {
       };
       reader.readAsDataURL(file);
       setPoolVisualizationResult(null);
+      setLastGeneratedImageUrl(null);
     }
+  };
+
+  const handleQuoteClick = () => {
+    embedVisitor.trackQuoteClick();
+    runEmbedQuoteAction({
+      tenant: effectiveTenant,
+      contactType,
+      contactPhone,
+      contactLink,
+      openForm: () => setShowQuoteForm(true),
+    });
   };
 
   if (!tenant && tenantLoading && !isDemoLookup && !canUseAccountFallback) {
@@ -176,7 +201,31 @@ export default function EmbedPoolsPage() {
           </div>
         )}
 
+        {showQuoteForm && (
+          <EmbedQuoteLeadForm
+            tenant={effectiveTenant}
+            service="pools"
+            selectedStyles={selectedPoolStyles}
+            originalImageUrl={uploadedImage}
+            generatedImageUrl={poolVisualizationResult?.generatedImageUrl || lastGeneratedImageUrl}
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            onClose={() => setShowQuoteForm(false)}
+          />
+        )}
+
+        {visitorLimitReached && (
+          <EmbedQuoteGate
+            status={embedVisitor.status}
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            buttonText={quoteButtonText}
+            onQuoteClick={handleQuoteClick}
+          />
+        )}
+
         {/* Image Upload */}
+        {!visitorLimitReached && (
         <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
           <h2 className={`text-xl font-semibold mb-4 text-center ${themeClasses.panelTitle}`}>Upload Your Backyard Photo</h2>
           
@@ -293,6 +342,7 @@ export default function EmbedPoolsPage() {
                         setUploadedImage(null);
                         setOriginalFile(null);
                         setPoolVisualizationResult(null);
+                        setLastGeneratedImageUrl(null);
                         setShowingOriginal(false);
                       }}
                     >
@@ -308,24 +358,10 @@ export default function EmbedPoolsPage() {
                     style={{ 
                       background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
                     }}
-                    onClick={() => {
-                      if (contactType === 'link' && contactLink) {
-                        window.open(contactLink, '_blank');
-                      } else {
-                        const quotePhone = contactPhone || effectiveTenant.contactPhone || effectiveTenant.phone || '(555) 123-4567';
-                        const message = encodeURIComponent(`Hi! I'm interested in getting a free quote for pool installation. I just tried your pool visualizer and would like to discuss my project.`);
-                        
-                        if (quotePhone.startsWith('(') || quotePhone.startsWith('+')) {
-                          const cleanPhone = quotePhone.replace(/[\(\)\-\s]/g, '');
-                          window.open(`tel:${cleanPhone}`, '_self');
-                        } else {
-                          window.open(`mailto:${effectiveTenant.email || 'info@company.com'}?subject=Pool Installation Quote Request&body=${message}`, '_blank');
-                        }
-                      }
-                    }}
+                    onClick={handleQuoteClick}
                   >
                     <Phone className="h-5 w-5 mr-2" />
-                    Get Free Quote
+                    {quoteButtonText}
                   </Button>
                 </div>
               ) : (
@@ -335,6 +371,7 @@ export default function EmbedPoolsPage() {
                     setUploadedImage(null);
                     setOriginalFile(null);
                     setPoolVisualizationResult(null);
+                    setLastGeneratedImageUrl(null);
                   }}
                   className="w-full"
                 >
@@ -344,9 +381,10 @@ export default function EmbedPoolsPage() {
             </div>
           )}
         </div>
+        )}
 
         {/* Style Selection */}
-        {uploadedImage && (
+        {uploadedImage && !visitorLimitReached && (
           <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
             <h2 className={`text-xl font-semibold mb-4 ${themeClasses.panelTitle}`}>Choose Your Pool Style</h2>
             <PoolStyleSelector
@@ -359,7 +397,7 @@ export default function EmbedPoolsPage() {
         )}
 
         {/* Generate Button */}
-        {uploadedImage && (
+        {uploadedImage && !visitorLimitReached && (
           <div className="mb-4">
             <Button
               size="lg"
@@ -400,6 +438,7 @@ export default function EmbedPoolsPage() {
                       accountUserId: accountUserIdParam ? Number(accountUserIdParam) : null,
                       tenantId: tenant?.id || null,
                       tenantSlug: tenant?.slug || null,
+                      visitorId: embedVisitor.visitorId,
                     },
                   );
 
@@ -408,11 +447,20 @@ export default function EmbedPoolsPage() {
                       result.poolVisualizationId,
                     );
                     setPoolVisualizationResult(status);
+                    if (status?.generatedImageUrl) {
+                      setLastGeneratedImageUrl(status.generatedImageUrl);
+                    }
                   }
                 } catch (error) {
                   console.error("Error generating visualization:", error);
+                  const apiError = error as any;
+                  if (apiError.code === "EMBED_VISITOR_LIMIT") {
+                    embedVisitor.markLimitReached(apiError.details?.embedVisitorUsage);
+                    return;
+                  }
                   alert("Unable to generate visualization. Please try again.");
                 } finally {
+                  embedVisitor.refresh();
                   setIsGenerating(false);
                 }
               }}

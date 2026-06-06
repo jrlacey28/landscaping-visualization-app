@@ -400,6 +400,22 @@ export function getInteriorStyleConfig(
   }
 
   const styleConfig = serviceConfig[styleId];
+  if (!styleConfig && styleId.startsWith("tenant_custom_")) {
+    const name = styleId
+      .replace(/^tenant_custom_/, "")
+      .split(/[\s_-]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+
+    return {
+      id: styleId,
+      name: name || "Client Custom Option",
+      prompt:
+        "Apply the client-specific custom remodel option selected for this embed. Follow any additional client-specific instructions provided separately, keep the result realistic and buildable, and preserve the original room layout unless the selected option requires a same-position finish upgrade.",
+    };
+  }
+
   if (!styleConfig) {
     throw new Error(`Unknown ${service} style: ${styleId}`);
   }

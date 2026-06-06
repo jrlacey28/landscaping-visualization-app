@@ -10,7 +10,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { X, Send } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
 
 const quoteFormSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -29,6 +28,13 @@ interface QuoteLeadFormProps {
   selectedStyles: any;
   originalImageUrl?: string | null;
   generatedImageUrl?: string | null;
+  tenantId?: number | null;
+  title?: string;
+  description?: string;
+  submitLabel?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  successRedirectUrl?: string | null;
 }
 
 export default function QuoteLeadForm({ 
@@ -36,11 +42,17 @@ export default function QuoteLeadForm({
   service,
   selectedStyles, 
   originalImageUrl, 
-  generatedImageUrl 
+  generatedImageUrl,
+  tenantId,
+  title,
+  description,
+  submitLabel,
+  primaryColor = "#2563eb",
+  secondaryColor = "#1d4ed8",
+  successRedirectUrl,
 }: QuoteLeadFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   const form = useForm<QuoteFormData>({
     resolver: zodResolver(quoteFormSchema),
@@ -63,7 +75,7 @@ export default function QuoteLeadForm({
         selectedStyles,
         originalImageUrl,
         generatedImageUrl,
-        tenantId: 1, // Always associate with tenant 1 for admin visibility
+        tenantId: tenantId || 1,
       };
       
       return apiRequest("POST", "/api/leads", leadData);
@@ -75,6 +87,9 @@ export default function QuoteLeadForm({
       });
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       onClose();
+      if (successRedirectUrl) {
+        window.open(successRedirectUrl, "_blank", "noopener,noreferrer");
+      }
     },
     onError: (error: any) => {
       toast({
@@ -99,22 +114,22 @@ export default function QuoteLeadForm({
                          "Landscaping";
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-blue-200">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
+    <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-blue-300/30 bg-blue-950/70 text-white shadow-2xl shadow-blue-950/40 backdrop-blur-md">
+        <CardHeader className="border-b border-blue-300/20 bg-blue-500/10">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center text-blue-900">
-              <Send className="h-5 w-5 text-blue-600 mr-3" />
-              Get Your Free {serviceDisplay} Quote
+            <CardTitle className="flex items-center text-white">
+              <Send className="h-5 w-5 text-blue-300 mr-3" />
+              {title || `Get Your Free ${serviceDisplay} Quote`}
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-blue-200">
+            <Button variant="ghost" size="sm" onClick={onClose} className="text-slate-200 hover:bg-blue-400/20 hover:text-white">
               <X className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground mb-6">
-            Fill out the form below and we'll provide you with a free, no-obligation quote based on your visualization.
+        <CardContent className="pt-6">
+          <p className="text-slate-300 mb-6">
+            {description || "Fill out the form below and we'll provide you with a free, no-obligation quote based on your visualization."}
           </p>
           
           <Form {...form}>
@@ -125,11 +140,15 @@ export default function QuoteLeadForm({
                   name="firstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>First Name</FormLabel>
+                      <FormLabel className="text-slate-200">First Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="John" {...field} />
+                        <Input
+                          placeholder="John"
+                          className="bg-white/10 border-white/30 text-white placeholder:text-slate-400 focus-visible:border-blue-400 focus-visible:ring-blue-400/20"
+                          {...field}
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-200" />
                     </FormItem>
                   )}
                 />
@@ -139,11 +158,15 @@ export default function QuoteLeadForm({
                   name="lastName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Last Name</FormLabel>
+                      <FormLabel className="text-slate-200">Last Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Doe" {...field} />
+                        <Input
+                          placeholder="Doe"
+                          className="bg-white/10 border-white/30 text-white placeholder:text-slate-400 focus-visible:border-blue-400 focus-visible:ring-blue-400/20"
+                          {...field}
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-200" />
                     </FormItem>
                   )}
                 />
@@ -154,11 +177,16 @@ export default function QuoteLeadForm({
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-slate-200">Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="john@example.com" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="john@example.com"
+                        className="bg-white/10 border-white/30 text-white placeholder:text-slate-400 focus-visible:border-blue-400 focus-visible:ring-blue-400/20"
+                        {...field}
+                      />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-200" />
                   </FormItem>
                 )}
               />
@@ -169,11 +197,16 @@ export default function QuoteLeadForm({
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
+                      <FormLabel className="text-slate-200">Phone Number</FormLabel>
                       <FormControl>
-                        <Input type="tel" placeholder="(555) 123-4567" {...field} />
+                        <Input
+                          type="tel"
+                          placeholder="(555) 123-4567"
+                          className="bg-white/10 border-white/30 text-white placeholder:text-slate-400 focus-visible:border-blue-400 focus-visible:ring-blue-400/20"
+                          {...field}
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-200" />
                     </FormItem>
                   )}
                 />
@@ -183,11 +216,15 @@ export default function QuoteLeadForm({
                   name="location"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Location</FormLabel>
+                      <FormLabel className="text-slate-200">Location</FormLabel>
                       <FormControl>
-                        <Input placeholder="City, State" {...field} />
+                        <Input
+                          placeholder="City, State"
+                          className="bg-white/10 border-white/30 text-white placeholder:text-slate-400 focus-visible:border-blue-400 focus-visible:ring-blue-400/20"
+                          {...field}
+                        />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-red-200" />
                     </FormItem>
                   )}
                 />
@@ -198,34 +235,35 @@ export default function QuoteLeadForm({
                 name="projectDetails"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>What are you looking for?</FormLabel>
+                    <FormLabel className="text-slate-200">What are you looking for?</FormLabel>
                     <FormControl>
                       <Textarea 
                         placeholder="Please describe your project needs, timeline, and any specific requirements..."
-                        className="min-h-[100px]"
+                        className="min-h-[100px] bg-white/10 border-white/30 text-white placeholder:text-slate-400 focus-visible:border-blue-400 focus-visible:ring-blue-400/20"
                         {...field} 
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-200" />
                   </FormItem>
                 )}
               />
 
               <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={onClose} className="border-blue-300 hover:bg-blue-50">
+                <Button type="button" variant="outline" onClick={onClose} className="border-white/30 bg-transparent text-slate-100 hover:bg-white/10 hover:text-white">
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={submitQuoteMutation.isPending}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg shadow-blue-950/40 transition-all"
+                  style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
                 >
                   {submitQuoteMutation.isPending ? (
                     <>Submitting...</>
                   ) : (
                     <>
                       <Send className="h-4 w-4 mr-2" />
-                      Get Free Quote
+                      {submitLabel || "Get Free Quote"}
                     </>
                   )}
                 </Button>

@@ -171,6 +171,9 @@ export function registerAuthRoutes(app: Express) {
       // Get team membership information
       const userTeams = await storage.getUserTeams(user.id);
       const teamOwner = await storage.getTeamByOwnerId(user.id);
+      const teamAccess = await storage.getUserTeamAccess(user.id);
+      const workspaceOwnerId = teamAccess.effectiveUserId;
+      const workspaceTenant = await storage.getTenantByUserId(workspaceOwnerId);
       
       // Add extra logging for debugging production issues
       if (user.email === 'jordanlacey2821@gmail.com') {
@@ -201,7 +204,20 @@ export function registerAuthRoutes(app: Express) {
           hasEmbedAccess,
           hasBusinessProAccess,
           teams: userTeams,
-          teamOwner: teamOwner || null
+          teamOwner: teamOwner || null,
+          workspaceOwnerId,
+          enterpriseTenant: workspaceTenant ? {
+            id: workspaceTenant.id,
+            slug: workspaceTenant.slug,
+            companyName: workspaceTenant.companyName,
+            clientType: workspaceTenant.clientType,
+            isEnterprise: workspaceTenant.isEnterprise,
+            monthlyGenerationLimit: workspaceTenant.monthlyGenerationLimit,
+            currentMonthGenerations: workspaceTenant.currentMonthGenerations,
+            embedVisitorLimit: workspaceTenant.embedVisitorLimit,
+            embedRequireQuoteAfterLimit: workspaceTenant.embedRequireQuoteAfterLimit,
+            embedEnabled: workspaceTenant.embedEnabled,
+          } : null
         }
       });
     } catch (error: any) {

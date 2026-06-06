@@ -1,8 +1,8 @@
 import { 
   users, subscriptions, subscriptionPlans, userUsage, tenants, leads, visualizations, poolVisualizations, landscapeVisualizations, halloweenVisualizations, christmasLightsVisualizations,
-  generationProjects, projectGenerations, userFeatureOverrides, teams, teamMembers,
+  generationProjects, projectGenerations, userFeatureOverrides, teams, teamMembers, embedVisitorUsage,
   type User, type InsertUser, type Subscription, type InsertSubscription, type SubscriptionPlan, type UserUsage, type InsertUserUsage,
-  type Tenant, type InsertTenant, type Lead, type InsertLead, type Visualization, type InsertVisualization, 
+  type Tenant, type InsertTenant, type EmbedVisitorUsage, type Lead, type InsertLead, type Visualization, type InsertVisualization,
   type PoolVisualization, type InsertPoolVisualization, type LandscapeVisualization, type InsertLandscapeVisualization,
   type HalloweenVisualization, type InsertHalloweenVisualization,
   type ChristmasLightsVisualization, type InsertChristmasLightsVisualization,
@@ -48,6 +48,10 @@ export interface IStorage {
   getAllTenants(): Promise<Tenant[]>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
   updateTenant(id: number, tenant: Partial<InsertTenant>): Promise<Tenant>;
+  getEmbedVisitorUsage(tenantId: number, visitorKey: string, month: number, year: number): Promise<EmbedVisitorUsage | undefined>;
+  getEmbedVisitorUsageStatus(tenantId: number, visitorKey: string, limit: number): Promise<{ canGenerate: boolean; currentUsage: number; limit: number; remaining: number; limitEnabled: boolean }>;
+  recordEmbedVisitorGeneration(tenantId: number, visitorKey: string, limit: number): Promise<{ canGenerate: boolean; currentUsage: number; limit: number; remaining: number; limitEnabled: boolean }>;
+  recordEmbedQuoteClick(tenantId: number, visitorKey: string): Promise<void>;
 
   // Lead methods
   getLead(id: number): Promise<Lead | undefined>;
@@ -809,6 +813,131 @@ export class DatabaseStorage implements IStorage {
     return tenant;
   }
 
+  async getEmbedVisitorUsage(
+    tenantId: number,
+    visitorKey: string,
+    month: number,
+    year: number,
+  ): Promise<EmbedVisitorUsage | undefined> {
+    const [usage] = await this.db
+      .select()
+      .from(embedVisitorUsage)
+      .where(and(
+        eq(embedVisitorUsage.tenantId, tenantId),
+        eq(embedVisitorUsage.visitorKey, visitorKey),
+        eq(embedVisitorUsage.month, month),
+        eq(embedVisitorUsage.year, year),
+      ));
+
+    return usage || undefined;
+  }
+
+  async getEmbedVisitorUsageStatus(
+    tenantId: number,
+    visitorKey: string,
+    limit: number,
+  ): Promise<{ canGenerate: boolean; currentUsage: number; limit: number; remaining: number; limitEnabled: boolean }> {
+    const limitEnabled = Number.isFinite(limit) && limit > 0;
+    if (!limitEnabled) {
+      return {
+        canGenerate: true,
+        currentUsage: 0,
+        limit: 0,
+        remaining: -1,
+        limitEnabled: false,
+      };
+    }
+
+    const now = new Date();
+    const usage = await this.getEmbedVisitorUsage(
+      tenantId,
+      visitorKey,
+      now.getMonth() + 1,
+      now.getFullYear(),
+    );
+    const currentUsage = usage?.visualizationCount || 0;
+
+    return {
+      canGenerate: currentUsage < limit,
+      currentUsage,
+      limit,
+      remaining: Math.max(limit - currentUsage, 0),
+      limitEnabled: true,
+    };
+  }
+
+  async recordEmbedVisitorGeneration(
+    tenantId: number,
+    visitorKey: string,
+    limit: number,
+  ): Promise<{ canGenerate: boolean; currentUsage: number; limit: number; remaining: number; limitEnabled: boolean }> {
+    const before = await this.getEmbedVisitorUsageStatus(tenantId, visitorKey, limit);
+    if (!before.limitEnabled || !before.canGenerate) {
+      return before;
+    }
+
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    const existingUsage = await this.getEmbedVisitorUsage(tenantId, visitorKey, month, year);
+
+    if (existingUsage) {
+      await this.db
+        .update(embedVisitorUsage)
+        .set({
+          visualizationCount: (existingUsage.visualizationCount || 0) + 1,
+          lastSeenAt: now,
+          lastGeneratedAt: now,
+        })
+        .where(eq(embedVisitorUsage.id, existingUsage.id));
+    } else {
+      await this.db
+        .insert(embedVisitorUsage)
+        .values({
+          tenantId,
+          visitorKey,
+          month,
+          year,
+          visualizationCount: 1,
+          quoteClickCount: 0,
+          lastSeenAt: now,
+          lastGeneratedAt: now,
+        });
+    }
+
+    return this.getEmbedVisitorUsageStatus(tenantId, visitorKey, limit);
+  }
+
+  async recordEmbedQuoteClick(tenantId: number, visitorKey: string): Promise<void> {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    const existingUsage = await this.getEmbedVisitorUsage(tenantId, visitorKey, month, year);
+
+    if (existingUsage) {
+      await this.db
+        .update(embedVisitorUsage)
+        .set({
+          quoteClickCount: (existingUsage.quoteClickCount || 0) + 1,
+          lastSeenAt: now,
+        })
+        .where(eq(embedVisitorUsage.id, existingUsage.id));
+      return;
+    }
+
+    await this.db
+      .insert(embedVisitorUsage)
+      .values({
+        tenantId,
+        visitorKey,
+        month,
+        year,
+        visualizationCount: 0,
+        quoteClickCount: 1,
+        lastSeenAt: now,
+      });
+  }
+
   async getLead(id: number): Promise<Lead | undefined> {
     const [lead] = await this.db.select().from(leads).where(eq(leads.id, id));
     return lead || undefined;
@@ -1201,6 +1330,12 @@ export class DatabaseStorage implements IStorage {
       
       // Get the effective user's subscription (either own or team owner's)
       const subscription = await this.getUserActiveSubscription(effectiveUserId);
+      const tenant = await this.getTenantByUserId(effectiveUserId);
+
+      if (tenant?.active && tenant.embedEnabled) {
+        console.log(`[Embed] User ${userId} has tenant embed enabled ${isTeamMember ? '(via team)' : ''}`);
+        return true;
+      }
       
       // Check for Contractor and Professional plan IDs
       const CONTRACTOR_PLAN_ID = 'price_1TcynuBY2SPm2HvO1Eri2ogI';
@@ -1434,12 +1569,14 @@ export class DatabaseStorage implements IStorage {
       // Check if the effective user has Professional subscription
       const subscription = await this.getUserActiveSubscription(effectiveUserId);
       const hasAccess = subscription?.status === 'active' && subscription?.planId === BUSINESS_PRO_PLAN_ID;
+      const tenant = await this.getTenantByUserId(effectiveUserId);
+      const hasEnterpriseAccess = Boolean(tenant?.active && tenant.isEnterprise);
       
       if (hasAccess && teamAccess.isMember) {
         console.log(`[Professional] Team member ${userId} has Professional access via owner ${effectiveUserId}`);
       }
       
-      return hasAccess;
+      return hasAccess || hasEnterpriseAccess;
       
     } catch (error) {
       console.error(`Error checking Professional access for user ${userId}:`, error);

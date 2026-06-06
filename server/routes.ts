@@ -5,6 +5,7 @@ import multer from "multer";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 
 import { storage } from "./storage";
 import { databaseUrl, db, dbDriver, dbUsesSsl, getDatabaseHost, serverBuild } from "./db";
@@ -16,7 +17,7 @@ import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-co
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 import { authenticateToken, optionalAuthenticateToken, AuthRequest } from "./auth";
 import jwt from 'jsonwebtoken';
-import { sendTeamInvitationEmail } from "./email-service";
+import { sendQuoteLeadNotificationEmail, sendTeamInvitationEmail } from "./email-service";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -948,7 +949,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const userTenant = await storage.getTenantByUserId(req.user.id);
+      const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
+      const userTenant = await storage.getTenantByUserId(workspaceOwnerId);
       
       if (!userTenant) {
         // If user doesn't have a tenant, return the demo tenant
@@ -987,6 +989,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching tenant:", error);
       res.status(500).json({ error: "Failed to fetch tenant" });
+    }
+  });
+
+  app.get("/api/embed/visitor-usage", async (req, res) => {
+    try {
+      const tenantId = parsePositiveId(req.query.tenantId);
+      const tenantSlug = typeof req.query.tenantSlug === "string" ? req.query.tenantSlug.trim() : "";
+
+      let tenant;
+      if (tenantId) {
+        tenant = await storage.getTenant(tenantId);
+      } else if (tenantSlug) {
+        tenant = await storage.getTenantBySlug(tenantSlug);
+      }
+
+      if (!tenant) {
+        return res.status(404).json({ error: "Embed account not found" });
+      }
+
+      const { status } = await getEmbedVisitorStatusForRequest(req, tenant);
+      res.json(buildEmbedVisitorStatusResponse(tenant, status));
+    } catch (error) {
+      console.error("Error fetching embed visitor usage:", error);
+      res.status(500).json({ error: "Failed to fetch embed usage status" });
+    }
+  });
+
+  app.post("/api/embed/quote-click", async (req, res) => {
+    try {
+      const tenantId = parsePositiveId(req.body.tenantId);
+      const tenantSlug = typeof req.body.tenantSlug === "string" ? req.body.tenantSlug.trim() : "";
+
+      let tenant;
+      if (tenantId) {
+        tenant = await storage.getTenant(tenantId);
+      } else if (tenantSlug) {
+        tenant = await storage.getTenantBySlug(tenantSlug);
+      }
+
+      if (!tenant) {
+        return res.status(404).json({ error: "Embed account not found" });
+      }
+
+      const visitorKey = buildEmbedVisitorKey(req, tenant.id);
+      await storage.recordEmbedQuoteClick(tenant.id, visitorKey);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error tracking embed quote click:", error);
+      res.status(500).json({ error: "Failed to track quote click" });
     }
   });
 
@@ -1098,10 +1149,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   class GenerationRequestError extends Error {
     status: number;
+    details?: Record<string, unknown>;
 
-    constructor(status: number, message: string) {
+    constructor(status: number, message: string, details?: Record<string, unknown>) {
       super(message);
       this.status = status;
+      this.details = details;
     }
   }
 
@@ -1134,6 +1187,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return null;
   }
 
+  function getClientIp(req: any) {
+    const forwardedFor = req.headers["x-forwarded-for"];
+    if (typeof forwardedFor === "string" && forwardedFor.trim()) {
+      return forwardedFor.split(",")[0].trim();
+    }
+
+    if (Array.isArray(forwardedFor) && forwardedFor[0]) {
+      return forwardedFor[0].split(",")[0].trim();
+    }
+
+    return req.ip || req.socket?.remoteAddress || "";
+  }
+
+  function getEmbedVisitorLimit(tenant: any) {
+    return tenant.embedRequireQuoteAfterLimit
+      ? Math.max(Number(tenant.embedVisitorLimit || 3), 0)
+      : 0;
+  }
+
+  function buildEmbedVisitorKey(req: any, tenantId: number) {
+    const suppliedVisitorId =
+      typeof req.body?.visitorId === "string"
+        ? req.body.visitorId
+        : typeof req.query?.visitorId === "string"
+          ? req.query.visitorId
+          : "";
+    const ip = getClientIp(req);
+    const userAgent = req.get?.("user-agent") || "";
+    const fingerprintSource = ip || suppliedVisitorId || userAgent || "unknown";
+    const salt = process.env.EMBED_VISITOR_HASH_SALT || process.env.JWT_SECRET || "dreambuilder-embed";
+
+    return crypto
+      .createHash("sha256")
+      .update(`${salt}:${tenantId}:${fingerprintSource}`)
+      .digest("hex");
+  }
+
+  function buildEmbedVisitorStatusResponse(tenant: any, status: any) {
+    return {
+      ...status,
+      quoteGateTitle: tenant.embedQuoteGateTitle || "Ready for a free quote?",
+      quoteGateMessage:
+        tenant.embedQuoteGateMessage ||
+        "You've reached the free visualization limit. Request a quote to keep planning your project.",
+      quoteButtonText: tenant.embedCtaText || "Get Free Quote",
+      quoteFormTitle: tenant.embedQuoteFormTitle || "Get your free quote",
+      quoteFormMessage:
+        tenant.embedQuoteFormMessage ||
+        "Send your project details and the team will follow up with a quote.",
+    };
+  }
+
+  async function getEmbedVisitorStatusForRequest(req: any, tenant: any) {
+    const visitorKey = buildEmbedVisitorKey(req, tenant.id);
+    const limit = getEmbedVisitorLimit(tenant);
+    const status = await storage.getEmbedVisitorUsageStatus(tenant.id, visitorKey, limit);
+
+    return { visitorKey, status };
+  }
+
+  async function recordEmbedVisitorGeneration(req: any, tenant: any) {
+    const visitorKey = buildEmbedVisitorKey(req, tenant.id);
+    const limit = getEmbedVisitorLimit(tenant);
+    const before = await storage.getEmbedVisitorUsageStatus(tenant.id, visitorKey, limit);
+
+    if (before.limitEnabled && !before.canGenerate) {
+      throw new GenerationRequestError(
+        429,
+        "This visitor has reached the free visualization limit. Request a quote to continue.",
+        {
+          code: "EMBED_VISITOR_LIMIT",
+          embedVisitorUsage: buildEmbedVisitorStatusResponse(tenant, before),
+        },
+      );
+    }
+
+    return storage.recordEmbedVisitorGeneration(tenant.id, visitorKey, limit);
+  }
+
+  function normalizeTenantCustomOptionValue(value: unknown) {
+    const rawValue = String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+    return rawValue.startsWith("tenant_custom_") ? rawValue : `tenant_custom_${rawValue}`;
+  }
+
+  function collectTenantInteriorOptions(tenant: any, service: "painting" | "bathroom" | "kitchen" | "living_room") {
+    const customizations = tenant?.embedCustomizations || {};
+    const byService = customizations?.interiorOptions?.[service];
+    const legacyBathroomOptions = service === "bathroom" ? customizations?.bathroomOptions : null;
+    const source = Array.isArray(byService) ? byService : Array.isArray(legacyBathroomOptions) ? legacyBathroomOptions : [];
+
+    return source
+      .map((option: any) => {
+        const label = String(option?.label || option?.name || option?.value || "").trim();
+        if (!label) return null;
+
+        return {
+          value: normalizeTenantCustomOptionValue(option?.value || label),
+          label,
+          prompt: String(option?.prompt || option?.instructions || "").trim(),
+        };
+      })
+      .filter(Boolean) as Array<{ value: string; label: string; prompt: string }>;
+  }
+
+  function buildTenantInteriorCustomPrompt(
+    tenant: any,
+    service: "painting" | "bathroom" | "kitchen" | "living_room",
+    selectedStyles: string[],
+  ) {
+    const selected = new Set(selectedStyles);
+    const matchingPrompts = collectTenantInteriorOptions(tenant, service)
+      .filter((option) => selected.has(option.value))
+      .map((option) => option.prompt || `Apply the client-specific option "${option.label}".`);
+
+    if (matchingPrompts.length === 0) {
+      return "";
+    }
+
+    return [
+      "CLIENT-SPECIFIC EMBED OPTIONS:",
+      ...matchingPrompts.map((prompt, index) => `${index + 1}. ${prompt}`),
+    ].join("\n");
+  }
+
   async function resolveGenerationOwner(req: AuthRequest, usageType: 'visualization' | 'landscape' | 'pool') {
     const accountUserId = parsePositiveId(req.body.accountUserId);
     const tenant = await getTenantFromGenerationRequest(req, !!accountUserId);
@@ -1158,6 +1339,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (error: any) {
           throw new GenerationRequestError(429, error.message || "Embed usage limit reached");
         }
+
+        await recordEmbedVisitorGeneration(req, checkedTenant);
 
         return {
           userId: ownerUserId,
@@ -1201,7 +1384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   function handleGenerationRequestError(res: any, error: unknown) {
     if (error instanceof GenerationRequestError) {
-      res.status(error.status).json({ error: error.message });
+      res.status(error.status).json({ error: error.message, ...error.details });
       return true;
     }
 
@@ -1219,15 +1402,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     visualizationId: z.number().int().positive(),
   });
 
+  async function getWorkspaceOwnerId(userId: number) {
+    const teamAccess = await storage.getUserTeamAccess(userId);
+    return teamAccess.effectiveUserId;
+  }
+
   app.get("/api/generation-projects", authenticateToken as any, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
+      const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
       const [projects, assignments] = await Promise.all([
-        getGenerationProjectSummariesByUser(req.user.id),
-        storage.getProjectGenerationsByUser(req.user.id),
+        getGenerationProjectSummariesByUser(workspaceOwnerId),
+        storage.getProjectGenerationsByUser(workspaceOwnerId),
       ]);
 
       const projectStats = new Map<number, { count: number; lastSavedAt: Date | null }>();
@@ -1261,8 +1450,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const payload = projectSchema.parse(req.body);
+      const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
       const project = await storage.createGenerationProject({
-        userId: req.user.id,
+        userId: workspaceOwnerId,
         name: payload.name,
         address: payload.address || null,
         notes: payload.notes || null,
@@ -1285,8 +1475,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const projectId = parseInt(req.params.projectId);
+      const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
       const payload = projectSchema.partial().parse(req.body);
-      const project = await storage.updateGenerationProject(projectId, req.user.id, {
+      const project = await storage.updateGenerationProject(projectId, workspaceOwnerId, {
         name: payload.name,
         address: payload.address,
         notes: payload.notes,
@@ -1313,12 +1504,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const projectId = parseInt(req.params.projectId);
-      const project = await storage.getGenerationProject(projectId, req.user.id);
+      const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
+      const project = await storage.getGenerationProject(projectId, workspaceOwnerId);
       if (!project) {
         return res.status(404).json({ error: "Project not found" });
       }
 
-      await storage.deleteGenerationProject(projectId, req.user.id);
+      await storage.deleteGenerationProject(projectId, workspaceOwnerId);
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting generation project:", error);
@@ -1332,7 +1524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const userId = req.user.id;
+      const userId = await getWorkspaceOwnerId(req.user.id);
       const serviceFilter = isGenerationService(req.query.service) ? req.query.service : "all";
       const projectFilter = typeof req.query.projectId === "string" ? req.query.projectId : "all";
       const requestedPage = Number.parseInt(String(req.query.page || "1"), 10);
@@ -1545,7 +1737,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid visualization id" });
       }
 
-      const generation = await getOwnedGenerationForService(req.user.id, req.params.service, visualizationId);
+      const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
+      const generation = await getOwnedGenerationForService(workspaceOwnerId, req.params.service, visualizationId);
       if (!generation) {
         return res.status(404).json({ error: "Generation not found" });
       }
@@ -1579,7 +1772,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid visualization id" });
       }
 
-      const generation = await getOwnedGenerationForService(req.user.id, req.params.service, visualizationId);
+      const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
+      const generation = await getOwnedGenerationForService(workspaceOwnerId, req.params.service, visualizationId);
       if (!generation) {
         return res.status(404).json({ error: "Generation not found" });
       }
@@ -1602,20 +1796,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const projectId = parseInt(req.params.projectId);
-      const project = await storage.getGenerationProject(projectId, req.user.id);
+      const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
+      const project = await storage.getGenerationProject(projectId, workspaceOwnerId);
       if (!project) {
         return res.status(404).json({ error: "Project not found" });
       }
 
       const payload = projectGenerationSchema.parse(req.body);
-      const generation = await getOwnedGenerationForService(req.user.id, payload.service, payload.visualizationId);
+      const generation = await getOwnedGenerationForService(workspaceOwnerId, payload.service, payload.visualizationId);
       if (!generation) {
         return res.status(404).json({ error: "Generation not found" });
       }
 
       const existingAssignment = await storage.getProjectGenerationForVisualization(
         projectId,
-        req.user.id,
+        workspaceOwnerId,
         payload.service,
         payload.visualizationId
       );
@@ -1626,14 +1821,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const projectGeneration = await storage.addProjectGeneration({
         projectId,
-        userId: req.user.id,
+        userId: workspaceOwnerId,
         service: payload.service,
         visualizationId: payload.visualizationId,
       });
 
       const coverImageUrl = getPrimaryGenerationImageUrl(generation) || null;
       if (!project.coverImageUrl && coverImageUrl) {
-        await storage.updateGenerationProject(projectId, req.user.id, {
+        await storage.updateGenerationProject(projectId, workspaceOwnerId, {
           coverImageUrl: coverImageUrl.startsWith("data:") ? null : coverImageUrl,
         });
       }
@@ -1654,7 +1849,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      await storage.removeProjectGeneration(parseInt(req.params.assignmentId), req.user.id);
+      const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
+      await storage.removeProjectGeneration(parseInt(req.params.assignmentId), workspaceOwnerId);
       res.json({ success: true });
     } catch (error) {
       console.error("Error removing generation from project:", error);
@@ -1832,10 +2028,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = generationOwner.userId;
       const hasBusinessPro = generationOwner.hasBusinessPro;
 
-      let validatedCustomPrompt = undefined;
+      let validatedCustomPrompt = "";
+      if (generationOwner.tenantId) {
+        const ownerTenant = await storage.getTenant(generationOwner.tenantId);
+        validatedCustomPrompt = buildTenantInteriorCustomPrompt(ownerTenant, service, selectedStyles);
+      }
+
       if (customPrompt && customPrompt.trim()) {
         if (hasBusinessPro) {
-          validatedCustomPrompt = customPrompt;
+          validatedCustomPrompt = [validatedCustomPrompt, customPrompt.trim()].filter(Boolean).join("\n\n");
         } else {
           console.log(`User ${userId} attempted to use custom prompt without Professional access`);
         }
@@ -1865,7 +2066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           selectedStyles,
           customColorName,
           customColorHex,
-          customPrompt: validatedCustomPrompt,
+          customPrompt: validatedCustomPrompt || undefined,
           usePremiumModel: hasBusinessPro
         });
 
@@ -1927,11 +2128,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const lead = await storage.createLead(leadData);
+      let quoteNotificationSent = false;
 
-      // Here you could add email notifications, webhook calls, etc.
-      // based on the tenant's configuration
+      if (lead.leadType === "quote" && lead.tenantId) {
+        const tenant = await storage.getTenant(lead.tenantId);
+        const quoteRecipientEmail =
+          tenant?.embedQuoteRecipientEmail ||
+          tenant?.email ||
+          undefined;
 
-      res.json(lead);
+        if (tenant && quoteRecipientEmail) {
+          quoteNotificationSent = await sendQuoteLeadNotificationEmail({
+            tenant,
+            lead,
+            toEmail: quoteRecipientEmail,
+          });
+        }
+      }
+
+      res.json({ ...lead, quoteNotificationSent });
     } catch (error) {
       console.error("Error creating lead:", error);
       if (error instanceof z.ZodError) {
@@ -1942,6 +2157,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get leads for tenant (admin)
+  app.get("/api/admin/leads", requireAdminAuth, async (_req, res) => {
+    try {
+      const allLeads = await db
+        .select()
+        .from(leads)
+        .orderBy(desc(leads.createdAt));
+      res.json(allLeads);
+    } catch (error) {
+      console.error("Error fetching admin leads:", error);
+      res.status(500).json({ error: "Failed to fetch leads" });
+    }
+  });
+
   app.get("/api/tenants/:tenantId/leads", requireAdminAuth, async (req, res) => {
     try {
       const { tenantId } = req.params;
@@ -2746,16 +2974,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "You already have a team" });
       }
       
-      // Check if user has Professional subscription
-      const subscription = await storage.getUserActiveSubscription(userId);
-      if (!subscription || subscription.planId !== 'price_1SGN4YBY2SPm2HvOrpREWCn1') {
-        return res.status(403).json({ error: "Professional subscription required" });
+      // Check if user has team access through Professional or an enterprise tenant.
+      const hasTeamAccess = await storage.hasBusinessProAccess(userId);
+      if (!hasTeamAccess) {
+        return res.status(403).json({ error: "Professional or enterprise access required" });
       }
+
+      const userTenant = await storage.getTenantByUserId(userId);
+      const baseSeatCount = userTenant?.isEnterprise ? 7 : 3;
       
       const team = await storage.createTeam({
         ownerId: userId,
         name,
-        maxMembers: 3,
+        maxMembers: baseSeatCount,
         additionalSeats: 0,
       });
       

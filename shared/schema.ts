@@ -73,6 +73,8 @@ export const tenants = pgTable("tenants", {
   userId: integer("user_id").references(() => users.id), // Links to user account
   slug: text("slug").notNull().unique(),
   companyName: text("company_name").notNull(),
+  clientType: text("client_type").default("standard"), // standard, enterprise
+  isEnterprise: boolean("is_enterprise").default(false),
   logoUrl: text("logo_url"),
   primaryColor: text("primary_color").default("#2563EB"),
   secondaryColor: text("secondary_color").default("#059669"),
@@ -90,10 +92,34 @@ export const tenants = pgTable("tenants", {
   embedCtaUrl: text("embed_cta_url"),
   embedPrimaryColor: text("embed_primary_color").default("#2563EB"),
   embedSecondaryColor: text("embed_secondary_color").default("#059669"),
+  embedVisitorLimit: integer("embed_visitor_limit").default(3),
+  embedRequireQuoteAfterLimit: boolean("embed_require_quote_after_limit").default(false),
+  embedQuoteGateTitle: text("embed_quote_gate_title").default("Ready for a free quote?"),
+  embedQuoteGateMessage: text("embed_quote_gate_message").default("You've reached the free visualization limit. Request a quote to keep planning your project."),
+  embedQuoteFormTitle: text("embed_quote_form_title").default("Get your free quote"),
+  embedQuoteFormMessage: text("embed_quote_form_message").default("Send your project details and the team will follow up with a quote."),
+  embedQuoteDestinationType: text("embed_quote_destination_type").default("email"), // email, phone, link
+  embedQuoteRecipientEmail: text("embed_quote_recipient_email"),
+  embedQuoteSuccessRedirectUrl: text("embed_quote_success_redirect_url"),
+  embedQuoteIncludeImages: boolean("embed_quote_include_images").default(true),
+  embedCustomizations: jsonb("embed_customizations"),
   monthlyGenerationLimit: integer("monthly_generation_limit").default(100),
   currentMonthGenerations: integer("current_month_generations").default(0),
   lastResetDate: timestamp("last_reset_date").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const embedVisitorUsage = pgTable("embed_visitor_usage", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  visitorKey: text("visitor_key").notNull(),
+  month: integer("month").notNull(),
+  year: integer("year").notNull(),
+  visualizationCount: integer("visualization_count").default(0),
+  quoteClickCount: integer("quote_click_count").default(0),
+  firstSeenAt: timestamp("first_seen_at").defaultNow(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow(),
+  lastGeneratedAt: timestamp("last_generated_at"),
 });
 
 export const leads = pgTable("leads", {
@@ -281,6 +307,7 @@ export const tenantsRelations = relations(tenants, ({ one, many }) => ({
     fields: [tenants.userId],
     references: [users.id],
   }),
+  visitorUsage: many(embedVisitorUsage),
   leads: many(leads),
   visualizations: many(visualizations),
   poolVisualizations: many(poolVisualizations),
@@ -351,6 +378,13 @@ export const christmasLightsVisualizationsRelations = relations(christmasLightsV
   }),
   tenant: one(tenants, {
     fields: [christmasLightsVisualizations.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const embedVisitorUsageRelations = relations(embedVisitorUsage, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [embedVisitorUsage.tenantId],
     references: [tenants.id],
   }),
 }));
@@ -463,6 +497,12 @@ export const insertTenantSchema = createInsertSchema(tenants).omit({
   createdAt: true,
 });
 
+export const insertEmbedVisitorUsageSchema = createInsertSchema(embedVisitorUsage).omit({
+  id: true,
+  firstSeenAt: true,
+  lastSeenAt: true,
+});
+
 export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
   createdAt: true,
@@ -532,6 +572,8 @@ export type UserUsage = typeof userUsage.$inferSelect;
 export type InsertUserUsage = z.infer<typeof insertUserUsageSchema>;
 export type Tenant = typeof tenants.$inferSelect;
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
+export type EmbedVisitorUsage = typeof embedVisitorUsage.$inferSelect;
+export type InsertEmbedVisitorUsage = z.infer<typeof insertEmbedVisitorUsageSchema>;
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type Visualization = typeof visualizations.$inferSelect;

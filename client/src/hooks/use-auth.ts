@@ -31,6 +31,19 @@ interface AuthUser {
   hasBusinessProAccess: boolean;
   teams?: any[];
   teamOwner?: any;
+  workspaceOwnerId?: number;
+  enterpriseTenant?: {
+    id: number;
+    slug: string;
+    companyName: string;
+    clientType?: string | null;
+    isEnterprise?: boolean | null;
+    monthlyGenerationLimit?: number | null;
+    currentMonthGenerations?: number | null;
+    embedVisitorLimit?: number | null;
+    embedRequireQuoteAfterLimit?: boolean | null;
+    embedEnabled?: boolean | null;
+  } | null;
 }
 
 interface AuthContextType {

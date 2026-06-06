@@ -172,10 +172,26 @@ export default function AdminDashboard() {
     phone: "",
     description: "",
     primaryColor: "#2563EB",
-    secondaryColor: "#059669"
+    secondaryColor: "#059669",
+    clientType: "standard",
+    isEnterprise: false,
+    embedEnabled: true,
+    monthlyGenerationLimit: 100,
+    embedVisitorLimit: 3,
+    embedRequireQuoteAfterLimit: false,
+    embedCtaText: "Get Free Quote",
+    embedQuoteGateTitle: "Ready for a free quote?",
+    embedQuoteGateMessage: "You've reached the free visualization limit. Request a quote to keep planning your project.",
+    embedQuoteFormTitle: "Get your free quote",
+    embedQuoteFormMessage: "Send your project details and the team will follow up with a quote.",
+    embedQuoteDestinationType: "email",
+    embedQuoteRecipientEmail: "",
+    embedQuoteSuccessRedirectUrl: "",
+    embedQuoteIncludeImages: true,
+    embedCustomizations: "",
   });
 
-  // For demo purposes, we'll use a mock tenant ID
+  // For the legacy tenant settings panel.
   const mockTenantId = 1;
 
   const { data: allTenants = [] as Tenant[] } = useQuery<Tenant[]>({
@@ -183,7 +199,7 @@ export default function AdminDashboard() {
   });
 
   const { data: leads = [], isLoading: leadsLoading } = useQuery<Lead[]>({
-    queryKey: [`/api/tenants/${mockTenantId}/leads`],
+    queryKey: ["/api/admin/leads"],
   });
 
   const { data: visualizations = [], isLoading: visualizationsLoading } =
@@ -305,7 +321,23 @@ export default function AdminDashboard() {
         phone: "",
         description: "",
         primaryColor: "#2563EB",
-        secondaryColor: "#059669"
+        secondaryColor: "#059669",
+        clientType: "standard",
+        isEnterprise: false,
+        embedEnabled: true,
+        monthlyGenerationLimit: 100,
+        embedVisitorLimit: 3,
+        embedRequireQuoteAfterLimit: false,
+        embedCtaText: "Get Free Quote",
+        embedQuoteGateTitle: "Ready for a free quote?",
+        embedQuoteGateMessage: "You've reached the free visualization limit. Request a quote to keep planning your project.",
+        embedQuoteFormTitle: "Get your free quote",
+        embedQuoteFormMessage: "Send your project details and the team will follow up with a quote.",
+        embedQuoteDestinationType: "email",
+        embedQuoteRecipientEmail: "",
+        embedQuoteSuccessRedirectUrl: "",
+        embedQuoteIncludeImages: true,
+        embedCustomizations: "",
       });
     },
     onError: (error: any) => {
@@ -390,7 +422,7 @@ export default function AdminDashboard() {
         title: "Lead Deleted",
         description: "Lead has been permanently removed.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/tenants/${mockTenantId}/leads`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/leads"] });
       setDeletingLead(null);
     },
     onError: (error: any) => {
@@ -456,19 +488,53 @@ export default function AdminDashboard() {
       });
       return;
     }
-    createTenantMutation.mutate(newClientData);
+
+    try {
+      createTenantMutation.mutate({
+        ...newClientData,
+        embedCustomizations: newClientData.embedCustomizations.trim()
+          ? JSON.parse(newClientData.embedCustomizations)
+          : null,
+      });
+    } catch (error) {
+      toast({
+        title: "Invalid Customizations JSON",
+        description: "Please enter valid JSON or leave the customizations field blank.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditClient = (tenant: Tenant) => {
-    setEditingClient(tenant);
+    setEditingClient({
+      ...tenant,
+      embedCustomizations: tenant.embedCustomizations
+        ? JSON.stringify(tenant.embedCustomizations, null, 2)
+        : "",
+    } as any);
   };
 
   const handleSaveClient = () => {
     if (!editingClient) return;
-    updateClientMutation.mutate({ 
-      id: editingClient.id, 
-      data: editingClient 
-    });
+
+    try {
+      const clientData = editingClient as any;
+      updateClientMutation.mutate({
+        id: editingClient.id,
+        data: {
+          ...clientData,
+          embedCustomizations: typeof clientData.embedCustomizations === "string" && clientData.embedCustomizations.trim()
+            ? JSON.parse(clientData.embedCustomizations)
+            : null,
+        }
+      });
+    } catch (error) {
+      toast({
+        title: "Invalid Customizations JSON",
+        description: "Please enter valid JSON or leave the customizations field blank.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteClient = () => {
@@ -484,7 +550,9 @@ export default function AdminDashboard() {
   // For the embed code generator, we need the tenant data to generate the correct embed URL.
   const tenant = currentTenant;
 
-  const selectedTenantLeads = leads;
+  const selectedTenantLeads = selectedTenantForStats
+    ? leads.filter((lead) => lead.tenantId === selectedTenantForStats)
+    : leads;
   const selectedTenantVisualizations = visualizations;
 
   // Renamed from allTenants to tenants for clarity in the analytics tab
@@ -864,6 +932,174 @@ export default function AdminDashboard() {
                           rows={2}
                         />
                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="newClientType">Client Type</Label>
+                          <select
+                            id="newClientType"
+                            value={newClientData.clientType}
+                            onChange={(e) => setNewClientData(prev => ({
+                              ...prev,
+                              clientType: e.target.value,
+                              isEnterprise: e.target.value === "enterprise",
+                              monthlyGenerationLimit: e.target.value === "enterprise" ? 1800 : prev.monthlyGenerationLimit,
+                            }))}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          >
+                            <option value="standard">Standard</option>
+                            <option value="enterprise">Enterprise</option>
+                          </select>
+                        </div>
+                        <div>
+                          <Label htmlFor="newMonthlyLimit">Monthly Limit</Label>
+                          <Input
+                            id="newMonthlyLimit"
+                            type="number"
+                            min="0"
+                            value={newClientData.monthlyGenerationLimit}
+                            onChange={(e) => setNewClientData(prev => ({ ...prev, monthlyGenerationLimit: parseInt(e.target.value) || 0 }))}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="newVisitorLimit">Visitor Free Limit</Label>
+                          <Input
+                            id="newVisitorLimit"
+                            type="number"
+                            min="0"
+                            value={newClientData.embedVisitorLimit}
+                            onChange={(e) => setNewClientData(prev => ({ ...prev, embedVisitorLimit: parseInt(e.target.value) || 0 }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center justify-between rounded-md border p-3">
+                          <Label htmlFor="newEmbedEnabled">Embed Enabled</Label>
+                          <Switch
+                            id="newEmbedEnabled"
+                            checked={newClientData.embedEnabled}
+                            onCheckedChange={(checked) => setNewClientData(prev => ({ ...prev, embedEnabled: checked }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between rounded-md border p-3">
+                          <Label htmlFor="newQuoteGate">Quote Gate After Limit</Label>
+                          <Switch
+                            id="newQuoteGate"
+                            checked={newClientData.embedRequireQuoteAfterLimit}
+                            onCheckedChange={(checked) => setNewClientData(prev => ({ ...prev, embedRequireQuoteAfterLimit: checked }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-4 rounded-md border p-4">
+                        <div>
+                          <h3 className="font-semibold">Quote Flow</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Customize the quote gate, popup form, and where submitted quote requests are sent.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="newCtaText">Quote Button Text</Label>
+                            <Input
+                              id="newCtaText"
+                              value={newClientData.embedCtaText}
+                              onChange={(e) => setNewClientData(prev => ({ ...prev, embedCtaText: e.target.value }))}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="newQuoteDestinationType">Quote Destination</Label>
+                            <select
+                              id="newQuoteDestinationType"
+                              value={newClientData.embedQuoteDestinationType}
+                              onChange={(e) => setNewClientData(prev => ({ ...prev, embedQuoteDestinationType: e.target.value }))}
+                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            >
+                              <option value="email">Popup form + email</option>
+                              <option value="phone">Phone call</option>
+                              <option value="link">External link</option>
+                            </select>
+                          </div>
+                          <div>
+                            <Label htmlFor="newQuoteRecipientEmail">Quote Recipient Email</Label>
+                            <Input
+                              id="newQuoteRecipientEmail"
+                              type="email"
+                              value={newClientData.embedQuoteRecipientEmail}
+                              onChange={(e) => setNewClientData(prev => ({ ...prev, embedQuoteRecipientEmail: e.target.value }))}
+                              placeholder="quotes@client.com"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="newQuoteRedirectUrl">Success / External Link URL</Label>
+                            <Input
+                              id="newQuoteRedirectUrl"
+                              value={newClientData.embedQuoteSuccessRedirectUrl}
+                              onChange={(e) => setNewClientData(prev => ({ ...prev, embedQuoteSuccessRedirectUrl: e.target.value }))}
+                              placeholder="https://client.com/free-quote"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="newQuoteGateTitle">Gate Title</Label>
+                            <Input
+                              id="newQuoteGateTitle"
+                              value={newClientData.embedQuoteGateTitle}
+                              onChange={(e) => setNewClientData(prev => ({ ...prev, embedQuoteGateTitle: e.target.value }))}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="newQuoteFormTitle">Popup Title</Label>
+                            <Input
+                              id="newQuoteFormTitle"
+                              value={newClientData.embedQuoteFormTitle}
+                              onChange={(e) => setNewClientData(prev => ({ ...prev, embedQuoteFormTitle: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="newQuoteGateMessage">Gate Message</Label>
+                            <Textarea
+                              id="newQuoteGateMessage"
+                              value={newClientData.embedQuoteGateMessage}
+                              onChange={(e) => setNewClientData(prev => ({ ...prev, embedQuoteGateMessage: e.target.value }))}
+                              rows={3}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="newQuoteFormMessage">Popup Message</Label>
+                            <Textarea
+                              id="newQuoteFormMessage"
+                              value={newClientData.embedQuoteFormMessage}
+                              onChange={(e) => setNewClientData(prev => ({ ...prev, embedQuoteFormMessage: e.target.value }))}
+                              rows={3}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between rounded-md border p-3">
+                          <div>
+                            <Label htmlFor="newQuoteIncludeImages">Attach Generated Image</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Email notifications attach the visitor's latest generated visualization when possible.
+                            </p>
+                          </div>
+                          <Switch
+                            id="newQuoteIncludeImages"
+                            checked={newClientData.embedQuoteIncludeImages}
+                            onCheckedChange={(checked) => setNewClientData(prev => ({ ...prev, embedQuoteIncludeImages: checked }))}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="newEmbedCustomizations">Private Embed Customizations JSON</Label>
+                        <Textarea
+                          id="newEmbedCustomizations"
+                          value={newClientData.embedCustomizations}
+                          onChange={(e) => setNewClientData(prev => ({ ...prev, embedCustomizations: e.target.value }))}
+                          rows={5}
+                          placeholder='{"sidingColors":[{"label":"Deep Ocean","hex":"#123456"}],"bathroomOptions":[{"label":"Premium Shower Package","prompt":"Replace the shower area with..."}]}'
+                        />
+                      </div>
                       <div className="flex space-x-2">
                         <Button onClick={handleCreateClient} disabled={createTenantMutation.isPending}>
                           {createTenantMutation.isPending ? "Creating..." : "Create Client"}
@@ -952,6 +1188,173 @@ export default function AdminDashboard() {
                             Set to 0 to reset usage count
                           </p>
                         </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="editClientType">Client Type</Label>
+                          <select
+                            id="editClientType"
+                            value={(editingClient as any).clientType || "standard"}
+                            onChange={(e) => setEditingClient(prev => prev ? ({
+                              ...prev,
+                              clientType: e.target.value,
+                              isEnterprise: e.target.value === "enterprise",
+                              monthlyGenerationLimit: e.target.value === "enterprise" ? 1800 : prev.monthlyGenerationLimit,
+                            } as any) : null)}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          >
+                            <option value="standard">Standard</option>
+                            <option value="enterprise">Enterprise</option>
+                          </select>
+                        </div>
+                        <div>
+                          <Label htmlFor="editVisitorLimit">Visitor Free Limit</Label>
+                          <Input
+                            id="editVisitorLimit"
+                            type="number"
+                            min="0"
+                            value={(editingClient as any).embedVisitorLimit || 3}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, embedVisitorLimit: parseInt(e.target.value) || 0 } as any) : null)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editEmbedPrimaryColor">Embed Primary Color</Label>
+                          <Input
+                            id="editEmbedPrimaryColor"
+                            type="color"
+                            value={(editingClient as any).embedPrimaryColor || editingClient.primaryColor || "#2563EB"}
+                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, embedPrimaryColor: e.target.value } as any) : null)}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center justify-between rounded-md border p-3">
+                          <Label htmlFor="editEmbedEnabled">Embed Enabled</Label>
+                          <Switch
+                            id="editEmbedEnabled"
+                            checked={Boolean((editingClient as any).embedEnabled)}
+                            onCheckedChange={(checked) => setEditingClient(prev => prev ? ({ ...prev, embedEnabled: checked } as any) : null)}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between rounded-md border p-3">
+                          <Label htmlFor="editQuoteGate">Quote Gate After Limit</Label>
+                          <Switch
+                            id="editQuoteGate"
+                            checked={Boolean((editingClient as any).embedRequireQuoteAfterLimit)}
+                            onCheckedChange={(checked) => setEditingClient(prev => prev ? ({ ...prev, embedRequireQuoteAfterLimit: checked } as any) : null)}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-4 rounded-md border p-4">
+                        <div>
+                          <h3 className="font-semibold">Quote Flow</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Customize the quote gate, popup form, and where submitted quote requests are sent.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="editCtaText">Quote Button Text</Label>
+                            <Input
+                              id="editCtaText"
+                              value={(editingClient as any).embedCtaText || "Get Free Quote"}
+                              onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, embedCtaText: e.target.value } as any) : null)}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="editQuoteDestinationType">Quote Destination</Label>
+                            <select
+                              id="editQuoteDestinationType"
+                              value={(editingClient as any).embedQuoteDestinationType || "email"}
+                              onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, embedQuoteDestinationType: e.target.value } as any) : null)}
+                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            >
+                              <option value="email">Popup form + email</option>
+                              <option value="phone">Phone call</option>
+                              <option value="link">External link</option>
+                            </select>
+                          </div>
+                          <div>
+                            <Label htmlFor="editQuoteRecipientEmail">Quote Recipient Email</Label>
+                            <Input
+                              id="editQuoteRecipientEmail"
+                              type="email"
+                              value={(editingClient as any).embedQuoteRecipientEmail || ""}
+                              onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, embedQuoteRecipientEmail: e.target.value } as any) : null)}
+                              placeholder={(editingClient as any).email || "quotes@client.com"}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="editQuoteRedirectUrl">Success / External Link URL</Label>
+                            <Input
+                              id="editQuoteRedirectUrl"
+                              value={(editingClient as any).embedQuoteSuccessRedirectUrl || ""}
+                              onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, embedQuoteSuccessRedirectUrl: e.target.value } as any) : null)}
+                              placeholder="https://client.com/free-quote"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="editQuoteGateTitle">Gate Title</Label>
+                            <Input
+                              id="editQuoteGateTitle"
+                              value={(editingClient as any).embedQuoteGateTitle || "Ready for a free quote?"}
+                              onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, embedQuoteGateTitle: e.target.value } as any) : null)}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="editQuoteFormTitle">Popup Title</Label>
+                            <Input
+                              id="editQuoteFormTitle"
+                              value={(editingClient as any).embedQuoteFormTitle || "Get your free quote"}
+                              onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, embedQuoteFormTitle: e.target.value } as any) : null)}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="editQuoteGateMessage">Gate Message</Label>
+                            <Textarea
+                              id="editQuoteGateMessage"
+                              value={(editingClient as any).embedQuoteGateMessage || "You've reached the free visualization limit. Request a quote to keep planning your project."}
+                              onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, embedQuoteGateMessage: e.target.value } as any) : null)}
+                              rows={3}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="editQuoteFormMessage">Popup Message</Label>
+                            <Textarea
+                              id="editQuoteFormMessage"
+                              value={(editingClient as any).embedQuoteFormMessage || "Send your project details and the team will follow up with a quote."}
+                              onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, embedQuoteFormMessage: e.target.value } as any) : null)}
+                              rows={3}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between rounded-md border p-3">
+                          <div>
+                            <Label htmlFor="editQuoteIncludeImages">Attach Generated Image</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Email notifications attach the visitor's latest generated visualization when possible.
+                            </p>
+                          </div>
+                          <Switch
+                            id="editQuoteIncludeImages"
+                            checked={(editingClient as any).embedQuoteIncludeImages !== false}
+                            onCheckedChange={(checked) => setEditingClient(prev => prev ? ({ ...prev, embedQuoteIncludeImages: checked } as any) : null)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="editEmbedCustomizations">Private Embed Customizations JSON</Label>
+                        <Textarea
+                          id="editEmbedCustomizations"
+                          value={String((editingClient as any).embedCustomizations || "")}
+                          onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, embedCustomizations: e.target.value } as any) : null)}
+                          rows={6}
+                          placeholder='{"sidingColors":[{"label":"Deep Ocean","hex":"#123456"}],"bathroomOptions":[{"label":"Premium Shower Package","prompt":"Replace the shower area with..."}]}'
+                        />
                       </div>
                       <div className="flex space-x-2">
                         <Button onClick={handleSaveClient} disabled={updateClientMutation.isPending}>
@@ -1358,333 +1761,6 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* Clients Tab */}
-          <TabsContent value="clients" className="space-y-8">
-            <Card>
-              <CardHeader className="pb-6">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-                  <div>
-                    <CardTitle className="text-xl">Client Management</CardTitle>
-                    <p className="text-muted-foreground mt-2">
-                      Manage all your clients and their embed configurations
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={() => window.location.href = '/embed-manager'}
-                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                    >
-                      <Settings className="h-4 w-4 mr-2" /> Manage Embeds
-                    </Button>
-                    <Button 
-                      onClick={() => setIsAddingClient(true)}
-                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                    >
-                      <Plus className="h-4 w-4 mr-2" /> Add New Client
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {/* Add New Client Form */}
-                {isAddingClient && (
-                  <Card className="mb-6">
-                    <CardHeader>
-                      <CardTitle>Add New Client</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="newCompanyName">Company Name *</Label>
-                          <Input
-                            id="newCompanyName"
-                            value={newClientData.companyName}
-                            onChange={(e) => setNewClientData(prev => ({ ...prev, companyName: e.target.value }))}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="newSlug">Slug (URL identifier) *</Label>
-                          <Input
-                            id="newSlug"
-                            value={newClientData.slug}
-                            onChange={(e) => setNewClientData(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
-                            placeholder="company-name"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="newEmail">Email *</Label>
-                          <Input
-                            id="newEmail"
-                            type="email"
-                            value={newClientData.email}
-                            onChange={(e) => setNewClientData(prev => ({ ...prev, email: e.target.value }))}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="newPhone">Phone</Label>
-                          <Input
-                            id="newPhone"
-                            value={newClientData.phone}
-                            onChange={(e) => setNewClientData(prev => ({ ...prev, phone: e.target.value }))}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="newDescription">Description</Label>
-                        <Textarea
-                          id="newDescription"
-                          value={newClientData.description}
-                          onChange={(e) => setNewClientData(prev => ({ ...prev, description: e.target.value }))}
-                          rows={2}
-                        />
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button onClick={handleCreateClient} disabled={createTenantMutation.isPending}>
-                          {createTenantMutation.isPending ? "Creating..." : "Create Client"}
-                        </Button>
-                        <Button variant="outline" onClick={() => setIsAddingClient(false)}>
-                          Cancel
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Edit Client Form */}
-                {editingClient && (
-                  <Card className="mb-6">
-                    <CardHeader>
-                      <CardTitle>Edit Client: {editingClient.companyName}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="editCompanyName">Company Name</Label>
-                          <Input
-                            id="editCompanyName"
-                            value={editingClient.companyName}
-                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, companyName: e.target.value }) : null)}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="editEmail">Email</Label>
-                          <Input
-                            id="editEmail"
-                            type="email"
-                            value={editingClient.email || ""}
-                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, email: e.target.value }) : null)}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="editPhone">Phone</Label>
-                          <Input
-                            id="editPhone"
-                            value={editingClient.phone || ""}
-                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, phone: e.target.value }) : null)}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="editPrimaryColor">Primary Color</Label>
-                          <Input
-                            id="editPrimaryColor"
-                            type="color"
-                            value={editingClient.primaryColor || "#2563EB"}
-                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, primaryColor: e.target.value }) : null)}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="editDescription">Description</Label>
-                        <Textarea
-                          id="editDescription"
-                          value={editingClient.description || ""}
-                          onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, description: e.target.value }) : null)}
-                          rows={2}
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="editMonthlyLimit">Monthly Generation Limit</Label>
-                          <Input
-                            id="editMonthlyLimit"
-                            type="number"
-                            min="0"
-                            value={editingClient.monthlyGenerationLimit || 100}
-                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, monthlyGenerationLimit: parseInt(e.target.value) }) : null)}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="editCurrentGenerations">Current Month Usage</Label>
-                          <Input
-                            id="editCurrentGenerations"
-                            type="number"
-                            min="0"
-                            value={editingClient.currentMonthGenerations || 0}
-                            onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, currentMonthGenerations: parseInt(e.target.value) }) : null)}
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Set to 0 to reset usage count
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button onClick={handleSaveClient} disabled={updateClientMutation.isPending}>
-                          {updateClientMutation.isPending ? "Saving..." : "Save Changes"}
-                        </Button>
-                        <Button variant="outline" onClick={() => setEditingClient(null)}>
-                          Cancel
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Clients Grid */}
-                {allTenants.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No clients yet</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Add your first client to start managing their visualizer embeds
-                    </p>
-                    <Button 
-                      onClick={() => setIsAddingClient(true)}
-                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                    >
-                      <Plus className="h-4 w-4 mr-2" /> Add Your First Client
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {allTenants.map((tenant: Tenant) => (
-                      <Card key={tenant.id} className={`transition-all hover:shadow-lg ${!tenant.active ? 'opacity-75 border-red-200' : 'border-green-200'}`}>
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <div className={`w-3 h-3 rounded-full ${tenant.active ? 'bg-green-500' : 'bg-red-500'}`} />
-                              <div>
-                                <CardTitle className="text-lg">{tenant.companyName}</CardTitle>
-                                <p className="text-sm text-muted-foreground">/{tenant.slug}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Badge variant={tenant.active ? "default" : "destructive"}>
-                                {tenant.active ? "Active" : "Inactive"}
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {/* Client Info */}
-                          <div className="grid grid-cols-1 gap-2 text-sm">
-                            {tenant.email && (
-                              <div className="flex items-center space-x-2 text-muted-foreground">
-                                <Mail className="h-4 w-4" />
-                                <span>{tenant.email}</span>
-                              </div>
-                            )}
-                            {tenant.phone && (
-                              <div className="flex items-center space-x-2 text-muted-foreground">
-                                <Phone className="h-4 w-4" />
-                                <span>{tenant.phone}</span>
-                              </div>
-                            )}
-                            {/* Generation Usage */}
-                            <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="text-xs font-medium text-gray-600">Monthly Usage</span>
-                                <span className="text-xs font-mono">
-                                  {tenant.currentMonthGenerations || 0}/{tenant.monthlyGenerationLimit || 100}
-                                </span>
-                              </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div 
-                                  className={`h-2 rounded-full transition-all ${
-                                    (tenant.currentMonthGenerations || 0) > (tenant.monthlyGenerationLimit || 100) 
-                                      ? 'bg-red-500' 
-                                      : (tenant.currentMonthGenerations || 0) / (tenant.monthlyGenerationLimit || 100) > 0.8 
-                                        ? 'bg-yellow-500' 
-                                        : 'bg-green-500'
-                                  }`}
-                                  style={{ 
-                                    width: `${Math.min((tenant.currentMonthGenerations || 0) / (tenant.monthlyGenerationLimit || 100) * 100, 100)}%` 
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex justify-between items-center pt-3 border-t">
-                            <div className="flex space-x-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleEditClient(tenant)}
-                                className="flex items-center space-x-1"
-                              >
-                                <Edit className="h-4 w-4" />
-                                <span>Edit</span>
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const params = new URLSearchParams({
-                                    tenant: tenant.slug,
-                                    tenantId: String(tenant.id),
-                                  });
-                                  const embedUrl = `${window.location.origin}/embed?${params.toString()}`;
-                                  window.open(embedUrl, '_blank');
-                                }}
-                                className="flex items-center space-x-1"
-                              >
-                                <Code className="h-4 w-4" />
-                                <span>Preview</span>
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setDeletingClient(tenant)}
-                                className="flex items-center space-x-1 text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span>Delete</span>
-                              </Button>
-                            </div>
-
-                            <Button
-                              variant={tenant.active ? "destructive" : "default"}
-                              size="sm"
-                              onClick={() => toggleClientStatusMutation.mutate({ 
-                                id: tenant.id, 
-                                active: !tenant.active 
-                              })}
-                              disabled={toggleClientStatusMutation.isPending}
-                              className="flex items-center space-x-1"
-                            >
-                              {tenant.active ? (
-                                <>
-                                  <XCircle className="h-4 w-4" />
-                                  <span>Suspend</span>
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCircle className="h-4 w-4" />
-                                  <span>Activate</span>
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           {/* Leads Tab */}
           <TabsContent value="leads" className="space-y-8">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -1715,7 +1791,7 @@ export default function AdminDashboard() {
               const exportLeads = (leadsData: any[], filename: string) => {
                 const csvContent = [
                   // CSV headers
-                  ['Date', 'Type', 'Name', 'Email', 'Phone', 'Location/Service', 'Description'].join(','),
+                  ['Date', 'Type', 'Name', 'Email', 'Phone', 'Location/Service', 'Description', 'Generated Image'].join(','),
                   // CSV data
                   ...leadsData.map(lead => [
                     lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'N/A',
@@ -1724,7 +1800,8 @@ export default function AdminDashboard() {
                     lead.email,
                     lead.phone || 'N/A',
                     lead.location || lead.service || 'N/A',
-                    `"${(lead.projectDetails || 'No details').replace(/"/g, '""')}"`
+                    `"${(lead.projectDetails || 'No details').replace(/"/g, '""')}"`,
+                    `"${(lead.generatedImageUrl || '').replace(/"/g, '""')}"`
                   ].join(','))
                 ].join('\n');
                 
@@ -1793,6 +1870,7 @@ export default function AdminDashboard() {
                                   <th className="text-left p-3 font-medium text-gray-700">Phone</th>
                                   <th className="text-left p-3 font-medium text-gray-700">Location</th>
                                   <th className="text-left p-3 font-medium text-gray-700">Project Details</th>
+                                  <th className="text-left p-3 font-medium text-gray-700">Visualization</th>
                                   <th className="text-left p-3 font-medium text-gray-700">Date</th>
                                   <th className="text-left p-3 font-medium text-gray-700">Actions</th>
                                 </tr>
@@ -1860,6 +1938,32 @@ export default function AdminDashboard() {
                                               </button>
                                             )}
                                           </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="flex flex-col gap-1 text-sm">
+                                        {lead.generatedImageUrl ? (
+                                          <a
+                                            href={lead.generatedImageUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                                          >
+                                            View generated
+                                          </a>
+                                        ) : (
+                                          <span className="text-gray-500">No generated image</span>
+                                        )}
+                                        {lead.originalImageUrl && (
+                                          <a
+                                            href={lead.originalImageUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-xs text-gray-500 hover:text-gray-700 hover:underline"
+                                          >
+                                            View original
+                                          </a>
                                         )}
                                       </div>
                                     </td>

@@ -2,6 +2,12 @@ import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 
+type ColorOption = {
+  value: string;
+  label: string;
+  hex: string;
+};
+
 interface StyleSelectorProps {
   selectedStyles: {
     roof: string;
@@ -13,6 +19,7 @@ interface StyleSelectorProps {
   primaryColor?: string;
   secondaryColor?: string;
   showWindows?: boolean;
+  customSidingColors?: ColorOption[];
 }
 
 const roofStyles = [
@@ -71,12 +78,6 @@ const windowOptions = [
   { value: "windows_modern_grid", label: "Modern Grid", hex: "#111827" },
 ];
 
-type ColorOption = {
-  value: string;
-  label: string;
-  hex: string;
-};
-
 function ColorSwatch({ color, className = "h-4 w-4" }: { color: string; className?: string }) {
   return (
     <span
@@ -96,7 +97,7 @@ function ColorOptionContent({ option }: { option: ColorOption }) {
   );
 }
 
-export default function StyleSelector({ selectedStyles, onStyleChange, primaryColor = "#475569", secondaryColor = "#64748b", showWindows = true }: StyleSelectorProps) {
+export default function StyleSelector({ selectedStyles, onStyleChange, primaryColor = "#475569", secondaryColor = "#64748b", showWindows = true, customSidingColors = [] }: StyleSelectorProps) {
   const [activeToggles, setActiveToggles] = useState({
     roof: !!selectedStyles.roof,
     siding: !!selectedStyles.siding,
@@ -109,7 +110,11 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
   const [selectedSidingStyle, setSelectedSidingStyle] = useState("");
   const [selectedSidingColor, setSelectedSidingColor] = useState("");
   const selectedRoofColorOption = roofColors.find((color) => color.value === selectedRoofColor);
-  const selectedSidingColorOption = sidingColors.find((color) => color.value === selectedSidingColor);
+  const mergedSidingColors = [
+    ...sidingColors,
+    ...customSidingColors.filter((color) => color.value && color.label && color.hex),
+  ];
+  const selectedSidingColorOption = mergedSidingColors.find((color) => color.value === selectedSidingColor);
 
   const handleToggleChange = (category: 'roof' | 'siding' | 'windows' | 'surpriseMe', enabled: boolean) => {
     // Handle mutual exclusivity between surprise me and other options
@@ -303,7 +308,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                       )}
                     </SelectTrigger>
                     <SelectContent onClick={(e) => e.stopPropagation()}>
-                      {sidingColors.map((color) => (
+                      {mergedSidingColors.map((color) => (
                         <SelectItem key={color.value} value={color.value} textValue={color.label} onClick={(e) => e.stopPropagation()}>
                           <ColorOptionContent option={color} />
                         </SelectItem>

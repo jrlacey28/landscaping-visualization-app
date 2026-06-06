@@ -12,6 +12,13 @@ type UploadRequestOptions = {
   accountUserId?: number | null;
   tenantId?: number | null;
   tenantSlug?: string | null;
+  visitorId?: string | null;
+};
+
+type ApiError = Error & {
+  status?: number;
+  code?: string;
+  details?: any;
 };
 
 function appendUploadContext(formData: FormData, options?: UploadRequestOptions) {
@@ -32,6 +39,18 @@ function appendUploadContext(formData: FormData, options?: UploadRequestOptions)
   if (options.tenantSlug) {
     formData.append('tenantSlug', options.tenantSlug);
   }
+
+  if (options.visitorId) {
+    formData.append('visitorId', options.visitorId);
+  }
+}
+
+function createApiError(message: string, response: Response, errorData: any): ApiError {
+  const error = new Error(message) as ApiError;
+  error.status = response.status;
+  error.code = errorData?.code;
+  error.details = errorData;
+  return error;
 }
 
 // Additional API utilities can be added here
@@ -131,7 +150,7 @@ export const uploadImage = async (
       errorMessage = 'AI processing failed. Please try again.';
     }
 
-    throw new Error(`Upload failed: ${errorMessage}`);
+    throw createApiError(`Upload failed: ${errorMessage}`, response, errorData);
   }
 
   const data = await response.json();
@@ -192,7 +211,7 @@ export const uploadInteriorImage = async (
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(`Interior upload failed: ${errorData.error || 'Unknown error'}`);
+    throw createApiError(`Interior upload failed: ${errorData.error || 'Unknown error'}`, response, errorData);
   }
 
   return response.json();
@@ -343,7 +362,7 @@ export const uploadPoolImage = async (
       errorMessage = 'Pool AI processing failed. Please try again.';
     }
 
-    throw new Error(`Pool upload failed: ${errorMessage}`);
+    throw createApiError(`Pool upload failed: ${errorMessage}`, response, errorData);
   }
 
   const data = await response.json();
@@ -412,7 +431,7 @@ export const uploadLandscapeImage = async (
       errorMessage = 'Landscape AI processing failed. Please try again.';
     }
 
-    throw new Error(`Landscape upload failed: ${errorMessage}`);
+    throw createApiError(`Landscape upload failed: ${errorMessage}`, response, errorData);
   }
 
   const data = await response.json();
@@ -466,7 +485,7 @@ export const uploadHalloweenImage = async (
     if (errorMessage.includes('AI') || errorMessage.includes('processing')) {
       errorMessage = 'Halloween AI processing failed. Please try again.';
     }
-    throw new Error(`Halloween upload failed: ${errorMessage}`);
+    throw createApiError(`Halloween upload failed: ${errorMessage}`, response, errorData);
   }
 
   const data = await response.json();
@@ -520,7 +539,7 @@ export const uploadChristmasLightsImage = async (
     if (errorMessage.includes('AI') || errorMessage.includes('processing')) {
       errorMessage = 'Christmas lights AI processing failed. Please try again.';
     }
-    throw new Error(`Christmas lights upload failed: ${errorMessage}`);
+    throw createApiError(`Christmas lights upload failed: ${errorMessage}`, response, errorData);
   }
 
   const data = await response.json();

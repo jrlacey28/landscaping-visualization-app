@@ -276,8 +276,8 @@ export default function Dashboard() {
   const planStatus = getPlanStatus();
   const fallbackTenant = {
     id: 0,
-    userId: user.user.id,
-    slug: `user-${user.user.id}`,
+    userId: user.workspaceOwnerId || user.user.id,
+    slug: `user-${user.workspaceOwnerId || user.user.id}`,
     companyName: user.user.businessName || `${user.user.firstName} ${user.user.lastName}`,
     primaryColor: '#10b981',
     secondaryColor: '#059669',
@@ -285,7 +285,12 @@ export default function Dashboard() {
     email: user.user.email,
     active: true,
   };
-  const embedTenant = tenant?.userId === user.user.id ? tenant : fallbackTenant;
+  const embedTenant = tenant && tenant.slug !== 'demo' ? tenant : fallbackTenant;
+  const embedAccountUserId = user.workspaceOwnerId || user.user.id;
+  const enterpriseTenant = user.enterpriseTenant;
+  const enterpriseUsagePercentage = enterpriseTenant?.monthlyGenerationLimit
+    ? ((enterpriseTenant.currentMonthGenerations || 0) / enterpriseTenant.monthlyGenerationLimit) * 100
+    : 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -489,7 +494,7 @@ export default function Dashboard() {
                       <label className="text-sm font-medium text-gray-500">Usage This Month</label>
                       <p className="text-sm text-gray-600 mb-3">
                         {user.usage.limit === -1
-                          ? 'Unlimited visualizations'
+                          ? 'Higher visualization amount'
                           : `${user.usage.currentUsage} of ${user.usage.limit} visualizations used`}
                       </p>
 
@@ -572,6 +577,35 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
+                {enterpriseTenant && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Enterprise Embed Usage</CardTitle>
+                      <CardDescription>
+                        Monthly quota for {enterpriseTenant.companyName}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-600">Embed generations</span>
+                        <Badge variant={enterpriseTenant.embedEnabled ? 'default' : 'secondary'}>
+                          {enterpriseTenant.embedEnabled ? 'Embed enabled' : 'Embed disabled'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        {(enterpriseTenant.currentMonthGenerations || 0).toLocaleString()} of{' '}
+                        {(enterpriseTenant.monthlyGenerationLimit || 0).toLocaleString()} visualizations used
+                      </p>
+                      <Progress value={Math.min(enterpriseUsagePercentage, 100)} className="w-full" />
+                      {enterpriseTenant.embedRequireQuoteAfterLimit && (
+                        <p className="text-xs text-gray-500">
+                          Website visitors get {enterpriseTenant.embedVisitorLimit || 3} free visualizations before the quote prompt.
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
                 {!user.usage.canUse && (
                   <Card className="border-destructive">
                     <CardHeader>
@@ -609,7 +643,7 @@ export default function Dashboard() {
               </div>
 
               {user.hasEmbedAccess ? (
-                <EmbedCodeGenerator tenant={embedTenant} accountUserId={user.user.id} />
+                <EmbedCodeGenerator tenant={embedTenant} accountUserId={embedAccountUserId} />
               ) : (
                 <Card>
                   <CardContent className="flex min-h-80 items-center justify-center p-8">

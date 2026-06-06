@@ -10,11 +10,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bath, ChefHat, ChevronDown, Home, LogOut, Paintbrush, Sofa, TreePine, User, Waves } from "lucide-react";
-import type { Tenant } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
 interface HeaderProps {
-  tenant: Tenant;
+  tenant: {
+    companyName: string;
+  };
   compactMobile?: boolean;
 }
 

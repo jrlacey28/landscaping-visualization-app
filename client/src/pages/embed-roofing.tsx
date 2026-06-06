@@ -5,7 +5,11 @@ import StyleSelector from "../components/style-selector";
 import { Button } from "../components/ui/button";
 import { Upload, Sparkles, Download, Eye, Camera, Phone, XCircle } from "lucide-react";
 import { SparklesText } from "@/components/ui/sparkles-text";
+import EmbedQuoteGate from "@/components/embed-quote-gate";
+import EmbedQuoteLeadForm from "@/components/embed-quote-lead-form";
+import { useEmbedVisitorLimit } from "@/hooks/use-embed-visitor-limit";
 import { uploadImage, checkVisualizationStatus } from "../lib/api";
+import { getEmbedQuoteButtonText, runEmbedQuoteAction } from "@/lib/embed-quote";
 import {
   DEFAULT_EMBED_BACKGROUND_COLOR,
   getEmbedBackground,
@@ -55,7 +59,32 @@ export default function EmbedRoofingPage() {
     createdAt: new Date(),
   };
 
+  const embedCustomizations = (effectiveTenant as any).embedCustomizations || {};
+  const customSidingColors = Array.isArray(embedCustomizations.sidingColors)
+    ? embedCustomizations.sidingColors
+        .map((color: any) => {
+          const hex = String(color.hex || color.color || "");
+          const rawValue = color.value || `${color.label || "custom"}_${hex.replace("#", "")}`;
+          return {
+            value: String(rawValue)
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "_")
+              .replace(/^_+|_+$/g, ""),
+            label: String(color.label || color.value || ""),
+            hex,
+          };
+        })
+        .filter((color: any) => color.value && color.label && /^#[0-9a-f]{6}$/i.test(color.hex))
+    : [];
+
   const resolvedLogoUrl = logoUrlParam || effectiveTenant.logoUrl || "";
+  const embedVisitor = useEmbedVisitorLimit({
+    tenantId: tenant?.id || null,
+    tenantSlug: tenant?.slug || null,
+  });
+  const visitorLimitReached =
+    !!embedVisitor.status?.limitEnabled && !embedVisitor.status.canGenerate;
+  const quoteButtonText = getEmbedQuoteButtonText(effectiveTenant);
   const pageBackground = getEmbedBackground(
     backgroundScheme,
     primaryColor,
@@ -68,6 +97,8 @@ export default function EmbedRoofingPage() {
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [visualizationResult, setVisualizationResult] = useState<any>(null);
+  const [lastGeneratedImageUrl, setLastGeneratedImageUrl] = useState<string | null>(null);
+  const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
   
   const [selectedStyles, setSelectedStyles] = useState({
@@ -93,7 +124,19 @@ export default function EmbedRoofingPage() {
       };
       reader.readAsDataURL(file);
       setVisualizationResult(null);
+      setLastGeneratedImageUrl(null);
     }
+  };
+
+  const handleQuoteClick = () => {
+    embedVisitor.trackQuoteClick();
+    runEmbedQuoteAction({
+      tenant: effectiveTenant,
+      contactType,
+      contactPhone,
+      contactLink,
+      openForm: () => setShowQuoteForm(true),
+    });
   };
 
   if (!tenant && tenantLoading && !isDemoLookup && !canUseAccountFallback) {
@@ -173,7 +216,31 @@ export default function EmbedRoofingPage() {
           </div>
         )}
 
+        {showQuoteForm && (
+          <EmbedQuoteLeadForm
+            tenant={effectiveTenant}
+            service="roofing-siding"
+            selectedStyles={selectedStyles}
+            originalImageUrl={uploadedImage}
+            generatedImageUrl={visualizationResult?.generatedImageUrl || lastGeneratedImageUrl}
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            onClose={() => setShowQuoteForm(false)}
+          />
+        )}
+
+        {visitorLimitReached && (
+          <EmbedQuoteGate
+            status={embedVisitor.status}
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            buttonText={quoteButtonText}
+            onQuoteClick={handleQuoteClick}
+          />
+        )}
+
         {/* Image Upload */}
+        {!visitorLimitReached && (
         <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
           <h2 className={`text-xl font-semibold mb-4 text-center ${themeClasses.panelTitle}`}>Upload Your Home Photo</h2>
           
@@ -290,6 +357,7 @@ export default function EmbedRoofingPage() {
                         setUploadedImage(null);
                         setOriginalFile(null);
                         setVisualizationResult(null);
+                        setLastGeneratedImageUrl(null);
                         setShowingOriginal(false);
                         setSelectedStyles({
                           roof: { enabled: false, type: "" },
@@ -311,26 +379,20 @@ export default function EmbedRoofingPage() {
                     style={{ 
                       background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
                     }}
-                    onClick={() => {
-                      const quotePhone = contactPhone || effectiveTenant.contactPhone || effectiveTenant.phone;
-                      if (contactType === 'link' && contactLink) {
-                        window.open(contactLink, '_blank');
-                      } else if (quotePhone) {
-                        window.open(`tel:${quotePhone.replace(/[\(\)\-\s]/g, '')}`, '_self');
-                      }
-                    }}
+                    onClick={handleQuoteClick}
                   >
                     <Phone className="h-5 w-5 mr-2" />
-                    Get Free Quote
+                    {quoteButtonText}
                   </Button>
                 </div>
               )}
             </div>
           )}
         </div>
+        )}
 
         {/* Style Selection */}
-        {uploadedImage && (
+        {uploadedImage && !visitorLimitReached && (
           <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
             <h2 className={`text-xl font-semibold mb-4 ${themeClasses.panelTitle}`}>Choose Your Style</h2>
             <StyleSelector
@@ -360,12 +422,13 @@ export default function EmbedRoofingPage() {
               primaryColor={primaryColor}
               secondaryColor={secondaryColor}
               showWindows
+              customSidingColors={customSidingColors}
             />
           </div>
         )}
 
         {/* Generate Button */}
-        {uploadedImage && (
+        {uploadedImage && !visitorLimitReached && (
           <div className="mb-4">
             <Button
               size="lg"
@@ -404,6 +467,7 @@ export default function EmbedRoofingPage() {
                       accountUserId: accountUserIdParam ? Number(accountUserIdParam) : null,
                       tenantId: tenant?.id || null,
                       tenantSlug: tenant?.slug || null,
+                      visitorId: embedVisitor.visitorId,
                     },
                   );
 
@@ -412,11 +476,20 @@ export default function EmbedRoofingPage() {
                       result.visualizationId,
                     );
                     setVisualizationResult(status);
+                    if (status?.generatedImageUrl) {
+                      setLastGeneratedImageUrl(status.generatedImageUrl);
+                    }
                   }
                 } catch (error) {
                   console.error("Error generating visualization:", error);
+                  const apiError = error as any;
+                  if (apiError.code === "EMBED_VISITOR_LIMIT") {
+                    embedVisitor.markLimitReached(apiError.details?.embedVisitorUsage);
+                    return;
+                  }
                   alert("Unable to generate visualization. Please try again.");
                 } finally {
+                  embedVisitor.refresh();
                   setIsGenerating(false);
                 }
               }}

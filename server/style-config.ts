@@ -26,6 +26,24 @@ interface ColorDescriptor {
   promptDescription: string;
 }
 
+function createCustomColorDescriptor(value: string): ColorDescriptor {
+  const hexMatch = value.match(/([0-9a-f]{6})$/i);
+  const hex = hexMatch ? `#${hexMatch[1]}` : "";
+  const label = value
+    .replace(/_[0-9a-f]{6}$/i, "")
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+  return {
+    value,
+    label: label || "Custom Color",
+    hex,
+    promptDescription: `custom client color ${label || value}${hex ? ` (${hex})` : ""}`,
+  };
+}
+
 export const ROOF_COLORS: Record<string, ColorDescriptor> = {
   charcoal_gray: { value: "charcoal_gray", label: "Charcoal Gray", hex: "#36454F", promptDescription: "charcoal gray color with sophisticated dark tones" },
   pewter_gray: { value: "pewter_gray", label: "Pewter Gray", hex: "#8C92AC", promptDescription: "pewter gray with subtle blue undertones" },
@@ -334,13 +352,11 @@ export function generateStyleConfig(styleType: string, colorValue: string): Styl
     throw new Error(`Unknown style type: ${styleType}`);
   }
 
-  const colorDescriptor = template.category === "roof" 
-    ? ROOF_COLORS[colorValue] 
-    : SIDING_COLORS[colorValue];
-    
-  if (!colorDescriptor) {
-    throw new Error(`Unknown color: ${colorValue} for ${template.category}`);
-  }
+  const colorDescriptor = (
+    template.category === "roof"
+      ? ROOF_COLORS[colorValue]
+      : SIDING_COLORS[colorValue]
+  ) || createCustomColorDescriptor(colorValue);
 
   const prompt = template.basePrompt.replace(/{COLOR_DESCRIPTION}/g, colorDescriptor.promptDescription);
   
