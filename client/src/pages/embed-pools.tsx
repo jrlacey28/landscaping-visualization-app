@@ -16,6 +16,8 @@ import {
   getEmbedThemeClasses,
   parseEmbedBackgroundScheme,
 } from "@/lib/embed-theme";
+import { normalizeEmbedCustomOptions } from "@/lib/embed-custom-options";
+import { isEmbedServiceEnabled } from "@/lib/embed-services";
 
 export default function EmbedPoolsPage() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -59,7 +61,27 @@ export default function EmbedPoolsPage() {
     createdAt: new Date(),
   }) as any;
 
-  const resolvedLogoUrl = logoUrlParam || effectiveTenant.logoUrl || "";
+  const resolvedPrimaryColor =
+    tenant ? effectiveTenant.embedPrimaryColor || effectiveTenant.primaryColor || primaryColor : primaryColor;
+  const resolvedSecondaryColor =
+    tenant ? effectiveTenant.embedSecondaryColor || effectiveTenant.secondaryColor || secondaryColor : secondaryColor;
+  const resolvedLogoUrl = tenant ? effectiveTenant.logoUrl || logoUrlParam || "" : logoUrlParam || effectiveTenant.logoUrl || "";
+  const displayCompanyName = tenant
+    ? effectiveTenant.companyName || companyName || "DreamBuilder"
+    : companyName || effectiveTenant.companyName || "DreamBuilder";
+  const embedCustomizations = effectiveTenant.embedCustomizations || {};
+  const poolCustomOptions = {
+    poolType: normalizeEmbedCustomOptions(embedCustomizations.poolOptions?.poolType, "tenant_custom_pool_pool_type"),
+    poolSize: normalizeEmbedCustomOptions(embedCustomizations.poolOptions?.poolSize, "tenant_custom_pool_pool_size"),
+    decking: normalizeEmbedCustomOptions(embedCustomizations.poolOptions?.decking, "tenant_custom_pool_decking"),
+    landscaping: normalizeEmbedCustomOptions(
+      embedCustomizations.poolOptions?.landscaping,
+      "tenant_custom_pool_landscaping",
+    ),
+    features: normalizeEmbedCustomOptions(embedCustomizations.poolOptions?.features, "tenant_custom_pool_features"),
+    hotTub: normalizeEmbedCustomOptions(embedCustomizations.poolOptions?.hotTub, "tenant_custom_pool_hot_tub"),
+    sauna: normalizeEmbedCustomOptions(embedCustomizations.poolOptions?.sauna, "tenant_custom_pool_sauna"),
+  };
   const embedVisitor = useEmbedVisitorLimit({
     tenantId: tenant?.id || null,
     tenantSlug: tenant?.slug || null,
@@ -69,8 +91,8 @@ export default function EmbedPoolsPage() {
   const quoteButtonText = getEmbedQuoteButtonText(effectiveTenant);
   const pageBackground = getEmbedBackground(
     backgroundScheme,
-    primaryColor,
-    secondaryColor,
+    resolvedPrimaryColor,
+    resolvedSecondaryColor,
     backgroundColor,
   );
   const themeClasses = getEmbedThemeClasses(backgroundScheme);
@@ -95,9 +117,9 @@ export default function EmbedPoolsPage() {
 
   // Apply custom branding
   useEffect(() => {
-    document.documentElement.style.setProperty('--primary-color', primaryColor);
-    document.documentElement.style.setProperty('--secondary-color', secondaryColor);
-  }, [primaryColor, secondaryColor]);
+    document.documentElement.style.setProperty('--primary-color', resolvedPrimaryColor);
+    document.documentElement.style.setProperty('--secondary-color', resolvedSecondaryColor);
+  }, [resolvedPrimaryColor, resolvedSecondaryColor]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -180,6 +202,22 @@ export default function EmbedPoolsPage() {
     );
   }
 
+  if (effectiveTenant && !isEmbedServiceEnabled(effectiveTenant, "pools")) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
+          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XCircle className="h-8 w-8 text-slate-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Visualizer Not Available</h1>
+          <p className="text-gray-600">
+            This embed service is not enabled for {displayCompanyName}.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen p-2" style={{ background: pageBackground }}>
       <div className="max-w-4xl mx-auto">
@@ -188,12 +226,12 @@ export default function EmbedPoolsPage() {
             {resolvedLogoUrl && (
               <img
                 src={resolvedLogoUrl}
-                alt={`${companyName || effectiveTenant.companyName} logo`}
+                alt={`${displayCompanyName} logo`}
                 className="mx-auto mb-4 max-h-20 max-w-[220px] object-contain"
               />
             )}
             <h1 className={`text-3xl md:text-4xl font-bold mb-2 ${themeClasses.headerText}`}>
-              {companyName || effectiveTenant.companyName} Pool Visualizer
+              {displayCompanyName} Pool Visualizer
             </h1>
             <p className={`text-lg ${themeClasses.subheadingText}`}>
               Transform your backyard with AI-powered pool design visualization
@@ -208,8 +246,8 @@ export default function EmbedPoolsPage() {
             selectedStyles={selectedPoolStyles}
             originalImageUrl={uploadedImage}
             generatedImageUrl={poolVisualizationResult?.generatedImageUrl || lastGeneratedImageUrl}
-            primaryColor={primaryColor}
-            secondaryColor={secondaryColor}
+            primaryColor={resolvedPrimaryColor}
+            secondaryColor={resolvedSecondaryColor}
             onClose={() => setShowQuoteForm(false)}
           />
         )}
@@ -217,8 +255,8 @@ export default function EmbedPoolsPage() {
         {visitorLimitReached && (
           <EmbedQuoteGate
             status={embedVisitor.status}
-            primaryColor={primaryColor}
-            secondaryColor={secondaryColor}
+            primaryColor={resolvedPrimaryColor}
+            secondaryColor={resolvedSecondaryColor}
             buttonText={quoteButtonText}
             onQuoteClick={handleQuoteClick}
           />
@@ -268,7 +306,7 @@ export default function EmbedPoolsPage() {
                         text="Designing your perfect pool area..."
                         className="text-sm sm:text-lg lg:text-xl font-bold text-white whitespace-nowrap"
                         sparklesCount={12}
-                        colors={{ first: primaryColor, second: secondaryColor }}
+                        colors={{ first: resolvedPrimaryColor, second: resolvedSecondaryColor }}
                       />
                     </div>
                   </div>
@@ -283,7 +321,7 @@ export default function EmbedPoolsPage() {
                       size="lg"
                       className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
                       style={{ 
-                        background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`
+                        background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor})`
                       }}
                       onClick={() => {
                         const img = document.createElement("img");
@@ -336,7 +374,7 @@ export default function EmbedPoolsPage() {
                       size="lg"
                       className="w-full text-white font-semibold shadow-md hover:shadow-lg transition-all py-3"
                       style={{ 
-                        background: `linear-gradient(to right, ${secondaryColor}, ${primaryColor})`
+                        background: `linear-gradient(to right, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
                       }}
                       onClick={() => {
                         setUploadedImage(null);
@@ -356,7 +394,7 @@ export default function EmbedPoolsPage() {
                     size="lg"
                     className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
                     style={{ 
-                      background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
+                      background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
                     }}
                     onClick={handleQuoteClick}
                   >
@@ -390,8 +428,9 @@ export default function EmbedPoolsPage() {
             <PoolStyleSelector
               selectedStyles={selectedPoolStyles}
               onStyleChange={setSelectedPoolStyles}
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
+              primaryColor={resolvedPrimaryColor}
+              secondaryColor={resolvedSecondaryColor}
+              customOptions={poolCustomOptions}
             />
           </div>
         )}
@@ -403,7 +442,7 @@ export default function EmbedPoolsPage() {
               size="lg"
               className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
               style={{ 
-                background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
+                background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
               }}
               disabled={
                 isGenerating ||

@@ -14,7 +14,21 @@ interface PoolStyleSelectorProps {
   onStyleChange: (styles: any) => void;
   primaryColor?: string;
   secondaryColor?: string;
+  customOptions?: {
+    poolType?: SelectorOption[];
+    poolSize?: SelectorOption[];
+    decking?: SelectorOption[];
+    landscaping?: SelectorOption[];
+    features?: SelectorOption[];
+    hotTub?: SelectorOption[];
+    sauna?: SelectorOption[];
+  };
 }
+
+type SelectorOption = {
+  value: string;
+  label: string;
+};
 
 const poolTypes = [
   { value: "rectangular_pool", label: "Rectangular Pool" },
@@ -59,7 +73,21 @@ const saunaOptions = [
   { value: "modern_sauna", label: "Modern Glass Sauna" },
 ];
 
-const PoolStyleSelector = React.memo(function PoolStyleSelector({ selectedStyles, onStyleChange, primaryColor = "#10b981", secondaryColor = "#059669" }: PoolStyleSelectorProps) {
+const PoolStyleSelector = React.memo(function PoolStyleSelector({
+  selectedStyles,
+  onStyleChange,
+  primaryColor = "#10b981",
+  secondaryColor = "#059669",
+  customOptions,
+}: PoolStyleSelectorProps) {
+  const allPoolTypes = [...poolTypes, ...(customOptions?.poolType || [])];
+  const allPoolSizes = [...poolSizes, ...(customOptions?.poolSize || [])];
+  const allDeckingOptions = [...deckingOptions, ...(customOptions?.decking || [])];
+  const allLandscapingOptions = [...landscapingOptions, ...(customOptions?.landscaping || [])];
+  const allFeatureOptions = [...featureOptions, ...(customOptions?.features || [])];
+  const allHotTubOptions = [...hotTubOptions, ...(customOptions?.hotTub || [])];
+  const allSaunaOptions = [...saunaOptions, ...(customOptions?.sauna || [])];
+
   const [activeToggles, setActiveToggles] = useState({
     poolType: !!selectedStyles.poolType,
     poolSize: !!selectedStyles.poolSize,
@@ -114,7 +142,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({ selectedStyles
 
           {activeToggles.poolType && (
             <div className="space-y-3">
-              {poolTypes.map((option) => (
+              {allPoolTypes.map((option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -152,7 +180,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({ selectedStyles
 
           {activeToggles.poolSize && (
             <div className="space-y-3">
-              {poolSizes.map((option) => (
+              {allPoolSizes.map((option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -190,7 +218,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({ selectedStyles
 
           {activeToggles.decking && (
             <div className="space-y-3">
-              {deckingOptions.map((option) => (
+              {allDeckingOptions.map((option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -228,7 +256,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({ selectedStyles
 
           {activeToggles.landscaping && (
             <div className="space-y-3">
-              {landscapingOptions.map((option) => (
+              {allLandscapingOptions.map((option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -266,7 +294,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({ selectedStyles
 
           {activeToggles.features && (
             <div className="space-y-3">
-              {featureOptions.map((option) => (
+              {allFeatureOptions.map((option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -304,7 +332,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({ selectedStyles
 
           {activeToggles.hotTub && (
             <div className="space-y-3">
-              {hotTubOptions.map((option) => (
+              {allHotTubOptions.map((option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -342,7 +370,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({ selectedStyles
 
           {activeToggles.sauna && (
             <div className="space-y-3">
-              {saunaOptions.map((option) => (
+              {allSaunaOptions.map((option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"

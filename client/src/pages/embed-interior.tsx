@@ -15,6 +15,7 @@ import {
   getEmbedThemeClasses,
   parseEmbedBackgroundScheme,
 } from "@/lib/embed-theme";
+import { type EmbedServiceKey, isEmbedServiceEnabled } from "@/lib/embed-services";
 
 type InteriorService = "painting" | "bathroom" | "kitchen" | "living_room";
 
@@ -389,6 +390,15 @@ export default function EmbedInteriorPage() {
     createdAt: new Date(),
   }) as any;
 
+  const resolvedPrimaryColor =
+    tenant ? effectiveTenant.embedPrimaryColor || effectiveTenant.primaryColor || primaryColor : primaryColor;
+  const resolvedSecondaryColor =
+    tenant ? effectiveTenant.embedSecondaryColor || effectiveTenant.secondaryColor || secondaryColor : secondaryColor;
+  const resolvedLogoUrl = tenant ? effectiveTenant.logoUrl || logoUrlParam || "" : logoUrlParam || effectiveTenant.logoUrl || "";
+  const displayCompanyName = tenant
+    ? effectiveTenant.companyName || companyName || "DreamBuilder"
+    : companyName || effectiveTenant.companyName || "DreamBuilder";
+
   const config = useMemo(() => {
     const tenantGroups = getTenantInteriorGroups(baseConfig, effectiveTenant);
     if (tenantGroups.length === 0) {
@@ -428,12 +438,10 @@ export default function EmbedInteriorPage() {
   }, [config]);
 
   useEffect(() => {
-    document.documentElement.style.setProperty("--primary-color", primaryColor);
-    document.documentElement.style.setProperty("--secondary-color", secondaryColor);
-  }, [primaryColor, secondaryColor]);
+    document.documentElement.style.setProperty("--primary-color", resolvedPrimaryColor);
+    document.documentElement.style.setProperty("--secondary-color", resolvedSecondaryColor);
+  }, [resolvedPrimaryColor, resolvedSecondaryColor]);
 
-  const resolvedLogoUrl = logoUrlParam || effectiveTenant.logoUrl || "";
-  const displayCompanyName = companyName || effectiveTenant.companyName || "DreamBuilder";
   const embedVisitor = useEmbedVisitorLimit({
     tenantId: tenant?.id || null,
     tenantSlug: tenant?.slug || null,
@@ -443,8 +451,8 @@ export default function EmbedInteriorPage() {
   const quoteButtonText = getEmbedQuoteButtonText(effectiveTenant);
   const pageBackground = getEmbedBackground(
     backgroundScheme,
-    primaryColor,
-    secondaryColor,
+    resolvedPrimaryColor,
+    resolvedSecondaryColor,
     backgroundColor,
   );
   const themeClasses = getEmbedThemeClasses(backgroundScheme);
@@ -676,6 +684,24 @@ export default function EmbedInteriorPage() {
       ? visualizationResult.generatedImageUrl
       : visualizationResult?.generatedImageUrl;
   const activeImage = completedImage && !showingOriginal ? completedImage : uploadedImage;
+  const serviceKey: EmbedServiceKey =
+    config.service === "living_room" ? "living-room" : config.service;
+
+  if (effectiveTenant && !isEmbedServiceEnabled(effectiveTenant, serviceKey)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+        <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+            <XCircle className="h-8 w-8 text-slate-600" />
+          </div>
+          <h1 className="mb-2 text-2xl font-bold text-gray-900">Visualizer Not Available</h1>
+          <p className="text-gray-600">
+            This embed service is not enabled for {displayCompanyName}.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-2" style={{ background: pageBackground }}>
@@ -703,8 +729,8 @@ export default function EmbedInteriorPage() {
             selectedStyles={selectedStyleIds}
             originalImageUrl={uploadedImage}
             generatedImageUrl={visualizationResult?.generatedImageUrl || lastGeneratedImageUrl}
-            primaryColor={primaryColor}
-            secondaryColor={secondaryColor}
+            primaryColor={resolvedPrimaryColor}
+            secondaryColor={resolvedSecondaryColor}
             onClose={() => setShowQuoteForm(false)}
           />
         )}
@@ -712,8 +738,8 @@ export default function EmbedInteriorPage() {
         {visitorLimitReached && (
           <EmbedQuoteGate
             status={embedVisitor.status}
-            primaryColor={primaryColor}
-            secondaryColor={secondaryColor}
+            primaryColor={resolvedPrimaryColor}
+            secondaryColor={resolvedSecondaryColor}
             buttonText={quoteButtonText}
             onQuoteClick={openQuote}
           />
@@ -762,7 +788,7 @@ export default function EmbedInteriorPage() {
                     <Button
                       size="lg"
                       className="font-semibold text-white shadow-md transition-all hover:shadow-lg"
-                      style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
+                      style={{ background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor})` }}
                       onClick={() => {
                         const anchor = document.createElement("a");
                         anchor.href = completedImage;
@@ -786,7 +812,7 @@ export default function EmbedInteriorPage() {
                   <Button
                     size="lg"
                     className="w-full font-semibold text-white shadow-md transition-all hover:shadow-lg"
-                    style={{ background: `linear-gradient(to right, ${secondaryColor}, ${primaryColor})` }}
+                    style={{ background: `linear-gradient(to right, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})` }}
                     onClick={resetPhoto}
                   >
                     <Camera className="mr-2 h-5 w-5" />
@@ -795,7 +821,7 @@ export default function EmbedInteriorPage() {
                   <Button
                     size="lg"
                     className="w-full py-4 font-semibold text-white shadow-lg transition-all hover:shadow-xl"
-                    style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})` }}
+                    style={{ background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})` }}
                     onClick={openQuote}
                   >
                     <Phone className="mr-2 h-5 w-5" />
@@ -837,7 +863,7 @@ export default function EmbedInteriorPage() {
                         aria-pressed={isActive}
                         onClick={() => toggleGroup(group)}
                         className="flex h-7 w-12 items-center rounded-full p-1 transition"
-                        style={{ backgroundColor: isActive ? primaryColor : "#64748b" }}
+                        style={{ backgroundColor: isActive ? resolvedPrimaryColor : "#64748b" }}
                       >
                         <span
                           className={`h-5 w-5 rounded-full bg-white transition-transform ${
@@ -901,7 +927,7 @@ export default function EmbedInteriorPage() {
             <Button
               size="lg"
               className="mb-4 w-full py-4 font-semibold text-white shadow-lg transition-all hover:shadow-xl disabled:opacity-50"
-              style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})` }}
+              style={{ background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})` }}
               disabled={isGenerating || selectedStyleIds.length === 0}
               onClick={generateDesign}
             >

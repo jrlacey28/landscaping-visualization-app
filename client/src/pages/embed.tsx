@@ -15,6 +15,8 @@ import {
   getEmbedThemeClasses,
   parseEmbedBackgroundScheme,
 } from "@/lib/embed-theme";
+import { normalizeEmbedCustomOptions } from "@/lib/embed-custom-options";
+import { isEmbedServiceEnabled } from "@/lib/embed-services";
 
 interface EmbedProps {
   tenantSlug?: string;
@@ -68,7 +70,29 @@ export default function EmbedPage() {
     createdAt: new Date(),
   };
 
-  const resolvedLogoUrl = logoUrlParam || effectiveTenant.logoUrl || "";
+  const resolvedPrimaryColor =
+    tenant ? (effectiveTenant as any).embedPrimaryColor || effectiveTenant.primaryColor || primaryColor : primaryColor;
+  const resolvedSecondaryColor =
+    tenant ? (effectiveTenant as any).embedSecondaryColor || effectiveTenant.secondaryColor || secondaryColor : secondaryColor;
+  const resolvedLogoUrl = tenant ? effectiveTenant.logoUrl || logoUrlParam || "" : logoUrlParam || effectiveTenant.logoUrl || "";
+  const displayCompanyName = tenant
+    ? effectiveTenant.companyName || companyName || "DreamBuilder"
+    : companyName || effectiveTenant.companyName || "DreamBuilder";
+  const embedCustomizations = (effectiveTenant as any).embedCustomizations || {};
+  const landscapeCustomOptions = {
+    curbing: normalizeEmbedCustomOptions(
+      embedCustomizations.landscapeOptions?.curbing,
+      "tenant_custom_landscape_curbing",
+    ),
+    landscape: normalizeEmbedCustomOptions(
+      embedCustomizations.landscapeOptions?.landscape,
+      "tenant_custom_landscape_landscape",
+    ),
+    patios: normalizeEmbedCustomOptions(
+      embedCustomizations.landscapeOptions?.patios,
+      "tenant_custom_landscape_patios",
+    ),
+  };
   const embedVisitor = useEmbedVisitorLimit({
     tenantId: tenant?.id || null,
     tenantSlug: tenant?.slug || null,
@@ -78,8 +102,8 @@ export default function EmbedPage() {
   const quoteButtonText = getEmbedQuoteButtonText(effectiveTenant);
   const pageBackground = getEmbedBackground(
     backgroundScheme,
-    primaryColor,
-    secondaryColor,
+    resolvedPrimaryColor,
+    resolvedSecondaryColor,
     backgroundColor,
   );
   const themeClasses = getEmbedThemeClasses(backgroundScheme);
@@ -100,9 +124,9 @@ export default function EmbedPage() {
 
   // Apply custom branding
   useEffect(() => {
-    document.documentElement.style.setProperty('--primary-color', primaryColor);
-    document.documentElement.style.setProperty('--secondary-color', secondaryColor);
-  }, [primaryColor, secondaryColor]);
+    document.documentElement.style.setProperty('--primary-color', resolvedPrimaryColor);
+    document.documentElement.style.setProperty('--secondary-color', resolvedSecondaryColor);
+  }, [resolvedPrimaryColor, resolvedSecondaryColor]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -185,6 +209,22 @@ export default function EmbedPage() {
     );
   }
 
+  if (effectiveTenant && !isEmbedServiceEnabled(effectiveTenant, "landscape")) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
+          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XCircle className="h-8 w-8 text-slate-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Visualizer Not Available</h1>
+          <p className="text-gray-600">
+            This embed service is not enabled for {displayCompanyName}.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen p-2" style={{ background: pageBackground }}>
       <div className="max-w-4xl mx-auto">
@@ -193,12 +233,12 @@ export default function EmbedPage() {
             {resolvedLogoUrl && (
               <img
                 src={resolvedLogoUrl}
-                alt={`${companyName || effectiveTenant.companyName} logo`}
+                alt={`${displayCompanyName} logo`}
                 className="mx-auto mb-4 max-h-20 max-w-[220px] object-contain"
               />
             )}
             <h1 className={`text-3xl md:text-4xl font-bold mb-2 ${themeClasses.headerText}`}>
-              {companyName || effectiveTenant.companyName} Landscape Visualizer
+              {displayCompanyName} Landscape Visualizer
             </h1>
             <p className={`text-lg ${themeClasses.subheadingText}`}>
               Transform your outdoor space with AI-powered landscape design
@@ -213,8 +253,8 @@ export default function EmbedPage() {
             selectedStyles={selectedLandscapeStyles}
             originalImageUrl={uploadedImage}
             generatedImageUrl={landscapeVisualizationResult?.generatedImageUrl || lastGeneratedImageUrl}
-            primaryColor={primaryColor}
-            secondaryColor={secondaryColor}
+            primaryColor={resolvedPrimaryColor}
+            secondaryColor={resolvedSecondaryColor}
             onClose={() => setShowQuoteForm(false)}
           />
         )}
@@ -222,8 +262,8 @@ export default function EmbedPage() {
         {visitorLimitReached && (
           <EmbedQuoteGate
             status={embedVisitor.status}
-            primaryColor={primaryColor}
-            secondaryColor={secondaryColor}
+            primaryColor={resolvedPrimaryColor}
+            secondaryColor={resolvedSecondaryColor}
             buttonText={quoteButtonText}
             onQuoteClick={handleQuoteClick}
           />
@@ -276,7 +316,7 @@ export default function EmbedPage() {
                         text="Designing your perfect landscape..."
                         className="text-sm sm:text-lg lg:text-xl font-bold text-white whitespace-nowrap"
                         sparklesCount={12}
-                        colors={{ first: primaryColor, second: secondaryColor }}
+                        colors={{ first: resolvedPrimaryColor, second: resolvedSecondaryColor }}
                       />
                     </div>
                   </div>
@@ -291,7 +331,7 @@ export default function EmbedPage() {
                       size="lg"
                       className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
                       style={{ 
-                        background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`
+                        background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor})`
                       }}
                       onClick={() => {
                         const img = document.createElement("img");
@@ -344,7 +384,7 @@ export default function EmbedPage() {
                       size="lg"
                       className="w-full text-white font-semibold shadow-md hover:shadow-lg transition-all py-3"
                       style={{ 
-                        background: `linear-gradient(to right, ${secondaryColor}, ${primaryColor})`
+                        background: `linear-gradient(to right, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
                       }}
                       onClick={() => {
                         setUploadedImage(null);
@@ -364,7 +404,7 @@ export default function EmbedPage() {
                     size="lg"
                     className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
                     style={{ 
-                      background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
+                      background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
                     }}
                     onClick={handleQuoteClick}
                   >
@@ -385,8 +425,9 @@ export default function EmbedPage() {
             <LandscapeStyleSelector
               selectedStyles={selectedLandscapeStyles}
               onStyleChange={setSelectedLandscapeStyles}
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
+              primaryColor={resolvedPrimaryColor}
+              secondaryColor={resolvedSecondaryColor}
+              customOptions={landscapeCustomOptions}
             />
           </div>
         )}
@@ -398,7 +439,7 @@ export default function EmbedPage() {
               size="lg"
               className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
               style={{ 
-                background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
+                background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
               }}
               disabled={
                 isGenerating ||

@@ -1437,6 +1437,187 @@ export async function registerRoutes(app: Express): Promise<Server> {
     };
   }
 
+  function normalizeTenantPrefixedOptionValue(option: any, prefix: string) {
+    const label = String(option?.label || option?.name || option?.value || "option").trim();
+    const rawValue = normalizeTenantToken(option?.value || `${prefix}_${normalizeTenantToken(label)}`);
+    return rawValue.startsWith("tenant_custom_") ? rawValue : `${prefix}_${rawValue}`;
+  }
+
+  function buildTenantOptionContext(
+    entries: Array<{
+      categoryLabel: string;
+      selectedStyle?: string;
+      options: any[];
+      valuePrefix: string;
+      transformSelectedStyle?: (value: string) => string;
+    }>,
+    heading: string,
+  ) {
+    const prompts: string[] = [];
+    const referenceImageUrls: string[] = [];
+
+    for (const entry of entries) {
+      if (!entry.selectedStyle || !Array.isArray(entry.options)) continue;
+
+      const selectedStyle = entry.transformSelectedStyle
+        ? entry.transformSelectedStyle(entry.selectedStyle)
+        : entry.selectedStyle;
+      const selectedToken = normalizeTenantToken(selectedStyle);
+      if (!selectedToken) continue;
+
+      const matchedOption = entry.options.find((option: any) =>
+        normalizeTenantToken(normalizeTenantPrefixedOptionValue(option, entry.valuePrefix)) === selectedToken
+      );
+
+      if (!matchedOption) continue;
+
+      const label = String(matchedOption.label || matchedOption.name || selectedStyle).trim();
+      const swatch = String(matchedOption.swatch || matchedOption.hex || matchedOption.color || "").trim();
+      const prompt = String(matchedOption.prompt || matchedOption.instructions || "").trim();
+
+      prompts.push(
+        prompt ||
+          `Apply the client-specific ${entry.categoryLabel} option "${label}"${swatch ? ` (${swatch})` : ""} exactly as configured for this tenant.`,
+      );
+      referenceImageUrls.push(...collectReferenceImageUrls(matchedOption));
+    }
+
+    return {
+      prompt: prompts.length
+        ? [heading, ...prompts.map((prompt, index) => `${index + 1}. ${prompt}`)].join("\n")
+        : "",
+      referenceImageUrls,
+    };
+  }
+
+  function buildTenantLandscapeCustomContext(
+    tenant: any,
+    selectedStyles: {
+      curbing?: string;
+      landscape?: string;
+      patios?: string;
+    },
+  ) {
+    const customizations = tenant?.embedCustomizations || {};
+
+    return buildTenantOptionContext(
+      [
+        {
+          categoryLabel: "curbing",
+          selectedStyle: selectedStyles.curbing,
+          options: customizations?.landscapeOptions?.curbing || [],
+          valuePrefix: "tenant_custom_landscape_curbing",
+        },
+        {
+          categoryLabel: "landscape material",
+          selectedStyle: selectedStyles.landscape,
+          options: customizations?.landscapeOptions?.landscape || [],
+          valuePrefix: "tenant_custom_landscape_landscape",
+        },
+        {
+          categoryLabel: "patio",
+          selectedStyle: selectedStyles.patios,
+          options: customizations?.landscapeOptions?.patios || [],
+          valuePrefix: "tenant_custom_landscape_patios",
+          transformSelectedStyle: (value) => value.split("|")[0],
+        },
+      ],
+      "CLIENT-SPECIFIC LANDSCAPE EMBED OPTIONS:",
+    );
+  }
+
+  function buildTenantPoolCustomContext(
+    tenant: any,
+    selectedStyles: {
+      poolType?: string;
+      poolSize?: string;
+      decking?: string;
+      landscaping?: string;
+      features?: string;
+      hotTub?: string;
+      sauna?: string;
+    },
+  ) {
+    const customizations = tenant?.embedCustomizations || {};
+
+    return buildTenantOptionContext(
+      [
+        {
+          categoryLabel: "pool type",
+          selectedStyle: selectedStyles.poolType,
+          options: customizations?.poolOptions?.poolType || [],
+          valuePrefix: "tenant_custom_pool_pool_type",
+        },
+        {
+          categoryLabel: "pool size",
+          selectedStyle: selectedStyles.poolSize,
+          options: customizations?.poolOptions?.poolSize || [],
+          valuePrefix: "tenant_custom_pool_pool_size",
+        },
+        {
+          categoryLabel: "decking",
+          selectedStyle: selectedStyles.decking,
+          options: customizations?.poolOptions?.decking || [],
+          valuePrefix: "tenant_custom_pool_decking",
+        },
+        {
+          categoryLabel: "pool landscaping",
+          selectedStyle: selectedStyles.landscaping,
+          options: customizations?.poolOptions?.landscaping || [],
+          valuePrefix: "tenant_custom_pool_landscaping",
+        },
+        {
+          categoryLabel: "pool feature",
+          selectedStyle: selectedStyles.features,
+          options: customizations?.poolOptions?.features || [],
+          valuePrefix: "tenant_custom_pool_features",
+        },
+        {
+          categoryLabel: "hot tub",
+          selectedStyle: selectedStyles.hotTub,
+          options: customizations?.poolOptions?.hotTub || [],
+          valuePrefix: "tenant_custom_pool_hot_tub",
+        },
+        {
+          categoryLabel: "sauna",
+          selectedStyle: selectedStyles.sauna,
+          options: customizations?.poolOptions?.sauna || [],
+          valuePrefix: "tenant_custom_pool_sauna",
+        },
+      ],
+      "CLIENT-SPECIFIC POOL EMBED OPTIONS:",
+    );
+  }
+
+  type EmbedServiceKey =
+    | "landscape"
+    | "roofing"
+    | "pools"
+    | "painting"
+    | "kitchen"
+    | "bathroom"
+    | "living-room";
+
+  function isTenantEmbedServiceEnabled(tenant: any, serviceKey: EmbedServiceKey) {
+    const customizations = tenant?.embedCustomizations || {};
+    const enabledServices = customizations?.enabledServices || {};
+    return enabledServices?.[serviceKey] !== false;
+  }
+
+  async function requireTenantEmbedServiceEnabled(
+    tenantId: number | null,
+    serviceKey: EmbedServiceKey,
+  ) {
+    if (!tenantId) return;
+
+    const tenant = await storage.getTenant(tenantId);
+    if (!tenant) return;
+
+    if (!isTenantEmbedServiceEnabled(tenant, serviceKey)) {
+      throw new GenerationRequestError(403, "This embed service is not enabled for this client");
+    }
+  }
+
   async function resolveGenerationOwner(req: AuthRequest, usageType: 'visualization' | 'landscape' | 'pool') {
     const accountUserId = parsePositiveId(req.body.accountUserId);
     const tenant = await getTenantFromGenerationRequest(req, !!accountUserId);
@@ -2004,6 +2185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         surpriseMe: selectedSurpriseMe || undefined,
         windows: selectedWindows || undefined
       };
+      await requireTenantEmbedServiceEnabled(generationOwner.tenantId, "roofing");
 
       // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
@@ -2157,6 +2339,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customPrompt = typeof req.body.customPrompt === "string" ? req.body.customPrompt : "";
       const userId = generationOwner.userId;
       const hasBusinessPro = generationOwner.hasBusinessPro;
+      const embedServiceKey =
+        service === "living_room" ? "living-room" : service;
+      await requireTenantEmbedServiceEnabled(generationOwner.tenantId, embedServiceKey);
 
       let validatedCustomPrompt = "";
       let tenantReferenceImageUrls: string[] = [];
@@ -2359,12 +2544,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { selectedPoolType, selectedPoolSize, selectedDecking, selectedLandscaping, selectedFeatures, selectedHotTub, selectedSauna, customPrompt } = req.body;
       const userId = generationOwner.userId;
       const hasBusinessPro = generationOwner.hasBusinessPro;
+      const selectedPoolStyles = {
+        poolType: selectedPoolType || undefined,
+        poolSize: selectedPoolSize || undefined,
+        decking: selectedDecking || undefined,
+        landscaping: selectedLandscaping || undefined,
+        features: selectedFeatures || undefined,
+        hotTub: selectedHotTub || undefined,
+        sauna: selectedSauna || undefined
+      };
+      await requireTenantEmbedServiceEnabled(generationOwner.tenantId, "pools");
 
       // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
+      let tenantReferenceImageUrls: string[] = [];
+      if (generationOwner.tenantId) {
+        const ownerTenant = await storage.getTenant(generationOwner.tenantId);
+        const customContext = buildTenantPoolCustomContext(ownerTenant, selectedPoolStyles);
+        validatedCustomPrompt = customContext.prompt || undefined;
+        tenantReferenceImageUrls = customContext.referenceImageUrls;
+      }
+
       if (customPrompt && customPrompt.trim()) {
         if (hasBusinessPro) {
-          validatedCustomPrompt = customPrompt;
+          validatedCustomPrompt = [validatedCustomPrompt, customPrompt.trim()].filter(Boolean).join("\n\n");
         } else {
           console.log(`User ${userId} attempted to use custom prompt without Professional access`);
         }
@@ -2394,16 +2597,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Process with Gemini AI using pool-specific prompts
       try {
-        const selectedPoolStyles = {
-          poolType: selectedPoolType || undefined,
-          poolSize: selectedPoolSize || undefined,
-          decking: selectedDecking || undefined,
-          landscaping: selectedLandscaping || undefined,
-          features: selectedFeatures || undefined,
-          hotTub: selectedHotTub || undefined,
-          sauna: selectedSauna || undefined
-        };
-
         // Import the pool style config to get detailed prompts
         const { POOL_STYLE_CONFIG } = await import("./pool-style-config");
         
@@ -2446,6 +2639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           imageBuffer: originalImageBuffer,
           selectedStyles: poolStylesForProcessing,
           customPrompt: validatedCustomPrompt,
+          referenceImageUrls: tenantReferenceImageUrls,
           usePremiumModel: hasBusinessPro
         });
 
@@ -2603,12 +2797,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { selectedCurbing, selectedLandscape, selectedPatios, customPrompt } = req.body;
       const userId = generationOwner.userId;
       const hasBusinessPro = generationOwner.hasBusinessPro;
+      const selectedLandscapeStyles = {
+        curbing: selectedCurbing || undefined,
+        landscape: selectedLandscape || undefined,
+        patios: selectedPatios || undefined
+      };
+      await requireTenantEmbedServiceEnabled(generationOwner.tenantId, "landscape");
 
       // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
+      let tenantReferenceImageUrls: string[] = [];
+      if (generationOwner.tenantId) {
+        const ownerTenant = await storage.getTenant(generationOwner.tenantId);
+        const customContext = buildTenantLandscapeCustomContext(ownerTenant, selectedLandscapeStyles);
+        validatedCustomPrompt = customContext.prompt || undefined;
+        tenantReferenceImageUrls = customContext.referenceImageUrls;
+      }
+
       if (customPrompt && customPrompt.trim()) {
         if (hasBusinessPro) {
-          validatedCustomPrompt = customPrompt;
+          validatedCustomPrompt = [validatedCustomPrompt, customPrompt.trim()].filter(Boolean).join("\n\n");
         } else {
           console.log(`User ${userId} attempted to use custom prompt without Professional access`);
         }
@@ -2636,12 +2844,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Process with Gemini AI using landscape-specific prompts
       try {
-        const selectedLandscapeStyles = {
-          curbing: selectedCurbing || undefined,
-          landscape: selectedLandscape || undefined,
-          patios: selectedPatios || undefined
-        };
-
         console.log('🌿 Processing landscape with Gemini:', selectedLandscapeStyles);
 
         const { processLandscapeVisualizationWithGemini } = await import("./gemini-service");
@@ -2649,6 +2851,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           imageBuffer: originalImageBuffer,
           selectedStyles: selectedLandscapeStyles,
           customPrompt: validatedCustomPrompt,
+          referenceImageUrls: tenantReferenceImageUrls,
           usePremiumModel: hasBusinessPro
         });
 

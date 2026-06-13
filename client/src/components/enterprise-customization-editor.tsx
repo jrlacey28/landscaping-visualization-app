@@ -1,10 +1,17 @@
 import { useRef, useState } from "react";
-import { Bath, Home, Layers, Palette, Plus, Trash2, Upload } from "lucide-react";
+import { Bath, Edit3, Home, Layers, Palette, Plus, Settings2, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { uploadImageToPublic } from "@/lib/api";
+import {
+  DEFAULT_EMBED_SERVICE_ACCESS,
+  EMBED_SERVICES,
+  type EmbedServiceAccess,
+  normalizeEmbedServiceAccess,
+} from "@/lib/embed-services";
 import { useToast } from "@/hooks/use-toast";
 
 type ReferenceImage = string;
@@ -27,12 +34,27 @@ type CustomOption = {
 };
 
 type EnterpriseCustomizations = {
+  enabledServices?: Partial<EmbedServiceAccess>;
   roofColors?: CustomColor[];
   sidingColors?: CustomColor[];
   exteriorOptions?: {
     roof?: CustomOption[];
     siding?: CustomOption[];
     windows?: CustomOption[];
+  };
+  landscapeOptions?: {
+    curbing?: CustomOption[];
+    landscape?: CustomOption[];
+    patios?: CustomOption[];
+  };
+  poolOptions?: {
+    poolType?: CustomOption[];
+    poolSize?: CustomOption[];
+    decking?: CustomOption[];
+    landscaping?: CustomOption[];
+    features?: CustomOption[];
+    hotTub?: CustomOption[];
+    sauna?: CustomOption[];
   };
   interiorOptions?: {
     bathroom?: CustomOption[];
@@ -48,12 +70,26 @@ type Props = {
 };
 
 type CategoryKey =
+  | "services"
   | "roofColors"
   | "sidingColors"
   | "roofDesigns"
   | "sidingDesigns"
   | "windowDesigns"
-  | "bathroomOptions";
+  | "landscapeCurbingOptions"
+  | "landscapeMaterialOptions"
+  | "landscapePatioOptions"
+  | "poolTypeOptions"
+  | "poolSizeOptions"
+  | "poolDeckingOptions"
+  | "poolLandscapingOptions"
+  | "poolFeatureOptions"
+  | "poolHotTubOptions"
+  | "poolSaunaOptions"
+  | "paintingOptions"
+  | "kitchenOptions"
+  | "bathroomOptions"
+  | "livingRoomOptions";
 
 type CategoryConfig = {
   key: CategoryKey;
@@ -61,19 +97,34 @@ type CategoryConfig = {
   description: string;
   singular: string;
   count: number;
-  kind: "color" | "option";
+  kind: "services" | "color" | "option";
   includeGroup?: boolean;
   includeSwatch?: boolean;
   icon: typeof Palette;
 };
 
 const emptyCustomizations: EnterpriseCustomizations = {
+  enabledServices: DEFAULT_EMBED_SERVICE_ACCESS,
   roofColors: [],
   sidingColors: [],
   exteriorOptions: {
     roof: [],
     siding: [],
     windows: [],
+  },
+  landscapeOptions: {
+    curbing: [],
+    landscape: [],
+    patios: [],
+  },
+  poolOptions: {
+    poolType: [],
+    poolSize: [],
+    decking: [],
+    landscaping: [],
+    features: [],
+    hotTub: [],
+    sauna: [],
   },
   interiorOptions: {
     bathroom: [],
@@ -95,12 +146,27 @@ export function normalizeEnterpriseCustomizations(value: unknown): EnterpriseCus
   const source = value as EnterpriseCustomizations;
 
   return {
+    enabledServices: normalizeEmbedServiceAccess(source.enabledServices),
     roofColors: Array.isArray(source.roofColors) ? source.roofColors : [],
     sidingColors: Array.isArray(source.sidingColors) ? source.sidingColors : [],
     exteriorOptions: {
       roof: Array.isArray(source.exteriorOptions?.roof) ? source.exteriorOptions!.roof : [],
       siding: Array.isArray(source.exteriorOptions?.siding) ? source.exteriorOptions!.siding : [],
       windows: Array.isArray(source.exteriorOptions?.windows) ? source.exteriorOptions!.windows : [],
+    },
+    landscapeOptions: {
+      curbing: Array.isArray(source.landscapeOptions?.curbing) ? source.landscapeOptions!.curbing : [],
+      landscape: Array.isArray(source.landscapeOptions?.landscape) ? source.landscapeOptions!.landscape : [],
+      patios: Array.isArray(source.landscapeOptions?.patios) ? source.landscapeOptions!.patios : [],
+    },
+    poolOptions: {
+      poolType: Array.isArray(source.poolOptions?.poolType) ? source.poolOptions!.poolType : [],
+      poolSize: Array.isArray(source.poolOptions?.poolSize) ? source.poolOptions!.poolSize : [],
+      decking: Array.isArray(source.poolOptions?.decking) ? source.poolOptions!.decking : [],
+      landscaping: Array.isArray(source.poolOptions?.landscaping) ? source.poolOptions!.landscaping : [],
+      features: Array.isArray(source.poolOptions?.features) ? source.poolOptions!.features : [],
+      hotTub: Array.isArray(source.poolOptions?.hotTub) ? source.poolOptions!.hotTub : [],
+      sauna: Array.isArray(source.poolOptions?.sauna) ? source.poolOptions!.sauna : [],
     },
     interiorOptions: {
       bathroom: Array.isArray(source.interiorOptions?.bathroom)
@@ -149,12 +215,27 @@ export function cleanEnterpriseCustomizations(value: EnterpriseCustomizations): 
   };
 
   return {
+    enabledServices: normalizeEmbedServiceAccess(value.enabledServices),
     roofColors: (value.roofColors || []).map(cleanColor).filter(Boolean) as CustomColor[],
     sidingColors: (value.sidingColors || []).map(cleanColor).filter(Boolean) as CustomColor[],
     exteriorOptions: {
       roof: (value.exteriorOptions?.roof || []).map(cleanOption).filter(Boolean) as CustomOption[],
       siding: (value.exteriorOptions?.siding || []).map(cleanOption).filter(Boolean) as CustomOption[],
       windows: (value.exteriorOptions?.windows || []).map(cleanOption).filter(Boolean) as CustomOption[],
+    },
+    landscapeOptions: {
+      curbing: (value.landscapeOptions?.curbing || []).map(cleanOption).filter(Boolean) as CustomOption[],
+      landscape: (value.landscapeOptions?.landscape || []).map(cleanOption).filter(Boolean) as CustomOption[],
+      patios: (value.landscapeOptions?.patios || []).map(cleanOption).filter(Boolean) as CustomOption[],
+    },
+    poolOptions: {
+      poolType: (value.poolOptions?.poolType || []).map(cleanOption).filter(Boolean) as CustomOption[],
+      poolSize: (value.poolOptions?.poolSize || []).map(cleanOption).filter(Boolean) as CustomOption[],
+      decking: (value.poolOptions?.decking || []).map(cleanOption).filter(Boolean) as CustomOption[],
+      landscaping: (value.poolOptions?.landscaping || []).map(cleanOption).filter(Boolean) as CustomOption[],
+      features: (value.poolOptions?.features || []).map(cleanOption).filter(Boolean) as CustomOption[],
+      hotTub: (value.poolOptions?.hotTub || []).map(cleanOption).filter(Boolean) as CustomOption[],
+      sauna: (value.poolOptions?.sauna || []).map(cleanOption).filter(Boolean) as CustomOption[],
     },
     interiorOptions: {
       bathroom: (value.interiorOptions?.bathroom || []).map(cleanOption).filter(Boolean) as CustomOption[],
@@ -334,7 +415,7 @@ function OptionItemEditor({
 }) {
   return (
     <div className="space-y-3 rounded-md border bg-background p-3">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
         {includeGroup && (
           <div>
             <Label className="text-xs">Category</Label>
@@ -385,8 +466,10 @@ function OptionItemEditor({
 }
 
 export default function EnterpriseCustomizationEditor({ value, onChange }: Props) {
-  const [activeCategory, setActiveCategory] = useState<CategoryKey>("sidingColors");
+  const [activeCategory, setActiveCategory] = useState<CategoryKey>("services");
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const customizations = normalizeEnterpriseCustomizations(value);
+  const enabledServices = normalizeEmbedServiceAccess(customizations.enabledServices);
 
   const update = (patch: EnterpriseCustomizations) => {
     onChange(cloneCustomizations(patch));
@@ -402,7 +485,20 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
     if (categoryKey === "roofDesigns") return customizations.exteriorOptions?.roof || [];
     if (categoryKey === "sidingDesigns") return customizations.exteriorOptions?.siding || [];
     if (categoryKey === "windowDesigns") return customizations.exteriorOptions?.windows || [];
+    if (categoryKey === "landscapeCurbingOptions") return customizations.landscapeOptions?.curbing || [];
+    if (categoryKey === "landscapeMaterialOptions") return customizations.landscapeOptions?.landscape || [];
+    if (categoryKey === "landscapePatioOptions") return customizations.landscapeOptions?.patios || [];
+    if (categoryKey === "poolTypeOptions") return customizations.poolOptions?.poolType || [];
+    if (categoryKey === "poolSizeOptions") return customizations.poolOptions?.poolSize || [];
+    if (categoryKey === "poolDeckingOptions") return customizations.poolOptions?.decking || [];
+    if (categoryKey === "poolLandscapingOptions") return customizations.poolOptions?.landscaping || [];
+    if (categoryKey === "poolFeatureOptions") return customizations.poolOptions?.features || [];
+    if (categoryKey === "poolHotTubOptions") return customizations.poolOptions?.hotTub || [];
+    if (categoryKey === "poolSaunaOptions") return customizations.poolOptions?.sauna || [];
+    if (categoryKey === "paintingOptions") return customizations.interiorOptions?.painting || [];
+    if (categoryKey === "kitchenOptions") return customizations.interiorOptions?.kitchen || [];
     if (categoryKey === "bathroomOptions") return customizations.interiorOptions?.bathroom || [];
+    if (categoryKey === "livingRoomOptions") return customizations.interiorOptions?.living_room || [];
     return [];
   };
 
@@ -438,15 +534,115 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
       });
     }
 
+    if (categoryKey === "landscapeCurbingOptions") {
+      update({
+        ...customizations,
+        landscapeOptions: { ...customizations.landscapeOptions, curbing: options },
+      });
+    }
+
+    if (categoryKey === "landscapeMaterialOptions") {
+      update({
+        ...customizations,
+        landscapeOptions: { ...customizations.landscapeOptions, landscape: options },
+      });
+    }
+
+    if (categoryKey === "landscapePatioOptions") {
+      update({
+        ...customizations,
+        landscapeOptions: { ...customizations.landscapeOptions, patios: options },
+      });
+    }
+
+    if (categoryKey === "poolTypeOptions") {
+      update({
+        ...customizations,
+        poolOptions: { ...customizations.poolOptions, poolType: options },
+      });
+    }
+
+    if (categoryKey === "poolSizeOptions") {
+      update({
+        ...customizations,
+        poolOptions: { ...customizations.poolOptions, poolSize: options },
+      });
+    }
+
+    if (categoryKey === "poolDeckingOptions") {
+      update({
+        ...customizations,
+        poolOptions: { ...customizations.poolOptions, decking: options },
+      });
+    }
+
+    if (categoryKey === "poolLandscapingOptions") {
+      update({
+        ...customizations,
+        poolOptions: { ...customizations.poolOptions, landscaping: options },
+      });
+    }
+
+    if (categoryKey === "poolFeatureOptions") {
+      update({
+        ...customizations,
+        poolOptions: { ...customizations.poolOptions, features: options },
+      });
+    }
+
+    if (categoryKey === "poolHotTubOptions") {
+      update({
+        ...customizations,
+        poolOptions: { ...customizations.poolOptions, hotTub: options },
+      });
+    }
+
+    if (categoryKey === "poolSaunaOptions") {
+      update({
+        ...customizations,
+        poolOptions: { ...customizations.poolOptions, sauna: options },
+      });
+    }
+
     if (categoryKey === "bathroomOptions") {
       update({
         ...customizations,
         interiorOptions: { ...customizations.interiorOptions, bathroom: options },
       });
     }
+
+    if (categoryKey === "paintingOptions") {
+      update({
+        ...customizations,
+        interiorOptions: { ...customizations.interiorOptions, painting: options },
+      });
+    }
+
+    if (categoryKey === "kitchenOptions") {
+      update({
+        ...customizations,
+        interiorOptions: { ...customizations.interiorOptions, kitchen: options },
+      });
+    }
+
+    if (categoryKey === "livingRoomOptions") {
+      update({
+        ...customizations,
+        interiorOptions: { ...customizations.interiorOptions, living_room: options },
+      });
+    }
   };
 
   const categories: CategoryConfig[] = [
+    {
+      key: "services",
+      label: "Embed Services",
+      description: "Choose which embed pages this client can use.",
+      singular: "service",
+      count: Object.values(enabledServices).filter(Boolean).length,
+      kind: "services",
+      icon: Settings2,
+    },
     {
       key: "roofColors",
       label: "Roof Colors",
@@ -472,6 +668,7 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
       singular: "roof design",
       count: (customizations.exteriorOptions?.roof || []).filter((option) => option.label).length,
       kind: "option",
+      includeSwatch: true,
       icon: Home,
     },
     {
@@ -481,6 +678,7 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
       singular: "siding design",
       count: (customizations.exteriorOptions?.siding || []).filter((option) => option.label).length,
       kind: "option",
+      includeSwatch: true,
       icon: Layers,
     },
     {
@@ -490,7 +688,108 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
       singular: "window design",
       count: (customizations.exteriorOptions?.windows || []).filter((option) => option.label).length,
       kind: "option",
+      includeSwatch: true,
       icon: Home,
+    },
+    {
+      key: "landscapeCurbingOptions",
+      label: "Landscape Curbing",
+      description: "Private curbing choices for the landscape visualizer.",
+      singular: "curbing option",
+      count: (customizations.landscapeOptions?.curbing || []).filter((option) => option.label).length,
+      kind: "option",
+      includeSwatch: true,
+      icon: Layers,
+    },
+    {
+      key: "landscapeMaterialOptions",
+      label: "Landscape Materials",
+      description: "Private mulch, rock, grass, and landscape material choices.",
+      singular: "landscape option",
+      count: (customizations.landscapeOptions?.landscape || []).filter((option) => option.label).length,
+      kind: "option",
+      includeSwatch: true,
+      icon: Palette,
+    },
+    {
+      key: "landscapePatioOptions",
+      label: "Patio Styles",
+      description: "Private patio material and finish choices.",
+      singular: "patio style",
+      count: (customizations.landscapeOptions?.patios || []).filter((option) => option.label).length,
+      kind: "option",
+      includeSwatch: true,
+      icon: Home,
+    },
+    {
+      key: "poolTypeOptions",
+      label: "Pool Types",
+      description: "Private pool shape and install-type choices.",
+      singular: "pool type",
+      count: (customizations.poolOptions?.poolType || []).filter((option) => option.label).length,
+      kind: "option",
+      includeSwatch: true,
+      icon: Layers,
+    },
+    {
+      key: "poolSizeOptions",
+      label: "Pool Sizes",
+      description: "Private pool size/package choices.",
+      singular: "pool size",
+      count: (customizations.poolOptions?.poolSize || []).filter((option) => option.label).length,
+      kind: "option",
+      includeSwatch: true,
+      icon: Layers,
+    },
+    {
+      key: "poolDeckingOptions",
+      label: "Pool Decking",
+      description: "Private pool deck materials and finish choices.",
+      singular: "decking option",
+      count: (customizations.poolOptions?.decking || []).filter((option) => option.label).length,
+      kind: "option",
+      includeSwatch: true,
+      icon: Palette,
+    },
+    {
+      key: "poolLandscapingOptions",
+      label: "Pool Landscaping",
+      description: "Private pool landscaping packages and design directions.",
+      singular: "pool landscaping option",
+      count: (customizations.poolOptions?.landscaping || []).filter((option) => option.label).length,
+      kind: "option",
+      includeSwatch: true,
+      icon: Home,
+    },
+    {
+      key: "poolFeatureOptions",
+      label: "Pool Features",
+      description: "Private waterfalls, lighting, spas, and feature choices.",
+      singular: "pool feature",
+      count: (customizations.poolOptions?.features || []).filter((option) => option.label).length,
+      kind: "option",
+      includeSwatch: true,
+      icon: Settings2,
+    },
+    {
+      key: "poolHotTubOptions",
+      label: "Hot Tubs",
+      description: "Private hot tub and swim spa choices.",
+      singular: "hot tub option",
+      count: (customizations.poolOptions?.hotTub || []).filter((option) => option.label).length,
+      kind: "option",
+      includeSwatch: true,
+      icon: Settings2,
+    },
+    {
+      key: "poolSaunaOptions",
+      label: "Saunas",
+      description: "Private sauna choices for pool/outdoor embeds.",
+      singular: "sauna option",
+      count: (customizations.poolOptions?.sauna || []).filter((option) => option.label).length,
+      kind: "option",
+      includeSwatch: true,
+      icon: Settings2,
     },
     {
       key: "bathroomOptions",
@@ -503,26 +802,66 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
       includeSwatch: true,
       icon: Bath,
     },
+    {
+      key: "paintingOptions",
+      label: "Painting Options",
+      description: "Private paint colors, finishes, and paint reference options.",
+      singular: "painting option",
+      count: (customizations.interiorOptions?.painting || []).filter((option) => option.label).length,
+      kind: "option",
+      includeGroup: true,
+      includeSwatch: true,
+      icon: Palette,
+    },
+    {
+      key: "kitchenOptions",
+      label: "Kitchen Options",
+      description: "Private cabinet, counter, backsplash, fixture, and kitchen package options.",
+      singular: "kitchen option",
+      count: (customizations.interiorOptions?.kitchen || []).filter((option) => option.label).length,
+      kind: "option",
+      includeGroup: true,
+      includeSwatch: true,
+      icon: Home,
+    },
+    {
+      key: "livingRoomOptions",
+      label: "Living Room Options",
+      description: "Private furniture, decor, lighting, built-in, and finish options.",
+      singular: "living room option",
+      count: (customizations.interiorOptions?.living_room || []).filter((option) => option.label).length,
+      kind: "option",
+      includeGroup: true,
+      includeSwatch: true,
+      icon: Home,
+    },
   ];
 
   const selectedCategory = categories.find((category) => category.key === activeCategory) || categories[0];
   const selectedColors = getColorItems(selectedCategory.key);
   const selectedOptions = getOptionItems(selectedCategory.key);
   const selectedItemsCount = selectedCategory.kind === "color" ? selectedColors.length : selectedOptions.length;
-  const bathroomGroups = Array.from(
+  const selectedOptionGroups = Array.from(
     new Set(
-      (customizations.interiorOptions?.bathroom || [])
+      selectedOptions
         .map((option) => option.groupLabel?.trim())
         .filter(Boolean) as string[],
     ),
   );
 
   const addItem = () => {
+    setEditingIndex(null);
+
     if (selectedCategory.kind === "color") {
       setColorItems(selectedCategory.key, [
         ...selectedColors,
         { label: "", hex: "#ffffff", referenceImageUrls: [] },
       ]);
+      setEditingIndex(selectedColors.length);
+      return;
+    }
+
+    if (selectedCategory.kind !== "option") {
       return;
     }
 
@@ -531,10 +870,11 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
       {
         label: "",
         prompt: "",
-        groupLabel: selectedCategory.key === "bathroomOptions" ? bathroomGroups[0] || "" : undefined,
+        groupLabel: selectedCategory.includeGroup ? selectedOptionGroups[0] || "" : undefined,
         referenceImageUrls: [],
       },
     ]);
+    setEditingIndex(selectedOptions.length);
   };
 
   const updateColorAt = (index: number, patch: Partial<CustomColor>) => {
@@ -578,7 +918,10 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
                 <button
                   key={category.key}
                   type="button"
-                  onClick={() => setActiveCategory(category.key)}
+                  onClick={() => {
+                    setActiveCategory(category.key);
+                    setEditingIndex(null);
+                  }}
                   className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${
                     selected ? "bg-background shadow-sm ring-1 ring-border" : "hover:bg-background/70"
                   }`}
@@ -601,9 +944,9 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
             <div>
               <h4 className="text-base font-semibold">{selectedCategory.label}</h4>
               <p className="text-sm text-muted-foreground">{selectedCategory.description}</p>
-              {selectedCategory.key === "bathroomOptions" && bathroomGroups.length > 0 && (
+              {selectedCategory.includeGroup && selectedOptionGroups.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {bathroomGroups.map((group) => (
+                  {selectedOptionGroups.map((group) => (
                     <span key={group} className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
                       {group}
                     </span>
@@ -611,13 +954,38 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
                 </div>
               )}
             </div>
-            <Button type="button" size="sm" onClick={addItem}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add {selectedCategory.singular}
-            </Button>
+            {selectedCategory.kind !== "services" && (
+              <Button type="button" size="sm" onClick={addItem}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add {selectedCategory.singular}
+              </Button>
+            )}
           </div>
 
-          {selectedItemsCount === 0 ? (
+          {selectedCategory.kind === "services" ? (
+            <div className="divide-y rounded-md border">
+              {EMBED_SERVICES.map((service) => (
+                <div key={service.key} className="flex items-center justify-between gap-4 p-3">
+                  <div className="min-w-0">
+                    <p className="font-medium">{service.label}</p>
+                    <p className="text-sm text-muted-foreground">{service.description}</p>
+                  </div>
+                  <Switch
+                    checked={enabledServices[service.key]}
+                    onCheckedChange={(checked) =>
+                      update({
+                        ...customizations,
+                        enabledServices: {
+                          ...enabledServices,
+                          [service.key]: checked,
+                        },
+                      })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          ) : selectedItemsCount === 0 ? (
             <div className="rounded-md border border-dashed p-6 text-center">
               <p className="font-medium">No {selectedCategory.label.toLowerCase()} yet.</p>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -628,34 +996,118 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
             <div className="space-y-3">
               {selectedCategory.kind === "color"
                 ? selectedColors.map((color, index) => (
-                    <ColorItemEditor
-                      key={index}
-                      color={color}
-                      index={index}
-                      onChange={(patch) => updateColorAt(index, patch)}
-                      onRemove={() =>
-                        setColorItems(
-                          selectedCategory.key,
-                          selectedColors.filter((_, currentIndex) => currentIndex !== index),
-                        )
-                      }
-                    />
+                    <div key={index} className="rounded-md border">
+                      <div className="flex items-center justify-between gap-3 p-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span
+                            className="h-5 w-5 shrink-0 rounded-full border shadow-inner"
+                            style={{ background: color.hex || "#ffffff" }}
+                          />
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{color.label || "Untitled color"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {color.referenceImageUrls?.length || 0} reference images
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            onClick={() => setEditingIndex(editingIndex === index ? null : index)}
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            onClick={() => {
+                              setColorItems(
+                                selectedCategory.key,
+                                selectedColors.filter((_, currentIndex) => currentIndex !== index),
+                              );
+                              setEditingIndex(null);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {editingIndex === index && (
+                        <div className="border-t bg-muted/20 p-3">
+                          <ColorItemEditor
+                            color={color}
+                            index={index}
+                            onChange={(patch) => updateColorAt(index, patch)}
+                            onRemove={() => {
+                              setColorItems(
+                                selectedCategory.key,
+                                selectedColors.filter((_, currentIndex) => currentIndex !== index),
+                              );
+                              setEditingIndex(null);
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   ))
                 : selectedOptions.map((option, index) => (
-                    <OptionItemEditor
-                      key={index}
-                      option={option}
-                      index={index}
-                      includeGroup={selectedCategory.includeGroup}
-                      includeSwatch={selectedCategory.includeSwatch}
-                      onChange={(patch) => updateOptionAt(index, patch)}
-                      onRemove={() =>
-                        setOptionItems(
-                          selectedCategory.key,
-                          selectedOptions.filter((_, currentIndex) => currentIndex !== index),
-                        )
-                      }
-                    />
+                    <div key={index} className="rounded-md border">
+                      <div className="flex items-center justify-between gap-3 p-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{option.label || "Untitled option"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {[option.groupLabel, option.swatch, `${option.referenceImageUrls?.length || 0} reference images`]
+                              .filter(Boolean)
+                              .join(" - ")}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            onClick={() => setEditingIndex(editingIndex === index ? null : index)}
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            onClick={() => {
+                              setOptionItems(
+                                selectedCategory.key,
+                                selectedOptions.filter((_, currentIndex) => currentIndex !== index),
+                              );
+                              setEditingIndex(null);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {editingIndex === index && (
+                        <div className="border-t bg-muted/20 p-3">
+                          <OptionItemEditor
+                            option={option}
+                            index={index}
+                            includeGroup={selectedCategory.includeGroup}
+                            includeSwatch={selectedCategory.includeSwatch}
+                            onChange={(patch) => updateOptionAt(index, patch)}
+                            onRemove={() => {
+                              setOptionItems(
+                                selectedCategory.key,
+                                selectedOptions.filter((_, currentIndex) => currentIndex !== index),
+                              );
+                              setEditingIndex(null);
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   ))}
             </div>
           )}

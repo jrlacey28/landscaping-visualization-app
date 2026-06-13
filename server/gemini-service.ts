@@ -415,6 +415,12 @@ export async function processLandscapeWithGemini({
       }
     }
 
+    if (modifications.length === 0 && customPrompt?.trim()) {
+      modifications.push(customPrompt.trim());
+      appliedStyles.push("client_custom_exterior_options");
+      customPrompt = undefined;
+    }
+
     if (modifications.length === 0) {
       console.log("❌ No valid modifications found");
       throw new Error("No valid modifications selected");
@@ -574,11 +580,13 @@ export async function processPoolWithGemini({
   imageBuffer,
   selectedStyles,
   customPrompt,
+  referenceImageUrls,
   usePremiumModel = false,
 }: {
   imageBuffer: Buffer;
   selectedStyles: Record<string, any>;
   customPrompt?: string;
+  referenceImageUrls?: string[];
   usePremiumModel?: boolean;
 }): Promise<{
   editedImageBuffer: Buffer;
@@ -620,7 +628,13 @@ export async function processPoolWithGemini({
 
     if (modifications.length === 0) {
       console.log("❌ No valid pool modifications found");
-      throw new Error("No valid pool modifications selected");
+      if (customPrompt?.trim()) {
+        modifications.push(customPrompt.trim());
+        appliedStyles.push("client_custom_pool_options");
+        customPrompt = undefined;
+      } else {
+        throw new Error("No valid pool modifications selected");
+      }
     }
 
     console.log(`✓ Using ${modifications.length} pool style prompts`);
@@ -666,6 +680,7 @@ Apply ONLY the pool installations specified above. Do not redesign the yard or d
         },
       },
     ];
+    await appendReferenceImageParts(contentParts, referenceImageUrls, "Client-specific pool");
 
     const imageModel = getImageGenerationModel(usePremiumModel);
     console.log(`Using Gemini image model: ${imageModel}`);
@@ -773,6 +788,7 @@ export async function processLandscapeVisualizationWithGemini({
   imageBuffer,
   selectedStyles,
   customPrompt,
+  referenceImageUrls,
   usePremiumModel = false,
 }: {
   imageBuffer: Buffer;
@@ -782,6 +798,7 @@ export async function processLandscapeVisualizationWithGemini({
     patios?: string;
   };
   customPrompt?: string;
+  referenceImageUrls?: string[];
   usePremiumModel?: boolean;
 }): Promise<{
   editedImageBuffer: Buffer;
@@ -915,7 +932,13 @@ export async function processLandscapeVisualizationWithGemini({
 
     if (modifications.length === 0) {
       console.log("❌ No valid landscape modifications found");
-      throw new Error("No valid landscape modifications selected");
+      if (customPrompt?.trim()) {
+        modifications.push(customPrompt.trim());
+        appliedStyles.push("client_custom_landscape_options");
+        customPrompt = undefined;
+      } else {
+        throw new Error("No valid landscape modifications selected");
+      }
     }
 
     console.log(`✓ Using ${modifications.length} landscape style prompts`);
@@ -961,6 +984,7 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
         },
       },
     ];
+    await appendReferenceImageParts(contentParts, referenceImageUrls, "Client-specific landscape");
 
     // Add retry logic for Gemini API failures
     let response;

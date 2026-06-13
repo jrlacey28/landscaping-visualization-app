@@ -11,6 +11,11 @@ interface LandscapeStyleSelectorProps {
   onStyleChange: (styles: any) => void;
   primaryColor?: string;
   secondaryColor?: string;
+  customOptions?: {
+    curbing?: SelectorOption[];
+    landscape?: SelectorOption[];
+    patios?: SelectorOption[];
+  };
 }
 
 interface PatioSelection {
@@ -71,6 +76,12 @@ type ColorOption = {
   hex: string;
 };
 
+type SelectorOption = {
+  value: string;
+  label: string;
+  swatch?: string;
+};
+
 function isMulchValue(value: string) {
   return value === "fresh_mulch" || mulchColors.some((color) => color.value === value);
 }
@@ -98,8 +109,13 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
   selectedStyles,
   onStyleChange,
   primaryColor = "#10b981",
-  secondaryColor = "#059669"
+  secondaryColor = "#059669",
+  customOptions,
 }: LandscapeStyleSelectorProps) {
+  const allCurbingOptions = [...curbingOptions, ...(customOptions?.curbing || [])];
+  const allLandscapeOptions = [...landscapeOptions, ...(customOptions?.landscape || [])];
+  const allPatioStyles = [...patioStyles, ...(customOptions?.patios || [])];
+
   const [activeToggles, setActiveToggles] = useState({
     curbing: !!selectedStyles.curbing,
     landscape: !!selectedStyles.landscape,
@@ -258,7 +274,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
 
           {activeToggles.curbing && (
             <div className="space-y-4">
-              {curbingOptions.map((option) => (
+              {allCurbingOptions.map((option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -320,7 +336,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
 
           {activeToggles.landscape && (
             <div className="space-y-3">
-              {landscapeOptions.map((option) => (
+              {allLandscapeOptions.map((option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -330,7 +346,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
                     onChange={() => handleOptionSelect('landscape', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
-                  <Swatch color={option.swatch} className="h-5 w-5" />
+                  {option.swatch && <Swatch color={option.swatch} className="h-5 w-5" />}
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
               ))}
@@ -392,7 +408,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
                   onClick={(e) => e.stopPropagation()}
                   className="w-full px-3 py-2 text-sm bg-white/20 border border-white/30 rounded-md text-white placeholder-white/70 focus:ring-2 focus:ring-white focus:border-transparent"
                 >
-                  {patioStyles.map((style) => (
+                  {allPatioStyles.map((style) => (
                     <option key={style.value} value={style.value} className="text-gray-900">
                       {style.label}
                     </option>

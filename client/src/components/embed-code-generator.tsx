@@ -25,6 +25,11 @@ import {
   type EmbedBackgroundScheme,
   parseEmbedBackgroundScheme,
 } from "@/lib/embed-theme";
+import {
+  EMBED_SERVICES,
+  type EmbedServiceKey,
+  getEnabledEmbedServices,
+} from "@/lib/embed-services";
 
 interface EmbedCodeGeneratorProps {
   tenant: any;
@@ -32,14 +37,7 @@ interface EmbedCodeGeneratorProps {
 }
 
 type ContactType = "phone" | "link";
-type VisualizerType =
-  | "landscape"
-  | "roofing"
-  | "pools"
-  | "painting"
-  | "kitchen"
-  | "bathroom"
-  | "living-room";
+type VisualizerType = EmbedServiceKey;
 
 interface EmbedConfig {
   width: string;
@@ -57,25 +55,15 @@ interface EmbedConfig {
   visualizerType: VisualizerType;
 }
 
-const visualizerPaths: Record<VisualizerType, string> = {
-  landscape: "/embed",
-  roofing: "/embed-roofing",
-  pools: "/embed-pools",
-  painting: "/embed-painting",
-  kitchen: "/embed-kitchen",
-  bathroom: "/embed-bathroom",
-  "living-room": "/embed-living-room",
-};
+const visualizerPaths = EMBED_SERVICES.reduce((paths, service) => {
+  paths[service.key] = service.path;
+  return paths;
+}, {} as Record<VisualizerType, string>);
 
-const visualizerLabels: Record<VisualizerType, string> = {
-  landscape: "Landscape Visualizer",
-  roofing: "Roofing & Siding Visualizer",
-  pools: "Pool Visualizer",
-  painting: "Painting Visualizer",
-  kitchen: "Kitchen Visualizer",
-  bathroom: "Bathroom Visualizer",
-  "living-room": "Living Room Visualizer",
-};
+const visualizerLabels = EMBED_SERVICES.reduce((labels, service) => {
+  labels[service.key] = service.label;
+  return labels;
+}, {} as Record<VisualizerType, string>);
 
 const selectClassName =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background";
@@ -101,6 +89,7 @@ function buildDefaultConfig(tenant: any): EmbedConfig {
 }
 
 export default function EmbedCodeGenerator({ tenant, accountUserId }: EmbedCodeGeneratorProps) {
+  const enabledServices = useMemo(() => getEnabledEmbedServices(tenant), [tenant?.embedCustomizations]);
   const [config, setConfig] = useState<EmbedConfig>(() =>
     buildDefaultConfig(tenant),
   );
@@ -139,7 +128,9 @@ export default function EmbedCodeGenerator({ tenant, accountUserId }: EmbedCodeG
         contactPhone: parsed.contactPhone || defaults.contactPhone,
         contactType: parsed.contactType || defaults.contactType,
         contactLink: parsed.contactLink ?? defaults.contactLink,
-        visualizerType: parsed.visualizerType || defaults.visualizerType,
+        visualizerType: enabledServices.some((service) => service.key === parsed.visualizerType)
+          ? parsed.visualizerType || defaults.visualizerType
+          : enabledServices[0]?.key || defaults.visualizerType,
       });
     } catch (error) {
       console.error("Error parsing saved embed config:", error);
@@ -156,7 +147,18 @@ export default function EmbedCodeGenerator({ tenant, accountUserId }: EmbedCodeG
     tenant?.contactPhone,
     tenant?.logoUrl,
     tenant?.embedCtaUrl,
+    tenant?.embedCustomizations,
   ]);
+
+  useEffect(() => {
+    if (enabledServices.length === 0) return;
+    if (enabledServices.some((service) => service.key === config.visualizerType)) return;
+
+    setConfig((current) => ({
+      ...current,
+      visualizerType: enabledServices[0].key,
+    }));
+  }, [config.visualizerType, enabledServices]);
 
   useEffect(() => {
     if (!tenant?.slug) return;
@@ -287,14 +289,17 @@ export default function EmbedCodeGenerator({ tenant, accountUserId }: EmbedCodeG
                   }
                   className={selectClassName}
                 >
-                  <option value="landscape">Landscape Visualizer</option>
-                  <option value="roofing">Roofing & Siding Visualizer</option>
-                  <option value="pools">Pool Visualizer</option>
-                  <option value="painting">Painting Visualizer</option>
-                  <option value="kitchen">Kitchen Visualizer</option>
-                  <option value="bathroom">Bathroom Visualizer</option>
-                  <option value="living-room">Living Room Visualizer</option>
+                  {enabledServices.map((service) => (
+                    <option key={service.key} value={service.key}>
+                      {service.label}
+                    </option>
+                  ))}
                 </select>
+                {enabledServices.length === 0 && (
+                  <p className="mt-1 text-xs text-red-600">
+                    No embed services are enabled for this client.
+                  </p>
+                )}
               </div>
 
               <div>
