@@ -8,6 +8,13 @@ type ColorOption = {
   hex: string;
 };
 
+type StyleOption = {
+  value: string;
+  label: string;
+  hex?: string;
+  custom?: boolean;
+};
+
 interface StyleSelectorProps {
   selectedStyles: {
     roof: string;
@@ -19,10 +26,14 @@ interface StyleSelectorProps {
   primaryColor?: string;
   secondaryColor?: string;
   showWindows?: boolean;
+  customRoofColors?: ColorOption[];
   customSidingColors?: ColorOption[];
+  customRoofStyles?: StyleOption[];
+  customSidingStyles?: StyleOption[];
+  customWindowOptions?: StyleOption[];
 }
 
-const roofStyles = [
+const roofStyles: StyleOption[] = [
   { value: "asphalt_shingles", label: "Asphalt Shingles" },
   { value: "steel_roof", label: "Steel Roof" },
   { value: "steel_shingles", label: "Steel Shingles" },
@@ -46,7 +57,7 @@ const roofColors = [
   { value: "onyx_black", label: "Onyx Black", hex: "#0F0F0F" },
 ];
 
-const sidingStyles = [
+const sidingStyles: StyleOption[] = [
   { value: "vinyl_siding", label: "Vinyl Siding" },
   { value: "fiber_cement", label: "Fiber Cement" },
   { value: "wood_siding", label: "Wood Siding" },
@@ -71,7 +82,7 @@ const sidingColors = [
   { value: "savannah_wicker", label: "Savannah Wicker", hex: "#D8CAB1" },
 ];
 
-const windowOptions = [
+const windowOptions: StyleOption[] = [
   { value: "windows_black_frames", label: "Black Frames", hex: "#111827" },
   { value: "windows_white_frames", label: "White Frames", hex: "#FFFFFF" },
   { value: "windows_bronze_frames", label: "Bronze Frames", hex: "#5C4033" },
@@ -97,7 +108,18 @@ function ColorOptionContent({ option }: { option: ColorOption }) {
   );
 }
 
-export default function StyleSelector({ selectedStyles, onStyleChange, primaryColor = "#475569", secondaryColor = "#64748b", showWindows = true, customSidingColors = [] }: StyleSelectorProps) {
+export default function StyleSelector({
+  selectedStyles,
+  onStyleChange,
+  primaryColor = "#475569",
+  secondaryColor = "#64748b",
+  showWindows = true,
+  customRoofColors = [],
+  customSidingColors = [],
+  customRoofStyles = [],
+  customSidingStyles = [],
+  customWindowOptions = [],
+}: StyleSelectorProps) {
   const [activeToggles, setActiveToggles] = useState({
     roof: !!selectedStyles.roof,
     siding: !!selectedStyles.siding,
@@ -109,12 +131,21 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
   const [selectedRoofColor, setSelectedRoofColor] = useState("");
   const [selectedSidingStyle, setSelectedSidingStyle] = useState("");
   const [selectedSidingColor, setSelectedSidingColor] = useState("");
-  const selectedRoofColorOption = roofColors.find((color) => color.value === selectedRoofColor);
+  const mergedRoofStyles = [...roofStyles, ...customRoofStyles.filter((style) => style.value && style.label)];
+  const mergedSidingStyles = [...sidingStyles, ...customSidingStyles.filter((style) => style.value && style.label)];
+  const mergedWindowOptions = [...windowOptions, ...customWindowOptions.filter((option) => option.value && option.label)];
+  const mergedRoofColors = [
+    ...roofColors,
+    ...customRoofColors.filter((color) => color.value && color.label && color.hex),
+  ];
+  const selectedRoofColorOption = mergedRoofColors.find((color) => color.value === selectedRoofColor);
   const mergedSidingColors = [
     ...sidingColors,
     ...customSidingColors.filter((color) => color.value && color.label && color.hex),
   ];
   const selectedSidingColorOption = mergedSidingColors.find((color) => color.value === selectedSidingColor);
+  const selectedRoofStyleOption = mergedRoofStyles.find((style) => style.value === selectedRoofStyle);
+  const selectedSidingStyleOption = mergedSidingStyles.find((style) => style.value === selectedSidingStyle);
 
   const handleToggleChange = (category: 'roof' | 'siding' | 'windows' | 'surpriseMe', enabled: boolean) => {
     // Handle mutual exclusivity between surprise me and other options
@@ -188,7 +219,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
               <div>
                 <p className="text-sm text-white/80 mb-2">Choose Style:</p>
                 <div className="space-y-3">
-                  {roofStyles.map((style) => (
+                  {mergedRoofStyles.map((style) => (
                     <label key={style.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="radio"
@@ -199,10 +230,11 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                           setSelectedRoofStyle(style.value);
                           setSelectedRoofColor(""); // Reset color when style changes
                           setActiveToggles(prev => ({ ...prev, roof: true }));
-                          handleOptionSelect('roof', '');
+                          handleOptionSelect('roof', style.custom ? style.value : '');
                         }}
                         className="w-4 h-4 text-white border-white/30 focus:ring-white"
                       />
+                      {style.hex && <ColorSwatch color={style.hex} className="h-5 w-5" />}
                       <span className="text-sm text-white drop-shadow-sm">{style.label}</span>
                     </label>
                   ))}
@@ -210,7 +242,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
               </div>
               
               {/* Roof Color Selection */}
-              {selectedRoofStyle && (
+              {selectedRoofStyle && !selectedRoofStyleOption?.custom && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
                   <Select
@@ -229,7 +261,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                       )}
                     </SelectTrigger>
                     <SelectContent onClick={(e) => e.stopPropagation()}>
-                      {roofColors.map((color) => (
+                      {mergedRoofColors.map((color) => (
                         <SelectItem key={color.value} value={color.value} textValue={color.label} onClick={(e) => e.stopPropagation()}>
                           <ColorOptionContent option={color} />
                         </SelectItem>
@@ -267,7 +299,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
               <div>
                 <p className="text-sm text-white/80 mb-2">Choose Style:</p>
                 <div className="space-y-3">
-                  {sidingStyles.map((style) => (
+                  {mergedSidingStyles.map((style) => (
                     <label key={style.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="radio"
@@ -278,10 +310,11 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                           setSelectedSidingStyle(style.value);
                           setSelectedSidingColor(""); // Reset color when style changes
                           setActiveToggles(prev => ({ ...prev, siding: true }));
-                          handleOptionSelect('siding', '');
+                          handleOptionSelect('siding', style.custom ? style.value : '');
                         }}
                         className="w-4 h-4 text-white border-white/30 focus:ring-white"
                       />
+                      {style.hex && <ColorSwatch color={style.hex} className="h-5 w-5" />}
                       <span className="text-sm text-white drop-shadow-sm">{style.label}</span>
                     </label>
                   ))}
@@ -289,7 +322,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
               </div>
               
               {/* Siding Color Selection */}
-              {selectedSidingStyle && (
+              {selectedSidingStyle && !selectedSidingStyleOption?.custom && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
                   <Select
@@ -344,7 +377,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
           {activeToggles.windows && (
             <div className="space-y-3">
               <p className="text-sm text-white/80 mb-2">Choose Option:</p>
-              {windowOptions.map((option) => (
+              {mergedWindowOptions.map((option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -354,7 +387,7 @@ export default function StyleSelector({ selectedStyles, onStyleChange, primaryCo
                     onChange={() => handleOptionSelect('windows', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
-                  <ColorSwatch color={option.hex} className="h-5 w-5" />
+                  {option.hex && <ColorSwatch color={option.hex} className="h-5 w-5" />}
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
               ))}

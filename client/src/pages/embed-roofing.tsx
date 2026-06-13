@@ -17,6 +17,49 @@ import {
   parseEmbedBackgroundScheme,
 } from "@/lib/embed-theme";
 
+function normalizeToken(value: unknown) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function normalizeCustomColor(color: any) {
+  const hex = String(color?.hex || color?.color || "");
+  const label = String(color?.label || color?.name || color?.value || "").trim();
+  const rawValue = color?.value || `tenant_color_${normalizeToken(label || "custom")}_${hex.replace("#", "")}`;
+
+  return {
+    value: normalizeToken(rawValue),
+    label,
+    hex,
+  };
+}
+
+function normalizeCustomExteriorOption(option: any, category: "roof" | "siding" | "windows") {
+  const label = String(option?.label || option?.name || option?.value || "").trim();
+  const rawValue = option?.value || `tenant_custom_exterior_${category}_${normalizeToken(label || "option")}`;
+
+  return {
+    value: normalizeToken(rawValue).startsWith("tenant_custom_")
+      ? normalizeToken(rawValue)
+      : `tenant_custom_exterior_${category}_${normalizeToken(rawValue)}`,
+    label,
+    hex: typeof option?.hex === "string" ? option.hex : typeof option?.swatch === "string" ? option.swatch : undefined,
+    custom: true,
+  };
+}
+
+function getCustomExteriorOptions(customizations: any, category: "roof" | "siding" | "windows") {
+  const options = customizations?.exteriorOptions?.[category];
+
+  return Array.isArray(options)
+    ? options
+        .map((option: any) => normalizeCustomExteriorOption(option, category))
+        .filter((option: any) => option.value && option.label)
+    : [];
+}
+
 export default function EmbedRoofingPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const tenantSlug = urlParams.get('tenant') || 'demo';
@@ -60,22 +103,19 @@ export default function EmbedRoofingPage() {
   };
 
   const embedCustomizations = (effectiveTenant as any).embedCustomizations || {};
-  const customSidingColors = Array.isArray(embedCustomizations.sidingColors)
-    ? embedCustomizations.sidingColors
-        .map((color: any) => {
-          const hex = String(color.hex || color.color || "");
-          const rawValue = color.value || `${color.label || "custom"}_${hex.replace("#", "")}`;
-          return {
-            value: String(rawValue)
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "_")
-              .replace(/^_+|_+$/g, ""),
-            label: String(color.label || color.value || ""),
-            hex,
-          };
-        })
+  const customRoofColors = Array.isArray(embedCustomizations.roofColors)
+    ? embedCustomizations.roofColors
+        .map(normalizeCustomColor)
         .filter((color: any) => color.value && color.label && /^#[0-9a-f]{6}$/i.test(color.hex))
     : [];
+  const customSidingColors = Array.isArray(embedCustomizations.sidingColors)
+    ? embedCustomizations.sidingColors
+        .map(normalizeCustomColor)
+        .filter((color: any) => color.value && color.label && /^#[0-9a-f]{6}$/i.test(color.hex))
+    : [];
+  const customRoofStyles = getCustomExteriorOptions(embedCustomizations, "roof");
+  const customSidingStyles = getCustomExteriorOptions(embedCustomizations, "siding");
+  const customWindowOptions = getCustomExteriorOptions(embedCustomizations, "windows");
 
   const resolvedLogoUrl = logoUrlParam || effectiveTenant.logoUrl || "";
   const embedVisitor = useEmbedVisitorLimit({
@@ -422,7 +462,11 @@ export default function EmbedRoofingPage() {
               primaryColor={primaryColor}
               secondaryColor={secondaryColor}
               showWindows
+              customRoofColors={customRoofColors}
               customSidingColors={customSidingColors}
+              customRoofStyles={customRoofStyles}
+              customSidingStyles={customSidingStyles}
+              customWindowOptions={customWindowOptions}
             />
           </div>
         )}

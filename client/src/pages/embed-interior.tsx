@@ -298,22 +298,53 @@ function toTenantCustomOption(option: any): InteriorOption | null {
   };
 }
 
+function getInteriorOptionSource(customizations: any, service: InteriorService): any[] {
+  const byService = customizations?.interiorOptions?.[service];
+  const legacyBathroomOptions = service === "bathroom" ? customizations?.bathroomOptions : null;
+
+  if (Array.isArray(byService)) {
+    return byService;
+  }
+
+  if (Array.isArray(legacyBathroomOptions)) {
+    return legacyBathroomOptions;
+  }
+
+  return [];
+}
+
 function getTenantInteriorGroups(config: InteriorEmbedConfig, tenant: any): InteriorGroup[] {
   const customizations = tenant?.embedCustomizations || {};
-  const byService = customizations?.interiorOptions?.[config.service];
-  const legacyBathroomOptions = config.service === "bathroom" ? customizations?.bathroomOptions : null;
-  const source = Array.isArray(byService) ? byService : Array.isArray(legacyBathroomOptions) ? legacyBathroomOptions : [];
-  const options = source.map(toTenantCustomOption).filter(Boolean) as InteriorOption[];
+  const source = getInteriorOptionSource(customizations, config.service);
+  const groupedOptions = new Map<string, InteriorOption[]>();
 
-  if (options.length === 0) {
+  source.forEach((option: any) => {
+    const normalizedOption = toTenantCustomOption(option);
+    if (!normalizedOption) {
+      return;
+    }
+
+    const groupLabel = String(option?.groupLabel || option?.category || "Client Options").trim() || "Client Options";
+    const groupId = groupLabel
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "") || "client_options";
+
+    groupedOptions.set(groupId, [...(groupedOptions.get(groupId) || []), normalizedOption]);
+  });
+
+  if (groupedOptions.size === 0) {
     return [];
   }
 
-  return [{
-    id: "clientOptions",
-    label: "Client Options",
+  return Array.from(groupedOptions.entries()).map(([id, options]) => ({
+    id: `client_${id}`,
+    label: source.find((option: any) => {
+      const groupLabel = String(option?.groupLabel || option?.category || "Client Options").trim() || "Client Options";
+      return id === groupLabel.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    })?.groupLabel || "Client Options",
     options,
-  }];
+  }));
 }
 
 export default function EmbedInteriorPage() {

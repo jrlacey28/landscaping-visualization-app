@@ -1275,6 +1275,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return rawValue.startsWith("tenant_custom_") ? rawValue : `tenant_custom_${rawValue}`;
   }
 
+  function normalizeTenantToken(value: unknown) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+  }
+
+  function normalizeTenantColorValue(color: any) {
+    const hex = String(color?.hex || color?.color || "").replace("#", "");
+    const label = String(color?.label || color?.name || color?.value || "custom").trim();
+    return normalizeTenantToken(color?.value || `tenant_color_${normalizeTenantToken(label)}_${hex}`);
+  }
+
+  function normalizeTenantExteriorOptionValue(option: any, category: "roof" | "siding" | "windows") {
+    const label = String(option?.label || option?.name || option?.value || "option").trim();
+    const rawValue = normalizeTenantToken(option?.value || `tenant_custom_exterior_${category}_${normalizeTenantToken(label)}`);
+    return rawValue.startsWith("tenant_custom_") ? rawValue : `tenant_custom_exterior_${category}_${rawValue}`;
+  }
+
+  function collectReferenceImageUrls(source: any) {
+    const references = [
+      ...(Array.isArray(source?.referenceImageUrls) ? source.referenceImageUrls : []),
+      ...(Array.isArray(source?.referenceImages) ? source.referenceImages : []),
+      source?.referenceImageUrl,
+      source?.imageUrl,
+    ];
+
+    return references
+      .map((url) => String(url || "").trim())
+      .filter(Boolean)
+      .slice(0, 8);
+  }
+
+  function getSelectedColorValue(styleId: string | undefined, knownStyleTypes: string[]) {
+    if (!styleId) return "";
+
+    for (const styleType of knownStyleTypes) {
+      if (styleId.startsWith(`${styleType}_`)) {
+        return styleId.substring(styleType.length + 1);
+      }
+    }
+
+    return "";
+  }
+
+  function buildTenantExteriorCustomContext(
+    tenant: any,
+    selectedStyles: {
+      roof?: string;
+      siding?: string;
+      windows?: string;
+    },
+  ) {
+    const customizations = tenant?.embedCustomizations || {};
+    const prompts: string[] = [];
+    const referenceImageUrls: string[] = [];
+
+    const customExteriorOptions: Array<{ category: "roof" | "siding" | "windows"; selectedStyle?: string; options: any[] }> = [
+      { category: "roof", selectedStyle: selectedStyles.roof, options: customizations?.exteriorOptions?.roof || [] },
+      { category: "siding", selectedStyle: selectedStyles.siding, options: customizations?.exteriorOptions?.siding || [] },
+      { category: "windows", selectedStyle: selectedStyles.windows, options: customizations?.exteriorOptions?.windows || [] },
+    ];
+
+    for (const { category, selectedStyle, options } of customExteriorOptions) {
+      if (!selectedStyle || !Array.isArray(options)) continue;
+
+      const matchedOption = options.find((option: any) =>
+        normalizeTenantExteriorOptionValue(option, category) === normalizeTenantToken(selectedStyle)
+      );
+
+      if (!matchedOption) continue;
+
+      const label = String(matchedOption.label || matchedOption.name || selectedStyle).trim();
+      const prompt = String(matchedOption.prompt || matchedOption.instructions || "").trim();
+      prompts.push(prompt || `Apply the client-specific ${category} option "${label}" exactly as configured for this tenant.`);
+      referenceImageUrls.push(...collectReferenceImageUrls(matchedOption));
+    }
+
+    const roofColorValue = getSelectedColorValue(selectedStyles.roof, ["asphalt_shingles", "steel_roof", "steel_shingles"]);
+    const sidingColorValue = getSelectedColorValue(selectedStyles.siding, ["vinyl_siding", "fiber_cement", "wood_siding", "brick_veneer"]);
+
+    const colorMatches = [
+      {
+        label: "roof",
+        selectedColor: roofColorValue,
+        colors: Array.isArray(customizations?.roofColors) ? customizations.roofColors : [],
+      },
+      {
+        label: "siding",
+        selectedColor: sidingColorValue,
+        colors: Array.isArray(customizations?.sidingColors) ? customizations.sidingColors : [],
+      },
+    ];
+
+    for (const colorMatch of colorMatches) {
+      if (!colorMatch.selectedColor) continue;
+
+      const matchedColor = colorMatch.colors.find((color: any) =>
+        normalizeTenantColorValue(color) === normalizeTenantToken(colorMatch.selectedColor)
+      );
+
+      if (!matchedColor) continue;
+
+      const label = String(matchedColor.label || matchedColor.name || colorMatch.selectedColor).trim();
+      const hex = String(matchedColor.hex || matchedColor.color || "").trim();
+      const prompt = String(matchedColor.prompt || matchedColor.instructions || "").trim();
+      prompts.push(prompt || `Use the tenant-specific ${colorMatch.label} color "${label}"${hex ? ` (${hex})` : ""} as closely as possible.`);
+      referenceImageUrls.push(...collectReferenceImageUrls(matchedColor));
+    }
+
+    return {
+      prompt: prompts.length
+        ? ["CLIENT-SPECIFIC EXTERIOR EMBED OPTIONS:", ...prompts.map((prompt, index) => `${index + 1}. ${prompt}`)].join("\n")
+        : "",
+      referenceImageUrls,
+    };
+  }
+
   function collectTenantInteriorOptions(tenant: any, service: "painting" | "bathroom" | "kitchen" | "living_room") {
     const customizations = tenant?.embedCustomizations || {};
     const byService = customizations?.interiorOptions?.[service];
@@ -1290,29 +1408,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           value: normalizeTenantCustomOptionValue(option?.value || label),
           label,
           prompt: String(option?.prompt || option?.instructions || "").trim(),
+          referenceImageUrls: collectReferenceImageUrls(option),
         };
       })
-      .filter(Boolean) as Array<{ value: string; label: string; prompt: string }>;
+      .filter(Boolean) as Array<{ value: string; label: string; prompt: string; referenceImageUrls: string[] }>;
   }
 
-  function buildTenantInteriorCustomPrompt(
+  function buildTenantInteriorCustomContext(
     tenant: any,
     service: "painting" | "bathroom" | "kitchen" | "living_room",
     selectedStyles: string[],
   ) {
     const selected = new Set(selectedStyles);
-    const matchingPrompts = collectTenantInteriorOptions(tenant, service)
-      .filter((option) => selected.has(option.value))
-      .map((option) => option.prompt || `Apply the client-specific option "${option.label}".`);
+    const matchingOptions = collectTenantInteriorOptions(tenant, service)
+      .filter((option) => selected.has(option.value));
+    const matchingPrompts = matchingOptions.map((option) =>
+      option.prompt || `Apply the client-specific option "${option.label}".`
+    );
 
-    if (matchingPrompts.length === 0) {
-      return "";
-    }
-
-    return [
-      "CLIENT-SPECIFIC EMBED OPTIONS:",
-      ...matchingPrompts.map((prompt, index) => `${index + 1}. ${prompt}`),
-    ].join("\n");
+    return {
+      prompt: matchingPrompts.length
+        ? [
+            "CLIENT-SPECIFIC EMBED OPTIONS:",
+            ...matchingPrompts.map((prompt, index) => `${index + 1}. ${prompt}`),
+          ].join("\n")
+        : "",
+      referenceImageUrls: matchingOptions.flatMap((option) => option.referenceImageUrls),
+    };
   }
 
   async function resolveGenerationOwner(req: AuthRequest, usageType: 'visualization' | 'landscape' | 'pool') {
@@ -1876,12 +1998,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { selectedRoof, selectedSiding, selectedSurpriseMe, selectedWindows, customPrompt } = req.body;
       const userId = generationOwner.userId;
       const hasBusinessPro = generationOwner.hasBusinessPro;
+      const selectedStyles = {
+        roof: selectedRoof || undefined,
+        siding: selectedSiding || undefined,
+        surpriseMe: selectedSurpriseMe || undefined,
+        windows: selectedWindows || undefined
+      };
 
       // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
+      let tenantReferenceImageUrls: string[] = [];
+      if (generationOwner.tenantId) {
+        const ownerTenant = await storage.getTenant(generationOwner.tenantId);
+        const customContext = buildTenantExteriorCustomContext(ownerTenant, selectedStyles);
+        validatedCustomPrompt = customContext.prompt || undefined;
+        tenantReferenceImageUrls = customContext.referenceImageUrls;
+      }
+
       if (customPrompt && customPrompt.trim()) {
         if (hasBusinessPro) {
-          validatedCustomPrompt = customPrompt;
+          validatedCustomPrompt = [validatedCustomPrompt, customPrompt.trim()].filter(Boolean).join("\n\n");
         } else {
           console.log(`User ${userId} attempted to use custom prompt without Professional access`);
         }
@@ -1909,17 +2045,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Process with Gemini AI
       try {
-        const selectedStyles = {
-          roof: selectedRoof || undefined,
-          siding: selectedSiding || undefined,
-          surpriseMe: selectedSurpriseMe || undefined,
-          windows: selectedWindows || undefined
-        };
-
         const result = await processLandscapeWithGemini({
           imageBuffer: originalImageBuffer,
           selectedStyles,
           customPrompt: validatedCustomPrompt,
+          referenceImageUrls: tenantReferenceImageUrls,
           usePremiumModel: hasBusinessPro
         });
 
@@ -2029,9 +2159,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hasBusinessPro = generationOwner.hasBusinessPro;
 
       let validatedCustomPrompt = "";
+      let tenantReferenceImageUrls: string[] = [];
       if (generationOwner.tenantId) {
         const ownerTenant = await storage.getTenant(generationOwner.tenantId);
-        validatedCustomPrompt = buildTenantInteriorCustomPrompt(ownerTenant, service, selectedStyles);
+        const customContext = buildTenantInteriorCustomContext(ownerTenant, service, selectedStyles);
+        validatedCustomPrompt = customContext.prompt;
+        tenantReferenceImageUrls = customContext.referenceImageUrls;
       }
 
       if (customPrompt && customPrompt.trim()) {
@@ -2067,6 +2200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customColorName,
           customColorHex,
           customPrompt: validatedCustomPrompt || undefined,
+          referenceImageUrls: tenantReferenceImageUrls,
           usePremiumModel: hasBusinessPro
         });
 

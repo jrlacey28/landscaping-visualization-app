@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import * as path from "path";
 import { GoogleGenAI, Modality } from "@google/genai";
 import sharp from "sharp";
 
@@ -83,6 +84,97 @@ async function processImageSize(imageBuffer: Buffer): Promise<ProcessedImage> {
     height: finalMetadata.height || 1080,
     format: "jpeg",
   };
+}
+
+function getMimeTypeFromUrl(url: string) {
+  const lowerUrl = url.toLowerCase();
+  if (lowerUrl.endsWith(".png")) return "image/png";
+  if (lowerUrl.endsWith(".webp")) return "image/webp";
+  if (lowerUrl.endsWith(".gif")) return "image/gif";
+  return "image/jpeg";
+}
+
+async function loadReferenceImage(refImageUrl: string) {
+  const trimmedUrl = refImageUrl.trim();
+  if (!trimmedUrl) return null;
+
+  if (trimmedUrl.startsWith("data:image/")) {
+    const match = trimmedUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+    if (!match) return null;
+
+    return {
+      data: match[2],
+      mimeType: match[1],
+    };
+  }
+
+  try {
+    const pathname = trimmedUrl.startsWith("/uploads/")
+      ? trimmedUrl
+      : new URL(trimmedUrl).pathname;
+
+    if (pathname.startsWith("/uploads/")) {
+      const relativePath = pathname.replace(/^\/+/, "");
+      const uploadsRoot = path.resolve(process.cwd(), "public", "uploads");
+      const imagePath = path.resolve(process.cwd(), "public", relativePath);
+
+      if (imagePath.startsWith(uploadsRoot) && fs.existsSync(imagePath)) {
+        return {
+          data: fs.readFileSync(imagePath).toString("base64"),
+          mimeType: getMimeTypeFromUrl(pathname),
+        };
+      }
+    }
+  } catch {
+    // Fall through to remote fetch.
+  }
+
+  if (!/^https?:\/\//i.test(trimmedUrl)) {
+    return null;
+  }
+
+  const response = await fetch(trimmedUrl);
+  if (!response.ok) {
+    return null;
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  const contentType = response.headers.get("content-type") || getMimeTypeFromUrl(trimmedUrl);
+
+  return {
+    data: Buffer.from(arrayBuffer).toString("base64"),
+    mimeType: contentType.startsWith("image/") ? contentType : getMimeTypeFromUrl(trimmedUrl),
+  };
+}
+
+async function appendReferenceImageParts(
+  contentParts: any[],
+  referenceImageUrls: string[] | undefined,
+  label: string,
+) {
+  const uniqueReferenceUrls = Array.from(new Set(referenceImageUrls || [])).slice(0, 8);
+
+  for (const refImageUrl of uniqueReferenceUrls) {
+    try {
+      const referenceImage = await loadReferenceImage(refImageUrl);
+      if (!referenceImage) {
+        console.log(`Could not load reference image: ${refImageUrl}`);
+        continue;
+      }
+
+      contentParts.push({
+        text: `${label} reference image:`,
+      });
+      contentParts.push({
+        inlineData: {
+          data: referenceImage.data,
+          mimeType: referenceImage.mimeType,
+        },
+      });
+    } catch (error) {
+      console.log(`Could not load reference image: ${refImageUrl}`);
+    }
+  }
 }
 
 function imageDimensionsInstruction(processedImage: ProcessedImage): string {
@@ -238,6 +330,7 @@ export async function processLandscapeWithGemini({
   imageBuffer,
   selectedStyles,
   customPrompt,
+  referenceImageUrls,
   usePremiumModel = false,
 }: {
   imageBuffer: Buffer;
@@ -248,6 +341,7 @@ export async function processLandscapeWithGemini({
     windows?: string;
   };
   customPrompt?: string;
+  referenceImageUrls?: string[];
   usePremiumModel?: boolean;
 }): Promise<{
   editedImageBuffer: Buffer;
@@ -369,6 +463,7 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
         },
       },
     ];
+    await appendReferenceImageParts(contentParts, referenceImageUrls, "Client-specific exterior");
 
     // Add reference images for each applied style
     for (const styleId of appliedStyles) {
@@ -984,6 +1079,7 @@ export async function processInteriorVisualizationWithGemini({
   customColorName,
   customColorHex,
   customPrompt,
+  referenceImageUrls,
   usePremiumModel = false,
 }: {
   imageBuffer: Buffer;
@@ -992,6 +1088,7 @@ export async function processInteriorVisualizationWithGemini({
   customColorName?: string;
   customColorHex?: string;
   customPrompt?: string;
+  referenceImageUrls?: string[];
   usePremiumModel?: boolean;
 }): Promise<{
   editedImageBuffer: Buffer;
@@ -1068,6 +1165,7 @@ Apply ONLY the requested ${serviceLabels[service]} changes and keep the result p
         },
       },
     ];
+    await appendReferenceImageParts(contentParts, referenceImageUrls, "Client-specific interior");
 
     let response;
     const maxRetries = 3;

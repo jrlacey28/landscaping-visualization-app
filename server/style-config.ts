@@ -376,6 +376,30 @@ export function getStyleConfig(styleAndColor: string): StyleConfig {
   if (STYLE_CONFIG[styleAndColor]) {
     return STYLE_CONFIG[styleAndColor];
   }
+
+  if (styleAndColor.startsWith("tenant_custom_exterior_")) {
+    const category = styleAndColor.includes("_roof_")
+      ? "roof"
+      : styleAndColor.includes("_windows_")
+        ? "windows"
+        : "siding";
+    const name = styleAndColor
+      .replace(/^tenant_custom_exterior_(roof|siding|windows)_/, "")
+      .split(/[\s_-]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+
+    return {
+      id: styleAndColor,
+      name: name || "Client Custom Exterior Option",
+      prompt:
+        "Apply the client-specific exterior option selected for this embed. Follow the additional client-specific instructions and reference images provided separately. Keep the result realistic, buildable, and preserve all unselected parts of the home.",
+      referenceImageUrl: "",
+      category: category as StyleConfig["category"],
+      regionType: category === "roof" ? "roof" : category === "windows" ? "windows" : "exterior",
+    };
+  }
   
   // Parse dynamic style_color format
   const parts = styleAndColor.split('_');

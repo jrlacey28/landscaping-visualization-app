@@ -47,6 +47,11 @@ import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import type { Tenant, Lead } from "@shared/schema";
 import EmbedCodeGenerator from "./embed-code-generator";
+import EnterpriseCustomizationEditor, {
+  cleanEnterpriseCustomizations,
+  createEmptyEnterpriseCustomizations,
+  normalizeEnterpriseCustomizations,
+} from "./enterprise-customization-editor";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -166,6 +171,7 @@ export default function AdminDashboard() {
   const [deletingLead, setDeletingLead] = useState<Lead | null>(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set());
   const [newClientData, setNewClientData] = useState({
+    userId: "",
     companyName: "",
     slug: "",
     email: "",
@@ -188,7 +194,7 @@ export default function AdminDashboard() {
     embedQuoteRecipientEmail: "",
     embedQuoteSuccessRedirectUrl: "",
     embedQuoteIncludeImages: true,
-    embedCustomizations: "",
+    embedCustomizations: createEmptyEnterpriseCustomizations(),
   });
 
   // For the legacy tenant settings panel.
@@ -315,6 +321,7 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
       setIsAddingClient(false);
       setNewClientData({
+        userId: "",
         companyName: "",
         slug: "",
         email: "",
@@ -337,7 +344,7 @@ export default function AdminDashboard() {
         embedQuoteRecipientEmail: "",
         embedQuoteSuccessRedirectUrl: "",
         embedQuoteIncludeImages: true,
-        embedCustomizations: "",
+        embedCustomizations: createEmptyEnterpriseCustomizations(),
       });
     },
     onError: (error: any) => {
@@ -479,6 +486,18 @@ export default function AdminDashboard() {
     updateTenantMutation.mutate(tenantSettings);
   };
 
+  const prepareClientPayload = (clientData: any) => {
+    const parsedUserId = parseInt(String(clientData.userId || ""), 10);
+
+    return {
+      ...clientData,
+      userId: Number.isInteger(parsedUserId) && parsedUserId > 0 ? parsedUserId : null,
+      embedCustomizations: cleanEnterpriseCustomizations(
+        normalizeEnterpriseCustomizations(clientData.embedCustomizations),
+      ),
+    };
+  };
+
   const handleCreateClient = () => {
     if (!newClientData.companyName || !newClientData.slug || !newClientData.email) {
       toast({
@@ -489,52 +508,24 @@ export default function AdminDashboard() {
       return;
     }
 
-    try {
-      createTenantMutation.mutate({
-        ...newClientData,
-        embedCustomizations: newClientData.embedCustomizations.trim()
-          ? JSON.parse(newClientData.embedCustomizations)
-          : null,
-      });
-    } catch (error) {
-      toast({
-        title: "Invalid Customizations JSON",
-        description: "Please enter valid JSON or leave the customizations field blank.",
-        variant: "destructive",
-      });
-    }
+    createTenantMutation.mutate(prepareClientPayload(newClientData));
   };
 
   const handleEditClient = (tenant: Tenant) => {
     setEditingClient({
       ...tenant,
-      embedCustomizations: tenant.embedCustomizations
-        ? JSON.stringify(tenant.embedCustomizations, null, 2)
-        : "",
+      userId: tenant.userId ? String(tenant.userId) : "",
+      embedCustomizations: normalizeEnterpriseCustomizations(tenant.embedCustomizations),
     } as any);
   };
 
   const handleSaveClient = () => {
     if (!editingClient) return;
 
-    try {
-      const clientData = editingClient as any;
-      updateClientMutation.mutate({
-        id: editingClient.id,
-        data: {
-          ...clientData,
-          embedCustomizations: typeof clientData.embedCustomizations === "string" && clientData.embedCustomizations.trim()
-            ? JSON.parse(clientData.embedCustomizations)
-            : null,
-        }
-      });
-    } catch (error) {
-      toast({
-        title: "Invalid Customizations JSON",
-        description: "Please enter valid JSON or leave the customizations field blank.",
-        variant: "destructive",
-      });
-    }
+    updateClientMutation.mutate({
+      id: editingClient.id,
+      data: prepareClientPayload(editingClient as any),
+    });
   };
 
   const handleDeleteClient = () => {
@@ -915,6 +906,30 @@ export default function AdminDashboard() {
                           />
                         </div>
                         <div>
+                          <Label htmlFor="newClientUserId">Linked Account</Label>
+                          <select
+                            id="newClientUserId"
+                            value={newClientData.userId}
+                            onChange={(e) => {
+                              const selectedUser = allUsersData?.data?.find((user) => String(user.id) === e.target.value);
+                              setNewClientData(prev => ({
+                                ...prev,
+                                userId: e.target.value,
+                                email: selectedUser?.email || prev.email,
+                                companyName: prev.companyName || selectedUser?.businessName || "",
+                              }));
+                            }}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          >
+                            <option value="">No linked account</option>
+                            {allUsersData?.data?.map((user) => (
+                              <option key={user.id} value={user.id}>
+                                #{user.id} - {user.email}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
                           <Label htmlFor="newPhone">Phone</Label>
                           <Input
                             id="newPhone"
@@ -1090,16 +1105,13 @@ export default function AdminDashboard() {
                           />
                         </div>
                       </div>
-                      <div>
-                        <Label htmlFor="newEmbedCustomizations">Private Embed Customizations JSON</Label>
-                        <Textarea
-                          id="newEmbedCustomizations"
-                          value={newClientData.embedCustomizations}
-                          onChange={(e) => setNewClientData(prev => ({ ...prev, embedCustomizations: e.target.value }))}
-                          rows={5}
-                          placeholder='{"sidingColors":[{"label":"Deep Ocean","hex":"#123456"}],"bathroomOptions":[{"label":"Premium Shower Package","prompt":"Replace the shower area with..."}]}'
-                        />
-                      </div>
+                      <EnterpriseCustomizationEditor
+                        value={newClientData.embedCustomizations}
+                        onChange={(embedCustomizations) => setNewClientData(prev => ({
+                          ...prev,
+                          embedCustomizations,
+                        }))}
+                      />
                       <div className="flex space-x-2">
                         <Button onClick={handleCreateClient} disabled={createTenantMutation.isPending}>
                           {createTenantMutation.isPending ? "Creating..." : "Create Client"}
@@ -1136,6 +1148,30 @@ export default function AdminDashboard() {
                             value={editingClient.email || ""}
                             onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, email: e.target.value }) : null)}
                           />
+                        </div>
+                        <div>
+                          <Label htmlFor="editClientUserId">Linked Account</Label>
+                          <select
+                            id="editClientUserId"
+                            value={String((editingClient as any).userId || "")}
+                            onChange={(e) => {
+                              const selectedUser = allUsersData?.data?.find((user) => String(user.id) === e.target.value);
+                              setEditingClient(prev => prev ? ({
+                                ...prev,
+                                userId: e.target.value,
+                                email: selectedUser?.email || prev.email,
+                                companyName: prev.companyName || selectedUser?.businessName || "",
+                              } as any) : null);
+                            }}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          >
+                            <option value="">No linked account</option>
+                            {allUsersData?.data?.map((user) => (
+                              <option key={user.id} value={user.id}>
+                                #{user.id} - {user.email}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <Label htmlFor="editPhone">Phone</Label>
@@ -1346,16 +1382,13 @@ export default function AdminDashboard() {
                           />
                         </div>
                       </div>
-                      <div>
-                        <Label htmlFor="editEmbedCustomizations">Private Embed Customizations JSON</Label>
-                        <Textarea
-                          id="editEmbedCustomizations"
-                          value={String((editingClient as any).embedCustomizations || "")}
-                          onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, embedCustomizations: e.target.value } as any) : null)}
-                          rows={6}
-                          placeholder='{"sidingColors":[{"label":"Deep Ocean","hex":"#123456"}],"bathroomOptions":[{"label":"Premium Shower Package","prompt":"Replace the shower area with..."}]}'
-                        />
-                      </div>
+                      <EnterpriseCustomizationEditor
+                        value={(editingClient as any).embedCustomizations}
+                        onChange={(embedCustomizations) => setEditingClient(prev => prev ? ({
+                          ...prev,
+                          embedCustomizations,
+                        } as any) : null)}
+                      />
                       <div className="flex space-x-2">
                         <Button onClick={handleSaveClient} disabled={updateClientMutation.isPending}>
                           {updateClientMutation.isPending ? "Saving..." : "Save Changes"}
