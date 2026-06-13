@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import {
+  type EmbedDefaultOptionVisibility,
+  normalizeEmbedDefaultOptionVisibility,
+} from "@/lib/embed-default-visibility";
 
 interface LandscapeStyleSelectorProps {
   selectedStyles: {
@@ -16,6 +20,7 @@ interface LandscapeStyleSelectorProps {
     landscape?: SelectorOption[];
     patios?: SelectorOption[];
   };
+  defaultOptionVisibility?: Partial<EmbedDefaultOptionVisibility>;
 }
 
 interface PatioSelection {
@@ -111,10 +116,30 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
   primaryColor = "#10b981",
   secondaryColor = "#059669",
   customOptions,
+  defaultOptionVisibility,
 }: LandscapeStyleSelectorProps) {
-  const allCurbingOptions = [...curbingOptions, ...(customOptions?.curbing || [])];
-  const allLandscapeOptions = [...landscapeOptions, ...(customOptions?.landscape || [])];
-  const allPatioStyles = [...patioStyles, ...(customOptions?.patios || [])];
+  const defaultVisibility = normalizeEmbedDefaultOptionVisibility(defaultOptionVisibility);
+  const allCurbingOptions = [
+    ...(defaultVisibility["landscape.curbing"] ? curbingOptions : []),
+    ...(customOptions?.curbing || []),
+  ];
+  const allLandscapeOptions = [
+    ...(defaultVisibility["landscape.landscape"] ? landscapeOptions : []),
+    ...(customOptions?.landscape || []),
+  ];
+  const allPatioStyles = [
+    ...(defaultVisibility["landscape.patios"] ? patioStyles : []),
+    ...(customOptions?.patios || []),
+  ];
+  const allCurbingColors = defaultVisibility["landscape.curbingColors"] ? curbingColors : [];
+  const allMulchColors = defaultVisibility["landscape.mulchColors"] ? mulchColors : [];
+  const allPatioShapes = defaultVisibility["landscape.patioShapes"] ? patioShapes : [];
+  const allPatioSizes = defaultVisibility["landscape.patioSizes"] ? patioSizes : [];
+  const defaultCurbingType = allCurbingOptions[0]?.value || "";
+  const defaultLandscapeType = allLandscapeOptions[0]?.value || "";
+  const defaultPatioStyle = allPatioStyles[0]?.value || "";
+  const defaultPatioShape = allPatioShapes[0]?.value || "";
+  const defaultPatioSize = allPatioSizes[0]?.value || "";
 
   const [activeToggles, setActiveToggles] = useState({
     curbing: !!selectedStyles.curbing,
@@ -123,25 +148,36 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
   });
 
   const [curbingSelection, setCurbingSelection] = useState({
-    type: 'natural_stone_curbing',
-    color: 'gray'
+    type: defaultCurbingType,
+    color: allCurbingColors[0]?.value || "",
   });
 
   const [landscapeSelection, setLandscapeSelection] = useState(() => ({
-    type: isMulchValue(selectedStyles.landscape) ? "mulch" : selectedStyles.landscape || "mulch",
+    type: isMulchValue(selectedStyles.landscape) ? "mulch" : selectedStyles.landscape || defaultLandscapeType,
     mulch: isMulchValue(selectedStyles.landscape) && selectedStyles.landscape !== "fresh_mulch"
       ? selectedStyles.landscape
-      : "brown_mulch",
+      : allMulchColors[0]?.value || "",
   }));
 
   const [patioSelection, setPatioSelection] = useState<PatioSelection>({
-    style: 'plain_concrete_patio',
-    shape: 'rectangular',
-    size: 'medium'
+    style: defaultPatioStyle,
+    shape: defaultPatioShape,
+    size: defaultPatioSize,
   });
 
-  const selectedCurbingColor = curbingColors.find((color) => color.value === curbingSelection.color) || curbingColors[0];
-  const selectedMulchColor = mulchColors.find((color) => color.value === landscapeSelection.mulch) || mulchColors[0];
+  const selectedCurbingColor = allCurbingColors.find((color) => color.value === curbingSelection.color) || allCurbingColors[0];
+  const selectedMulchColor = allMulchColors.find((color) => color.value === landscapeSelection.mulch) || allMulchColors[0];
+  const showCurbingCard = allCurbingOptions.length > 0;
+  const showLandscapeCard = allLandscapeOptions.length > 0;
+  const showPatiosCard = allPatioStyles.length > 0;
+
+  const buildPatioSpec = (selection: PatioSelection) => {
+    if (!selection.style) return "";
+    if (!allPatioShapes.length) return selection.style;
+    return [selection.style, selection.shape || allPatioShapes[0]?.value || "", allPatioSizes.length ? selection.size || allPatioSizes[0]?.value || "" : ""]
+      .filter(Boolean)
+      .join("|");
+  };
 
   const handleToggleChange = (category: 'curbing' | 'landscape' | 'patios', enabled: boolean) => {
     setActiveToggles(prev => ({ ...prev, [category]: enabled }));
@@ -156,7 +192,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
       // If toggling on, set the initial selection
       if (category === 'curbing') {
         // Set the default curbing selection with type and color
-        const fullCurbingId = curbingSelection.type === 'natural_stone_curbing' 
+        const fullCurbingId = curbingSelection.type === 'natural_stone_curbing' && curbingSelection.color
           ? `${curbingSelection.type}_${curbingSelection.color}` 
           : curbingSelection.type;
         onStyleChange({
@@ -170,7 +206,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
         });
       } else if (category === 'patios') {
         // Set the default patio selection
-        const patioSpec = `${patioSelection.style}|${patioSelection.shape}|${patioSelection.size}`;
+        const patioSpec = buildPatioSpec(patioSelection);
         onStyleChange({
           ...selectedStyles,
           patios: patioSpec,
@@ -186,7 +222,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
     if (category === 'curbing') {
       const newSelection = { ...curbingSelection, type: value };
       setCurbingSelection(newSelection);
-      const fullCurbingId = value === 'natural_stone_curbing' 
+      const fullCurbingId = value === 'natural_stone_curbing' && newSelection.color
         ? `${value}_${newSelection.color}` 
         : value;
       onStyleChange({
@@ -214,7 +250,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
 
     const newSelection = { ...curbingSelection, color };
     setCurbingSelection(newSelection);
-    const fullCurbingId = curbingSelection.type === 'natural_stone_curbing' 
+    const fullCurbingId = curbingSelection.type === 'natural_stone_curbing' && color
       ? `${curbingSelection.type}_${color}` 
       : curbingSelection.type;
     onStyleChange({
@@ -242,7 +278,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
     setPatioSelection(newSelection);
 
     // Create a combined patio specification that preserves the style
-    const patioSpec = `${newSelection.style}|${newSelection.shape}|${newSelection.size}`;
+    const patioSpec = buildPatioSpec(newSelection);
 
     onStyleChange({
       ...selectedStyles,
@@ -254,11 +290,12 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
     <div className="space-y-6">
       <div className="grid md:grid-cols-3 gap-4">
         {/* Curbing Card */}
+        {showCurbingCard && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.curbing ? '#ffffff' : `${primaryColor}cc`,
                background: activeToggles.curbing 
-                 ? `linear-gradient(to bottom right, #10b981, #14b8a6)` 
+                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor})`
                  : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
              }}
              onClick={() => handleToggleChange('curbing', !activeToggles.curbing)}>
@@ -268,7 +305,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
               checked={activeToggles.curbing}
               onCheckedChange={(checked) => handleToggleChange('curbing', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.curbing ? primaryColor : "#4b5563" }}
             />
           </div>
 
@@ -288,7 +325,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
                 </label>
               ))}
 
-              {curbingSelection.type === 'natural_stone_curbing' && (
+              {curbingSelection.type === 'natural_stone_curbing' && selectedCurbingColor && (
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Color</label>
                   <Select
@@ -302,7 +339,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
                       <ColorOptionContent option={selectedCurbingColor} />
                     </SelectTrigger>
                     <SelectContent onClick={(e) => e.stopPropagation()}>
-                      {curbingColors.map((color) => (
+                      {allCurbingColors.map((color) => (
                         <SelectItem key={color.value} value={color.value} textValue={color.label}>
                           <ColorOptionContent option={color} />
                         </SelectItem>
@@ -314,13 +351,15 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
             </div>
           )}
         </div>
+        )}
 
         {/* Landscaping Card */}
+        {showLandscapeCard && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.landscape ? '#ffffff' : `${secondaryColor}cc`,
                background: activeToggles.landscape 
-                 ? `linear-gradient(to bottom right, #059669, #0d9488)` 
+                 ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor})`
                  : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
              }}
              onClick={() => handleToggleChange('landscape', !activeToggles.landscape)}>
@@ -330,7 +369,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
               checked={activeToggles.landscape}
               onCheckedChange={(checked) => handleToggleChange('landscape', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.landscape ? secondaryColor : "#4b5563" }}
             />
           </div>
 
@@ -351,7 +390,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
                 </label>
               ))}
 
-              {landscapeSelection.type === "mulch" && (
+              {landscapeSelection.type === "mulch" && selectedMulchColor && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <label className="block text-sm font-medium text-white mb-2">Mulch Color</label>
                   <Select
@@ -365,7 +404,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
                       <ColorOptionContent option={selectedMulchColor} />
                     </SelectTrigger>
                     <SelectContent onClick={(e) => e.stopPropagation()}>
-                      {mulchColors.map((color) => (
+                      {allMulchColors.map((color) => (
                         <SelectItem key={color.value} value={color.value} textValue={color.label}>
                           <ColorOptionContent option={color} />
                         </SelectItem>
@@ -377,13 +416,15 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
             </div>
           )}
         </div>
+        )}
 
         {/* Concrete Patios Card */}
+        {showPatiosCard && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.patios ? '#ffffff' : `${primaryColor}cc`,
                background: activeToggles.patios 
-                 ? `linear-gradient(to bottom right, #047857, #065f46)` 
+                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor})`
                  : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
              }}
              onClick={() => handleToggleChange('patios', !activeToggles.patios)}>
@@ -393,7 +434,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
               checked={activeToggles.patios}
               onCheckedChange={(checked) => handleToggleChange('patios', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.patios ? primaryColor : "#4b5563" }}
             />
           </div>
 
@@ -417,6 +458,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
               </div>
 
               {/* Patio Shape */}
+              {allPatioShapes.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-white mb-2">Shape</label>
                 <select
@@ -425,16 +467,17 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
                   onClick={(e) => e.stopPropagation()}
                   className="w-full px-3 py-2 text-sm bg-white/20 border border-white/30 rounded-md text-white placeholder-white/70 focus:ring-2 focus:ring-white focus:border-transparent"
                 >
-                  {patioShapes.map((shape) => (
+                  {allPatioShapes.map((shape) => (
                     <option key={shape.value} value={shape.value} className="text-gray-900">
                       {shape.label}
                     </option>
                   ))}
                 </select>
               </div>
+              )}
 
               {/* Patio Size - only show for shapes that have size options */}
-              {(patioSelection.shape === 'rectangular' || patioSelection.shape === 'curved') && (
+              {allPatioSizes.length > 0 && (patioSelection.shape === 'rectangular' || patioSelection.shape === 'curved') && (
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Size</label>
                   <select
@@ -443,7 +486,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
                     onClick={(e) => e.stopPropagation()}
                     className="w-full px-3 py-2 text-sm bg-white/20 border border-white/30 rounded-md text-white placeholder-white/70 focus:ring-2 focus:ring-white focus:border-transparent"
                   >
-                    {patioSizes.map((size) => (
+                    {allPatioSizes.map((size) => (
                       <option key={size.value} value={size.value} className="text-gray-900">
                         {size.label}
                       </option>
@@ -454,6 +497,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );

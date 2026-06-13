@@ -15,6 +15,7 @@ import {
   getEmbedThemeClasses,
   parseEmbedBackgroundScheme,
 } from "@/lib/embed-theme";
+import { normalizeEmbedDefaultOptionVisibility } from "@/lib/embed-default-visibility";
 import { type EmbedServiceKey, isEmbedServiceEnabled } from "@/lib/embed-services";
 
 type InteriorService = "painting" | "bathroom" | "kitchen" | "living_room";
@@ -348,6 +349,11 @@ function getTenantInteriorGroups(config: InteriorEmbedConfig, tenant: any): Inte
   }));
 }
 
+function getInteriorDefaultVisibilityKey(service: InteriorService) {
+  if (service === "living_room") return "interior.livingRoom";
+  return `interior.${service}`;
+}
+
 export default function EmbedInteriorPage() {
   const [location] = useLocation();
   const baseConfig = serviceConfigs[location] || serviceConfigs["/embed-painting"];
@@ -398,17 +404,25 @@ export default function EmbedInteriorPage() {
   const displayCompanyName = tenant
     ? effectiveTenant.companyName || companyName || "DreamBuilder"
     : companyName || effectiveTenant.companyName || "DreamBuilder";
+  const embedCustomizations = effectiveTenant.embedCustomizations || {};
+  const defaultOptionVisibility = normalizeEmbedDefaultOptionVisibility(
+    embedCustomizations.defaultOptionVisibility,
+  );
 
   const config = useMemo(() => {
     const tenantGroups = getTenantInteriorGroups(baseConfig, effectiveTenant);
-    if (tenantGroups.length === 0) {
+    const showDefaultGroups =
+      defaultOptionVisibility[getInteriorDefaultVisibilityKey(baseConfig.service) as keyof typeof defaultOptionVisibility];
+    const defaultGroups = showDefaultGroups ? baseConfig.groups : [];
+
+    if (tenantGroups.length === 0 && defaultGroups.length === baseConfig.groups.length) {
       return baseConfig;
     }
 
     return {
       ...baseConfig,
       allowCombinations: true,
-      groups: [...baseConfig.groups, ...tenantGroups],
+      groups: [...defaultGroups, ...tenantGroups],
     };
   }, [baseConfig, tenant?.embedCustomizations]);
 
@@ -841,6 +855,11 @@ export default function EmbedInteriorPage() {
         {uploadedImage && !visitorLimitReached && (
           <div className={`${themeClasses.panel} mb-4 rounded-2xl p-4`}>
             <h2 className={`mb-4 text-xl font-semibold ${themeClasses.panelTitle}`}>Choose Your Style</h2>
+            {config.groups.length === 0 ? (
+              <div className="rounded-xl border border-white/10 bg-white/10 p-4 text-sm text-white">
+                No style options are currently configured for this client embed.
+              </div>
+            ) : (
             <div className="grid gap-3 md:grid-cols-2">
               {config.groups.map((group) => {
                 const isActive = activeGroups[group.id];
@@ -851,9 +870,12 @@ export default function EmbedInteriorPage() {
                 return (
                   <div
                     key={group.id}
-                    className={`rounded-xl p-4 ring-1 transition ${
-                      isActive ? "bg-black/15 ring-white/15" : "bg-slate-600/25 ring-white/10"
-                    }`}
+                    className="rounded-xl p-4 ring-1 ring-white/15 transition"
+                    style={{
+                      background: isActive
+                        ? `linear-gradient(to bottom right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor})`
+                        : `linear-gradient(to bottom right, ${resolvedPrimaryColor}66, ${resolvedSecondaryColor}66)`,
+                    }}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <h3 className={`font-semibold ${themeClasses.panelTitle}`}>{group.label}</h3>
@@ -892,6 +914,7 @@ export default function EmbedInteriorPage() {
                 );
               })}
             </div>
+            )}
 
             {customPaintSelected && (
               <div className="mt-4 rounded-xl border border-white/10 bg-white p-4 shadow-sm">

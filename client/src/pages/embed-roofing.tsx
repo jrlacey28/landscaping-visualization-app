@@ -491,6 +491,7 @@ export default function EmbedRoofingPage() {
               customRoofStyles={customRoofStyles}
               customSidingStyles={customSidingStyles}
               customWindowOptions={customWindowOptions}
+              defaultOptionVisibility={embedCustomizations.defaultOptionVisibility}
             />
           </div>
         )}

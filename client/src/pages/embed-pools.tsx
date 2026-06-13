@@ -431,6 +431,7 @@ export default function EmbedPoolsPage() {
               primaryColor={resolvedPrimaryColor}
               secondaryColor={resolvedSecondaryColor}
               customOptions={poolCustomOptions}
+              defaultOptionVisibility={embedCustomizations.defaultOptionVisibility}
             />
           </div>
         )}

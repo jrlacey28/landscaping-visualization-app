@@ -1,5 +1,9 @@
 import React, { useState } from "react";
 import { Switch } from "@/components/ui/switch";
+import {
+  type EmbedDefaultOptionVisibility,
+  normalizeEmbedDefaultOptionVisibility,
+} from "@/lib/embed-default-visibility";
 
 interface PoolStyleSelectorProps {
   selectedStyles: {
@@ -23,6 +27,7 @@ interface PoolStyleSelectorProps {
     hotTub?: SelectorOption[];
     sauna?: SelectorOption[];
   };
+  defaultOptionVisibility?: Partial<EmbedDefaultOptionVisibility>;
 }
 
 type SelectorOption = {
@@ -79,14 +84,16 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
   primaryColor = "#10b981",
   secondaryColor = "#059669",
   customOptions,
+  defaultOptionVisibility,
 }: PoolStyleSelectorProps) {
-  const allPoolTypes = [...poolTypes, ...(customOptions?.poolType || [])];
-  const allPoolSizes = [...poolSizes, ...(customOptions?.poolSize || [])];
-  const allDeckingOptions = [...deckingOptions, ...(customOptions?.decking || [])];
-  const allLandscapingOptions = [...landscapingOptions, ...(customOptions?.landscaping || [])];
-  const allFeatureOptions = [...featureOptions, ...(customOptions?.features || [])];
-  const allHotTubOptions = [...hotTubOptions, ...(customOptions?.hotTub || [])];
-  const allSaunaOptions = [...saunaOptions, ...(customOptions?.sauna || [])];
+  const defaultVisibility = normalizeEmbedDefaultOptionVisibility(defaultOptionVisibility);
+  const allPoolTypes = [...(defaultVisibility["pools.poolType"] ? poolTypes : []), ...(customOptions?.poolType || [])];
+  const allPoolSizes = [...(defaultVisibility["pools.poolSize"] ? poolSizes : []), ...(customOptions?.poolSize || [])];
+  const allDeckingOptions = [...(defaultVisibility["pools.decking"] ? deckingOptions : []), ...(customOptions?.decking || [])];
+  const allLandscapingOptions = [...(defaultVisibility["pools.landscaping"] ? landscapingOptions : []), ...(customOptions?.landscaping || [])];
+  const allFeatureOptions = [...(defaultVisibility["pools.features"] ? featureOptions : []), ...(customOptions?.features || [])];
+  const allHotTubOptions = [...(defaultVisibility["pools.hotTub"] ? hotTubOptions : []), ...(customOptions?.hotTub || [])];
+  const allSaunaOptions = [...(defaultVisibility["pools.sauna"] ? saunaOptions : []), ...(customOptions?.sauna || [])];
 
   const [activeToggles, setActiveToggles] = useState({
     poolType: !!selectedStyles.poolType,
@@ -122,6 +129,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Pool Type Card */}
+        {allPoolTypes.length > 0 && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.poolType ? primaryColor : `${primaryColor}cc`,
@@ -136,7 +144,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
               checked={activeToggles.poolType}
               onCheckedChange={(checked) => handleToggleChange('poolType', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.poolType ? primaryColor : "#4b5563" }}
             />
           </div>
 
@@ -158,8 +166,10 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
             </div>
           )}
         </div>
+        )}
 
         {/* Pool Size Card */}
+        {allPoolSizes.length > 0 && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.poolSize ? secondaryColor : `${secondaryColor}cc`,
@@ -174,7 +184,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
               checked={activeToggles.poolSize}
               onCheckedChange={(checked) => handleToggleChange('poolSize', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.poolSize ? secondaryColor : "#4b5563" }}
             />
           </div>
 
@@ -196,8 +206,10 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
             </div>
           )}
         </div>
+        )}
 
         {/* Decking Card */}
+        {allDeckingOptions.length > 0 && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.decking ? primaryColor : `${primaryColor}cc`,
@@ -212,7 +224,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
               checked={activeToggles.decking}
               onCheckedChange={(checked) => handleToggleChange('decking', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.decking ? primaryColor : "#4b5563" }}
             />
           </div>
 
@@ -234,8 +246,10 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
             </div>
           )}
         </div>
+        )}
 
         {/* Landscaping Card */}
+        {allLandscapingOptions.length > 0 && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.landscaping ? secondaryColor : `${secondaryColor}cc`,
@@ -250,7 +264,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
               checked={activeToggles.landscaping}
               onCheckedChange={(checked) => handleToggleChange('landscaping', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.landscaping ? secondaryColor : "#4b5563" }}
             />
           </div>
 
@@ -272,8 +286,10 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
             </div>
           )}
         </div>
+        )}
 
         {/* Features Card */}
+        {allFeatureOptions.length > 0 && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.features ? primaryColor : `${primaryColor}cc`,
@@ -288,7 +304,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
               checked={activeToggles.features}
               onCheckedChange={(checked) => handleToggleChange('features', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.features ? primaryColor : "#4b5563" }}
             />
           </div>
 
@@ -310,8 +326,10 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
             </div>
           )}
         </div>
+        )}
 
         {/* Hot Tub Card */}
+        {allHotTubOptions.length > 0 && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.hotTub ? secondaryColor : `${secondaryColor}cc`,
@@ -326,7 +344,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
               checked={activeToggles.hotTub}
               onCheckedChange={(checked) => handleToggleChange('hotTub', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.hotTub ? secondaryColor : "#4b5563" }}
             />
           </div>
 
@@ -348,8 +366,10 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
             </div>
           )}
         </div>
+        )}
 
         {/* Sauna Card */}
+        {allSaunaOptions.length > 0 && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.sauna ? primaryColor : `${primaryColor}cc`,
@@ -364,7 +384,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
               checked={activeToggles.sauna}
               onCheckedChange={(checked) => handleToggleChange('sauna', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.sauna ? primaryColor : "#4b5563" }}
             />
           </div>
 
@@ -386,6 +406,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );

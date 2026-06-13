@@ -428,6 +428,7 @@ export default function EmbedPage() {
               primaryColor={resolvedPrimaryColor}
               secondaryColor={resolvedSecondaryColor}
               customOptions={landscapeCustomOptions}
+              defaultOptionVisibility={embedCustomizations.defaultOptionVisibility}
             />
           </div>
         )}

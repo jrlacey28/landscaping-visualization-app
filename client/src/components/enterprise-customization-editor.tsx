@@ -12,6 +12,12 @@ import {
   type EmbedServiceAccess,
   normalizeEmbedServiceAccess,
 } from "@/lib/embed-services";
+import {
+  DEFAULT_EMBED_DEFAULT_OPTION_VISIBILITY,
+  EMBED_DEFAULT_OPTION_GROUPS,
+  type EmbedDefaultOptionVisibility,
+  normalizeEmbedDefaultOptionVisibility,
+} from "@/lib/embed-default-visibility";
 import { useToast } from "@/hooks/use-toast";
 
 type ReferenceImage = string;
@@ -35,6 +41,7 @@ type CustomOption = {
 
 type EnterpriseCustomizations = {
   enabledServices?: Partial<EmbedServiceAccess>;
+  defaultOptionVisibility?: Partial<EmbedDefaultOptionVisibility>;
   roofColors?: CustomColor[];
   sidingColors?: CustomColor[];
   exteriorOptions?: {
@@ -71,6 +78,7 @@ type Props = {
 
 type CategoryKey =
   | "services"
+  | "defaultOptions"
   | "roofColors"
   | "sidingColors"
   | "roofDesigns"
@@ -97,7 +105,7 @@ type CategoryConfig = {
   description: string;
   singular: string;
   count: number;
-  kind: "services" | "color" | "option";
+  kind: "services" | "defaults" | "color" | "option";
   includeGroup?: boolean;
   includeSwatch?: boolean;
   icon: typeof Palette;
@@ -105,6 +113,7 @@ type CategoryConfig = {
 
 const emptyCustomizations: EnterpriseCustomizations = {
   enabledServices: DEFAULT_EMBED_SERVICE_ACCESS,
+  defaultOptionVisibility: DEFAULT_EMBED_DEFAULT_OPTION_VISIBILITY,
   roofColors: [],
   sidingColors: [],
   exteriorOptions: {
@@ -147,6 +156,7 @@ export function normalizeEnterpriseCustomizations(value: unknown): EnterpriseCus
 
   return {
     enabledServices: normalizeEmbedServiceAccess(source.enabledServices),
+    defaultOptionVisibility: normalizeEmbedDefaultOptionVisibility(source.defaultOptionVisibility),
     roofColors: Array.isArray(source.roofColors) ? source.roofColors : [],
     sidingColors: Array.isArray(source.sidingColors) ? source.sidingColors : [],
     exteriorOptions: {
@@ -216,6 +226,7 @@ export function cleanEnterpriseCustomizations(value: EnterpriseCustomizations): 
 
   return {
     enabledServices: normalizeEmbedServiceAccess(value.enabledServices),
+    defaultOptionVisibility: normalizeEmbedDefaultOptionVisibility(value.defaultOptionVisibility),
     roofColors: (value.roofColors || []).map(cleanColor).filter(Boolean) as CustomColor[],
     sidingColors: (value.sidingColors || []).map(cleanColor).filter(Boolean) as CustomColor[],
     exteriorOptions: {
@@ -470,6 +481,7 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const customizations = normalizeEnterpriseCustomizations(value);
   const enabledServices = normalizeEmbedServiceAccess(customizations.enabledServices);
+  const defaultOptionVisibility = normalizeEmbedDefaultOptionVisibility(customizations.defaultOptionVisibility);
 
   const update = (patch: EnterpriseCustomizations) => {
     onChange(cloneCustomizations(patch));
@@ -641,6 +653,15 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
       singular: "service",
       count: Object.values(enabledServices).filter(Boolean).length,
       kind: "services",
+      icon: Settings2,
+    },
+    {
+      key: "defaultOptions",
+      label: "Original Options",
+      description: "Show or hide DreamBuilder's built-in categories and colors for this client's embeds.",
+      singular: "original option",
+      count: Object.values(defaultOptionVisibility).filter(Boolean).length,
+      kind: "defaults",
       icon: Settings2,
     },
     {
@@ -954,7 +975,7 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
                 </div>
               )}
             </div>
-            {selectedCategory.kind !== "services" && (
+            {selectedCategory.kind !== "services" && selectedCategory.kind !== "defaults" && (
               <Button type="button" size="sm" onClick={addItem}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add {selectedCategory.singular}
@@ -982,6 +1003,38 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
                       })
                     }
                   />
+                </div>
+              ))}
+            </div>
+          ) : selectedCategory.kind === "defaults" ? (
+            <div className="space-y-4">
+              {EMBED_DEFAULT_OPTION_GROUPS.map((group) => (
+                <div key={group.label} className="rounded-md border">
+                  <div className="border-b bg-muted/20 px-3 py-2">
+                    <p className="text-sm font-semibold">{group.label}</p>
+                  </div>
+                  <div className="divide-y">
+                    {group.items.map((item) => (
+                      <div key={item.key} className="flex items-center justify-between gap-4 p-3">
+                        <div className="min-w-0">
+                          <p className="font-medium">{item.label}</p>
+                          <p className="text-sm text-muted-foreground">{item.description}</p>
+                        </div>
+                        <Switch
+                          checked={defaultOptionVisibility[item.key]}
+                          onCheckedChange={(checked) =>
+                            update({
+                              ...customizations,
+                              defaultOptionVisibility: {
+                                ...defaultOptionVisibility,
+                                [item.key]: checked,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

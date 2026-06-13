@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import {
+  type EmbedDefaultOptionVisibility,
+  normalizeEmbedDefaultOptionVisibility,
+} from "@/lib/embed-default-visibility";
 
 type ColorOption = {
   value: string;
@@ -31,6 +35,7 @@ interface StyleSelectorProps {
   customRoofStyles?: StyleOption[];
   customSidingStyles?: StyleOption[];
   customWindowOptions?: StyleOption[];
+  defaultOptionVisibility?: Partial<EmbedDefaultOptionVisibility>;
 }
 
 const roofStyles: StyleOption[] = [
@@ -119,7 +124,9 @@ export default function StyleSelector({
   customRoofStyles = [],
   customSidingStyles = [],
   customWindowOptions = [],
+  defaultOptionVisibility,
 }: StyleSelectorProps) {
+  const defaultVisibility = normalizeEmbedDefaultOptionVisibility(defaultOptionVisibility);
   const [activeToggles, setActiveToggles] = useState({
     roof: !!selectedStyles.roof,
     siding: !!selectedStyles.siding,
@@ -131,21 +138,34 @@ export default function StyleSelector({
   const [selectedRoofColor, setSelectedRoofColor] = useState("");
   const [selectedSidingStyle, setSelectedSidingStyle] = useState("");
   const [selectedSidingColor, setSelectedSidingColor] = useState("");
-  const mergedRoofStyles = [...roofStyles, ...customRoofStyles.filter((style) => style.value && style.label)];
-  const mergedSidingStyles = [...sidingStyles, ...customSidingStyles.filter((style) => style.value && style.label)];
-  const mergedWindowOptions = [...windowOptions, ...customWindowOptions.filter((option) => option.value && option.label)];
+  const mergedRoofStyles = [
+    ...(defaultVisibility["roofing.roofStyles"] ? roofStyles : []),
+    ...customRoofStyles.filter((style) => style.value && style.label),
+  ];
+  const mergedSidingStyles = [
+    ...(defaultVisibility["roofing.sidingStyles"] ? sidingStyles : []),
+    ...customSidingStyles.filter((style) => style.value && style.label),
+  ];
+  const mergedWindowOptions = [
+    ...(defaultVisibility["roofing.windows"] ? windowOptions : []),
+    ...customWindowOptions.filter((option) => option.value && option.label),
+  ];
   const mergedRoofColors = [
-    ...roofColors,
+    ...(defaultVisibility["roofing.roofColors"] ? roofColors : []),
     ...customRoofColors.filter((color) => color.value && color.label && color.hex),
   ];
   const selectedRoofColorOption = mergedRoofColors.find((color) => color.value === selectedRoofColor);
   const mergedSidingColors = [
-    ...sidingColors,
+    ...(defaultVisibility["roofing.sidingColors"] ? sidingColors : []),
     ...customSidingColors.filter((color) => color.value && color.label && color.hex),
   ];
   const selectedSidingColorOption = mergedSidingColors.find((color) => color.value === selectedSidingColor);
   const selectedRoofStyleOption = mergedRoofStyles.find((style) => style.value === selectedRoofStyle);
   const selectedSidingStyleOption = mergedSidingStyles.find((style) => style.value === selectedSidingStyle);
+  const showRoofCard = mergedRoofStyles.length > 0;
+  const showSidingCard = mergedSidingStyles.length > 0;
+  const showWindowsCard = showWindows && mergedWindowOptions.length > 0;
+  const showSurpriseCard = defaultVisibility["roofing.surpriseMe"];
 
   const handleToggleChange = (category: 'roof' | 'siding' | 'windows' | 'surpriseMe', enabled: boolean) => {
     // Handle mutual exclusivity between surprise me and other options
@@ -195,6 +215,7 @@ export default function StyleSelector({
 
       <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Roof Card */}
+        {showRoofCard && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.roof ? primaryColor : `${primaryColor}cc`,
@@ -209,7 +230,7 @@ export default function StyleSelector({
               checked={activeToggles.roof}
               onCheckedChange={(checked) => handleToggleChange('roof', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.roof ? primaryColor : "#4b5563" }}
             />
           </div>
           
@@ -242,7 +263,7 @@ export default function StyleSelector({
               </div>
               
               {/* Roof Color Selection */}
-              {selectedRoofStyle && !selectedRoofStyleOption?.custom && (
+              {selectedRoofStyle && !selectedRoofStyleOption?.custom && mergedRoofColors.length > 0 && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
                   <Select
@@ -273,8 +294,10 @@ export default function StyleSelector({
             </div>
           )}
         </div>
+        )}
 
         {/* Siding Card */}
+        {showSidingCard && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.siding ? secondaryColor : `${secondaryColor}cc`,
@@ -289,7 +312,7 @@ export default function StyleSelector({
               checked={activeToggles.siding}
               onCheckedChange={(checked) => handleToggleChange('siding', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.siding ? secondaryColor : "#4b5563" }}
             />
           </div>
           
@@ -322,7 +345,7 @@ export default function StyleSelector({
               </div>
               
               {/* Siding Color Selection */}
-              {selectedSidingStyle && !selectedSidingStyleOption?.custom && (
+              {selectedSidingStyle && !selectedSidingStyleOption?.custom && mergedSidingColors.length > 0 && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
                   <Select
@@ -353,9 +376,10 @@ export default function StyleSelector({
             </div>
           )}
         </div>
+        )}
 
         {/* Windows Card */}
-        {showWindows && (
+        {showWindowsCard && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.windows ? primaryColor : `${primaryColor}cc`,
@@ -370,7 +394,7 @@ export default function StyleSelector({
               checked={activeToggles.windows}
               onCheckedChange={(checked) => handleToggleChange('windows', checked)}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.windows ? primaryColor : "#4b5563" }}
             />
           </div>
 
@@ -397,6 +421,7 @@ export default function StyleSelector({
         )}
 
         {/* Surprise Me Card */}
+        {showSurpriseCard && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.surpriseMe ? primaryColor : `${primaryColor}cc`,
@@ -416,7 +441,7 @@ export default function StyleSelector({
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+              style={{ backgroundColor: activeToggles.surpriseMe ? primaryColor : "#4b5563" }}
             />
           </div>
           
@@ -428,6 +453,7 @@ export default function StyleSelector({
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );
