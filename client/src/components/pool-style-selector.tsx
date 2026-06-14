@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { Fragment, type ReactNode, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import {
   type EmbedDefaultOptionVisibility,
@@ -33,50 +33,105 @@ interface PoolStyleSelectorProps {
 type SelectorOption = {
   value: string;
   label: string;
+  swatch?: string;
+  groupLabel?: string;
 };
 
-const poolTypes = [
+const poolTypes: SelectorOption[] = [
   { value: "rectangular_pool", label: "Rectangular Pool" },
   { value: "kidney_shaped_pool", label: "Kidney-Shaped Pool" },
   { value: "oval_pool", label: "Oval Pool" },
   { value: "freeform_pool", label: "Freeform Pool" },
 ];
 
-const poolSizes = [
+const poolSizes: SelectorOption[] = [
   { value: "small_pool", label: "Small Pool (12x24 ft)" },
   { value: "medium_pool", label: "Medium Pool (16x32 ft)" },
   { value: "large_pool", label: "Large Pool (20x40 ft)" },
 ];
 
-const deckingOptions = [
+const deckingOptions: SelectorOption[] = [
   { value: "concrete_pool_deck", label: "Concrete Pool Deck" },
   { value: "travertine_pool_deck", label: "Travertine Pool Deck" },
   { value: "brick_pool_deck", label: "Brick Pool Deck" },
 ];
 
-const landscapingOptions = [
+const landscapingOptions: SelectorOption[] = [
   { value: "tropical_pool_landscaping", label: "Tropical Landscaping" },
   { value: "modern_pool_landscaping", label: "Modern Landscaping" },
   { value: "natural_pool_landscaping", label: "Natural Landscaping" },
 ];
 
-const featureOptions = [
+const featureOptions: SelectorOption[] = [
   { value: "pool_with_spa", label: "Pool with Attached Spa" },
   { value: "pool_with_waterfall", label: "Pool with Waterfall" },
   { value: "pool_with_lighting", label: "Pool with LED Lighting" },
 ];
 
-const hotTubOptions = [
+const hotTubOptions: SelectorOption[] = [
   { value: "built_in_hottub", label: "Built-in Hot Tub" },
   { value: "portable_hottub", label: "Portable Hot Tub" },
   { value: "swim_spa", label: "Swim Spa" },
 ];
 
-const saunaOptions = [
+const saunaOptions: SelectorOption[] = [
   { value: "outdoor_sauna", label: "Outdoor Sauna" },
   { value: "barrel_sauna", label: "Barrel Sauna" },
   { value: "modern_sauna", label: "Modern Glass Sauna" },
 ];
+
+type GroupableOption = {
+  value: string;
+  groupLabel?: string;
+};
+
+function groupOptions<T extends GroupableOption>(options: T[]) {
+  return options.reduce((groups, option) => {
+    const groupLabel = option.groupLabel?.trim() || "";
+    const existingGroup = groups.find((group) => group.label === groupLabel);
+
+    if (existingGroup) {
+      existingGroup.options.push(option);
+    } else {
+      groups.push({ label: groupLabel, options: [option] });
+    }
+
+    return groups;
+  }, [] as Array<{ label: string; options: T[] }>);
+}
+
+function Swatch({ color }: { color: string }) {
+  return (
+    <span
+      className="h-5 w-5 shrink-0 rounded-full border border-black/20 shadow-inner"
+      style={{ background: color }}
+      aria-hidden="true"
+    />
+  );
+}
+
+function GroupedOptionRows<T extends GroupableOption & { label: string; swatch?: string }>({
+  options,
+  renderOption,
+}: {
+  options: T[];
+  renderOption: (option: T) => ReactNode;
+}) {
+  return (
+    <>
+      {groupOptions(options).map((group, groupIndex) => (
+        <Fragment key={group.label || `ungrouped-${groupIndex}`}>
+          {group.label && (
+            <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-white/70">
+              {group.label}
+            </p>
+          )}
+          {group.options.map((option) => renderOption(option))}
+        </Fragment>
+      ))}
+    </>
+  );
+}
 
 const PoolStyleSelector = React.memo(function PoolStyleSelector({
   selectedStyles,
@@ -150,7 +205,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
 
           {activeToggles.poolType && (
             <div className="space-y-3">
-              {allPoolTypes.map((option) => (
+              <GroupedOptionRows options={allPoolTypes} renderOption={(option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -160,9 +215,10 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
                     onChange={() => handleOptionSelect('poolType', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
+                  {option.swatch && <Swatch color={option.swatch} />}
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
-              ))}
+              )} />
             </div>
           )}
         </div>
@@ -190,7 +246,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
 
           {activeToggles.poolSize && (
             <div className="space-y-3">
-              {allPoolSizes.map((option) => (
+              <GroupedOptionRows options={allPoolSizes} renderOption={(option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -200,9 +256,10 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
                     onChange={() => handleOptionSelect('poolSize', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
+                  {option.swatch && <Swatch color={option.swatch} />}
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
-              ))}
+              )} />
             </div>
           )}
         </div>
@@ -230,7 +287,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
 
           {activeToggles.decking && (
             <div className="space-y-3">
-              {allDeckingOptions.map((option) => (
+              <GroupedOptionRows options={allDeckingOptions} renderOption={(option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -240,9 +297,10 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
                     onChange={() => handleOptionSelect('decking', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
+                  {option.swatch && <Swatch color={option.swatch} />}
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
-              ))}
+              )} />
             </div>
           )}
         </div>
@@ -270,7 +328,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
 
           {activeToggles.landscaping && (
             <div className="space-y-3">
-              {allLandscapingOptions.map((option) => (
+              <GroupedOptionRows options={allLandscapingOptions} renderOption={(option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -280,9 +338,10 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
                     onChange={() => handleOptionSelect('landscaping', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
+                  {option.swatch && <Swatch color={option.swatch} />}
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
-              ))}
+              )} />
             </div>
           )}
         </div>
@@ -310,7 +369,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
 
           {activeToggles.features && (
             <div className="space-y-3">
-              {allFeatureOptions.map((option) => (
+              <GroupedOptionRows options={allFeatureOptions} renderOption={(option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -320,9 +379,10 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
                     onChange={() => handleOptionSelect('features', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
+                  {option.swatch && <Swatch color={option.swatch} />}
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
-              ))}
+              )} />
             </div>
           )}
         </div>
@@ -350,7 +410,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
 
           {activeToggles.hotTub && (
             <div className="space-y-3">
-              {allHotTubOptions.map((option) => (
+              <GroupedOptionRows options={allHotTubOptions} renderOption={(option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -360,9 +420,10 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
                     onChange={() => handleOptionSelect('hotTub', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
+                  {option.swatch && <Swatch color={option.swatch} />}
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
-              ))}
+              )} />
             </div>
           )}
         </div>
@@ -390,7 +451,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
 
           {activeToggles.sauna && (
             <div className="space-y-3">
-              {allSaunaOptions.map((option) => (
+              <GroupedOptionRows options={allSaunaOptions} renderOption={(option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -400,9 +461,10 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
                     onChange={() => handleOptionSelect('sauna', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
+                  {option.swatch && <Swatch color={option.swatch} />}
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
-              ))}
+              )} />
             </div>
           )}
         </div>

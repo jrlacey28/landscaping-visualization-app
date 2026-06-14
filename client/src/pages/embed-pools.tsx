@@ -25,8 +25,10 @@ export default function EmbedPoolsPage() {
   const tenantIdParam = urlParams.get('tenantId') || '';
   const tenantLookup = tenantIdParam || tenantSlug;
   const accountUserIdParam = urlParams.get('accountUserId') || '';
-  const primaryColor = urlParams.get('primaryColor') || '#10b981';
-  const secondaryColor = urlParams.get('secondaryColor') || '#059669';
+  const primaryColorParam = urlParams.get('primaryColor') || '';
+  const secondaryColorParam = urlParams.get('secondaryColor') || '';
+  const primaryColor = primaryColorParam || '#10b981';
+  const secondaryColor = secondaryColorParam || '#059669';
   const companyName = urlParams.get('companyName') || '';
   const showHeader = urlParams.get('showHeader') !== 'false';
   const contactType = urlParams.get('contactType') || 'phone';
@@ -62,9 +64,9 @@ export default function EmbedPoolsPage() {
   }) as any;
 
   const resolvedPrimaryColor =
-    tenant ? effectiveTenant.embedPrimaryColor || effectiveTenant.primaryColor || primaryColor : primaryColor;
+    primaryColorParam || (tenant ? effectiveTenant.embedPrimaryColor || effectiveTenant.primaryColor || primaryColor : primaryColor);
   const resolvedSecondaryColor =
-    tenant ? effectiveTenant.embedSecondaryColor || effectiveTenant.secondaryColor || secondaryColor : secondaryColor;
+    secondaryColorParam || (tenant ? effectiveTenant.embedSecondaryColor || effectiveTenant.secondaryColor || secondaryColor : secondaryColor);
   const resolvedLogoUrl = tenant ? effectiveTenant.logoUrl || logoUrlParam || "" : logoUrlParam || effectiveTenant.logoUrl || "";
   const displayCompanyName = tenant
     ? effectiveTenant.companyName || companyName || "DreamBuilder"

@@ -2,6 +2,7 @@ export type EmbedSelectorOption = {
   value: string;
   label: string;
   swatch?: string;
+  groupLabel?: string;
 };
 
 export function normalizeEmbedOptionToken(value: unknown) {
@@ -43,6 +44,7 @@ export function normalizeEmbedCustomOptions(source: unknown, prefix: string): Em
         value: normalizeEmbedCustomOptionValue(option, prefix),
         label,
         swatch,
+        groupLabel: typeof option?.groupLabel === "string" ? option.groupLabel.trim() || undefined : undefined,
       };
     })
     .filter(Boolean) as EmbedSelectorOption[];

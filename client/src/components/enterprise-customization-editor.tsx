@@ -26,6 +26,7 @@ type CustomColor = {
   label: string;
   value?: string;
   hex: string;
+  groupLabel?: string;
   prompt?: string;
   referenceImageUrls?: ReferenceImage[];
 };
@@ -219,6 +220,7 @@ export function cleanEnterpriseCustomizations(value: EnterpriseCustomizations): 
       label,
       value: color.value?.trim() || undefined,
       hex,
+      groupLabel: color.groupLabel?.trim() || undefined,
       prompt: color.prompt?.trim() || undefined,
       referenceImageUrls: (color.referenceImageUrls || []).map((url) => url.trim()).filter(Boolean),
     };
@@ -361,15 +363,27 @@ function ColorItemEditor({
   index,
   onChange,
   onRemove,
+  includeGroup = false,
 }: {
   color: CustomColor;
   index: number;
   onChange: (patch: Partial<CustomColor>) => void;
   onRemove: () => void;
+  includeGroup?: boolean;
 }) {
   return (
     <div className="space-y-3 rounded-md border bg-background p-3">
-      <div className="flex flex-col gap-3 md:grid md:grid-cols-[1fr_128px_auto] md:items-end">
+      <div className="flex flex-col gap-3 md:grid md:grid-cols-[1fr_1fr_128px_auto] md:items-end">
+        {includeGroup && (
+          <div>
+            <Label className="text-xs">Category</Label>
+            <Input
+              value={color.groupLabel || ""}
+              onChange={(event) => onChange({ groupLabel: event.target.value })}
+              placeholder="Manufacturer / collection"
+            />
+          </div>
+        )}
         <div>
           <Label className="text-xs">Name</Label>
           <Input
@@ -862,9 +876,10 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
   const selectedColors = getColorItems(selectedCategory.key);
   const selectedOptions = getOptionItems(selectedCategory.key);
   const selectedItemsCount = selectedCategory.kind === "color" ? selectedColors.length : selectedOptions.length;
-  const selectedOptionGroups = Array.from(
+  const selectedSupportsGroups = selectedCategory.kind === "color" || selectedCategory.kind === "option";
+  const selectedGroups = Array.from(
     new Set(
-      selectedOptions
+      (selectedCategory.kind === "color" ? selectedColors : selectedOptions)
         .map((option) => option.groupLabel?.trim())
         .filter(Boolean) as string[],
     ),
@@ -876,7 +891,7 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
     if (selectedCategory.kind === "color") {
       setColorItems(selectedCategory.key, [
         ...selectedColors,
-        { label: "", hex: "#ffffff", referenceImageUrls: [] },
+        { label: "", hex: "#ffffff", groupLabel: selectedGroups[0] || "", referenceImageUrls: [] },
       ]);
       setEditingIndex(selectedColors.length);
       return;
@@ -891,7 +906,7 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
       {
         label: "",
         prompt: "",
-        groupLabel: selectedCategory.includeGroup ? selectedOptionGroups[0] || "" : undefined,
+        groupLabel: selectedSupportsGroups ? selectedGroups[0] || "" : undefined,
         referenceImageUrls: [],
       },
     ]);
@@ -965,9 +980,9 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
             <div>
               <h4 className="text-base font-semibold">{selectedCategory.label}</h4>
               <p className="text-sm text-muted-foreground">{selectedCategory.description}</p>
-              {selectedCategory.includeGroup && selectedOptionGroups.length > 0 && (
+              {selectedSupportsGroups && selectedGroups.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {selectedOptionGroups.map((group) => (
+                  {selectedGroups.map((group) => (
                     <span key={group} className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
                       {group}
                     </span>
@@ -1059,7 +1074,9 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
                           <div className="min-w-0">
                             <p className="truncate font-medium">{color.label || "Untitled color"}</p>
                             <p className="text-xs text-muted-foreground">
-                              {color.referenceImageUrls?.length || 0} reference images
+                              {[color.groupLabel, `${color.referenceImageUrls?.length || 0} reference images`]
+                                .filter(Boolean)
+                                .join(" - ")}
                             </p>
                           </div>
                         </div>
@@ -1093,6 +1110,7 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
                           <ColorItemEditor
                             color={color}
                             index={index}
+                            includeGroup={selectedSupportsGroups}
                             onChange={(patch) => updateColorAt(index, patch)}
                             onRemove={() => {
                               setColorItems(
@@ -1147,7 +1165,7 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
                           <OptionItemEditor
                             option={option}
                             index={index}
-                            includeGroup={selectedCategory.includeGroup}
+                            includeGroup={selectedSupportsGroups}
                             includeSwatch={selectedCategory.includeSwatch}
                             onChange={(patch) => updateOptionAt(index, patch)}
                             onRemove={() => {

@@ -34,6 +34,7 @@ function normalizeCustomColor(color: any) {
     value: normalizeToken(rawValue),
     label,
     hex,
+    groupLabel: typeof color?.groupLabel === "string" ? color.groupLabel.trim() || undefined : undefined,
   };
 }
 
@@ -47,6 +48,7 @@ function normalizeCustomExteriorOption(option: any, category: "roof" | "siding" 
       : `tenant_custom_exterior_${category}_${normalizeToken(rawValue)}`,
     label,
     hex: typeof option?.hex === "string" ? option.hex : typeof option?.swatch === "string" ? option.swatch : undefined,
+    groupLabel: typeof option?.groupLabel === "string" ? option.groupLabel.trim() || undefined : undefined,
     custom: true,
   };
 }
@@ -67,8 +69,10 @@ export default function EmbedRoofingPage() {
   const tenantIdParam = urlParams.get('tenantId') || '';
   const tenantLookup = tenantIdParam || tenantSlug;
   const accountUserIdParam = urlParams.get('accountUserId') || '';
-  const primaryColor = urlParams.get('primaryColor') || '#475569';
-  const secondaryColor = urlParams.get('secondaryColor') || '#64748b';
+  const primaryColorParam = urlParams.get('primaryColor') || '';
+  const secondaryColorParam = urlParams.get('secondaryColor') || '';
+  const primaryColor = primaryColorParam || '#475569';
+  const secondaryColor = secondaryColorParam || '#64748b';
   const companyName = urlParams.get('companyName') || '';
   const showHeader = urlParams.get('showHeader') !== 'false';
   const contactType = urlParams.get('contactType') || 'phone';
@@ -119,9 +123,9 @@ export default function EmbedRoofingPage() {
   const customWindowOptions = getCustomExteriorOptions(embedCustomizations, "windows");
 
   const resolvedPrimaryColor =
-    tenant ? (effectiveTenant as any).embedPrimaryColor || effectiveTenant.primaryColor || primaryColor : primaryColor;
+    primaryColorParam || (tenant ? (effectiveTenant as any).embedPrimaryColor || effectiveTenant.primaryColor || primaryColor : primaryColor);
   const resolvedSecondaryColor =
-    tenant ? (effectiveTenant as any).embedSecondaryColor || effectiveTenant.secondaryColor || secondaryColor : secondaryColor;
+    secondaryColorParam || (tenant ? (effectiveTenant as any).embedSecondaryColor || effectiveTenant.secondaryColor || secondaryColor : secondaryColor);
   const resolvedLogoUrl = tenant ? effectiveTenant.logoUrl || logoUrlParam || "" : logoUrlParam || effectiveTenant.logoUrl || "";
   const displayCompanyName = tenant
     ? effectiveTenant.companyName || companyName || "DreamBuilder"

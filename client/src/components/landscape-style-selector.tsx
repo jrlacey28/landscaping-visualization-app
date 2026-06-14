@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { Fragment, type ReactNode, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import {
@@ -29,7 +29,7 @@ interface PatioSelection {
   size: string;
 }
 
-const curbingOptions = [
+const curbingOptions: SelectorOption[] = [
   { value: "natural_stone_curbing", label: "Natural Stone Curbing" },
   { value: "brick_curbing", label: "Brick Curbing" },
 ];
@@ -42,7 +42,7 @@ const curbingColors = [
   { value: "sandstone", label: "Sandstone", hex: "#C2B280" },
 ];
 
-const landscapeOptions = [
+const landscapeOptions: SelectorOption[] = [
   { value: "mulch", label: "Fresh Mulch", swatch: "#6B4423" },
   { value: "river_rock", label: "River Rock", swatch: "linear-gradient(135deg, #8b8174 0%, #d6c7ad 45%, #5f6368 100%)" },
   { value: "new_grass", label: "New Grass", swatch: "#2f7d32" },
@@ -55,7 +55,7 @@ const mulchColors = [
   { value: "natural_cedar_mulch", label: "Natural Cedar Mulch", hex: "#B0642F" },
 ];
 
-const patioStyles = [
+const patioStyles: SelectorOption[] = [
   { value: "stamped_concrete_patio", label: "Stamped Concrete" },
   { value: "plain_concrete_patio", label: "Plain Concrete" },
   { value: "exposed_aggregate_patio", label: "Exposed Aggregate" },
@@ -85,6 +85,7 @@ type SelectorOption = {
   value: string;
   label: string;
   swatch?: string;
+  groupLabel?: string;
 };
 
 function isMulchValue(value: string) {
@@ -107,6 +108,75 @@ function ColorOptionContent({ option }: { option: ColorOption }) {
       <Swatch color={option.hex} />
       <span className="truncate">{option.label}</span>
     </span>
+  );
+}
+
+type GroupableOption = {
+  value: string;
+  groupLabel?: string;
+};
+
+function groupOptions<T extends GroupableOption>(options: T[]) {
+  return options.reduce((groups, option) => {
+    const groupLabel = option.groupLabel?.trim() || "";
+    const existingGroup = groups.find((group) => group.label === groupLabel);
+
+    if (existingGroup) {
+      existingGroup.options.push(option);
+    } else {
+      groups.push({ label: groupLabel, options: [option] });
+    }
+
+    return groups;
+  }, [] as Array<{ label: string; options: T[] }>);
+}
+
+function GroupedOptionRows<T extends GroupableOption>({
+  options,
+  renderOption,
+}: {
+  options: T[];
+  renderOption: (option: T) => ReactNode;
+}) {
+  return (
+    <>
+      {groupOptions(options).map((group, groupIndex) => (
+        <Fragment key={group.label || `ungrouped-${groupIndex}`}>
+          {group.label && (
+            <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-white/70">
+              {group.label}
+            </p>
+          )}
+          {group.options.map((option) => renderOption(option))}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+function GroupedNativeOptions<T extends GroupableOption & { label: string }>({ options }: { options: T[] }) {
+  return (
+    <>
+      {groupOptions(options).map((group, groupIndex) =>
+        group.label ? (
+          <optgroup key={group.label} label={group.label}>
+            {group.options.map((option) => (
+              <option key={option.value} value={option.value} className="text-gray-900">
+                {option.label}
+              </option>
+            ))}
+          </optgroup>
+        ) : (
+          <Fragment key={`ungrouped-${groupIndex}`}>
+            {group.options.map((option) => (
+              <option key={option.value} value={option.value} className="text-gray-900">
+                {option.label}
+              </option>
+            ))}
+          </Fragment>
+        ),
+      )}
+    </>
   );
 }
 
@@ -311,7 +381,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
 
           {activeToggles.curbing && (
             <div className="space-y-4">
-              {allCurbingOptions.map((option) => (
+              <GroupedOptionRows options={allCurbingOptions} renderOption={(option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -321,9 +391,10 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
                     onChange={() => handleOptionSelect('curbing', option.value)}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
+                  {option.swatch && <Swatch color={option.swatch} className="h-5 w-5" />}
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
-              ))}
+              )} />
 
               {curbingSelection.type === 'natural_stone_curbing' && selectedCurbingColor && (
                 <div>
@@ -375,7 +446,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
 
           {activeToggles.landscape && (
             <div className="space-y-3">
-              {allLandscapeOptions.map((option) => (
+              <GroupedOptionRows options={allLandscapeOptions} renderOption={(option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -388,7 +459,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
                   {option.swatch && <Swatch color={option.swatch} className="h-5 w-5" />}
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
-              ))}
+              )} />
 
               {landscapeSelection.type === "mulch" && selectedMulchColor && (
                 <div onClick={(e) => e.stopPropagation()}>
@@ -449,11 +520,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
                   onClick={(e) => e.stopPropagation()}
                   className="w-full px-3 py-2 text-sm bg-white/20 border border-white/30 rounded-md text-white placeholder-white/70 focus:ring-2 focus:ring-white focus:border-transparent"
                 >
-                  {allPatioStyles.map((style) => (
-                    <option key={style.value} value={style.value} className="text-gray-900">
-                      {style.label}
-                    </option>
-                  ))}
+                  <GroupedNativeOptions options={allPatioStyles} />
                 </select>
               </div>
 

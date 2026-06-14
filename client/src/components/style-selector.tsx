@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { Fragment, type ReactNode, useState } from "react";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger } from "@/components/ui/select";
 import {
   type EmbedDefaultOptionVisibility,
   normalizeEmbedDefaultOptionVisibility,
@@ -10,12 +10,14 @@ type ColorOption = {
   value: string;
   label: string;
   hex: string;
+  groupLabel?: string;
 };
 
 type StyleOption = {
   value: string;
   label: string;
   hex?: string;
+  groupLabel?: string;
   custom?: boolean;
 };
 
@@ -110,6 +112,66 @@ function ColorOptionContent({ option }: { option: ColorOption }) {
       <ColorSwatch color={option.hex} />
       <span className="truncate">{option.label}</span>
     </span>
+  );
+}
+
+type GroupableOption = {
+  value: string;
+  groupLabel?: string;
+};
+
+function groupOptions<T extends GroupableOption>(options: T[]) {
+  return options.reduce((groups, option) => {
+    const groupLabel = option.groupLabel?.trim() || "";
+    const existingGroup = groups.find((group) => group.label === groupLabel);
+
+    if (existingGroup) {
+      existingGroup.options.push(option);
+    } else {
+      groups.push({ label: groupLabel, options: [option] });
+    }
+
+    return groups;
+  }, [] as Array<{ label: string; options: T[] }>);
+}
+
+function GroupedOptionRows<T extends GroupableOption>({
+  options,
+  renderOption,
+}: {
+  options: T[];
+  renderOption: (option: T) => ReactNode;
+}) {
+  return (
+    <>
+      {groupOptions(options).map((group, groupIndex) => (
+        <Fragment key={group.label || `ungrouped-${groupIndex}`}>
+          {group.label && (
+            <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-white/70">
+              {group.label}
+            </p>
+          )}
+          {group.options.map((option) => renderOption(option))}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+function GroupedColorSelectItems({ options }: { options: ColorOption[] }) {
+  return (
+    <>
+      {groupOptions(options).map((group, groupIndex) => (
+        <SelectGroup key={group.label || `ungrouped-${groupIndex}`}>
+          {group.label && <SelectLabel>{group.label}</SelectLabel>}
+          {group.options.map((color) => (
+            <SelectItem key={color.value} value={color.value} textValue={color.label} onClick={(e) => e.stopPropagation()}>
+              <ColorOptionContent option={color} />
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      ))}
+    </>
   );
 }
 
@@ -240,7 +302,7 @@ export default function StyleSelector({
               <div>
                 <p className="text-sm text-white/80 mb-2">Choose Style:</p>
                 <div className="space-y-3">
-                  {mergedRoofStyles.map((style) => (
+                  <GroupedOptionRows options={mergedRoofStyles} renderOption={(style) => (
                     <label key={style.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="radio"
@@ -258,7 +320,7 @@ export default function StyleSelector({
                       {style.hex && <ColorSwatch color={style.hex} className="h-5 w-5" />}
                       <span className="text-sm text-white drop-shadow-sm">{style.label}</span>
                     </label>
-                  ))}
+                  )} />
                 </div>
               </div>
               
@@ -282,11 +344,7 @@ export default function StyleSelector({
                       )}
                     </SelectTrigger>
                     <SelectContent onClick={(e) => e.stopPropagation()}>
-                      {mergedRoofColors.map((color) => (
-                        <SelectItem key={color.value} value={color.value} textValue={color.label} onClick={(e) => e.stopPropagation()}>
-                          <ColorOptionContent option={color} />
-                        </SelectItem>
-                      ))}
+                      <GroupedColorSelectItems options={mergedRoofColors} />
                     </SelectContent>
                   </Select>
                 </div>
@@ -322,7 +380,7 @@ export default function StyleSelector({
               <div>
                 <p className="text-sm text-white/80 mb-2">Choose Style:</p>
                 <div className="space-y-3">
-                  {mergedSidingStyles.map((style) => (
+                  <GroupedOptionRows options={mergedSidingStyles} renderOption={(style) => (
                     <label key={style.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="radio"
@@ -340,7 +398,7 @@ export default function StyleSelector({
                       {style.hex && <ColorSwatch color={style.hex} className="h-5 w-5" />}
                       <span className="text-sm text-white drop-shadow-sm">{style.label}</span>
                     </label>
-                  ))}
+                  )} />
                 </div>
               </div>
               
@@ -364,11 +422,7 @@ export default function StyleSelector({
                       )}
                     </SelectTrigger>
                     <SelectContent onClick={(e) => e.stopPropagation()}>
-                      {mergedSidingColors.map((color) => (
-                        <SelectItem key={color.value} value={color.value} textValue={color.label} onClick={(e) => e.stopPropagation()}>
-                          <ColorOptionContent option={color} />
-                        </SelectItem>
-                      ))}
+                      <GroupedColorSelectItems options={mergedSidingColors} />
                     </SelectContent>
                   </Select>
                 </div>
@@ -401,7 +455,7 @@ export default function StyleSelector({
           {activeToggles.windows && (
             <div className="space-y-3">
               <p className="text-sm text-white/80 mb-2">Choose Option:</p>
-              {mergedWindowOptions.map((option) => (
+              <GroupedOptionRows options={mergedWindowOptions} renderOption={(option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
@@ -414,7 +468,7 @@ export default function StyleSelector({
                   {option.hex && <ColorSwatch color={option.hex} className="h-5 w-5" />}
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
-              ))}
+              )} />
             </div>
           )}
         </div>
