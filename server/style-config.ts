@@ -8,6 +8,22 @@ export interface StyleConfig {
   regionType: "roof" | "exterior" | "windows" | "random";
 }
 
+export const CUSTOM_STYLE_COLOR_SEPARATOR = "__color__";
+
+export function splitExteriorStyleColorSelection(selection: unknown) {
+  const value = String(selection || "").trim();
+  const separatorIndex = value.indexOf(CUSTOM_STYLE_COLOR_SEPARATOR);
+
+  if (separatorIndex === -1) {
+    return { styleValue: value, colorValue: "" };
+  }
+
+  return {
+    styleValue: value.slice(0, separatorIndex),
+    colorValue: value.slice(separatorIndex + CUSTOM_STYLE_COLOR_SEPARATOR.length),
+  };
+}
+
 // Base style templates for dynamic prompt generation
 interface StyleTemplate {
   id: string;
@@ -372,18 +388,21 @@ export function generateStyleConfig(styleType: string, colorValue: string): Styl
 
 // Helper function to get style config for combined style+color selection
 export function getStyleConfig(styleAndColor: string): StyleConfig {
+  const { styleValue } = splitExteriorStyleColorSelection(styleAndColor);
+  const lookupValue = styleValue || styleAndColor;
+
   // Handle legacy static configurations first
-  if (STYLE_CONFIG[styleAndColor]) {
-    return STYLE_CONFIG[styleAndColor];
+  if (STYLE_CONFIG[lookupValue]) {
+    return STYLE_CONFIG[lookupValue];
   }
 
-  if (styleAndColor.startsWith("tenant_custom_exterior_")) {
-    const category = styleAndColor.includes("_roof_")
+  if (lookupValue.startsWith("tenant_custom_exterior_")) {
+    const category = lookupValue.includes("_roof_")
       ? "roof"
-      : styleAndColor.includes("_windows_")
+      : lookupValue.includes("_windows_")
         ? "windows"
         : "siding";
-    const name = styleAndColor
+    const name = lookupValue
       .replace(/^tenant_custom_exterior_(roof|siding|windows)_/, "")
       .split(/[\s_-]+/)
       .filter(Boolean)
@@ -402,12 +421,12 @@ export function getStyleConfig(styleAndColor: string): StyleConfig {
   }
   
   // Parse dynamic style_color format
-  const parts = styleAndColor.split('_');
+  const parts = lookupValue.split('_');
   if (parts.length >= 2) {
     // Find the best split point - look for known style types
     for (const styleType of Object.keys(STYLE_TEMPLATES)) {
-      if (styleAndColor.startsWith(styleType + '_')) {
-        const colorValue = styleAndColor.substring(styleType.length + 1);
+      if (lookupValue.startsWith(styleType + '_')) {
+        const colorValue = lookupValue.substring(styleType.length + 1);
         try {
           return generateStyleConfig(styleType, colorValue);
         } catch (error) {

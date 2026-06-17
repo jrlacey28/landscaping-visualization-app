@@ -21,6 +21,8 @@ type StyleOption = {
   custom?: boolean;
 };
 
+const CUSTOM_STYLE_COLOR_SEPARATOR = "__color__";
+
 interface StyleSelectorProps {
   selectedStyles: {
     roof: string;
@@ -175,6 +177,24 @@ function GroupedColorSelectItems({ options }: { options: ColorOption[] }) {
   );
 }
 
+function isCustomExteriorStyle(style?: StyleOption) {
+  return Boolean(style?.custom || style?.value.startsWith("tenant_custom_exterior_"));
+}
+
+function buildExteriorStyleSelection(
+  styleValue: string,
+  colorValue: string,
+  style?: StyleOption,
+) {
+  if (!styleValue) return "";
+
+  if (isCustomExteriorStyle(style)) {
+    return colorValue ? `${styleValue}${CUSTOM_STYLE_COLOR_SEPARATOR}${colorValue}` : styleValue;
+  }
+
+  return colorValue ? `${styleValue}_${colorValue}` : "";
+}
+
 export default function StyleSelector({
   selectedStyles,
   onStyleChange,
@@ -313,7 +333,7 @@ export default function StyleSelector({
                           setSelectedRoofStyle(style.value);
                           setSelectedRoofColor(""); // Reset color when style changes
                           setActiveToggles(prev => ({ ...prev, roof: true }));
-                          handleOptionSelect('roof', style.custom ? style.value : '');
+                          handleOptionSelect('roof', buildExteriorStyleSelection(style.value, "", style));
                         }}
                         className="w-4 h-4 text-white border-white/30 focus:ring-white"
                       />
@@ -325,7 +345,7 @@ export default function StyleSelector({
               </div>
               
               {/* Roof Color Selection */}
-              {selectedRoofStyle && !selectedRoofStyleOption?.custom && mergedRoofColors.length > 0 && (
+              {selectedRoofStyle && mergedRoofColors.length > 0 && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
                   <Select
@@ -333,7 +353,7 @@ export default function StyleSelector({
                     onValueChange={(value) => {
                       setSelectedRoofColor(value);
                       setActiveToggles(prev => ({ ...prev, roof: true }));
-                      handleOptionSelect('roof', `${selectedRoofStyle}_${value}`);
+                      handleOptionSelect('roof', buildExteriorStyleSelection(selectedRoofStyle, value, selectedRoofStyleOption));
                     }}
                   >
                     <SelectTrigger className="bg-white/90 border-white/30 text-slate-800" onClick={(e) => e.stopPropagation()}>
@@ -370,7 +390,7 @@ export default function StyleSelector({
               checked={activeToggles.siding}
               onCheckedChange={(checked) => handleToggleChange('siding', checked)}
               onClick={(e) => e.stopPropagation()}
-              style={{ backgroundColor: activeToggles.siding ? secondaryColor : "#4b5563" }}
+              style={{ backgroundColor: activeToggles.siding ? primaryColor : "#4b5563" }}
             />
           </div>
           
@@ -391,7 +411,7 @@ export default function StyleSelector({
                           setSelectedSidingStyle(style.value);
                           setSelectedSidingColor(""); // Reset color when style changes
                           setActiveToggles(prev => ({ ...prev, siding: true }));
-                          handleOptionSelect('siding', style.custom ? style.value : '');
+                          handleOptionSelect('siding', buildExteriorStyleSelection(style.value, "", style));
                         }}
                         className="w-4 h-4 text-white border-white/30 focus:ring-white"
                       />
@@ -403,7 +423,7 @@ export default function StyleSelector({
               </div>
               
               {/* Siding Color Selection */}
-              {selectedSidingStyle && !selectedSidingStyleOption?.custom && mergedSidingColors.length > 0 && (
+              {selectedSidingStyle && mergedSidingColors.length > 0 && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
                   <Select
@@ -411,7 +431,7 @@ export default function StyleSelector({
                     onValueChange={(value) => {
                       setSelectedSidingColor(value);
                       setActiveToggles(prev => ({ ...prev, siding: true }));
-                      handleOptionSelect('siding', `${selectedSidingStyle}_${value}`);
+                      handleOptionSelect('siding', buildExteriorStyleSelection(selectedSidingStyle, value, selectedSidingStyleOption));
                     }}
                   >
                     <SelectTrigger className="bg-white/90 border-white/30 text-slate-800" onClick={(e) => e.stopPropagation()}>

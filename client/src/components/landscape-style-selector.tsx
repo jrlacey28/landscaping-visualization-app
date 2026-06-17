@@ -440,7 +440,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
               checked={activeToggles.landscape}
               onCheckedChange={(checked) => handleToggleChange('landscape', checked)}
               onClick={(e) => e.stopPropagation()}
-              style={{ backgroundColor: activeToggles.landscape ? secondaryColor : "#4b5563" }}
+              style={{ backgroundColor: activeToggles.landscape ? primaryColor : "#4b5563" }}
             />
           </div>
 

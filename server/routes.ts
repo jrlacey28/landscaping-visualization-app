@@ -13,7 +13,14 @@ import { users, visualizations, poolVisualizations, landscapeVisualizations, hal
 import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { processLandscapeWithGemini, processPoolWithGemini, analyzeLandscapeImage, processInteriorVisualizationWithGemini, processHalloweenVisualizationWithGemini, processChristmasLightsWithGemini } from "./gemini-service";
-import { getAllStyles, getStylesByCategory, getStyleForRegion } from "./style-config";
+import {
+  getAllStyles,
+  getStylesByCategory,
+  getStyleForRegion,
+  ROOF_COLORS,
+  SIDING_COLORS,
+  splitExteriorStyleColorSelection,
+} from "./style-config";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 import { authenticateToken, optionalAuthenticateToken, AuthRequest } from "./auth";
 import jwt from 'jsonwebtoken';
@@ -1310,14 +1317,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   function getSelectedColorValue(styleId: string | undefined, knownStyleTypes: string[]) {
     if (!styleId) return "";
+    const { styleValue, colorValue } = splitExteriorStyleColorSelection(styleId);
+
+    if (colorValue) return colorValue;
 
     for (const styleType of knownStyleTypes) {
-      if (styleId.startsWith(`${styleType}_`)) {
-        return styleId.substring(styleType.length + 1);
+      if (styleValue.startsWith(`${styleType}_`)) {
+        return styleValue.substring(styleType.length + 1);
       }
     }
 
     return "";
+  }
+
+  function isCustomExteriorStyleSelection(styleId: string | undefined) {
+    if (!styleId) return false;
+    return splitExteriorStyleColorSelection(styleId).styleValue.startsWith("tenant_custom_exterior_");
   }
 
   function buildTenantExteriorCustomContext(
@@ -1340,9 +1355,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     for (const { category, selectedStyle, options } of customExteriorOptions) {
       if (!selectedStyle || !Array.isArray(options)) continue;
+      const selectedStyleValue = splitExteriorStyleColorSelection(selectedStyle).styleValue;
 
       const matchedOption = options.find((option: any) =>
-        normalizeTenantExteriorOptionValue(option, category) === normalizeTenantToken(selectedStyle)
+        normalizeTenantExteriorOptionValue(option, category) === normalizeTenantToken(selectedStyleValue)
       );
 
       if (!matchedOption) continue;
@@ -1359,13 +1375,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const colorMatches = [
       {
         label: "roof",
+        selectedStyle: selectedStyles.roof,
         selectedColor: roofColorValue,
         colors: Array.isArray(customizations?.roofColors) ? customizations.roofColors : [],
+        builtInColors: ROOF_COLORS,
       },
       {
         label: "siding",
+        selectedStyle: selectedStyles.siding,
         selectedColor: sidingColorValue,
         colors: Array.isArray(customizations?.sidingColors) ? customizations.sidingColors : [],
+        builtInColors: SIDING_COLORS,
       },
     ];
 
@@ -1383,6 +1403,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const prompt = String(matchedColor.prompt || matchedColor.instructions || "").trim();
       prompts.push(prompt || `Use the tenant-specific ${colorMatch.label} color "${label}"${hex ? ` (${hex})` : ""} as closely as possible.`);
       referenceImageUrls.push(...collectReferenceImageUrls(matchedColor));
+    }
+
+    for (const colorMatch of colorMatches) {
+      if (!colorMatch.selectedColor || !isCustomExteriorStyleSelection(colorMatch.selectedStyle)) continue;
+
+      const matchedColor = colorMatch.colors.find((color: any) =>
+        normalizeTenantColorValue(color) === normalizeTenantToken(colorMatch.selectedColor)
+      );
+      if (matchedColor) continue;
+
+      const builtInColor = colorMatch.builtInColors[colorMatch.selectedColor as keyof typeof colorMatch.builtInColors];
+      if (!builtInColor) continue;
+
+      prompts.push(
+        `Use the selected ${colorMatch.label} color "${builtInColor.label}" (${builtInColor.hex}) with the client-specific ${colorMatch.label} style.`,
+      );
     }
 
     return {

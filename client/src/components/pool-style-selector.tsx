@@ -240,7 +240,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
               checked={activeToggles.poolSize}
               onCheckedChange={(checked) => handleToggleChange('poolSize', checked)}
               onClick={(e) => e.stopPropagation()}
-              style={{ backgroundColor: activeToggles.poolSize ? secondaryColor : "#4b5563" }}
+              style={{ backgroundColor: activeToggles.poolSize ? primaryColor : "#4b5563" }}
             />
           </div>
 
@@ -322,7 +322,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
               checked={activeToggles.landscaping}
               onCheckedChange={(checked) => handleToggleChange('landscaping', checked)}
               onClick={(e) => e.stopPropagation()}
-              style={{ backgroundColor: activeToggles.landscaping ? secondaryColor : "#4b5563" }}
+              style={{ backgroundColor: activeToggles.landscaping ? primaryColor : "#4b5563" }}
             />
           </div>
 
@@ -404,7 +404,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
               checked={activeToggles.hotTub}
               onCheckedChange={(checked) => handleToggleChange('hotTub', checked)}
               onClick={(e) => e.stopPropagation()}
-              style={{ backgroundColor: activeToggles.hotTub ? secondaryColor : "#4b5563" }}
+              style={{ backgroundColor: activeToggles.hotTub ? primaryColor : "#4b5563" }}
             />
           </div>
 
