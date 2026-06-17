@@ -25,10 +25,46 @@ const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
 const STANDARD_IMAGE_MODEL =
   process.env.GEMINI_STANDARD_IMAGE_MODEL || "gemini-2.5-flash-image";
 const BUSINESS_IMAGE_MODEL =
-  process.env.GEMINI_BUSINESS_IMAGE_MODEL || "gemini-3.1-flash-image-preview";
+  process.env.GEMINI_BUSINESS_IMAGE_MODEL || "gemini-3.1-flash-image";
 
 function getImageGenerationModel(usePremiumModel?: boolean): string {
   return usePremiumModel ? BUSINESS_IMAGE_MODEL : STANDARD_IMAGE_MODEL;
+}
+
+async function generateImageContentWithFallback({
+  model,
+  fallbackModel,
+  contents,
+  config,
+}: {
+  model: string;
+  fallbackModel?: string;
+  contents: any[];
+  config: any;
+}) {
+  try {
+    return await ai.models.generateContent({
+      model,
+      contents,
+      config,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (!fallbackModel || fallbackModel === model) {
+      throw error;
+    }
+
+    console.error(
+      `Gemini image model ${model} failed; retrying with ${fallbackModel}: ${message}`,
+    );
+
+    return ai.models.generateContent({
+      model: fallbackModel,
+      contents,
+      config,
+    });
+  }
 }
 
 interface ProcessedImage {
@@ -506,8 +542,9 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
     const imageModel = getImageGenerationModel(usePremiumModel);
     console.log(`Using Gemini image model: ${imageModel}`);
 
-    const response = await ai.models.generateContent({
+    const response = await generateImageContentWithFallback({
       model: imageModel,
+      fallbackModel: STANDARD_IMAGE_MODEL,
       contents: [
         {
           role: "user",
@@ -685,8 +722,9 @@ Apply ONLY the pool installations specified above. Do not redesign the yard or d
     const imageModel = getImageGenerationModel(usePremiumModel);
     console.log(`Using Gemini image model: ${imageModel}`);
 
-    const response = await ai.models.generateContent({
+    const response = await generateImageContentWithFallback({
       model: imageModel,
+      fallbackModel: STANDARD_IMAGE_MODEL,
       contents: [
         {
           role: "user",
@@ -998,8 +1036,9 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
         const imageModel = getImageGenerationModel(usePremiumModel);
         console.log(`Using Gemini image model: ${imageModel}`);
 
-        response = await ai.models.generateContent({
+        response = await generateImageContentWithFallback({
           model: imageModel,
+          fallbackModel: STANDARD_IMAGE_MODEL,
           contents: [
             {
               role: "user",
@@ -1200,8 +1239,9 @@ Apply ONLY the requested ${serviceLabels[service]} changes and keep the result p
         console.log(`Interior Gemini API attempt ${attempt}/${maxRetries}`);
         console.log(`Using Gemini image model: ${imageModel}`);
 
-        response = await ai.models.generateContent({
+        response = await generateImageContentWithFallback({
           model: imageModel,
+          fallbackModel: STANDARD_IMAGE_MODEL,
           contents: [
             {
               role: "user",
@@ -1484,8 +1524,9 @@ Create a complete Halloween scene with ALL the decorations specified above visib
         const imageModel = getImageGenerationModel(usePremiumModel);
         console.log(`Using Gemini image model: ${imageModel}`);
 
-        response = await ai.models.generateContent({
+        response = await generateImageContentWithFallback({
           model: imageModel,
+          fallbackModel: STANDARD_IMAGE_MODEL,
           contents: [
             {
               role: "user",
@@ -1748,8 +1789,9 @@ Create a stunning nighttime Christmas scene with DENSELY-PACKED, ABUNDANT ${ligh
         const imageModel = getImageGenerationModel(usePremiumModel);
         console.log(`Using Gemini image model: ${imageModel}`);
 
-        response = await ai.models.generateContent({
+        response = await generateImageContentWithFallback({
           model: imageModel,
+          fallbackModel: STANDARD_IMAGE_MODEL,
           contents: [
             {
               role: "user",
