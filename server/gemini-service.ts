@@ -26,6 +26,8 @@ const STANDARD_IMAGE_MODEL =
   process.env.GEMINI_STANDARD_IMAGE_MODEL || "gemini-2.5-flash-image";
 const BUSINESS_IMAGE_MODEL =
   process.env.GEMINI_BUSINESS_IMAGE_MODEL || "gemini-3.1-flash-image";
+const REFERENCE_IMAGE_LOAD_TIMEOUT_MS = 5000;
+const MAX_REFERENCE_IMAGE_BYTES = 8 * 1024 * 1024;
 
 function getImageGenerationModel(usePremiumModel?: boolean): string {
   return usePremiumModel ? BUSINESS_IMAGE_MODEL : STANDARD_IMAGE_MODEL;
@@ -130,6 +132,17 @@ function getMimeTypeFromUrl(url: string) {
   return "image/jpeg";
 }
 
+async function fetchWithTimeout(url: string, timeoutMs: number) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function loadReferenceImage(refImageUrl: string) {
   const trimmedUrl = refImageUrl.trim();
   if (!trimmedUrl) return null;
@@ -169,12 +182,19 @@ async function loadReferenceImage(refImageUrl: string) {
     return null;
   }
 
-  const response = await fetch(trimmedUrl);
+  const response = await fetchWithTimeout(trimmedUrl, REFERENCE_IMAGE_LOAD_TIMEOUT_MS);
   if (!response.ok) {
     return null;
   }
 
   const arrayBuffer = await response.arrayBuffer();
+  if (arrayBuffer.byteLength > MAX_REFERENCE_IMAGE_BYTES) {
+    console.log(
+      `Skipping reference image larger than ${MAX_REFERENCE_IMAGE_BYTES} bytes: ${trimmedUrl}`,
+    );
+    return null;
+  }
+
   const contentType = response.headers.get("content-type") || getMimeTypeFromUrl(trimmedUrl);
 
   return {
@@ -189,6 +209,9 @@ async function appendReferenceImageParts(
   label: string,
 ) {
   const uniqueReferenceUrls = Array.from(new Set(referenceImageUrls || [])).slice(0, 8);
+  if (uniqueReferenceUrls.length > 0) {
+    console.log(`Loading ${uniqueReferenceUrls.length} ${label} reference image(s)`);
+  }
 
   for (const refImageUrl of uniqueReferenceUrls) {
     try {
@@ -207,8 +230,10 @@ async function appendReferenceImageParts(
           mimeType: referenceImage.mimeType,
         },
       });
+      console.log(`Loaded ${label} reference image`);
     } catch (error) {
-      console.log(`Could not load reference image: ${refImageUrl}`);
+      const message = error instanceof Error ? error.message : String(error);
+      console.log(`Could not load reference image: ${refImageUrl} (${message})`);
     }
   }
 }
@@ -505,6 +530,9 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
         },
       },
     ];
+    const imageModel = getImageGenerationModel(usePremiumModel);
+    console.log(`Using Gemini image model: ${imageModel}`);
+
     await appendReferenceImageParts(contentParts, referenceImageUrls, "Client-specific exterior");
 
     // Add reference images for each applied style
@@ -538,9 +566,6 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
         }
       }
     }
-
-    const imageModel = getImageGenerationModel(usePremiumModel);
-    console.log(`Using Gemini image model: ${imageModel}`);
 
     const response = await generateImageContentWithFallback({
       model: imageModel,
@@ -717,10 +742,10 @@ Apply ONLY the pool installations specified above. Do not redesign the yard or d
         },
       },
     ];
-    await appendReferenceImageParts(contentParts, referenceImageUrls, "Client-specific pool");
-
     const imageModel = getImageGenerationModel(usePremiumModel);
     console.log(`Using Gemini image model: ${imageModel}`);
+
+    await appendReferenceImageParts(contentParts, referenceImageUrls, "Client-specific pool");
 
     const response = await generateImageContentWithFallback({
       model: imageModel,
@@ -1022,6 +1047,9 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
         },
       },
     ];
+    const selectedLandscapeImageModel = getImageGenerationModel(usePremiumModel);
+    console.log(`Selected Gemini image model: ${selectedLandscapeImageModel}`);
+
     await appendReferenceImageParts(contentParts, referenceImageUrls, "Client-specific landscape");
 
     // Add retry logic for Gemini API failures
@@ -1033,7 +1061,7 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
       try {
         console.log(`🌿 Gemini API attempt ${attempt}/${maxRetries}`);
 
-        const imageModel = getImageGenerationModel(usePremiumModel);
+        const imageModel = selectedLandscapeImageModel;
         console.log(`Using Gemini image model: ${imageModel}`);
 
         response = await generateImageContentWithFallback({
@@ -1228,11 +1256,13 @@ Apply ONLY the requested ${serviceLabels[service]} changes and keep the result p
         },
       },
     ];
+    const imageModel = getImageGenerationModel(usePremiumModel);
+    console.log(`Selected Gemini image model: ${imageModel}`);
+
     await appendReferenceImageParts(contentParts, referenceImageUrls, "Client-specific interior");
 
     let response;
     const maxRetries = 3;
-    const imageModel = getImageGenerationModel(usePremiumModel);
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
