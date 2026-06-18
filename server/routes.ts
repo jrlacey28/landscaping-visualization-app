@@ -59,6 +59,8 @@ const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
+const publicReferenceImageMaxDimension = 1600;
+const publicReferenceImageJpegQuality = 86;
 
 const generationServices = [
   "roofing-siding",
@@ -1092,14 +1094,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No image file provided" });
       }
 
+      let optimizedImageBuffer: Buffer;
+      try {
+        optimizedImageBuffer = await sharp(req.file.buffer)
+          .rotate()
+          .resize({
+            width: publicReferenceImageMaxDimension,
+            height: publicReferenceImageMaxDimension,
+            fit: "inside",
+            withoutEnlargement: true,
+          })
+          .jpeg({ quality: publicReferenceImageJpegQuality, mozjpeg: true })
+          .toBuffer();
+      } catch (error) {
+        return res.status(400).json({ error: "Invalid image file" });
+      }
+
       // Generate unique filename
       const timestamp = Date.now();
-      const extension = path.extname(req.file.originalname) || '.jpg';
-      const filename = `upload_${timestamp}${extension}`;
+      const filename = `upload_${timestamp}.jpg`;
       const filepath = path.join(uploadsDir, filename);
 
       // Save file to public directory
-      fs.writeFileSync(filepath, req.file.buffer);
+      fs.writeFileSync(filepath, optimizedImageBuffer);
 
       // Return public URL
       const publicUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;

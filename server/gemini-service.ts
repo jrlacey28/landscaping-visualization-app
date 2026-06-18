@@ -27,7 +27,10 @@ const STANDARD_IMAGE_MODEL =
 const BUSINESS_IMAGE_MODEL =
   process.env.GEMINI_BUSINESS_IMAGE_MODEL || "gemini-3.1-flash-image";
 const REFERENCE_IMAGE_LOAD_TIMEOUT_MS = 5000;
-const MAX_REFERENCE_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_REFERENCE_SOURCE_IMAGE_BYTES = 24 * 1024 * 1024;
+const MAX_REFERENCE_INLINE_IMAGE_BYTES = 1_250_000;
+const REFERENCE_IMAGE_MAX_DIMENSION = 1024;
+const REFERENCE_IMAGE_JPEG_QUALITY = 82;
 
 function getImageGenerationModel(usePremiumModel?: boolean): string {
   return usePremiumModel ? BUSINESS_IMAGE_MODEL : STANDARD_IMAGE_MODEL;
@@ -124,12 +127,93 @@ async function processImageSize(imageBuffer: Buffer): Promise<ProcessedImage> {
   };
 }
 
-function getMimeTypeFromUrl(url: string) {
-  const lowerUrl = url.toLowerCase();
-  if (lowerUrl.endsWith(".png")) return "image/png";
-  if (lowerUrl.endsWith(".webp")) return "image/webp";
-  if (lowerUrl.endsWith(".gif")) return "image/gif";
-  return "image/jpeg";
+function resolveLocalUploadPath(refImageUrl: string) {
+  let pathname = "";
+
+  try {
+    pathname = refImageUrl.startsWith("/uploads/")
+      ? refImageUrl
+      : new URL(refImageUrl).pathname;
+  } catch {
+    return null;
+  }
+
+  if (!pathname.startsWith("/uploads/")) {
+    return null;
+  }
+
+  let relativePath: string;
+  try {
+    relativePath = decodeURIComponent(pathname).replace(/^\/+/, "");
+  } catch {
+    relativePath = pathname.replace(/^\/+/, "");
+  }
+
+  const uploadsRoot = path.resolve(process.cwd(), "public", "uploads");
+  const imagePath = path.resolve(process.cwd(), "public", relativePath);
+  const relativeToUploadsRoot = path.relative(uploadsRoot, imagePath);
+
+  if (
+    relativeToUploadsRoot.startsWith("..") ||
+    path.isAbsolute(relativeToUploadsRoot) ||
+    !fs.existsSync(imagePath)
+  ) {
+    return null;
+  }
+
+  return imagePath;
+}
+
+async function prepareReferenceImageBuffer(imageBuffer: Buffer, sourceLabel: string) {
+  if (imageBuffer.byteLength > MAX_REFERENCE_SOURCE_IMAGE_BYTES) {
+    console.log(
+      `Skipping reference image larger than ${MAX_REFERENCE_SOURCE_IMAGE_BYTES} bytes before optimization: ${sourceLabel}`,
+    );
+    return null;
+  }
+
+  try {
+    let optimizedBuffer = await sharp(imageBuffer)
+      .rotate()
+      .resize({
+        width: REFERENCE_IMAGE_MAX_DIMENSION,
+        height: REFERENCE_IMAGE_MAX_DIMENSION,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .jpeg({ quality: REFERENCE_IMAGE_JPEG_QUALITY, mozjpeg: true })
+      .toBuffer();
+
+    if (optimizedBuffer.byteLength > MAX_REFERENCE_INLINE_IMAGE_BYTES) {
+      optimizedBuffer = await sharp(imageBuffer)
+        .rotate()
+        .resize({
+          width: 768,
+          height: 768,
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: 72, mozjpeg: true })
+        .toBuffer();
+    }
+
+    if (optimizedBuffer.byteLength > MAX_REFERENCE_INLINE_IMAGE_BYTES) {
+      console.log(
+        `Skipping reference image still larger than ${MAX_REFERENCE_INLINE_IMAGE_BYTES} bytes after optimization: ${sourceLabel}`,
+      );
+      return null;
+    }
+
+    return {
+      data: optimizedBuffer.toString("base64"),
+      mimeType: "image/jpeg",
+      bytes: optimizedBuffer.byteLength,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(`Could not optimize reference image: ${sourceLabel} (${message})`);
+    return null;
+  }
 }
 
 async function fetchWithTimeout(url: string, timeoutMs: number) {
@@ -151,31 +235,12 @@ async function loadReferenceImage(refImageUrl: string) {
     const match = trimmedUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
     if (!match) return null;
 
-    return {
-      data: match[2],
-      mimeType: match[1],
-    };
+    return prepareReferenceImageBuffer(Buffer.from(match[2], "base64"), "data URL");
   }
 
-  try {
-    const pathname = trimmedUrl.startsWith("/uploads/")
-      ? trimmedUrl
-      : new URL(trimmedUrl).pathname;
-
-    if (pathname.startsWith("/uploads/")) {
-      const relativePath = pathname.replace(/^\/+/, "");
-      const uploadsRoot = path.resolve(process.cwd(), "public", "uploads");
-      const imagePath = path.resolve(process.cwd(), "public", relativePath);
-
-      if (imagePath.startsWith(uploadsRoot) && fs.existsSync(imagePath)) {
-        return {
-          data: fs.readFileSync(imagePath).toString("base64"),
-          mimeType: getMimeTypeFromUrl(pathname),
-        };
-      }
-    }
-  } catch {
-    // Fall through to remote fetch.
+  const localUploadPath = resolveLocalUploadPath(trimmedUrl);
+  if (localUploadPath) {
+    return prepareReferenceImageBuffer(fs.readFileSync(localUploadPath), trimmedUrl);
   }
 
   if (!/^https?:\/\//i.test(trimmedUrl)) {
@@ -187,20 +252,23 @@ async function loadReferenceImage(refImageUrl: string) {
     return null;
   }
 
-  const arrayBuffer = await response.arrayBuffer();
-  if (arrayBuffer.byteLength > MAX_REFERENCE_IMAGE_BYTES) {
+  const contentLength = Number(response.headers.get("content-length") || 0);
+  if (contentLength > MAX_REFERENCE_SOURCE_IMAGE_BYTES) {
     console.log(
-      `Skipping reference image larger than ${MAX_REFERENCE_IMAGE_BYTES} bytes: ${trimmedUrl}`,
+      `Skipping reference image larger than ${MAX_REFERENCE_SOURCE_IMAGE_BYTES} bytes: ${trimmedUrl}`,
     );
     return null;
   }
 
-  const contentType = response.headers.get("content-type") || getMimeTypeFromUrl(trimmedUrl);
+  const arrayBuffer = await response.arrayBuffer();
+  if (arrayBuffer.byteLength > MAX_REFERENCE_SOURCE_IMAGE_BYTES) {
+    console.log(
+      `Skipping reference image larger than ${MAX_REFERENCE_SOURCE_IMAGE_BYTES} bytes: ${trimmedUrl}`,
+    );
+    return null;
+  }
 
-  return {
-    data: Buffer.from(arrayBuffer).toString("base64"),
-    mimeType: contentType.startsWith("image/") ? contentType : getMimeTypeFromUrl(trimmedUrl),
-  };
+  return prepareReferenceImageBuffer(Buffer.from(arrayBuffer), trimmedUrl);
 }
 
 async function appendReferenceImageParts(
@@ -230,7 +298,7 @@ async function appendReferenceImageParts(
           mimeType: referenceImage.mimeType,
         },
       });
-      console.log(`Loaded ${label} reference image`);
+      console.log(`Loaded ${label} reference image (${referenceImage.bytes} bytes)`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.log(`Could not load reference image: ${refImageUrl} (${message})`);
@@ -538,33 +606,11 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
     // Add reference images for each applied style
     for (const styleId of appliedStyles) {
       const styleConfig = getStyleConfig(styleId);
-      if (styleConfig.referenceImages) {
-        for (const refImageUrl of styleConfig.referenceImages) {
-          try {
-            // If it's a local file, read it
-            if (refImageUrl.startsWith("/uploads/")) {
-              const fs = await import("fs");
-              const path = await import("path");
-              const imagePath = path.join(process.cwd(), "public", refImageUrl);
-              if (fs.existsSync(imagePath)) {
-                const refImageBuffer = fs.readFileSync(imagePath);
-                const refBase64 = refImageBuffer.toString("base64");
-                contentParts.push({
-                  text: `Reference image for ${styleConfig.name}:`,
-                });
-                contentParts.push({
-                  inlineData: {
-                    data: refBase64,
-                    mimeType: "image/jpeg",
-                  },
-                });
-              }
-            }
-          } catch (error) {
-            console.log(`Could not load reference image: ${refImageUrl}`);
-          }
-        }
-      }
+      await appendReferenceImageParts(
+        contentParts,
+        styleConfig.referenceImages,
+        styleConfig.name,
+      );
     }
 
     const response = await generateImageContentWithFallback({
