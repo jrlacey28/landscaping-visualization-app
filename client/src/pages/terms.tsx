@@ -93,7 +93,7 @@ export default function TermsPage() {
                   <p><strong>Free Plan:</strong> 5 visualizations per month</p>
                   <p><strong>Contractor Plan:</strong> $300/month - 200 visualizations per month</p>
                   <p><strong>Professional Plan:</strong> $500/month - 650 visualizations per month with team collaboration</p>
-                  <p><strong>Enterprise Plan:</strong> $750/month - Unlimited visualizations plus white-label features</p>
+                  <p><strong>Enterprise Plan:</strong> $750/month - Higher visualization amount plus white-label features</p>
                   <div className="mt-4">
                     <p className="mb-2"><strong>Billing Terms:</strong></p>
                     <ul className="list-disc pl-6 space-y-2">

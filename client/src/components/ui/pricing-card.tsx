@@ -10,12 +10,13 @@ import { useToast } from "@/hooks/use-toast"
 export interface PricingTier {
   name: string
   description: string
-  monthlyPrice: number
-  yearlyPrice: number
+  monthlyPrice?: number
+  yearlyPrice?: number
   features: string[]
   popular?: boolean
   cta: string
   ctaLink: string
+  priceLabel?: string
   priceNote?: string
 }
 
@@ -25,9 +26,23 @@ interface PricingCardProps {
 }
 
 export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
-  const monthlyPrice = tier.monthlyPrice
+  const monthlyPrice = tier.monthlyPrice ?? 0
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
+
+  const handleCtaClick = () => {
+    const isNavigationLink =
+      tier.ctaLink.startsWith("/") ||
+      tier.ctaLink.startsWith("http") ||
+      tier.ctaLink.startsWith("mailto:")
+
+    if (isNavigationLink) {
+      window.location.href = tier.ctaLink
+      return
+    }
+
+    handleUpgrade(tier.ctaLink)
+  }
 
   const handleUpgrade = async (planId: string) => {
     try {
@@ -76,10 +91,16 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
         <CardTitle className="text-3xl font-bold text-white">{tier.name}</CardTitle>
         
         <div className="mt-4">
-          <div className="flex items-baseline">
-            <span className="text-6xl font-bold text-white">${monthlyPrice}</span>
-            <span className="text-slate-300 ml-1">/month</span>
-          </div>
+          {tier.priceLabel ? (
+            <div className="flex min-h-[72px] items-center">
+              <span className="text-4xl font-bold text-white">{tier.priceLabel}</span>
+            </div>
+          ) : (
+            <div className="flex items-baseline">
+              <span className="text-6xl font-bold text-white">${monthlyPrice}</span>
+              <span className="text-slate-300 ml-1">/month</span>
+            </div>
+          )}
           {tier.priceNote && (
             <p className="text-xs text-slate-400 mt-2 mb-2">{tier.priceNote}</p>
           )}
@@ -110,13 +131,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
             "w-full bg-transparent border border-white/30 text-white hover:bg-white/10 hover:border-white/50"
           )}
           variant="outline"
-          onClick={() => {
-            if (tier.name === "Free") {
-              window.location.href = "/auth";
-            } else {
-              handleUpgrade(tier.ctaLink);
-            }
-          }}
+          onClick={handleCtaClick}
           disabled={loading}
           data-testid={`button-${tier.name.toLowerCase()}-plan`}
         >

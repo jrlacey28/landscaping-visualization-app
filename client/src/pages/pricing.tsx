@@ -122,18 +122,16 @@ export default function PricingPage() {
     {
       name: "Enterprise",
       description: "Scale AI visualizations across your entire business",
-      monthlyPrice: 750,
-      yearlyPrice: 6000,
       features: [
         "Everything in Professional, plus:",
-        "Unlimited visualizations",
+        "Higher visualization amount",
         "White-label app and widget",
         "Custom training integrations",
         "Advanced storage and tracking"
       ],
       cta: "Contact Sales",
       ctaLink: "/contact",
-      priceNote: "Plus one time setup fee"
+      priceLabel: "Custom pricing"
     }
   ]
 

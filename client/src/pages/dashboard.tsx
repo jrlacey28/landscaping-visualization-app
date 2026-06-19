@@ -252,7 +252,7 @@ export default function Dashboard() {
                 <CardTitle>Usage This Month</CardTitle>
                 <CardDescription>
                   {user.usage.limit === -1 
-                    ? 'Unlimited visualizations' 
+                    ? 'Higher visualization amount' 
                     : `${user.usage.currentUsage} of ${user.usage.limit} visualizations used`
                   }
                 </CardDescription>
