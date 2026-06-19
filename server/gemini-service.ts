@@ -95,6 +95,47 @@ interface RoofingEditResult {
   appliedStyles: string[];
 }
 
+export interface GeminiReferenceImageInput {
+  url: string;
+  role?: string;
+  category?: string;
+  label?: string;
+  source?: string;
+}
+
+type NormalizedReferenceImageInput = Required<GeminiReferenceImageInput>;
+
+type GeminiRequestImageLog = {
+  imageNumber: number;
+  role: string;
+  category: string;
+  label: string;
+  source: string;
+  filename: string;
+  mimeType: string;
+  byteSize: number;
+  isHouseImage: boolean;
+  isReferenceImage: boolean;
+};
+
+export type ExteriorGenerationDebugContext = {
+  selectedCategory?: string;
+  selectedSidingStyleId?: string;
+  selectedColorId?: string;
+  resolvedSidingStyleName?: string;
+  resolvedSidingStylePrompt?: string;
+  resolvedSidingColorName?: string;
+  resolvedSidingColorHex?: string;
+  resolvedSidingColorPrompt?: string;
+  referenceImagesCount?: number;
+  referenceImages?: GeminiReferenceImageInput[];
+  masking?: {
+    maskProvided?: boolean;
+    maskApplied?: boolean;
+    reason?: string;
+  };
+};
+
 /**
  * Processes and resizes image to max 1920x1080 while maintaining aspect ratio
  */
@@ -271,26 +312,95 @@ async function loadReferenceImage(refImageUrl: string) {
   return prepareReferenceImageBuffer(Buffer.from(arrayBuffer), trimmedUrl);
 }
 
-async function appendReferenceImageParts(
-  contentParts: any[],
-  referenceImageUrls: string[] | undefined,
-  label: string,
+function normalizeReferenceImageInputs(
+  referenceImages: Array<string | GeminiReferenceImageInput> | undefined,
+  defaultLabel: string,
 ) {
-  const uniqueReferenceUrls = Array.from(new Set(referenceImageUrls || [])).slice(0, 8);
-  if (uniqueReferenceUrls.length > 0) {
-    console.log(`Loading ${uniqueReferenceUrls.length} ${label} reference image(s)`);
+  const seen = new Set<string>();
+  const normalized: NormalizedReferenceImageInput[] = [];
+
+  for (const referenceImage of referenceImages || []) {
+    const input =
+      typeof referenceImage === "string"
+        ? { url: referenceImage }
+        : referenceImage;
+    const url = String(input?.url || "").trim();
+    if (!url) continue;
+
+    const role = String(input.role || `${defaultLabel} reference image`).trim();
+    const key = `${role}:${url}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    normalized.push({
+      url,
+      role,
+      category: String(input.category || "exterior").trim(),
+      label: String(input.label || defaultLabel).trim(),
+      source: String(input.source || url).trim(),
+    });
   }
 
-  for (const refImageUrl of uniqueReferenceUrls) {
+  return normalized.slice(0, 8);
+}
+
+function getSourceFilename(source: string) {
+  if (source.startsWith("data:image/")) {
+    return "data-url-image";
+  }
+
+  try {
+    const pathname = source.startsWith("/uploads/") ? source : new URL(source).pathname;
+    const filename = pathname.split("/").filter(Boolean).pop();
+    return filename ? decodeURIComponent(filename) : source;
+  } catch {
+    return source.split(/[\\/]/).filter(Boolean).pop() || source;
+  }
+}
+
+function logGeminiImagePart(imageLog: GeminiRequestImageLog[], entry: GeminiRequestImageLog) {
+  imageLog.push(entry);
+  console.log("[Gemini][Image]", {
+    imageNumber: entry.imageNumber,
+    role: entry.role,
+    category: entry.category,
+    mimeType: entry.mimeType,
+    filename: entry.filename,
+    source: entry.source,
+    byteSize: entry.byteSize,
+    isHouseImage: entry.isHouseImage,
+    isReferenceImage: entry.isReferenceImage,
+  });
+}
+
+async function appendReferenceImageParts(
+  contentParts: any[],
+  referenceImages: Array<string | GeminiReferenceImageInput> | undefined,
+  label: string,
+  imageLog?: GeminiRequestImageLog[],
+  nextImageNumber?: { value: number },
+) {
+  const normalizedReferences = normalizeReferenceImageInputs(referenceImages, label);
+  if (normalizedReferences.length > 0) {
+    console.log(`Loading ${normalizedReferences.length} ${label} reference image(s)`);
+  }
+
+  for (const referenceInput of normalizedReferences) {
     try {
+      const refImageUrl = referenceInput.url;
       const referenceImage = await loadReferenceImage(refImageUrl);
       if (!referenceImage) {
         console.log(`Could not load reference image: ${refImageUrl}`);
         continue;
       }
 
+      const imageNumber = nextImageNumber ? nextImageNumber.value++ : 0;
+      const imageLabel = imageNumber > 0
+        ? `Image ${imageNumber} is the ${referenceInput.role}${referenceInput.label ? ` (${referenceInput.label})` : ""}.`
+        : `${referenceInput.role}:`;
+
       contentParts.push({
-        text: `${label} reference image:`,
+        text: imageLabel,
       });
       contentParts.push({
         inlineData: {
@@ -298,10 +408,26 @@ async function appendReferenceImageParts(
           mimeType: referenceImage.mimeType,
         },
       });
-      console.log(`Loaded ${label} reference image (${referenceImage.bytes} bytes)`);
+
+      if (imageLog && imageNumber > 0) {
+        logGeminiImagePart(imageLog, {
+          imageNumber,
+          role: referenceInput.role,
+          category: referenceInput.category,
+          label: referenceInput.label,
+          source: referenceInput.url,
+          filename: getSourceFilename(referenceInput.url),
+          mimeType: referenceImage.mimeType,
+          byteSize: referenceImage.bytes,
+          isHouseImage: false,
+          isReferenceImage: true,
+        });
+      } else {
+        console.log(`Loaded ${label} reference image (${referenceImage.bytes} bytes)`);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.log(`Could not load reference image: ${refImageUrl} (${message})`);
+      console.log(`Could not load reference image: ${referenceInput.url} (${message})`);
     }
   }
 }
@@ -460,6 +586,8 @@ export async function processLandscapeWithGemini({
   selectedStyles,
   customPrompt,
   referenceImageUrls,
+  referenceImages,
+  debugContext,
   usePremiumModel = false,
 }: {
   imageBuffer: Buffer;
@@ -471,6 +599,8 @@ export async function processLandscapeWithGemini({
   };
   customPrompt?: string;
   referenceImageUrls?: string[];
+  referenceImages?: GeminiReferenceImageInput[];
+  debugContext?: ExteriorGenerationDebugContext;
   usePremiumModel?: boolean;
 }): Promise<{
   editedImageBuffer: Buffer;
@@ -580,8 +710,39 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
       console.log("✓ Custom prompt added to generation");
     }
 
+    finalPrompt += `\n\nSIDING EDIT BOUNDARY:
+- If siding is selected, change only the siding areas.
+- Preserve roof, windows, doors, trim, driveway, landscaping, and house structure.
+- Masking applied: ${debugContext?.masking?.maskApplied ? "yes" : "no"}.
+- Mask provided: ${debugContext?.masking?.maskProvided ? "yes" : "no"}.
+- ${debugContext?.masking?.reason || "No deterministic siding-area mask is used in this Gemini request; follow the siding-only prompt constraints strictly."}`;
+
     // Step 4: Generate edited image using Gemini
     const base64Image = processedImage.buffer.toString("base64");
+
+    const tenantReferenceInputs =
+      referenceImages && referenceImages.length > 0
+        ? referenceImages
+        : (referenceImageUrls || []).map((url) => ({
+            url,
+            role: "client-specific exterior reference image",
+            category: "exterior",
+            label: "Client-specific exterior",
+            source: url,
+          }));
+
+    console.log("[Gemini][Exterior Debug]", {
+      selectedCategory: debugContext?.selectedCategory || "",
+      selectedSidingStyleId: debugContext?.selectedSidingStyleId || selectedStyles.siding || "",
+      selectedColorId: debugContext?.selectedColorId || "",
+      resolvedStylePrompt: debugContext?.resolvedSidingStylePrompt || "",
+      resolvedColorPrompt: debugContext?.resolvedSidingColorPrompt || "",
+      referenceImagesCount: tenantReferenceInputs.length,
+      maskingUsed: debugContext?.masking?.maskApplied === true,
+      maskProvided: debugContext?.masking?.maskProvided === true,
+      maskingReason: debugContext?.masking?.reason || "",
+      finalPrompt,
+    });
 
     console.log("🎯 GEMINI PROMPT BEING SENT:");
     console.log("=====================================");
@@ -589,6 +750,8 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
     console.log("=====================================");
 
     // Prepare content parts with original image and reference images
+    const imageRequestLog: GeminiRequestImageLog[] = [];
+    const nextImageNumber = { value: 1 };
     const contentParts: any[] = [
       { text: finalPrompt },
       {
@@ -598,20 +761,48 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
         },
       },
     ];
+    logGeminiImagePart(imageRequestLog, {
+      imageNumber: nextImageNumber.value++,
+      role: "house image",
+      category: "source",
+      label: "House photo to edit",
+      source: "uploaded house image",
+      filename: "uploaded-house-image.jpg",
+      mimeType: "image/jpeg",
+      byteSize: processedImage.buffer.byteLength,
+      isHouseImage: true,
+      isReferenceImage: false,
+    });
     const imageModel = getImageGenerationModel(usePremiumModel);
     console.log(`Using Gemini image model: ${imageModel}`);
 
-    await appendReferenceImageParts(contentParts, referenceImageUrls, "Client-specific exterior");
+    await appendReferenceImageParts(
+      contentParts,
+      tenantReferenceInputs,
+      "Client-specific exterior",
+      imageRequestLog,
+      nextImageNumber,
+    );
 
     // Add reference images for each applied style
     for (const styleId of appliedStyles) {
       const styleConfig = getStyleConfig(styleId);
       await appendReferenceImageParts(
         contentParts,
-        styleConfig.referenceImages,
+        styleConfig.referenceImages?.map((url) => ({
+          url,
+          role: `${styleConfig.name} reference image`,
+          category: styleConfig.category,
+          label: styleConfig.name,
+          source: url,
+        })),
         styleConfig.name,
+        imageRequestLog,
+        nextImageNumber,
       );
     }
+
+    console.log("[Gemini][Request Images Included]", imageRequestLog);
 
     const response = await generateImageContentWithFallback({
       model: imageModel,
@@ -656,11 +847,11 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
               rawGeneratedBuffer,
               processedImage,
               95,
-              "Roofing image",
+              "Exterior image",
             );
 
             console.log(
-              "✓ Gemini generated and resized roofing image successfully",
+              "Gemini generated and resized exterior image successfully",
             );
             break;
           }

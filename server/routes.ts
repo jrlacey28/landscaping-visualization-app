@@ -17,10 +17,8 @@ import {
   getAllStyles,
   getStylesByCategory,
   getStyleForRegion,
-  ROOF_COLORS,
-  SIDING_COLORS,
-  splitExteriorStyleColorSelection,
 } from "./style-config";
+import { buildTenantExteriorCustomContext } from "./tenant-exterior-context";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 import { authenticateToken, optionalAuthenticateToken, AuthRequest } from "./auth";
 import jwt from 'jsonwebtoken';
@@ -1306,18 +1304,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .replace(/^_+|_+$/g, "");
   }
 
-  function normalizeTenantColorValue(color: any) {
-    const hex = String(color?.hex || color?.color || "").replace("#", "");
-    const label = String(color?.label || color?.name || color?.value || "custom").trim();
-    return normalizeTenantToken(color?.value || `tenant_color_${normalizeTenantToken(label)}_${hex}`);
-  }
-
-  function normalizeTenantExteriorOptionValue(option: any, category: "roof" | "siding" | "windows") {
-    const label = String(option?.label || option?.name || option?.value || "option").trim();
-    const rawValue = normalizeTenantToken(option?.value || `tenant_custom_exterior_${category}_${normalizeTenantToken(label)}`);
-    return rawValue.startsWith("tenant_custom_") ? rawValue : `tenant_custom_exterior_${category}_${rawValue}`;
-  }
-
   function collectReferenceImageUrls(source: any) {
     const references = [
       ...(Array.isArray(source?.referenceImageUrls) ? source.referenceImageUrls : []),
@@ -1330,120 +1316,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .map((url) => String(url || "").trim())
       .filter(Boolean)
       .slice(0, 8);
-  }
-
-  function getSelectedColorValue(styleId: string | undefined, knownStyleTypes: string[]) {
-    if (!styleId) return "";
-    const { styleValue, colorValue } = splitExteriorStyleColorSelection(styleId);
-
-    if (colorValue) return colorValue;
-
-    for (const styleType of knownStyleTypes) {
-      if (styleValue.startsWith(`${styleType}_`)) {
-        return styleValue.substring(styleType.length + 1);
-      }
-    }
-
-    return "";
-  }
-
-  function isCustomExteriorStyleSelection(styleId: string | undefined) {
-    if (!styleId) return false;
-    return splitExteriorStyleColorSelection(styleId).styleValue.startsWith("tenant_custom_exterior_");
-  }
-
-  function buildTenantExteriorCustomContext(
-    tenant: any,
-    selectedStyles: {
-      roof?: string;
-      siding?: string;
-      windows?: string;
-    },
-  ) {
-    const customizations = tenant?.embedCustomizations || {};
-    const prompts: string[] = [];
-    const referenceImageUrls: string[] = [];
-
-    const customExteriorOptions: Array<{ category: "roof" | "siding" | "windows"; selectedStyle?: string; options: any[] }> = [
-      { category: "roof", selectedStyle: selectedStyles.roof, options: customizations?.exteriorOptions?.roof || [] },
-      { category: "siding", selectedStyle: selectedStyles.siding, options: customizations?.exteriorOptions?.siding || [] },
-      { category: "windows", selectedStyle: selectedStyles.windows, options: customizations?.exteriorOptions?.windows || [] },
-    ];
-
-    for (const { category, selectedStyle, options } of customExteriorOptions) {
-      if (!selectedStyle || !Array.isArray(options)) continue;
-      const selectedStyleValue = splitExteriorStyleColorSelection(selectedStyle).styleValue;
-
-      const matchedOption = options.find((option: any) =>
-        normalizeTenantExteriorOptionValue(option, category) === normalizeTenantToken(selectedStyleValue)
-      );
-
-      if (!matchedOption) continue;
-
-      const label = String(matchedOption.label || matchedOption.name || selectedStyle).trim();
-      const prompt = String(matchedOption.prompt || matchedOption.instructions || "").trim();
-      prompts.push(prompt || `Apply the client-specific ${category} option "${label}" exactly as configured for this tenant.`);
-      referenceImageUrls.push(...collectReferenceImageUrls(matchedOption));
-    }
-
-    const roofColorValue = getSelectedColorValue(selectedStyles.roof, ["asphalt_shingles", "steel_roof", "steel_shingles"]);
-    const sidingColorValue = getSelectedColorValue(selectedStyles.siding, ["vinyl_siding", "fiber_cement", "wood_siding", "brick_veneer"]);
-
-    const colorMatches = [
-      {
-        label: "roof",
-        selectedStyle: selectedStyles.roof,
-        selectedColor: roofColorValue,
-        colors: Array.isArray(customizations?.roofColors) ? customizations.roofColors : [],
-        builtInColors: ROOF_COLORS,
-      },
-      {
-        label: "siding",
-        selectedStyle: selectedStyles.siding,
-        selectedColor: sidingColorValue,
-        colors: Array.isArray(customizations?.sidingColors) ? customizations.sidingColors : [],
-        builtInColors: SIDING_COLORS,
-      },
-    ];
-
-    for (const colorMatch of colorMatches) {
-      if (!colorMatch.selectedColor) continue;
-
-      const matchedColor = colorMatch.colors.find((color: any) =>
-        normalizeTenantColorValue(color) === normalizeTenantToken(colorMatch.selectedColor)
-      );
-
-      if (!matchedColor) continue;
-
-      const label = String(matchedColor.label || matchedColor.name || colorMatch.selectedColor).trim();
-      const hex = String(matchedColor.hex || matchedColor.color || "").trim();
-      const prompt = String(matchedColor.prompt || matchedColor.instructions || "").trim();
-      prompts.push(prompt || `Use the tenant-specific ${colorMatch.label} color "${label}"${hex ? ` (${hex})` : ""} as closely as possible.`);
-      referenceImageUrls.push(...collectReferenceImageUrls(matchedColor));
-    }
-
-    for (const colorMatch of colorMatches) {
-      if (!colorMatch.selectedColor || !isCustomExteriorStyleSelection(colorMatch.selectedStyle)) continue;
-
-      const matchedColor = colorMatch.colors.find((color: any) =>
-        normalizeTenantColorValue(color) === normalizeTenantToken(colorMatch.selectedColor)
-      );
-      if (matchedColor) continue;
-
-      const builtInColor = colorMatch.builtInColors[colorMatch.selectedColor as keyof typeof colorMatch.builtInColors];
-      if (!builtInColor) continue;
-
-      prompts.push(
-        `Use the selected ${colorMatch.label} color "${builtInColor.label}" (${builtInColor.hex}) with the client-specific ${colorMatch.label} style.`,
-      );
-    }
-
-    return {
-      prompt: prompts.length
-        ? ["CLIENT-SPECIFIC EXTERIOR EMBED OPTIONS:", ...prompts.map((prompt, index) => `${index + 1}. ${prompt}`)].join("\n")
-        : "",
-      referenceImageUrls,
-    };
   }
 
   function collectTenantInteriorOptions(tenant: any, service: "painting" | "bathroom" | "kitchen" | "living_room") {
@@ -2230,6 +2102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { selectedRoof, selectedSiding, selectedSurpriseMe, selectedWindows, customPrompt } = req.body;
+      const maskData = typeof req.body.maskData === "string" ? req.body.maskData.trim() : "";
       const userId = generationOwner.userId;
       const hasBusinessPro = generationOwner.hasBusinessPro;
       const selectedStyles = {
@@ -2242,13 +2115,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
-      let tenantReferenceImageUrls: string[] = [];
+      let tenantReferenceImages: any[] = [];
+      let tenantExteriorDebug: any = {
+        selectedCategory: selectedSiding ? "siding" : selectedRoof ? "roof" : selectedWindows ? "windows" : "",
+        selectedSidingStyleId: selectedSiding || "",
+        selectedColorId: "",
+        resolvedSidingStylePrompt: "",
+        resolvedSidingColorPrompt: "",
+        referenceImagesCount: 0,
+      };
       if (generationOwner.tenantId) {
         const ownerTenant = await storage.getTenant(generationOwner.tenantId);
         const customContext = buildTenantExteriorCustomContext(ownerTenant, selectedStyles);
         validatedCustomPrompt = customContext.prompt || undefined;
-        tenantReferenceImageUrls = customContext.referenceImageUrls;
+        tenantReferenceImages = customContext.referenceImages;
+        tenantExteriorDebug = customContext.debug;
       }
+
+      console.log("[Embed][Exterior] Generation debug", {
+        selectedCategory: tenantExteriorDebug.selectedCategory,
+        selectedSidingStyleId: tenantExteriorDebug.selectedSidingStyleId,
+        selectedColorId: tenantExteriorDebug.selectedColorId,
+        resolvedStylePrompt: tenantExteriorDebug.resolvedSidingStylePrompt,
+        resolvedColorPrompt: tenantExteriorDebug.resolvedSidingColorPrompt,
+        referenceImagesCount: tenantExteriorDebug.referenceImagesCount,
+        referenceImages: tenantExteriorDebug.referenceImages,
+        masking: {
+          maskProvided: Boolean(maskData),
+          maskApplied: false,
+          reason:
+            "Gemini exterior generateContent flow does not currently apply a deterministic siding-area mask; prompt fallback restricts edits to siding only.",
+        },
+      });
 
       if (customPrompt && customPrompt.trim()) {
         if (hasBusinessPro) {
@@ -2284,7 +2182,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           imageBuffer: originalImageBuffer,
           selectedStyles,
           customPrompt: validatedCustomPrompt,
-          referenceImageUrls: tenantReferenceImageUrls,
+          referenceImages: tenantReferenceImages,
+          debugContext: {
+            ...tenantExteriorDebug,
+            masking: {
+              maskProvided: Boolean(maskData),
+              maskApplied: false,
+              reason:
+                "TODO: wire a true siding-area mask into an image-edit endpoint that accepts masks. Current Gemini flow uses strict prompt constraints only.",
+            },
+          },
           usePremiumModel: hasBusinessPro
         });
 
