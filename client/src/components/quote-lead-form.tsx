@@ -256,7 +256,7 @@ export default function QuoteLeadForm({
                   type="submit" 
                   disabled={submitQuoteMutation.isPending}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg shadow-blue-950/40 transition-all"
-                  style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}
+                  style={{ backgroundColor: primaryColor }}
                 >
                   {submitQuoteMutation.isPending ? (
                     <>Submitting...</>

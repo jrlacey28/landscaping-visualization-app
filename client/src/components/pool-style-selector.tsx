@@ -188,9 +188,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.poolType ? primaryColor : `${primaryColor}cc`,
-               background: activeToggles.poolType 
-                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
-                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+               backgroundColor: activeToggles.poolType ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('poolType', !activeToggles.poolType)}>
           <div className="flex items-center justify-between mb-4">
@@ -228,10 +226,8 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
         {allPoolSizes.length > 0 && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
-               borderColor: activeToggles.poolSize ? secondaryColor : `${secondaryColor}cc`,
-               background: activeToggles.poolSize 
-                 ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
-                 : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
+               borderColor: activeToggles.poolSize ? primaryColor : `${primaryColor}cc`,
+               backgroundColor: activeToggles.poolSize ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('poolSize', !activeToggles.poolSize)}>
           <div className="flex items-center justify-between mb-4">
@@ -270,9 +266,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.decking ? primaryColor : `${primaryColor}cc`,
-               background: activeToggles.decking 
-                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
-                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+               backgroundColor: activeToggles.decking ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('decking', !activeToggles.decking)}>
           <div className="flex items-center justify-between mb-4">
@@ -310,10 +304,8 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
         {allLandscapingOptions.length > 0 && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
-               borderColor: activeToggles.landscaping ? secondaryColor : `${secondaryColor}cc`,
-               background: activeToggles.landscaping 
-                 ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
-                 : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
+               borderColor: activeToggles.landscaping ? primaryColor : `${primaryColor}cc`,
+               backgroundColor: activeToggles.landscaping ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('landscaping', !activeToggles.landscaping)}>
           <div className="flex items-center justify-between mb-4">
@@ -352,9 +344,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.features ? primaryColor : `${primaryColor}cc`,
-               background: activeToggles.features 
-                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor})` 
-                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+               backgroundColor: activeToggles.features ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('features', !activeToggles.features)}>
           <div className="flex items-center justify-between mb-4">
@@ -392,10 +382,8 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
         {allHotTubOptions.length > 0 && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
-               borderColor: activeToggles.hotTub ? secondaryColor : `${secondaryColor}cc`,
-               background: activeToggles.hotTub 
-                 ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
-                 : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
+               borderColor: activeToggles.hotTub ? primaryColor : `${primaryColor}cc`,
+               backgroundColor: activeToggles.hotTub ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('hotTub', !activeToggles.hotTub)}>
           <div className="flex items-center justify-between mb-4">
@@ -434,9 +422,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.sauna ? primaryColor : `${primaryColor}cc`,
-               background: activeToggles.sauna 
-                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
-                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+               backgroundColor: activeToggles.sauna ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('sauna', !activeToggles.sauna)}>
           <div className="flex items-center justify-between mb-4">

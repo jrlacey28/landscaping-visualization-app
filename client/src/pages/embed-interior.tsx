@@ -434,6 +434,7 @@ export default function EmbedInteriorPage() {
   const [visualizationResult, setVisualizationResult] = useState<any>(null);
   const [lastGeneratedImageUrl, setLastGeneratedImageUrl] = useState<string | null>(null);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [showQuoteGate, setShowQuoteGate] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState(() => createDefaultSelections(config));
   const [activeGroups, setActiveGroups] = useState(() => createDefaultActiveGroups(config));
@@ -490,6 +491,7 @@ export default function EmbedInteriorPage() {
       return;
     }
 
+    setShowQuoteGate(false);
     setOriginalFile(file);
     setVisualizationResult(null);
     setLastGeneratedImageUrl(null);
@@ -573,12 +575,16 @@ export default function EmbedInteriorPage() {
   };
 
   const generateDesign = async () => {
+    if (visitorLimitReached) {
+      setShowQuoteGate(true);
+      return;
+    }
+
     if (!originalFile || selectedStyleIds.length === 0) {
       return;
     }
 
     setIsGenerating(true);
-    setVisualizationResult(null);
 
     try {
       const result = await uploadInteriorImage(
@@ -613,6 +619,7 @@ export default function EmbedInteriorPage() {
       const apiError = error as any;
       if (apiError.code === "EMBED_VISITOR_LIMIT") {
         embedVisitor.markLimitReached(apiError.details?.embedVisitorUsage);
+        setShowQuoteGate(true);
         return;
       }
       alert("Unable to generate the design. Please try again.");
@@ -631,6 +638,7 @@ export default function EmbedInteriorPage() {
   };
 
   const openQuote = () => {
+    setShowQuoteGate(false);
     embedVisitor.trackQuoteClick();
     runEmbedQuoteAction({
       tenant: effectiveTenant,
@@ -751,17 +759,6 @@ export default function EmbedInteriorPage() {
           />
         )}
 
-        {visitorLimitReached && (
-          <EmbedQuoteGate
-            status={embedVisitor.status}
-            primaryColor={resolvedPrimaryColor}
-            secondaryColor={resolvedSecondaryColor}
-            buttonText={quoteButtonText}
-            onQuoteClick={openQuote}
-          />
-        )}
-
-        {!visitorLimitReached && (
         <div className={`${themeClasses.panel} mb-4 rounded-2xl p-4`}>
           <h2 className={`mb-4 text-center text-xl font-semibold ${themeClasses.panelTitle}`}>
             {config.uploadLabel}
@@ -786,8 +783,22 @@ export default function EmbedInteriorPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-gray-100">
-                <img src={activeImage || ""} alt="Uploaded project" className="h-full w-full object-cover" />
+              <div className={`relative w-full overflow-hidden rounded-lg bg-gray-100 ${showQuoteGate ? "min-h-[340px]" : "aspect-video"}`}>
+                <img
+                  src={activeImage || ""}
+                  alt="Uploaded project"
+                  className={`h-full w-full object-cover transition duration-300 ${showQuoteGate ? "scale-105 blur-xl" : ""}`}
+                />
+                {showQuoteGate && (
+                  <EmbedQuoteGate
+                    status={embedVisitor.status}
+                    primaryColor={resolvedPrimaryColor}
+                    secondaryColor={resolvedSecondaryColor}
+                    buttonText={quoteButtonText}
+                    onQuoteClick={openQuote}
+                    onClose={() => setShowQuoteGate(false)}
+                  />
+                )}
                 {isGenerating && (
                   <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 backdrop-blur-sm">
                     <div className="flex items-center gap-3 text-lg font-bold text-white">
@@ -804,7 +815,7 @@ export default function EmbedInteriorPage() {
                     <Button
                       size="lg"
                       className="font-semibold text-white shadow-md transition-all hover:shadow-lg"
-                      style={{ background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor})` }}
+                      style={{ backgroundColor: resolvedPrimaryColor }}
                       onClick={() => {
                         const anchor = document.createElement("a");
                         anchor.href = completedImage;
@@ -818,7 +829,7 @@ export default function EmbedInteriorPage() {
                     <Button
                       size="lg"
                       className="font-semibold text-white shadow-md transition-all hover:shadow-lg"
-                      style={{ background: "linear-gradient(to right, #64748b, #475569)" }}
+                      style={{ backgroundColor: "#475569" }}
                       onClick={() => setShowingOriginal(!showingOriginal)}
                     >
                       <Eye className="mr-2 h-5 w-5" />
@@ -828,7 +839,7 @@ export default function EmbedInteriorPage() {
                   <Button
                     size="lg"
                     className="w-full font-semibold text-white shadow-md transition-all hover:shadow-lg"
-                    style={{ background: `linear-gradient(to right, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})` }}
+                    style={{ backgroundColor: resolvedPrimaryColor }}
                     onClick={resetPhoto}
                   >
                     <Camera className="mr-2 h-5 w-5" />
@@ -837,7 +848,7 @@ export default function EmbedInteriorPage() {
                   <Button
                     size="lg"
                     className="w-full py-4 font-semibold text-white shadow-lg transition-all hover:shadow-xl"
-                    style={{ background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})` }}
+                    style={{ backgroundColor: resolvedPrimaryColor }}
                     onClick={openQuote}
                   >
                     <Phone className="mr-2 h-5 w-5" />
@@ -852,9 +863,8 @@ export default function EmbedInteriorPage() {
             </div>
           )}
         </div>
-        )}
 
-        {uploadedImage && !visitorLimitReached && (
+        {uploadedImage && (
           <div className={`${themeClasses.panel} mb-4 rounded-2xl p-4`}>
             <h2 className={`mb-4 text-xl font-semibold ${themeClasses.panelTitle}`}>Choose Your Style</h2>
             {config.groups.length === 0 ? (
@@ -874,9 +884,7 @@ export default function EmbedInteriorPage() {
                     key={group.id}
                     className="rounded-xl p-4 ring-1 ring-white/15 transition"
                     style={{
-                      background: isActive
-                        ? `linear-gradient(to bottom right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor})`
-                        : `linear-gradient(to bottom right, ${resolvedPrimaryColor}66, ${resolvedSecondaryColor}66)`,
+                      backgroundColor: isActive ? resolvedPrimaryColor : `${resolvedPrimaryColor}99`,
                     }}
                   >
                     <div className="flex items-center justify-between gap-3">
@@ -947,13 +955,13 @@ export default function EmbedInteriorPage() {
           </div>
         )}
 
-        {uploadedImage && !completedImage && !visitorLimitReached && (
+        {uploadedImage && !completedImage && (
           <>
             <Button
               size="lg"
               className="mb-4 w-full py-4 font-semibold text-white shadow-lg transition-all hover:shadow-xl disabled:opacity-50"
-              style={{ background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})` }}
-              disabled={isGenerating || selectedStyleIds.length === 0}
+              style={{ backgroundColor: resolvedPrimaryColor }}
+              disabled={isGenerating || embedVisitor.isLoading || selectedStyleIds.length === 0}
               onClick={generateDesign}
             >
               {isGenerating ? (

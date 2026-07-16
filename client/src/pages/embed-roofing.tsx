@@ -50,6 +50,9 @@ function normalizeCustomExteriorOption(option: any, category: "roof" | "siding" 
     hex: typeof option?.hex === "string" ? option.hex : typeof option?.swatch === "string" ? option.swatch : undefined,
     groupLabel: typeof option?.groupLabel === "string" ? option.groupLabel.trim() || undefined : undefined,
     custom: true,
+    allowedColorValues: Array.isArray(option?.allowedColorValues)
+      ? option.allowedColorValues.map(normalizeToken).filter(Boolean)
+      : undefined,
   };
 }
 
@@ -118,6 +121,11 @@ export default function EmbedRoofingPage() {
         .map(normalizeCustomColor)
         .filter((color: any) => color.value && color.label && /^#[0-9a-f]{6}$/i.test(color.hex))
     : [];
+  const customWindowColors = Array.isArray(embedCustomizations.windowColors)
+    ? embedCustomizations.windowColors
+        .map(normalizeCustomColor)
+        .filter((color: any) => color.value && color.label && /^#[0-9a-f]{6}$/i.test(color.hex))
+    : [];
   const customRoofStyles = getCustomExteriorOptions(embedCustomizations, "roof");
   const customSidingStyles = getCustomExteriorOptions(embedCustomizations, "siding");
   const customWindowOptions = getCustomExteriorOptions(embedCustomizations, "windows");
@@ -151,6 +159,7 @@ export default function EmbedRoofingPage() {
   const [visualizationResult, setVisualizationResult] = useState<any>(null);
   const [lastGeneratedImageUrl, setLastGeneratedImageUrl] = useState<string | null>(null);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [showQuoteGate, setShowQuoteGate] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
   
   const [selectedStyles, setSelectedStyles] = useState({
@@ -169,6 +178,7 @@ export default function EmbedRoofingPage() {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setShowQuoteGate(false);
       setOriginalFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -181,6 +191,7 @@ export default function EmbedRoofingPage() {
   };
 
   const handleQuoteClick = () => {
+    setShowQuoteGate(false);
     embedVisitor.trackQuoteClick();
     runEmbedQuoteAction({
       tenant: effectiveTenant,
@@ -297,18 +308,7 @@ export default function EmbedRoofingPage() {
           />
         )}
 
-        {visitorLimitReached && (
-          <EmbedQuoteGate
-            status={embedVisitor.status}
-            primaryColor={resolvedPrimaryColor}
-            secondaryColor={resolvedSecondaryColor}
-            buttonText={quoteButtonText}
-            onQuoteClick={handleQuoteClick}
-          />
-        )}
-
         {/* Image Upload */}
-        {!visitorLimitReached && (
         <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
           <h2 className={`text-xl font-semibold mb-4 text-center ${themeClasses.panelTitle}`}>Upload Your Home Photo</h2>
           
@@ -334,7 +334,7 @@ export default function EmbedRoofingPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden relative">
+              <div className={`relative w-full overflow-hidden rounded-lg bg-gray-100 ${showQuoteGate ? "min-h-[340px]" : "aspect-video"}`}>
                 <img
                   src={visualizationResult?.status === "completed" && visualizationResult?.generatedImageUrl ? 
                     (showingOriginal ? uploadedImage : visualizationResult.generatedImageUrl) : 
@@ -342,8 +342,18 @@ export default function EmbedRoofingPage() {
                   alt={visualizationResult?.status === "completed" ? 
                     (showingOriginal ? "Original photo" : "Enhanced roofing design") : 
                     "Uploaded home"}
-                  className="w-full h-full object-cover"
+                  className={`h-full w-full object-cover transition duration-300 ${showQuoteGate ? "scale-105 blur-xl" : ""}`}
                 />
+                {showQuoteGate && (
+                  <EmbedQuoteGate
+                    status={embedVisitor.status}
+                    primaryColor={resolvedPrimaryColor}
+                    secondaryColor={resolvedSecondaryColor}
+                    buttonText={quoteButtonText}
+                    onQuoteClick={handleQuoteClick}
+                    onClose={() => setShowQuoteGate(false)}
+                  />
+                )}
                 {isGenerating && (
                   <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
                     <div className="text-center">
@@ -366,7 +376,7 @@ export default function EmbedRoofingPage() {
                       size="lg"
                       className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
                       style={{ 
-                        background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor})`
+                        backgroundColor: resolvedPrimaryColor
                       }}
                       onClick={() => {
                         const img = document.createElement("img");
@@ -405,7 +415,7 @@ export default function EmbedRoofingPage() {
                       size="lg"
                       className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
                       style={{ 
-                        background: `linear-gradient(to right, #64748b, #475569)`
+                        backgroundColor: "#475569"
                       }}
                       onClick={() => setShowingOriginal(!showingOriginal)}
                     >
@@ -419,7 +429,7 @@ export default function EmbedRoofingPage() {
                       size="lg"
                       className="w-full text-white font-semibold shadow-md hover:shadow-lg transition-all py-3"
                       style={{ 
-                        background: `linear-gradient(to right, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
+                        backgroundColor: resolvedPrimaryColor
                       }}
                       onClick={() => {
                         setUploadedImage(null);
@@ -445,7 +455,7 @@ export default function EmbedRoofingPage() {
                     size="lg"
                     className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
                     style={{ 
-                      background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
+                      backgroundColor: resolvedPrimaryColor
                     }}
                     onClick={handleQuoteClick}
                   >
@@ -457,10 +467,9 @@ export default function EmbedRoofingPage() {
             </div>
           )}
         </div>
-        )}
 
         {/* Style Selection */}
-        {uploadedImage && !visitorLimitReached && (
+        {uploadedImage && (
           <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
             <h2 className={`text-xl font-semibold mb-4 ${themeClasses.panelTitle}`}>Choose Your Style</h2>
             <StyleSelector
@@ -492,6 +501,7 @@ export default function EmbedRoofingPage() {
               showWindows
               customRoofColors={customRoofColors}
               customSidingColors={customSidingColors}
+              customWindowColors={customWindowColors}
               customRoofStyles={customRoofStyles}
               customSidingStyles={customSidingStyles}
               customWindowOptions={customWindowOptions}
@@ -501,16 +511,17 @@ export default function EmbedRoofingPage() {
         )}
 
         {/* Generate Button */}
-        {uploadedImage && !visitorLimitReached && (
+        {uploadedImage && (
           <div className="mb-4">
             <Button
               size="lg"
               className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
               style={{ 
-                background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
+                backgroundColor: resolvedPrimaryColor
               }}
               disabled={
                 isGenerating ||
+                embedVisitor.isLoading ||
                 !(
                   selectedStyles.roof.enabled ||
                   selectedStyles.siding.enabled ||
@@ -519,8 +530,12 @@ export default function EmbedRoofingPage() {
                 )
               }
               onClick={async () => {
+                if (visitorLimitReached) {
+                  setShowQuoteGate(true);
+                  return;
+                }
+
                 setIsGenerating(true);
-                setVisualizationResult(null);
                 
                 try {
                   if (!originalFile) {
@@ -558,6 +573,7 @@ export default function EmbedRoofingPage() {
                   const apiError = error as any;
                   if (apiError.code === "EMBED_VISITOR_LIMIT") {
                     embedVisitor.markLimitReached(apiError.details?.embedVisitorUsage);
+                    setShowQuoteGate(true);
                     return;
                   }
                   alert("Unable to generate visualization. Please try again.");

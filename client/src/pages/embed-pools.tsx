@@ -105,6 +105,7 @@ export default function EmbedPoolsPage() {
   const [poolVisualizationResult, setPoolVisualizationResult] = useState<any>(null);
   const [lastGeneratedImageUrl, setLastGeneratedImageUrl] = useState<string | null>(null);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [showQuoteGate, setShowQuoteGate] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
   
   const [selectedPoolStyles, setSelectedPoolStyles] = useState({
@@ -126,6 +127,7 @@ export default function EmbedPoolsPage() {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setShowQuoteGate(false);
       setOriginalFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -138,6 +140,7 @@ export default function EmbedPoolsPage() {
   };
 
   const handleQuoteClick = () => {
+    setShowQuoteGate(false);
     embedVisitor.trackQuoteClick();
     runEmbedQuoteAction({
       tenant: effectiveTenant,
@@ -254,18 +257,7 @@ export default function EmbedPoolsPage() {
           />
         )}
 
-        {visitorLimitReached && (
-          <EmbedQuoteGate
-            status={embedVisitor.status}
-            primaryColor={resolvedPrimaryColor}
-            secondaryColor={resolvedSecondaryColor}
-            buttonText={quoteButtonText}
-            onQuoteClick={handleQuoteClick}
-          />
-        )}
-
         {/* Image Upload */}
-        {!visitorLimitReached && (
         <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
           <h2 className={`text-xl font-semibold mb-4 text-center ${themeClasses.panelTitle}`}>Upload Your Backyard Photo</h2>
           
@@ -291,7 +283,7 @@ export default function EmbedPoolsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden relative">
+              <div className={`relative w-full overflow-hidden rounded-lg bg-gray-100 ${showQuoteGate ? "min-h-[340px]" : "aspect-video"}`}>
                 <img
                   src={poolVisualizationResult?.status === "completed" && poolVisualizationResult?.generatedImageUrl ? 
                     (showingOriginal ? uploadedImage : poolVisualizationResult.generatedImageUrl) : 
@@ -299,8 +291,18 @@ export default function EmbedPoolsPage() {
                   alt={poolVisualizationResult?.status === "completed" ? 
                     (showingOriginal ? "Original photo" : "Enhanced pool design") : 
                     "Uploaded backyard"}
-                  className="w-full h-full object-cover"
+                  className={`h-full w-full object-cover transition duration-300 ${showQuoteGate ? "scale-105 blur-xl" : ""}`}
                 />
+                {showQuoteGate && (
+                  <EmbedQuoteGate
+                    status={embedVisitor.status}
+                    primaryColor={resolvedPrimaryColor}
+                    secondaryColor={resolvedSecondaryColor}
+                    buttonText={quoteButtonText}
+                    onQuoteClick={handleQuoteClick}
+                    onClose={() => setShowQuoteGate(false)}
+                  />
+                )}
                 {isGenerating && (
                   <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
                     <div className="text-center">
@@ -323,7 +325,7 @@ export default function EmbedPoolsPage() {
                       size="lg"
                       className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
                       style={{ 
-                        background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor})`
+                        backgroundColor: resolvedPrimaryColor
                       }}
                       onClick={() => {
                         const img = document.createElement("img");
@@ -362,7 +364,7 @@ export default function EmbedPoolsPage() {
                       size="lg"
                       className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
                       style={{ 
-                        background: `linear-gradient(to right, #64748b, #475569)`
+                        backgroundColor: "#475569"
                       }}
                       onClick={() => setShowingOriginal(!showingOriginal)}
                     >
@@ -376,7 +378,7 @@ export default function EmbedPoolsPage() {
                       size="lg"
                       className="w-full text-white font-semibold shadow-md hover:shadow-lg transition-all py-3"
                       style={{ 
-                        background: `linear-gradient(to right, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
+                        backgroundColor: resolvedPrimaryColor
                       }}
                       onClick={() => {
                         setUploadedImage(null);
@@ -396,7 +398,7 @@ export default function EmbedPoolsPage() {
                     size="lg"
                     className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
                     style={{ 
-                      background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
+                      backgroundColor: resolvedPrimaryColor
                     }}
                     onClick={handleQuoteClick}
                   >
@@ -421,10 +423,9 @@ export default function EmbedPoolsPage() {
             </div>
           )}
         </div>
-        )}
 
         {/* Style Selection */}
-        {uploadedImage && !visitorLimitReached && (
+        {uploadedImage && (
           <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
             <h2 className={`text-xl font-semibold mb-4 ${themeClasses.panelTitle}`}>Choose Your Pool Style</h2>
             <PoolStyleSelector
@@ -439,16 +440,17 @@ export default function EmbedPoolsPage() {
         )}
 
         {/* Generate Button */}
-        {uploadedImage && !visitorLimitReached && (
+        {uploadedImage && (
           <div className="mb-4">
             <Button
               size="lg"
               className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
               style={{ 
-                background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
+                backgroundColor: resolvedPrimaryColor
               }}
               disabled={
                 isGenerating ||
+                embedVisitor.isLoading ||
                 !(
                   selectedPoolStyles.poolType ||
                   selectedPoolStyles.poolSize ||
@@ -460,8 +462,12 @@ export default function EmbedPoolsPage() {
                 )
               }
               onClick={async () => {
+                if (visitorLimitReached) {
+                  setShowQuoteGate(true);
+                  return;
+                }
+
                 setIsGenerating(true);
-                setPoolVisualizationResult(null);
                 
                 try {
                   if (!originalFile) {
@@ -498,6 +504,7 @@ export default function EmbedPoolsPage() {
                   const apiError = error as any;
                   if (apiError.code === "EMBED_VISITOR_LIMIT") {
                     embedVisitor.markLimitReached(apiError.details?.embedVisitorUsage);
+                    setShowQuoteGate(true);
                     return;
                   }
                   alert("Unable to generate visualization. Please try again.");

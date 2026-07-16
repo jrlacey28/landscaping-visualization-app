@@ -972,6 +972,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  const accountQuoteFlowSettingsSchema = z.object({
+    embedRequireQuoteAfterLimit: z.boolean(),
+    embedVisitorLimit: z.number().int().min(0).max(100),
+    embedCtaText: z.string().trim().min(1).max(80),
+    embedCtaPhone: z.string().trim().max(40),
+    embedCtaUrl: z.union([z.string().trim().url(), z.literal("")]),
+    embedQuoteDestinationType: z.enum(["email", "phone", "link"]),
+    embedQuoteRecipientEmail: z.union([z.string().trim().email(), z.literal("")]),
+    embedQuoteSuccessRedirectUrl: z.union([z.string().trim().url(), z.literal("")]),
+    embedQuoteGateTitle: z.string().trim().min(1).max(160),
+    embedQuoteGateMessage: z.string().trim().min(1).max(1200),
+    embedQuoteFormTitle: z.string().trim().min(1).max(160),
+    embedQuoteFormMessage: z.string().trim().min(1).max(1200),
+    embedQuoteIncludeImages: z.boolean(),
+  });
+
+  app.patch("/api/tenant/my-tenant/quote-flow", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
+      const userTenant = await storage.getTenantByUserId(workspaceOwnerId);
+      if (!userTenant) {
+        return res.status(404).json({ error: "Enterprise tenant not found" });
+      }
+
+      const settings = accountQuoteFlowSettingsSchema.parse(req.body);
+      const updatedTenant = await storage.updateTenant(userTenant.id, settings);
+      res.json(updatedTenant);
+    } catch (error) {
+      console.error("Error updating account quote flow:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid quote flow settings", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update quote flow settings" });
+    }
+  });
+
   app.get("/api/tenant/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
@@ -1224,7 +1264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   function getEmbedVisitorLimit(tenant: any) {
     return tenant.embedRequireQuoteAfterLimit
-      ? Math.max(Number(tenant.embedVisitorLimit || 3), 0)
+      ? Math.max(Number(tenant.embedVisitorLimit ?? 3), 0)
       : 0;
   }
 
@@ -1237,7 +1277,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : "";
     const ip = getClientIp(req);
     const userAgent = req.get?.("user-agent") || "";
-    const fingerprintSource = ip || suppliedVisitorId || userAgent || "unknown";
+    const fingerprintSource = suppliedVisitorId
+      ? `visitor:${suppliedVisitorId}`
+      : ip
+        ? `ip:${ip}`
+        : `agent:${userAgent || "unknown"}`;
     const salt = process.env.EMBED_VISITOR_HASH_SALT || process.env.JWT_SECRET || "dreambuilder-embed";
 
     return crypto
@@ -1269,7 +1313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return { visitorKey, status };
   }
 
-  async function recordEmbedVisitorGeneration(req: any, tenant: any) {
+  async function assertEmbedVisitorCanGenerate(req: any, tenant: any) {
     const visitorKey = buildEmbedVisitorKey(req, tenant.id);
     const limit = getEmbedVisitorLimit(tenant);
     const before = await storage.getEmbedVisitorUsageStatus(tenant.id, visitorKey, limit);
@@ -1285,7 +1329,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
     }
 
-    return storage.recordEmbedVisitorGeneration(tenant.id, visitorKey, limit);
+    return before;
+  }
+
+  async function recordSuccessfulEmbedVisitorGeneration(generationOwner: any) {
+    const tracking = generationOwner?.embedVisitorTracking;
+    if (!tracking) return;
+
+    try {
+      await storage.recordEmbedVisitorGeneration(
+        tracking.tenantId,
+        tracking.visitorKey,
+        tracking.limit,
+      );
+    } catch (error) {
+      console.error("Failed to record successful embed visitor generation:", error);
+    }
   }
 
   function normalizeTenantCustomOptionValue(value: unknown) {
@@ -1568,13 +1627,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw new GenerationRequestError(429, error.message || "Embed usage limit reached");
         }
 
-        await recordEmbedVisitorGeneration(req, checkedTenant);
+        const embedVisitorStatus = await assertEmbedVisitorCanGenerate(req, checkedTenant);
 
         return {
           userId: ownerUserId,
           tenantId: checkedTenant.id,
           shouldTrackUserUsage: false,
           hasBusinessPro: await storage.hasBusinessProAccess(ownerUserId),
+          embedVisitorTracking: {
+            tenantId: checkedTenant.id,
+            visitorKey: buildEmbedVisitorKey(req, checkedTenant.id),
+            limit: getEmbedVisitorLimit(checkedTenant),
+            status: embedVisitorStatus,
+          },
         };
       }
 
@@ -2213,6 +2278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedImageUrl: editedBase64,
           status: "completed",
         });
+        await recordSuccessfulEmbedVisitorGeneration(generationOwner);
 
         res.json({
           visualizationId: visualization.id,
@@ -2357,6 +2423,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedImageUrl: editedBase64,
           status: "completed",
         });
+        await recordSuccessfulEmbedVisitorGeneration(generationOwner);
 
         res.json({
           visualizationId: visualization.id,
@@ -2621,6 +2688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedImageUrl: editedBase64,
           status: "completed",
         });
+        await recordSuccessfulEmbedVisitorGeneration(generationOwner);
 
         res.json({
           poolVisualizationId: poolVisualization.id,
@@ -2823,6 +2891,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedImageUrl: processedBase64,
           status: "completed"
         });
+        await recordSuccessfulEmbedVisitorGeneration(generationOwner);
 
         res.json({
           landscapeVisualizationId: landscapeVisualization.id,
@@ -2957,6 +3026,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedImageUrl: editedBase64Image,
           status: "completed"
         });
+        await recordSuccessfulEmbedVisitorGeneration(generationOwner);
 
         res.json({
           halloweenVisualizationId: halloweenVisualization.id,
@@ -3085,6 +3155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedImageUrl: editedBase64Image,
           status: "completed"
         });
+        await recordSuccessfulEmbedVisitorGeneration(generationOwner);
 
         res.json({
           christmasLightsVisualizationId: christmasVisualization.id,

@@ -4,6 +4,7 @@ import { Code2, Folder, LayoutDashboard, Loader2, Lock, RefreshCw, Users } from 
 
 import BugFeatureForm from '@/components/bug-feature-form';
 import EmbedCodeGenerator from '@/components/embed-code-generator';
+import EnterpriseQuoteFlowSettings from '@/components/enterprise-quote-flow-settings';
 import SavedGenerations from '@/components/saved-generations';
 import TeamManagement from '@/components/team-management';
 import { Badge } from '@/components/ui/badge';
@@ -643,7 +644,14 @@ export default function Dashboard() {
               </div>
 
               {user.hasEmbedAccess ? (
-                <EmbedCodeGenerator tenant={embedTenant} accountUserId={embedAccountUserId} />
+                <>
+                  {enterpriseTenant && (
+                    <EnterpriseQuoteFlowSettings
+                      tenant={tenant && tenant.slug !== 'demo' ? tenant : enterpriseTenant}
+                    />
+                  )}
+                  <EmbedCodeGenerator tenant={embedTenant} accountUserId={embedAccountUserId} />
+                </>
               ) : (
                 <Card>
                   <CardContent className="flex min-h-80 items-center justify-center p-8">

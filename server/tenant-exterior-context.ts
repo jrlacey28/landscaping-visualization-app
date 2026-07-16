@@ -1,6 +1,7 @@
 import {
   ROOF_COLORS,
   SIDING_COLORS,
+  WINDOW_COLORS,
   splitExteriorStyleColorSelection,
 } from "./style-config";
 
@@ -31,7 +32,7 @@ type ResolvedTenantOption = {
 };
 
 type ResolvedTenantColor = {
-  category: "roof" | "siding";
+  category: ExteriorCategory;
   selectedColor: string;
   label: string;
   hex: string;
@@ -190,6 +191,10 @@ function resolveTenantExteriorColors(
     "wood_siding",
     "brick_veneer",
   ]);
+  const windowColorValue = getSelectedColorValue(selectedStyles.windows, [
+    "window_frames",
+    "window_grid",
+  ]);
 
   const colorMatches = [
     {
@@ -206,12 +211,35 @@ function resolveTenantExteriorColors(
       colors: Array.isArray(customizations?.sidingColors) ? customizations.sidingColors : [],
       builtInColors: SIDING_COLORS,
     },
+    {
+      category: "windows" as const,
+      selectedStyle: selectedStyles.windows,
+      selectedColor: windowColorValue,
+      colors: Array.isArray(customizations?.windowColors) ? customizations.windowColors : [],
+      builtInColors: WINDOW_COLORS,
+    },
   ];
 
   const resolvedColors: ResolvedTenantColor[] = [];
 
   for (const colorMatch of colorMatches) {
     if (!colorMatch.selectedColor) continue;
+
+    const selectedStyleValue = splitExteriorStyleColorSelection(colorMatch.selectedStyle).styleValue;
+    const selectedCustomOption = (customizations?.exteriorOptions?.[colorMatch.category] || []).find(
+      (option: any) =>
+        normalizeTenantExteriorOptionValue(option, colorMatch.category) ===
+        normalizeTenantToken(selectedStyleValue),
+    );
+    if (
+      selectedCustomOption &&
+      Array.isArray(selectedCustomOption.allowedColorValues) &&
+      !selectedCustomOption.allowedColorValues
+        .map(normalizeTenantToken)
+        .includes(normalizeTenantToken(colorMatch.selectedColor))
+    ) {
+      continue;
+    }
 
     const matchedColor = colorMatch.colors.find(
       (color: any) =>

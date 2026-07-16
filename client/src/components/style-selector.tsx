@@ -19,6 +19,7 @@ type StyleOption = {
   hex?: string;
   groupLabel?: string;
   custom?: boolean;
+  allowedColorValues?: string[];
 };
 
 const CUSTOM_STYLE_COLOR_SEPARATOR = "__color__";
@@ -36,6 +37,7 @@ interface StyleSelectorProps {
   showWindows?: boolean;
   customRoofColors?: ColorOption[];
   customSidingColors?: ColorOption[];
+  customWindowColors?: ColorOption[];
   customRoofStyles?: StyleOption[];
   customSidingStyles?: StyleOption[];
   customWindowOptions?: StyleOption[];
@@ -91,11 +93,15 @@ const sidingColors = [
   { value: "savannah_wicker", label: "Savannah Wicker", hex: "#D8CAB1" },
 ];
 
-const windowOptions: StyleOption[] = [
-  { value: "windows_black_frames", label: "Black Frames", hex: "#111827" },
-  { value: "windows_white_frames", label: "White Frames", hex: "#FFFFFF" },
-  { value: "windows_bronze_frames", label: "Bronze Frames", hex: "#5C4033" },
-  { value: "windows_modern_grid", label: "Modern Grid", hex: "#111827" },
+const windowStyles: StyleOption[] = [
+  { value: "window_frames", label: "Standard Frames" },
+  { value: "window_grid", label: "Grid Frames" },
+];
+
+const windowColors: ColorOption[] = [
+  { value: "black", label: "Black", hex: "#111827" },
+  { value: "white", label: "White", hex: "#FFFFFF" },
+  { value: "bronze", label: "Bronze", hex: "#5C4033" },
 ];
 
 function ColorSwatch({ color, className = "h-4 w-4" }: { color: string; className?: string }) {
@@ -181,6 +187,12 @@ function isCustomExteriorStyle(style?: StyleOption) {
   return Boolean(style?.custom || style?.value.startsWith("tenant_custom_exterior_"));
 }
 
+function getColorsForStyle(colors: ColorOption[], style?: StyleOption) {
+  if (!style || !Array.isArray(style.allowedColorValues)) return colors;
+  const allowed = new Set(style.allowedColorValues);
+  return colors.filter((color) => allowed.has(color.value));
+}
+
 function buildExteriorStyleSelection(
   styleValue: string,
   colorValue: string,
@@ -203,6 +215,7 @@ export default function StyleSelector({
   showWindows = true,
   customRoofColors = [],
   customSidingColors = [],
+  customWindowColors = [],
   customRoofStyles = [],
   customSidingStyles = [],
   customWindowOptions = [],
@@ -220,6 +233,8 @@ export default function StyleSelector({
   const [selectedRoofColor, setSelectedRoofColor] = useState("");
   const [selectedSidingStyle, setSelectedSidingStyle] = useState("");
   const [selectedSidingColor, setSelectedSidingColor] = useState("");
+  const [selectedWindowStyle, setSelectedWindowStyle] = useState("");
+  const [selectedWindowColor, setSelectedWindowColor] = useState("");
   const mergedRoofStyles = [
     ...(defaultVisibility["roofing.roofStyles"] ? roofStyles : []),
     ...customRoofStyles.filter((style) => style.value && style.label),
@@ -229,21 +244,30 @@ export default function StyleSelector({
     ...customSidingStyles.filter((style) => style.value && style.label),
   ];
   const mergedWindowOptions = [
-    ...(defaultVisibility["roofing.windows"] ? windowOptions : []),
+    ...(defaultVisibility["roofing.windowStyles"] ? windowStyles : []),
     ...customWindowOptions.filter((option) => option.value && option.label),
   ];
   const mergedRoofColors = [
     ...(defaultVisibility["roofing.roofColors"] ? roofColors : []),
     ...customRoofColors.filter((color) => color.value && color.label && color.hex),
   ];
-  const selectedRoofColorOption = mergedRoofColors.find((color) => color.value === selectedRoofColor);
   const mergedSidingColors = [
     ...(defaultVisibility["roofing.sidingColors"] ? sidingColors : []),
     ...customSidingColors.filter((color) => color.value && color.label && color.hex),
   ];
-  const selectedSidingColorOption = mergedSidingColors.find((color) => color.value === selectedSidingColor);
   const selectedRoofStyleOption = mergedRoofStyles.find((style) => style.value === selectedRoofStyle);
   const selectedSidingStyleOption = mergedSidingStyles.find((style) => style.value === selectedSidingStyle);
+  const selectedWindowStyleOption = mergedWindowOptions.find((style) => style.value === selectedWindowStyle);
+  const availableRoofColors = getColorsForStyle(mergedRoofColors, selectedRoofStyleOption);
+  const availableSidingColors = getColorsForStyle(mergedSidingColors, selectedSidingStyleOption);
+  const mergedWindowColors = [
+    ...(defaultVisibility["roofing.windowColors"] ? windowColors : []),
+    ...customWindowColors.filter((color) => color.value && color.label && color.hex),
+  ];
+  const availableWindowColors = getColorsForStyle(mergedWindowColors, selectedWindowStyleOption);
+  const selectedRoofColorOption = availableRoofColors.find((color) => color.value === selectedRoofColor);
+  const selectedSidingColorOption = availableSidingColors.find((color) => color.value === selectedSidingColor);
+  const selectedWindowColorOption = availableWindowColors.find((color) => color.value === selectedWindowColor);
   const showRoofCard = mergedRoofStyles.length > 0;
   const showSidingCard = mergedSidingStyles.length > 0;
   const showWindowsCard = showWindows && mergedWindowOptions.length > 0;
@@ -301,9 +325,7 @@ export default function StyleSelector({
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.roof ? primaryColor : `${primaryColor}cc`,
-               background: activeToggles.roof 
-                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)` 
-                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+               backgroundColor: activeToggles.roof ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('roof', !activeToggles.roof)}>
           <div className="flex items-center justify-between mb-4">
@@ -345,7 +367,7 @@ export default function StyleSelector({
               </div>
               
               {/* Roof Color Selection */}
-              {selectedRoofStyle && mergedRoofColors.length > 0 && (
+              {selectedRoofStyle && availableRoofColors.length > 0 && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
                   <Select
@@ -364,7 +386,7 @@ export default function StyleSelector({
                       )}
                     </SelectTrigger>
                     <SelectContent onClick={(e) => e.stopPropagation()}>
-                      <GroupedColorSelectItems options={mergedRoofColors} />
+                       <GroupedColorSelectItems options={availableRoofColors} />
                     </SelectContent>
                   </Select>
                 </div>
@@ -378,10 +400,8 @@ export default function StyleSelector({
         {showSidingCard && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
-               borderColor: activeToggles.siding ? secondaryColor : `${secondaryColor}cc`,
-               background: activeToggles.siding 
-                 ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor}dd)` 
-                 : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
+               borderColor: activeToggles.siding ? primaryColor : `${primaryColor}cc`,
+               backgroundColor: activeToggles.siding ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('siding', !activeToggles.siding)}>
           <div className="flex items-center justify-between mb-4">
@@ -423,7 +443,7 @@ export default function StyleSelector({
               </div>
               
               {/* Siding Color Selection */}
-              {selectedSidingStyle && mergedSidingColors.length > 0 && (
+              {selectedSidingStyle && availableSidingColors.length > 0 && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <p className="text-sm text-white/80 mb-2">Choose Color:</p>
                   <Select
@@ -442,7 +462,7 @@ export default function StyleSelector({
                       )}
                     </SelectTrigger>
                     <SelectContent onClick={(e) => e.stopPropagation()}>
-                      <GroupedColorSelectItems options={mergedSidingColors} />
+                       <GroupedColorSelectItems options={availableSidingColors} />
                     </SelectContent>
                   </Select>
                 </div>
@@ -457,9 +477,7 @@ export default function StyleSelector({
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.windows ? primaryColor : `${primaryColor}cc`,
-               background: activeToggles.windows
-                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}dd)`
-                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+               backgroundColor: activeToggles.windows ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('windows', !activeToggles.windows)}>
           <div className="flex items-center justify-between mb-4">
@@ -474,21 +492,53 @@ export default function StyleSelector({
 
           {activeToggles.windows && (
             <div className="space-y-3">
-              <p className="text-sm text-white/80 mb-2">Choose Option:</p>
+              <p className="text-sm text-white/80 mb-2">Choose Design:</p>
               <GroupedOptionRows options={mergedWindowOptions} renderOption={(option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
-                    name="windowOption"
+                    name="windowStyle"
                     value={option.value}
-                    checked={selectedStyles.windows === option.value}
-                    onChange={() => handleOptionSelect('windows', option.value)}
+                    checked={selectedWindowStyle === option.value}
+                    onChange={() => {
+                      setSelectedWindowStyle(option.value);
+                      setSelectedWindowColor("");
+                      setActiveToggles((previous) => ({ ...previous, windows: true }));
+                      handleOptionSelect('windows', buildExteriorStyleSelection(option.value, "", option));
+                    }}
                     className="w-4 h-4 text-white border-white/30 focus:ring-white"
                   />
                   {option.hex && <ColorSwatch color={option.hex} className="h-5 w-5" />}
                   <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
                 </label>
               )} />
+              {selectedWindowStyle && availableWindowColors.length > 0 && (
+                <div onClick={(event) => event.stopPropagation()}>
+                  <p className="mb-2 text-sm text-white/80">Choose Color:</p>
+                  <Select
+                    value={selectedWindowColor}
+                    onValueChange={(value) => {
+                      setSelectedWindowColor(value);
+                      setActiveToggles((previous) => ({ ...previous, windows: true }));
+                      handleOptionSelect(
+                        'windows',
+                        buildExteriorStyleSelection(selectedWindowStyle, value, selectedWindowStyleOption),
+                      );
+                    }}
+                  >
+                    <SelectTrigger className="border-white/30 bg-white/90 text-slate-800" onClick={(event) => event.stopPropagation()}>
+                      {selectedWindowColorOption ? (
+                        <ColorOptionContent option={selectedWindowColorOption} />
+                      ) : (
+                        <span className="text-muted-foreground">Select a color</span>
+                      )}
+                    </SelectTrigger>
+                    <SelectContent onClick={(event) => event.stopPropagation()}>
+                      <GroupedColorSelectItems options={availableWindowColors} />
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -499,9 +549,7 @@ export default function StyleSelector({
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.surpriseMe ? primaryColor : `${primaryColor}cc`,
-               background: activeToggles.surpriseMe 
-                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor})` 
-                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+               backgroundColor: activeToggles.surpriseMe ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('surpriseMe', !activeToggles.surpriseMe)}>
           <div className="flex items-center justify-between mb-4">

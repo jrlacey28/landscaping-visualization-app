@@ -24,7 +24,7 @@ export function runEmbedQuoteAction({
   const destinationType =
     tenant?.embedQuoteDestinationType ||
     (contactType === "link" ? "link" : "email");
-  const linkUrl = tenant?.embedQuoteSuccessRedirectUrl || tenant?.embedCtaUrl || contactLink;
+  const linkUrl = tenant?.embedCtaUrl || contactLink;
   const phone = tenant?.embedCtaPhone || contactPhone || tenant?.contactPhone || tenant?.phone;
 
   if (destinationType === "link" && linkUrl) {

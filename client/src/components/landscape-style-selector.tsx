@@ -364,9 +364,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.curbing ? '#ffffff' : `${primaryColor}cc`,
-               background: activeToggles.curbing 
-                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor})`
-                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+               backgroundColor: activeToggles.curbing ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('curbing', !activeToggles.curbing)}>
           <div className="flex items-center justify-between mb-4">
@@ -428,10 +426,8 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
         {showLandscapeCard && (
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
-               borderColor: activeToggles.landscape ? '#ffffff' : `${secondaryColor}cc`,
-               background: activeToggles.landscape 
-                 ? `linear-gradient(to bottom right, ${secondaryColor}, ${primaryColor})`
-                 : `linear-gradient(to bottom right, ${secondaryColor}cc, ${primaryColor}cc)`
+               borderColor: activeToggles.landscape ? '#ffffff' : `${primaryColor}cc`,
+               backgroundColor: activeToggles.landscape ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('landscape', !activeToggles.landscape)}>
           <div className="flex items-center justify-between mb-4">
@@ -494,9 +490,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
         <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
              style={{
                borderColor: activeToggles.patios ? '#ffffff' : `${primaryColor}cc`,
-               background: activeToggles.patios 
-                 ? `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor})`
-                 : `linear-gradient(to bottom right, ${primaryColor}cc, ${secondaryColor}cc)`
+               backgroundColor: activeToggles.patios ? primaryColor : `${primaryColor}cc`,
              }}
              onClick={() => handleToggleChange('patios', !activeToggles.patios)}>
           <div className="flex items-center justify-between mb-4">

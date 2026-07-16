@@ -116,6 +116,7 @@ export default function EmbedPage() {
   const [landscapeVisualizationResult, setLandscapeVisualizationResult] = useState<any>(null);
   const [lastGeneratedImageUrl, setLastGeneratedImageUrl] = useState<string | null>(null);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [showQuoteGate, setShowQuoteGate] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
   
   const [selectedLandscapeStyles, setSelectedLandscapeStyles] = useState({
@@ -133,6 +134,7 @@ export default function EmbedPage() {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setShowQuoteGate(false);
       setOriginalFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -145,6 +147,7 @@ export default function EmbedPage() {
   };
 
   const handleQuoteClick = () => {
+    setShowQuoteGate(false);
     embedVisitor.trackQuoteClick();
     runEmbedQuoteAction({
       tenant: effectiveTenant,
@@ -261,18 +264,7 @@ export default function EmbedPage() {
           />
         )}
 
-        {visitorLimitReached && (
-          <EmbedQuoteGate
-            status={embedVisitor.status}
-            primaryColor={resolvedPrimaryColor}
-            secondaryColor={resolvedSecondaryColor}
-            buttonText={quoteButtonText}
-            onQuoteClick={handleQuoteClick}
-          />
-        )}
-
         {/* Image Upload */}
-        {!visitorLimitReached && (
         <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
           <h2 className={`text-xl font-semibold mb-4 text-center ${themeClasses.panelTitle}`}>Upload Your Property Photo</h2>
           
@@ -298,7 +290,7 @@ export default function EmbedPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden relative">
+              <div className={`relative w-full overflow-hidden rounded-lg bg-gray-100 ${showQuoteGate ? "min-h-[340px]" : "aspect-video"}`}>
                 <img
                   src={landscapeVisualizationResult?.status === "completed" && landscapeVisualizationResult?.generatedImageUrl ? 
                     (showingOriginal ? uploadedImage : landscapeVisualizationResult.generatedImageUrl) : 
@@ -306,11 +298,21 @@ export default function EmbedPage() {
                   alt={landscapeVisualizationResult?.status === "completed" ? 
                     (showingOriginal ? "Original photo" : "Enhanced landscape design") : 
                     "Uploaded property"}
-                  className="w-full h-full object-cover"
+                  className={`h-full w-full object-cover transition duration-300 ${showQuoteGate ? "scale-105 blur-xl" : ""}`}
                   loading="lazy"
                   decoding="async"
                   style={{ willChange: 'transform' }}
                 />
+                {showQuoteGate && (
+                  <EmbedQuoteGate
+                    status={embedVisitor.status}
+                    primaryColor={resolvedPrimaryColor}
+                    secondaryColor={resolvedSecondaryColor}
+                    buttonText={quoteButtonText}
+                    onQuoteClick={handleQuoteClick}
+                    onClose={() => setShowQuoteGate(false)}
+                  />
+                )}
                 {isGenerating && (
                   <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
                     <div className="text-center">
@@ -333,7 +335,7 @@ export default function EmbedPage() {
                       size="lg"
                       className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
                       style={{ 
-                        background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor})`
+                        backgroundColor: resolvedPrimaryColor
                       }}
                       onClick={() => {
                         const img = document.createElement("img");
@@ -372,7 +374,7 @@ export default function EmbedPage() {
                       size="lg"
                       className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
                       style={{ 
-                        background: `linear-gradient(to right, #64748b, #475569)`
+                        backgroundColor: "#475569"
                       }}
                       onClick={() => setShowingOriginal(!showingOriginal)}
                     >
@@ -386,7 +388,7 @@ export default function EmbedPage() {
                       size="lg"
                       className="w-full text-white font-semibold shadow-md hover:shadow-lg transition-all py-3"
                       style={{ 
-                        background: `linear-gradient(to right, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
+                        backgroundColor: resolvedPrimaryColor
                       }}
                       onClick={() => {
                         setUploadedImage(null);
@@ -406,7 +408,7 @@ export default function EmbedPage() {
                     size="lg"
                     className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
                     style={{ 
-                      background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
+                      backgroundColor: resolvedPrimaryColor
                     }}
                     onClick={handleQuoteClick}
                   >
@@ -418,10 +420,9 @@ export default function EmbedPage() {
             </div>
           )}
         </div>
-        )}
 
         {/* Style Selection */}
-        {uploadedImage && !visitorLimitReached && (
+        {uploadedImage && (
           <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
             <h2 className={`text-xl font-semibold mb-4 ${themeClasses.panelTitle}`}>Choose Your Landscape Style</h2>
             <LandscapeStyleSelector
@@ -436,16 +437,17 @@ export default function EmbedPage() {
         )}
 
         {/* Generate Button */}
-        {uploadedImage && !visitorLimitReached && (
+        {uploadedImage && (
           <div className="mb-4">
             <Button
               size="lg"
               className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
               style={{ 
-                background: `linear-gradient(to right, ${resolvedPrimaryColor}, ${resolvedSecondaryColor}, ${resolvedPrimaryColor})`
+                backgroundColor: resolvedPrimaryColor
               }}
               disabled={
                 isGenerating ||
+                embedVisitor.isLoading ||
                 !(
                   selectedLandscapeStyles.curbing ||
                   selectedLandscapeStyles.landscape ||
@@ -453,8 +455,12 @@ export default function EmbedPage() {
                 )
               }
               onClick={async () => {
+                if (visitorLimitReached) {
+                  setShowQuoteGate(true);
+                  return;
+                }
+
                 setIsGenerating(true);
-                setLandscapeVisualizationResult(null);
                 
                 try {
                   if (!originalFile) {
@@ -491,6 +497,7 @@ export default function EmbedPage() {
                   const apiError = error as any;
                   if (apiError.code === "EMBED_VISITOR_LIMIT") {
                     embedVisitor.markLimitReached(apiError.details?.embedVisitorUsage);
+                    setShowQuoteGate(true);
                     return;
                   }
                   alert("Unable to generate visualization. Please try again.");

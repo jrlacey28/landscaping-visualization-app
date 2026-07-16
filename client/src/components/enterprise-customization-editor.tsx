@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Bath, Edit3, Home, Layers, Palette, Plus, Settings2, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -38,6 +39,7 @@ type CustomOption = {
   swatch?: string;
   groupLabel?: string;
   referenceImageUrls?: ReferenceImage[];
+  allowedColorValues?: string[];
 };
 
 type EnterpriseCustomizations = {
@@ -45,6 +47,7 @@ type EnterpriseCustomizations = {
   defaultOptionVisibility?: Partial<EmbedDefaultOptionVisibility>;
   roofColors?: CustomColor[];
   sidingColors?: CustomColor[];
+  windowColors?: CustomColor[];
   exteriorOptions?: {
     roof?: CustomOption[];
     siding?: CustomOption[];
@@ -82,6 +85,7 @@ type CategoryKey =
   | "defaultOptions"
   | "roofColors"
   | "sidingColors"
+  | "windowColors"
   | "roofDesigns"
   | "sidingDesigns"
   | "windowDesigns"
@@ -109,6 +113,7 @@ type CategoryConfig = {
   kind: "services" | "defaults" | "color" | "option";
   includeGroup?: boolean;
   includeSwatch?: boolean;
+  colorSource?: "roof" | "siding" | "windows";
   icon: typeof Palette;
 };
 
@@ -117,6 +122,7 @@ const emptyCustomizations: EnterpriseCustomizations = {
   defaultOptionVisibility: DEFAULT_EMBED_DEFAULT_OPTION_VISIBILITY,
   roofColors: [],
   sidingColors: [],
+  windowColors: [],
   exteriorOptions: {
     roof: [],
     siding: [],
@@ -160,6 +166,7 @@ export function normalizeEnterpriseCustomizations(value: unknown): EnterpriseCus
     defaultOptionVisibility: normalizeEmbedDefaultOptionVisibility(source.defaultOptionVisibility),
     roofColors: Array.isArray(source.roofColors) ? source.roofColors : [],
     sidingColors: Array.isArray(source.sidingColors) ? source.sidingColors : [],
+    windowColors: Array.isArray(source.windowColors) ? source.windowColors : [],
     exteriorOptions: {
       roof: Array.isArray(source.exteriorOptions?.roof) ? source.exteriorOptions!.roof : [],
       siding: Array.isArray(source.exteriorOptions?.siding) ? source.exteriorOptions!.siding : [],
@@ -196,6 +203,22 @@ function cloneCustomizations(value: EnterpriseCustomizations): EnterpriseCustomi
   return JSON.parse(JSON.stringify(value));
 }
 
+function normalizeToken(value: unknown) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function getCustomColorValue(color: CustomColor) {
+  const explicitValue = normalizeToken(color.value);
+  if (explicitValue) return explicitValue;
+
+  const label = normalizeToken(color.label || "custom");
+  const hex = normalizeToken(String(color.hex || "").replace("#", ""));
+  return normalizeToken(`tenant_color_${label}_${hex}`);
+}
+
 export function cleanEnterpriseCustomizations(value: EnterpriseCustomizations): EnterpriseCustomizations {
   const cleanOption = (option: CustomOption): CustomOption | null => {
     const label = option.label?.trim();
@@ -208,6 +231,9 @@ export function cleanEnterpriseCustomizations(value: EnterpriseCustomizations): 
       swatch: option.swatch?.trim() || undefined,
       groupLabel: option.groupLabel?.trim() || undefined,
       referenceImageUrls: (option.referenceImageUrls || []).map((url) => url.trim()).filter(Boolean),
+      allowedColorValues: Array.isArray(option.allowedColorValues)
+        ? option.allowedColorValues.map((value) => normalizeToken(value)).filter(Boolean)
+        : undefined,
     };
   };
 
@@ -218,7 +244,7 @@ export function cleanEnterpriseCustomizations(value: EnterpriseCustomizations): 
 
     return {
       label,
-      value: color.value?.trim() || undefined,
+      value: getCustomColorValue({ ...color, label, hex }),
       hex,
       groupLabel: color.groupLabel?.trim() || undefined,
       prompt: color.prompt?.trim() || undefined,
@@ -231,6 +257,7 @@ export function cleanEnterpriseCustomizations(value: EnterpriseCustomizations): 
     defaultOptionVisibility: normalizeEmbedDefaultOptionVisibility(value.defaultOptionVisibility),
     roofColors: (value.roofColors || []).map(cleanColor).filter(Boolean) as CustomColor[],
     sidingColors: (value.sidingColors || []).map(cleanColor).filter(Boolean) as CustomColor[],
+    windowColors: (value.windowColors || []).map(cleanColor).filter(Boolean) as CustomColor[],
     exteriorOptions: {
       roof: (value.exteriorOptions?.roof || []).map(cleanOption).filter(Boolean) as CustomOption[],
       siding: (value.exteriorOptions?.siding || []).map(cleanOption).filter(Boolean) as CustomOption[],
@@ -430,6 +457,8 @@ function OptionItemEditor({
   onRemove,
   includeGroup = false,
   includeSwatch = false,
+  availableColors = [],
+  supportsColorAssignments = false,
 }: {
   option: CustomOption;
   index: number;
@@ -437,7 +466,20 @@ function OptionItemEditor({
   onRemove: () => void;
   includeGroup?: boolean;
   includeSwatch?: boolean;
+  availableColors?: CustomColor[];
+  supportsColorAssignments?: boolean;
 }) {
+  const selectedColorValues = Array.isArray(option.allowedColorValues)
+    ? option.allowedColorValues
+    : availableColors.map(getCustomColorValue);
+
+  const toggleColor = (colorValue: string, checked: boolean) => {
+    const nextValues = checked
+      ? Array.from(new Set([...selectedColorValues, colorValue]))
+      : selectedColorValues.filter((value) => value !== colorValue);
+    onChange({ allowedColorValues: nextValues });
+  };
+
   return (
     <div className="space-y-3 rounded-md border bg-background p-3">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
@@ -486,6 +528,43 @@ function OptionItemEditor({
         urls={option.referenceImageUrls}
         onChange={(referenceImageUrls) => onChange({ referenceImageUrls })}
       />
+      {supportsColorAssignments && (
+        <div className="space-y-2 rounded-md border bg-muted/20 p-3">
+          <div>
+            <Label className="text-xs">Colors Available for This Design</Label>
+            <p className="text-xs text-muted-foreground">
+              Only the selected colors will appear after a visitor chooses this design.
+            </p>
+          </div>
+          {availableColors.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Add colors to this exterior category first, then assign them here.
+            </p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {availableColors.map((color) => {
+                const colorValue = getCustomColorValue(color);
+                return (
+                  <label
+                    key={colorValue}
+                    className="flex cursor-pointer items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm"
+                  >
+                    <Checkbox
+                      checked={selectedColorValues.includes(colorValue)}
+                      onCheckedChange={(checked) => toggleColor(colorValue, checked === true)}
+                    />
+                    <span
+                      className="h-4 w-4 shrink-0 rounded-full border shadow-inner"
+                      style={{ background: color.hex || "#ffffff" }}
+                    />
+                    <span className="truncate">{color.label || "Untitled color"}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -504,6 +583,14 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
   const getColorItems = (categoryKey: CategoryKey) => {
     if (categoryKey === "roofColors") return customizations.roofColors || [];
     if (categoryKey === "sidingColors") return customizations.sidingColors || [];
+    if (categoryKey === "windowColors") return customizations.windowColors || [];
+    return [];
+  };
+
+  const getDesignColors = (colorSource: CategoryConfig["colorSource"]) => {
+    if (colorSource === "roof") return customizations.roofColors || [];
+    if (colorSource === "siding") return customizations.sidingColors || [];
+    if (colorSource === "windows") return customizations.windowColors || [];
     return [];
   };
 
@@ -535,6 +622,10 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
 
     if (categoryKey === "sidingColors") {
       update({ ...customizations, sidingColors: colors });
+    }
+
+    if (categoryKey === "windowColors") {
+      update({ ...customizations, windowColors: colors });
     }
   };
 
@@ -697,6 +788,15 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
       icon: Palette,
     },
     {
+      key: "windowColors",
+      label: "Window Colors",
+      description: "Private window frame and trim colors that can be assigned to specific window designs.",
+      singular: "window color",
+      count: (customizations.windowColors || []).filter((color) => color.label).length,
+      kind: "color",
+      icon: Palette,
+    },
+    {
       key: "roofDesigns",
       label: "Roof Designs",
       description: "Private roof material or design packages for the exterior visualizer.",
@@ -704,6 +804,7 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
       count: (customizations.exteriorOptions?.roof || []).filter((option) => option.label).length,
       kind: "option",
       includeSwatch: true,
+      colorSource: "roof",
       icon: Home,
     },
     {
@@ -714,6 +815,7 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
       count: (customizations.exteriorOptions?.siding || []).filter((option) => option.label).length,
       kind: "option",
       includeSwatch: true,
+      colorSource: "siding",
       icon: Layers,
     },
     {
@@ -724,6 +826,7 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
       count: (customizations.exteriorOptions?.windows || []).filter((option) => option.label).length,
       kind: "option",
       includeSwatch: true,
+      colorSource: "windows",
       icon: Home,
     },
     {
@@ -875,6 +978,7 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
   const selectedCategory = categories.find((category) => category.key === activeCategory) || categories[0];
   const selectedColors = getColorItems(selectedCategory.key);
   const selectedOptions = getOptionItems(selectedCategory.key);
+  const selectedDesignColors = getDesignColors(selectedCategory.colorSource);
   const selectedItemsCount = selectedCategory.kind === "color" ? selectedColors.length : selectedOptions.length;
   const selectedSupportsGroups = selectedCategory.kind === "color" || selectedCategory.kind === "option";
   const selectedGroups = Array.from(
@@ -908,6 +1012,7 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
         prompt: "",
         groupLabel: selectedSupportsGroups ? selectedGroups[0] || "" : undefined,
         referenceImageUrls: [],
+        allowedColorValues: selectedCategory.colorSource ? [] : undefined,
       },
     ]);
     setEditingIndex(selectedOptions.length);
@@ -1130,7 +1235,16 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
                         <div className="min-w-0">
                           <p className="truncate font-medium">{option.label || "Untitled option"}</p>
                           <p className="text-xs text-muted-foreground">
-                            {[option.groupLabel, option.swatch, `${option.referenceImageUrls?.length || 0} reference images`]
+                            {[
+                              option.groupLabel,
+                              option.swatch,
+                              selectedCategory.colorSource && Array.isArray(option.allowedColorValues)
+                                ? `${option.allowedColorValues.length} assigned colors`
+                                : selectedCategory.colorSource
+                                  ? "all category colors"
+                                  : null,
+                              `${option.referenceImageUrls?.length || 0} reference images`,
+                            ]
                               .filter(Boolean)
                               .join(" - ")}
                           </p>
@@ -1165,8 +1279,10 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
                           <OptionItemEditor
                             option={option}
                             index={index}
-                            includeGroup={selectedSupportsGroups}
-                            includeSwatch={selectedCategory.includeSwatch}
+                             includeGroup={selectedSupportsGroups}
+                             includeSwatch={selectedCategory.includeSwatch}
+                             availableColors={selectedDesignColors}
+                             supportsColorAssignments={Boolean(selectedCategory.colorSource)}
                             onChange={(patch) => updateOptionAt(index, patch)}
                             onRemove={() => {
                               setOptionItems(

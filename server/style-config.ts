@@ -30,8 +30,8 @@ interface StyleTemplate {
   name: string;
   basePrompt: string;
   referenceImageUrl: string;
-  category: "roof" | "siding";
-  regionType: "roof" | "exterior";
+  category: "roof" | "siding" | "windows";
+  regionType: "roof" | "exterior" | "windows";
 }
 
 // Color descriptors for each color option
@@ -96,6 +96,12 @@ export const SIDING_COLORS: Record<string, ColorDescriptor> = {
   savannah_wicker: { value: "savannah_wicker", label: "Savannah Wicker", hex: "#D8CAB1", promptDescription: "savannah wicker with warm natural beige tones" },
 };
 
+export const WINDOW_COLORS: Record<string, ColorDescriptor> = {
+  black: { value: "black", label: "Black", hex: "#111827", promptDescription: "slim matte black finish" },
+  white: { value: "white", label: "White", hex: "#FFFFFF", promptDescription: "clean bright white finish" },
+  bronze: { value: "bronze", label: "Bronze", hex: "#5C4033", promptDescription: "warm dark bronze finish" },
+};
+
 export const STYLE_TEMPLATES: Record<string, StyleTemplate> = {
   asphalt_shingles: {
     id: "asphalt_shingles",
@@ -152,6 +158,22 @@ export const STYLE_TEMPLATES: Record<string, StyleTemplate> = {
     referenceImageUrl: "https://mycdn.com/brick-veneer.jpg",
     category: "siding",
     regionType: "exterior",
+  },
+  window_frames: {
+    id: "window_frames",
+    name: "Standard Window Frames",
+    basePrompt: "Update only the visible window frames and exterior window trim to a {COLOR_DESCRIPTION}. Keep the exact same window sizes, glass panes, placement, muntin pattern, siding, roof, doors, landscaping, and house architecture unchanged. Make the frames look professionally installed and realistic.",
+    referenceImageUrl: "",
+    category: "windows",
+    regionType: "windows",
+  },
+  window_grid: {
+    id: "window_grid",
+    name: "Grid Window Frames",
+    basePrompt: "Update only the visible windows with a tasteful grid frame design in a {COLOR_DESCRIPTION}. Preserve every existing window opening, size, placement, and proportion. Do not add or remove windows. Preserve the roof, siding, doors, landscaping, lighting, and architecture.",
+    referenceImageUrl: "",
+    category: "windows",
+    regionType: "windows",
   },
 };
 
@@ -368,11 +390,13 @@ export function generateStyleConfig(styleType: string, colorValue: string): Styl
     throw new Error(`Unknown style type: ${styleType}`);
   }
 
-  const colorDescriptor = (
+  const categoryColors =
     template.category === "roof"
-      ? ROOF_COLORS[colorValue]
-      : SIDING_COLORS[colorValue]
-  ) || createCustomColorDescriptor(colorValue);
+      ? ROOF_COLORS
+      : template.category === "windows"
+        ? WINDOW_COLORS
+        : SIDING_COLORS;
+  const colorDescriptor = categoryColors[colorValue] || createCustomColorDescriptor(colorValue);
 
   const prompt = template.basePrompt.replace(/{COLOR_DESCRIPTION}/g, colorDescriptor.promptDescription);
   

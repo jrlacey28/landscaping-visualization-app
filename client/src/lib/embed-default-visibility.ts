@@ -3,7 +3,8 @@ export type EmbedDefaultOptionKey =
   | "roofing.roofColors"
   | "roofing.sidingStyles"
   | "roofing.sidingColors"
-  | "roofing.windows"
+  | "roofing.windowStyles"
+  | "roofing.windowColors"
   | "roofing.surpriseMe"
   | "landscape.curbing"
   | "landscape.curbingColors"
@@ -37,7 +38,8 @@ export const EMBED_DEFAULT_OPTION_GROUPS: Array<{
       { key: "roofing.roofColors", label: "Original roof colors", description: "Built-in roof color swatches." },
       { key: "roofing.sidingStyles", label: "Original siding categories", description: "Vinyl, fiber cement, wood, and brick choices." },
       { key: "roofing.sidingColors", label: "Original siding colors", description: "Built-in siding color swatches." },
-      { key: "roofing.windows", label: "Original window category", description: "Built-in window frame and grid options." },
+      { key: "roofing.windowStyles", label: "Original window categories", description: "Built-in window frame and grid designs." },
+      { key: "roofing.windowColors", label: "Original window colors", description: "Built-in black, white, and bronze window colors." },
       { key: "roofing.surpriseMe", label: "Original surprise me category", description: "The default AI-picked roof and siding option." },
     ],
   },
@@ -85,12 +87,17 @@ export const DEFAULT_EMBED_DEFAULT_OPTION_VISIBILITY: EmbedDefaultOptionVisibili
 export function normalizeEmbedDefaultOptionVisibility(value: unknown): EmbedDefaultOptionVisibility {
   const source =
     value && typeof value === "object"
-      ? value as Partial<Record<EmbedDefaultOptionKey, unknown>>
+      ? value as Partial<Record<EmbedDefaultOptionKey | "roofing.windows", unknown>>
       : {};
 
   return Object.keys(DEFAULT_EMBED_DEFAULT_OPTION_VISIBILITY).reduce((visibility, key) => {
     const optionKey = key as EmbedDefaultOptionKey;
-    visibility[optionKey] = source[optionKey] !== false;
+    const legacyWindowVisibility = source["roofing.windows"];
+    visibility[optionKey] =
+      (optionKey === "roofing.windowStyles" || optionKey === "roofing.windowColors") &&
+      source[optionKey] === undefined
+        ? legacyWindowVisibility !== false
+        : source[optionKey] !== false;
     return visibility;
   }, {} as EmbedDefaultOptionVisibility);
 }
