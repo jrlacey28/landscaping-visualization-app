@@ -6,6 +6,7 @@ export type EmbedVisitorUsageStatus = {
   limit: number;
   remaining: number;
   limitEnabled: boolean;
+  unlimitedAccountAccess?: boolean;
   quoteGateTitle?: string;
   quoteGateMessage?: string;
   quoteButtonText?: string;
@@ -56,8 +57,10 @@ export function useEmbedVisitorLimit({ tenantId, tenantSlug }: UseEmbedVisitorLi
 
     setIsLoading(true);
     try {
+      const token = window.localStorage.getItem("auth_token");
       const response = await fetch(`/api/embed/visitor-usage?${params.toString()}`, {
         credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
 
       if (!response.ok) {

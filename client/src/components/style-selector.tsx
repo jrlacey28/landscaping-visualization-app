@@ -1,10 +1,12 @@
-import { Fragment, type ReactNode, useState } from "react";
+import { Fragment, type CSSProperties, type ReactNode, useEffect, useState } from "react";
+import { Grid3X3, Home, Layers, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger } from "@/components/ui/select";
 import {
   type EmbedDefaultOptionVisibility,
   normalizeEmbedDefaultOptionVisibility,
 } from "@/lib/embed-default-visibility";
+import { validateExteriorSelection } from "@/lib/embed-exterior-selection";
 
 type ColorOption = {
   value: string;
@@ -42,6 +44,11 @@ interface StyleSelectorProps {
   customSidingStyles?: StyleOption[];
   customWindowOptions?: StyleOption[];
   defaultOptionVisibility?: Partial<EmbedDefaultOptionVisibility>;
+  compact?: boolean;
+  onSelectionStatusChange?: (status: {
+    hasEnabledCategories: boolean;
+    allEnabledCategoriesComplete: boolean;
+  }) => void;
 }
 
 const roofStyles: StyleOption[] = [
@@ -123,6 +130,45 @@ function ColorOptionContent({ option }: { option: ColorOption }) {
   );
 }
 
+function StyleOptionContent({ option }: { option: StyleOption }) {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      {option.hex && <ColorSwatch color={option.hex} />}
+      <span className="truncate">{option.label}</span>
+    </span>
+  );
+}
+
+function colorWithAlpha(color: string, alpha: number) {
+  const normalized = color.trim().replace("#", "");
+  const expanded = normalized.length === 3
+    ? normalized.split("").map((character) => `${character}${character}`).join("")
+    : normalized;
+
+  if (!/^[0-9a-f]{6}$/i.test(expanded)) {
+    return `rgba(71, 85, 105, ${alpha})`;
+  }
+
+  const value = Number.parseInt(expanded, 16);
+  return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`;
+}
+
+function getContrastTextColor(color: string) {
+  const normalized = color.trim().replace("#", "");
+  const expanded = normalized.length === 3
+    ? normalized.split("").map((character) => `${character}${character}`).join("")
+    : normalized;
+
+  if (!/^[0-9a-f]{6}$/i.test(expanded)) return "#ffffff";
+
+  const value = Number.parseInt(expanded, 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
+  return luminance > 165 ? "#0f172a" : "#ffffff";
+}
+
 type GroupableOption = {
   value: string;
   groupLabel?: string;
@@ -155,7 +201,7 @@ function GroupedOptionRows<T extends GroupableOption>({
       {groupOptions(options).map((group, groupIndex) => (
         <Fragment key={group.label || `ungrouped-${groupIndex}`}>
           {group.label && (
-            <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-white/70">
+            <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
               {group.label}
             </p>
           )}
@@ -171,15 +217,131 @@ function GroupedColorSelectItems({ options }: { options: ColorOption[] }) {
     <>
       {groupOptions(options).map((group, groupIndex) => (
         <SelectGroup key={group.label || `ungrouped-${groupIndex}`}>
-          {group.label && <SelectLabel>{group.label}</SelectLabel>}
+          {group.label && <SelectLabel className="text-slate-500">{group.label}</SelectLabel>}
           {group.options.map((color) => (
-            <SelectItem key={color.value} value={color.value} textValue={color.label} onClick={(e) => e.stopPropagation()}>
+            <SelectItem
+              key={color.value}
+              value={color.value}
+              textValue={color.label}
+              className="text-slate-800 focus:bg-slate-100 focus:text-slate-950 data-[state=checked]:font-semibold"
+              onClick={(e) => e.stopPropagation()}
+            >
               <ColorOptionContent option={color} />
             </SelectItem>
           ))}
         </SelectGroup>
       ))}
     </>
+  );
+}
+
+function GroupedStyleSelectItems({ options }: { options: StyleOption[] }) {
+  return (
+    <>
+      {groupOptions(options).map((group, groupIndex) => (
+        <SelectGroup key={group.label || `ungrouped-${groupIndex}`}>
+          {group.label && <SelectLabel className="text-slate-500">{group.label}</SelectLabel>}
+          {group.options.map((option) => (
+            <SelectItem
+              key={option.value}
+              value={option.value}
+              textValue={option.label}
+              className="text-slate-800 focus:bg-slate-100 focus:text-slate-950 data-[state=checked]:font-semibold"
+            >
+              <StyleOptionContent option={option} />
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      ))}
+    </>
+  );
+}
+
+type CompactCategoryCardProps = {
+  title: string;
+  icon: ReactNode;
+  active: boolean;
+  onToggle: (enabled: boolean) => void;
+  primaryColor: string;
+  iconStyle: CSSProperties;
+  cardStyle: CSSProperties;
+  styleLabel: string;
+  stylePlaceholder: string;
+  styles: StyleOption[];
+  selectedStyle?: StyleOption;
+  onStyleChange: (value: string) => void;
+  colors: ColorOption[];
+  selectedColor?: ColorOption;
+  onColorChange: (value: string) => void;
+};
+
+function CompactCategoryCard({
+  title,
+  icon,
+  active,
+  onToggle,
+  primaryColor,
+  iconStyle,
+  cardStyle,
+  styleLabel,
+  stylePlaceholder,
+  styles,
+  selectedStyle,
+  onStyleChange,
+  colors,
+  selectedColor,
+  onColorChange,
+}: CompactCategoryCardProps) {
+  return (
+    <div className="rounded-xl border p-3 transition-all" style={cardStyle}>
+      <div className="flex cursor-pointer items-center gap-2.5" onClick={() => onToggle(!active)}>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={iconStyle}>
+          {icon}
+        </span>
+        <h3 className="min-w-0 flex-1 text-sm font-semibold text-slate-900">{title}</h3>
+        <Switch
+          checked={active}
+          onCheckedChange={onToggle}
+          onClick={(event) => event.stopPropagation()}
+          style={{ backgroundColor: active ? primaryColor : "#cbd5e1" }}
+        />
+      </div>
+
+      {active && (
+        <div className={`mt-3 grid gap-2 border-t border-slate-200 pt-3 ${colors.length > 0 && selectedStyle ? "grid-cols-2" : ""}`}>
+          <div onClick={(event) => event.stopPropagation()}>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{styleLabel}</p>
+            <Select value={selectedStyle?.value || ""} onValueChange={onStyleChange}>
+              <SelectTrigger className="h-9 border-slate-200 bg-white text-sm text-slate-800">
+                {selectedStyle ? <StyleOptionContent option={selectedStyle} /> : <span className="text-slate-500">{stylePlaceholder}</span>}
+              </SelectTrigger>
+              <SelectContent className="border-slate-200 bg-white text-slate-900 shadow-xl">
+                <GroupedStyleSelectItems options={styles} />
+              </SelectContent>
+            </Select>
+          </div>
+
+          {selectedStyle && colors.length > 0 && (
+            <div onClick={(event) => event.stopPropagation()}>
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Color</p>
+              <Select value={selectedColor?.value || ""} onValueChange={onColorChange}>
+                <SelectTrigger className="h-9 border-slate-200 bg-white text-sm text-slate-800">
+                  {selectedColor ? <ColorOptionContent option={selectedColor} /> : <span className="text-slate-500">Select color</span>}
+                </SelectTrigger>
+                <SelectContent className="border-slate-200 bg-white text-slate-900 shadow-xl">
+                  <GroupedColorSelectItems options={colors} />
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {selectedStyle && colors.length === 0 && (
+            <p className="rounded-lg bg-amber-50 px-2.5 py-2 text-xs font-medium text-amber-800">
+              No colors are available for this selection.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -198,13 +360,13 @@ function buildExteriorStyleSelection(
   colorValue: string,
   style?: StyleOption,
 ) {
-  if (!styleValue) return "";
+  if (!styleValue || !colorValue) return "";
 
   if (isCustomExteriorStyle(style)) {
-    return colorValue ? `${styleValue}${CUSTOM_STYLE_COLOR_SEPARATOR}${colorValue}` : styleValue;
+    return `${styleValue}${CUSTOM_STYLE_COLOR_SEPARATOR}${colorValue}`;
   }
 
-  return colorValue ? `${styleValue}_${colorValue}` : "";
+  return `${styleValue}_${colorValue}`;
 }
 
 export default function StyleSelector({
@@ -220,6 +382,8 @@ export default function StyleSelector({
   customSidingStyles = [],
   customWindowOptions = [],
   defaultOptionVisibility,
+  compact = false,
+  onSelectionStatusChange,
 }: StyleSelectorProps) {
   const defaultVisibility = normalizeEmbedDefaultOptionVisibility(defaultOptionVisibility);
   const [activeToggles, setActiveToggles] = useState({
@@ -272,6 +436,46 @@ export default function StyleSelector({
   const showSidingCard = mergedSidingStyles.length > 0;
   const showWindowsCard = showWindows && mergedWindowOptions.length > 0;
   const showSurpriseCard = defaultVisibility["roofing.surpriseMe"];
+  const brandTint = colorWithAlpha(primaryColor, 0.07);
+  const brandShadow = colorWithAlpha(primaryColor, 0.14);
+  const brandTextColor = getContrastTextColor(primaryColor);
+  const cardStyle = (active: boolean) => ({
+    borderColor: active ? primaryColor : "#e2e8f0",
+    backgroundColor: active ? brandTint : "#ffffff",
+    boxShadow: active ? `0 8px 24px ${brandShadow}` : "0 1px 2px rgba(15, 23, 42, 0.04)",
+  });
+  const iconStyle = {
+    backgroundColor: primaryColor,
+    color: brandTextColor,
+  };
+  const { hasEnabledCategories, allEnabledCategoriesComplete } = validateExteriorSelection({
+    roof: {
+      enabled: showRoofCard && activeToggles.roof,
+      style: selectedRoofStyle,
+      color: selectedRoofColor,
+    },
+    siding: {
+      enabled: showSidingCard && activeToggles.siding,
+      style: selectedSidingStyle,
+      color: selectedSidingColor,
+    },
+    windows: {
+      enabled: showWindowsCard && activeToggles.windows,
+      style: selectedWindowStyle,
+      color: selectedWindowColor,
+    },
+    surpriseMe: {
+      enabled: showSurpriseCard && activeToggles.surpriseMe,
+      selected: Boolean(selectedStyles.surpriseMe),
+    },
+  });
+
+  useEffect(() => {
+    onSelectionStatusChange?.({
+      hasEnabledCategories: Boolean(hasEnabledCategories),
+      allEnabledCategoriesComplete,
+    });
+  }, [allEnabledCategoriesComplete, hasEnabledCategories, onSelectionStatusChange]);
 
   const handleToggleChange = (category: 'roof' | 'siding' | 'windows' | 'surpriseMe', enabled: boolean) => {
     // Handle mutual exclusivity between surprise me and other options
@@ -316,34 +520,168 @@ export default function StyleSelector({
     });
   };
 
-  return (
-    <div className="space-y-6">
+  if (compact) {
+    return (
+      <div className="space-y-2">
+        {showRoofCard && (
+          <CompactCategoryCard
+            title="Roof"
+            icon={<Home className="h-4 w-4" />}
+            active={activeToggles.roof}
+            onToggle={(enabled) => {
+              handleToggleChange("roof", enabled);
+              if (enabled && selectedRoofStyleOption) {
+                handleOptionSelect(
+                  "roof",
+                  selectedRoofColor
+                    ? buildExteriorStyleSelection(selectedRoofStyle, selectedRoofColor, selectedRoofStyleOption)
+                    : "",
+                );
+              }
+            }}
+            primaryColor={primaryColor}
+            iconStyle={iconStyle}
+            cardStyle={cardStyle(activeToggles.roof)}
+            styleLabel="Roof style"
+            stylePlaceholder="Select style"
+            styles={mergedRoofStyles}
+            selectedStyle={selectedRoofStyleOption}
+            onStyleChange={(value) => {
+              setSelectedRoofStyle(value);
+              setSelectedRoofColor("");
+              handleOptionSelect("roof", "");
+            }}
+            colors={availableRoofColors}
+            selectedColor={selectedRoofColorOption}
+            onColorChange={(value) => {
+              setSelectedRoofColor(value);
+              handleOptionSelect("roof", buildExteriorStyleSelection(selectedRoofStyle, value, selectedRoofStyleOption));
+            }}
+          />
+        )}
 
-      <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {showSidingCard && (
+          <CompactCategoryCard
+            title="Siding"
+            icon={<Layers className="h-4 w-4" />}
+            active={activeToggles.siding}
+            onToggle={(enabled) => {
+              handleToggleChange("siding", enabled);
+              if (enabled && selectedSidingStyleOption) {
+                handleOptionSelect(
+                  "siding",
+                  selectedSidingColor
+                    ? buildExteriorStyleSelection(selectedSidingStyle, selectedSidingColor, selectedSidingStyleOption)
+                    : "",
+                );
+              }
+            }}
+            primaryColor={primaryColor}
+            iconStyle={iconStyle}
+            cardStyle={cardStyle(activeToggles.siding)}
+            styleLabel="Siding style"
+            stylePlaceholder="Select style"
+            styles={mergedSidingStyles}
+            selectedStyle={selectedSidingStyleOption}
+            onStyleChange={(value) => {
+              setSelectedSidingStyle(value);
+              setSelectedSidingColor("");
+              handleOptionSelect("siding", "");
+            }}
+            colors={availableSidingColors}
+            selectedColor={selectedSidingColorOption}
+            onColorChange={(value) => {
+              setSelectedSidingColor(value);
+              handleOptionSelect("siding", buildExteriorStyleSelection(selectedSidingStyle, value, selectedSidingStyleOption));
+            }}
+          />
+        )}
+
+        {showWindowsCard && (
+          <CompactCategoryCard
+            title="Windows"
+            icon={<Grid3X3 className="h-4 w-4" />}
+            active={activeToggles.windows}
+            onToggle={(enabled) => {
+              handleToggleChange("windows", enabled);
+              if (enabled && selectedWindowStyleOption) {
+                handleOptionSelect(
+                  "windows",
+                  selectedWindowColor
+                    ? buildExteriorStyleSelection(selectedWindowStyle, selectedWindowColor, selectedWindowStyleOption)
+                    : "",
+                );
+              }
+            }}
+            primaryColor={primaryColor}
+            iconStyle={iconStyle}
+            cardStyle={cardStyle(activeToggles.windows)}
+            styleLabel="Window design"
+            stylePlaceholder="Select design"
+            styles={mergedWindowOptions}
+            selectedStyle={selectedWindowStyleOption}
+            onStyleChange={(value) => {
+              setSelectedWindowStyle(value);
+              setSelectedWindowColor("");
+              handleOptionSelect("windows", "");
+            }}
+            colors={availableWindowColors}
+            selectedColor={selectedWindowColorOption}
+            onColorChange={(value) => {
+              setSelectedWindowColor(value);
+              handleOptionSelect("windows", buildExteriorStyleSelection(selectedWindowStyle, value, selectedWindowStyleOption));
+            }}
+          />
+        )}
+
+        {showSurpriseCard && (
+          <div className="rounded-xl border p-3 transition-all" style={cardStyle(activeToggles.surpriseMe)}>
+            <div className="flex cursor-pointer items-center gap-2.5" onClick={() => handleToggleChange("surpriseMe", !activeToggles.surpriseMe)}>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={iconStyle}>
+                <Sparkles className="h-4 w-4" />
+              </span>
+              <h3 className="min-w-0 flex-1 text-sm font-semibold text-slate-900">Surprise me</h3>
+              <Switch
+                checked={activeToggles.surpriseMe}
+                onCheckedChange={(checked) => handleToggleChange("surpriseMe", checked)}
+                onClick={(event) => event.stopPropagation()}
+                style={{ backgroundColor: activeToggles.surpriseMe ? primaryColor : "#cbd5e1" }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {/* Roof Card */}
         {showRoofCard && (
-        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
-             style={{
-               borderColor: activeToggles.roof ? primaryColor : `${primaryColor}cc`,
-               backgroundColor: activeToggles.roof ? primaryColor : `${primaryColor}cc`,
-             }}
-             onClick={() => handleToggleChange('roof', !activeToggles.roof)}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white drop-shadow-sm">Roof</h3>
+        <div className="rounded-2xl border p-4 transition-all" style={cardStyle(activeToggles.roof)}>
+          <div className="flex cursor-pointer items-center gap-3" onClick={() => handleToggleChange('roof', !activeToggles.roof)}>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={iconStyle}>
+              <Home className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-slate-900">Roof</h3>
+              <p className="text-xs text-slate-500">Material and color</p>
+            </div>
             <Switch
               checked={activeToggles.roof}
               onCheckedChange={(checked) => handleToggleChange('roof', checked)}
               onClick={(e) => e.stopPropagation()}
-              style={{ backgroundColor: activeToggles.roof ? primaryColor : "#4b5563" }}
+              style={{ backgroundColor: activeToggles.roof ? primaryColor : "#cbd5e1" }}
             />
           </div>
           
           {activeToggles.roof && (
-            <div className="space-y-3">
+            <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
               {/* Roof Style Selection */}
               <div>
-                <p className="text-sm text-white/80 mb-2">Choose Style:</p>
-                <div className="space-y-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Choose style</p>
+                <div className="space-y-2.5">
                   <GroupedOptionRows options={mergedRoofStyles} renderOption={(style) => (
                     <label key={style.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                       <input
@@ -357,10 +695,11 @@ export default function StyleSelector({
                           setActiveToggles(prev => ({ ...prev, roof: true }));
                           handleOptionSelect('roof', buildExteriorStyleSelection(style.value, "", style));
                         }}
-                        className="w-4 h-4 text-white border-white/30 focus:ring-white"
+                        className="h-4 w-4 border-slate-300"
+                        style={{ accentColor: primaryColor }}
                       />
                       {style.hex && <ColorSwatch color={style.hex} className="h-5 w-5" />}
-                      <span className="text-sm text-white drop-shadow-sm">{style.label}</span>
+                      <span className="text-sm text-slate-700">{style.label}</span>
                     </label>
                   )} />
                 </div>
@@ -369,7 +708,7 @@ export default function StyleSelector({
               {/* Roof Color Selection */}
               {selectedRoofStyle && availableRoofColors.length > 0 && (
                 <div onClick={(e) => e.stopPropagation()}>
-                  <p className="text-sm text-white/80 mb-2">Choose Color:</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Choose color</p>
                   <Select
                     value={selectedRoofColor}
                     onValueChange={(value) => {
@@ -378,14 +717,14 @@ export default function StyleSelector({
                       handleOptionSelect('roof', buildExteriorStyleSelection(selectedRoofStyle, value, selectedRoofStyleOption));
                     }}
                   >
-                    <SelectTrigger className="bg-white/90 border-white/30 text-slate-800" onClick={(e) => e.stopPropagation()}>
+                    <SelectTrigger className="border-slate-200 bg-white text-slate-800" onClick={(e) => e.stopPropagation()}>
                       {selectedRoofColorOption ? (
                         <ColorOptionContent option={selectedRoofColorOption} />
                       ) : (
                         <span className="text-muted-foreground">Select a color</span>
                       )}
                     </SelectTrigger>
-                    <SelectContent onClick={(e) => e.stopPropagation()}>
+                    <SelectContent className="border-slate-200 bg-white text-slate-900 shadow-xl" onClick={(e) => e.stopPropagation()}>
                        <GroupedColorSelectItems options={availableRoofColors} />
                     </SelectContent>
                   </Select>
@@ -398,28 +737,29 @@ export default function StyleSelector({
 
         {/* Siding Card */}
         {showSidingCard && (
-        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
-             style={{
-               borderColor: activeToggles.siding ? primaryColor : `${primaryColor}cc`,
-               backgroundColor: activeToggles.siding ? primaryColor : `${primaryColor}cc`,
-             }}
-             onClick={() => handleToggleChange('siding', !activeToggles.siding)}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white drop-shadow-sm">Siding</h3>
+        <div className="rounded-2xl border p-4 transition-all" style={cardStyle(activeToggles.siding)}>
+          <div className="flex cursor-pointer items-center gap-3" onClick={() => handleToggleChange('siding', !activeToggles.siding)}>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={iconStyle}>
+              <Layers className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-slate-900">Siding</h3>
+              <p className="text-xs text-slate-500">Style and color</p>
+            </div>
             <Switch
               checked={activeToggles.siding}
               onCheckedChange={(checked) => handleToggleChange('siding', checked)}
               onClick={(e) => e.stopPropagation()}
-              style={{ backgroundColor: activeToggles.siding ? primaryColor : "#4b5563" }}
+              style={{ backgroundColor: activeToggles.siding ? primaryColor : "#cbd5e1" }}
             />
           </div>
           
           {activeToggles.siding && (
-            <div className="space-y-3">
+            <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
               {/* Siding Style Selection */}
               <div>
-                <p className="text-sm text-white/80 mb-2">Choose Style:</p>
-                <div className="space-y-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Choose style</p>
+                <div className="space-y-2.5">
                   <GroupedOptionRows options={mergedSidingStyles} renderOption={(style) => (
                     <label key={style.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                       <input
@@ -433,10 +773,11 @@ export default function StyleSelector({
                           setActiveToggles(prev => ({ ...prev, siding: true }));
                           handleOptionSelect('siding', buildExteriorStyleSelection(style.value, "", style));
                         }}
-                        className="w-4 h-4 text-white border-white/30 focus:ring-white"
+                        className="h-4 w-4 border-slate-300"
+                        style={{ accentColor: primaryColor }}
                       />
                       {style.hex && <ColorSwatch color={style.hex} className="h-5 w-5" />}
-                      <span className="text-sm text-white drop-shadow-sm">{style.label}</span>
+                      <span className="text-sm text-slate-700">{style.label}</span>
                     </label>
                   )} />
                 </div>
@@ -445,7 +786,7 @@ export default function StyleSelector({
               {/* Siding Color Selection */}
               {selectedSidingStyle && availableSidingColors.length > 0 && (
                 <div onClick={(e) => e.stopPropagation()}>
-                  <p className="text-sm text-white/80 mb-2">Choose Color:</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Choose color</p>
                   <Select
                     value={selectedSidingColor}
                     onValueChange={(value) => {
@@ -454,14 +795,14 @@ export default function StyleSelector({
                       handleOptionSelect('siding', buildExteriorStyleSelection(selectedSidingStyle, value, selectedSidingStyleOption));
                     }}
                   >
-                    <SelectTrigger className="bg-white/90 border-white/30 text-slate-800" onClick={(e) => e.stopPropagation()}>
+                    <SelectTrigger className="border-slate-200 bg-white text-slate-800" onClick={(e) => e.stopPropagation()}>
                       {selectedSidingColorOption ? (
                         <ColorOptionContent option={selectedSidingColorOption} />
                       ) : (
                         <span className="text-muted-foreground">Select a color</span>
                       )}
                     </SelectTrigger>
-                    <SelectContent onClick={(e) => e.stopPropagation()}>
+                    <SelectContent className="border-slate-200 bg-white text-slate-900 shadow-xl" onClick={(e) => e.stopPropagation()}>
                        <GroupedColorSelectItems options={availableSidingColors} />
                     </SelectContent>
                   </Select>
@@ -474,25 +815,26 @@ export default function StyleSelector({
 
         {/* Windows Card */}
         {showWindowsCard && (
-        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
-             style={{
-               borderColor: activeToggles.windows ? primaryColor : `${primaryColor}cc`,
-               backgroundColor: activeToggles.windows ? primaryColor : `${primaryColor}cc`,
-             }}
-             onClick={() => handleToggleChange('windows', !activeToggles.windows)}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white drop-shadow-sm">Windows</h3>
+        <div className="rounded-2xl border p-4 transition-all" style={cardStyle(activeToggles.windows)}>
+          <div className="flex cursor-pointer items-center gap-3" onClick={() => handleToggleChange('windows', !activeToggles.windows)}>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={iconStyle}>
+              <Grid3X3 className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-slate-900">Windows</h3>
+              <p className="text-xs text-slate-500">Design and frame color</p>
+            </div>
             <Switch
               checked={activeToggles.windows}
               onCheckedChange={(checked) => handleToggleChange('windows', checked)}
               onClick={(e) => e.stopPropagation()}
-              style={{ backgroundColor: activeToggles.windows ? primaryColor : "#4b5563" }}
+              style={{ backgroundColor: activeToggles.windows ? primaryColor : "#cbd5e1" }}
             />
           </div>
 
           {activeToggles.windows && (
-            <div className="space-y-3">
-              <p className="text-sm text-white/80 mb-2">Choose Design:</p>
+            <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Choose design</p>
               <GroupedOptionRows options={mergedWindowOptions} renderOption={(option) => (
                 <label key={option.value} className="flex items-center space-x-3 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   <input
@@ -506,15 +848,16 @@ export default function StyleSelector({
                       setActiveToggles((previous) => ({ ...previous, windows: true }));
                       handleOptionSelect('windows', buildExteriorStyleSelection(option.value, "", option));
                     }}
-                    className="w-4 h-4 text-white border-white/30 focus:ring-white"
+                    className="h-4 w-4 border-slate-300"
+                    style={{ accentColor: primaryColor }}
                   />
                   {option.hex && <ColorSwatch color={option.hex} className="h-5 w-5" />}
-                  <span className="text-sm text-white drop-shadow-sm">{option.label}</span>
+                  <span className="text-sm text-slate-700">{option.label}</span>
                 </label>
               )} />
               {selectedWindowStyle && availableWindowColors.length > 0 && (
                 <div onClick={(event) => event.stopPropagation()}>
-                  <p className="mb-2 text-sm text-white/80">Choose Color:</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Choose color</p>
                   <Select
                     value={selectedWindowColor}
                     onValueChange={(value) => {
@@ -526,14 +869,14 @@ export default function StyleSelector({
                       );
                     }}
                   >
-                    <SelectTrigger className="border-white/30 bg-white/90 text-slate-800" onClick={(event) => event.stopPropagation()}>
+                    <SelectTrigger className="border-slate-200 bg-white text-slate-800" onClick={(event) => event.stopPropagation()}>
                       {selectedWindowColorOption ? (
                         <ColorOptionContent option={selectedWindowColorOption} />
                       ) : (
                         <span className="text-muted-foreground">Select a color</span>
                       )}
                     </SelectTrigger>
-                    <SelectContent onClick={(event) => event.stopPropagation()}>
+                    <SelectContent className="border-slate-200 bg-white text-slate-900 shadow-xl" onClick={(event) => event.stopPropagation()}>
                       <GroupedColorSelectItems options={availableWindowColors} />
                     </SelectContent>
                   </Select>
@@ -546,14 +889,15 @@ export default function StyleSelector({
 
         {/* Surprise Me Card */}
         {showSurpriseCard && (
-        <div className="rounded-xl border-2 p-6 transition-all cursor-pointer"
-             style={{
-               borderColor: activeToggles.surpriseMe ? primaryColor : `${primaryColor}cc`,
-               backgroundColor: activeToggles.surpriseMe ? primaryColor : `${primaryColor}cc`,
-             }}
-             onClick={() => handleToggleChange('surpriseMe', !activeToggles.surpriseMe)}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white drop-shadow-sm">Surprise Me!</h3>
+        <div className="rounded-2xl border p-4 transition-all" style={cardStyle(activeToggles.surpriseMe)}>
+          <div className="flex cursor-pointer items-center gap-3" onClick={() => handleToggleChange('surpriseMe', !activeToggles.surpriseMe)}>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={iconStyle}>
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-slate-900">Surprise me</h3>
+              <p className="text-xs text-slate-500">Let AI choose a combination</p>
+            </div>
             <Switch
               checked={activeToggles.surpriseMe}
               onCheckedChange={(checked) => {
@@ -563,13 +907,13 @@ export default function StyleSelector({
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              style={{ backgroundColor: activeToggles.surpriseMe ? primaryColor : "#4b5563" }}
+              style={{ backgroundColor: activeToggles.surpriseMe ? primaryColor : "#cbd5e1" }}
             />
           </div>
           
           {activeToggles.surpriseMe && (
-            <div className="text-center">
-              <p className="text-sm text-white/90 drop-shadow-sm">
+            <div className="mt-4 border-t border-slate-200 pt-4">
+              <p className="text-sm leading-5 text-slate-600">
                 Let our AI choose the perfect roof and siding combination for your home!
               </p>
             </div>

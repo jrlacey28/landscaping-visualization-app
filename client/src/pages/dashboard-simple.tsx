@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { Code2, Folder, LayoutDashboard, Loader2, Lock, RefreshCw, Users } from 'lucide-react';
+import { Code2, Folder, LayoutDashboard, Loader2, Lock, Mail, RefreshCw, Users } from 'lucide-react';
 
 import BugFeatureForm from '@/components/bug-feature-form';
+import ClientQuoteInbox from '@/components/client-quote-inbox';
 import EmbedCodeGenerator from '@/components/embed-code-generator';
 import EnterpriseQuoteFlowSettings from '@/components/enterprise-quote-flow-settings';
 import SavedGenerations from '@/components/saved-generations';
@@ -18,7 +19,7 @@ import { useTenant } from '@/hooks/use-tenant';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
-const dashboardTabs = ['overview', 'projects', 'embed'] as const;
+const dashboardTabs = ['overview', 'projects', 'quotes', 'embed'] as const;
 type DashboardTab = typeof dashboardTabs[number];
 
 function getInitialDashboardTab(): DashboardTab {
@@ -316,7 +317,7 @@ export default function Dashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid h-auto w-full grid-cols-3 bg-white p-1 shadow-sm lg:w-[520px]">
+          <TabsList className={`grid h-auto w-full bg-white p-1 shadow-sm ${enterpriseTenant ? 'grid-cols-4 lg:w-[680px]' : 'grid-cols-3 lg:w-[520px]'}`}>
             <TabsTrigger value="overview" className="gap-2 py-2.5">
               <LayoutDashboard className="h-4 w-4" />
               Overview
@@ -325,6 +326,12 @@ export default function Dashboard() {
               <Folder className="h-4 w-4" />
               Projects
             </TabsTrigger>
+            {enterpriseTenant && (
+              <TabsTrigger value="quotes" className="gap-2 py-2.5">
+                <Mail className="h-4 w-4" />
+                Quotes
+              </TabsTrigger>
+            )}
             <TabsTrigger value="embed" className="gap-2 py-2.5">
               <Code2 className="h-4 w-4" />
               Embed
@@ -635,6 +642,12 @@ export default function Dashboard() {
           <TabsContent value="projects" className="mt-0">
             <SavedGenerations />
           </TabsContent>
+
+          {enterpriseTenant && (
+            <TabsContent value="quotes" className="mt-0">
+              <ClientQuoteInbox />
+            </TabsContent>
+          )}
 
           <TabsContent value="embed" className="mt-0">
             <div className="space-y-5">

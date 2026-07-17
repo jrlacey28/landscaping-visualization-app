@@ -9,6 +9,7 @@ type EmailAttachment = {
   content?: Buffer;
   contentType?: string;
   path?: string;
+  contentId?: string;
 };
 
 function escapeHtml(value: unknown) {
@@ -32,6 +33,24 @@ function formatSelectedStyles(selectedStyles: unknown) {
   }
 }
 
+function normalizeEmailColor(value: unknown, fallback: string) {
+  const color = String(value || "").trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : fallback;
+}
+
+function getEmailContrastColor(color: string) {
+  const value = Number.parseInt(color.slice(1), 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  return (red * 299 + green * 587 + blue * 114) / 1000 > 165 ? "#0f172a" : "#ffffff";
+}
+
+function safeExternalImageUrl(value?: string | null) {
+  const url = String(value || "").trim();
+  return /^https?:\/\//i.test(url) ? url : "";
+}
+
 function imageAttachmentFromUrl(imageUrl?: string | null): EmailAttachment | null {
   if (!imageUrl) return null;
 
@@ -51,6 +70,7 @@ function imageAttachmentFromUrl(imageUrl?: string | null): EmailAttachment | nul
       filename: `generated-design.${extension}`,
       content: buffer,
       contentType,
+      contentId: "generated-design",
     };
   }
 
@@ -58,6 +78,7 @@ function imageAttachmentFromUrl(imageUrl?: string | null): EmailAttachment | nul
     return {
       filename: "generated-design.jpg",
       path: imageUrl,
+      contentId: "generated-design",
     };
   }
 
@@ -105,6 +126,24 @@ export async function sendQuoteLeadNotificationEmail({
       : "No generated visualization was attached.";
     const originalImageNote = imageReferenceNote("Original", lead.originalImageUrl);
     const selectedStyles = formatSelectedStyles(lead.selectedStyles);
+    const primaryColor = normalizeEmailColor(tenant.embedPrimaryColor || tenant.primaryColor, "#0f766e");
+    const secondaryColor = normalizeEmailColor(tenant.embedSecondaryColor || tenant.secondaryColor, primaryColor);
+    const primaryTextColor = getEmailContrastColor(primaryColor);
+    const logoUrl = safeExternalImageUrl(tenant.logoUrl);
+    const originalImageLink = safeExternalImageUrl(lead.originalImageUrl);
+    const generatedImagePreview = generatedImageAttachment
+      ? `
+          <tr>
+            <td style="padding: 0 32px 28px;">
+              <div style="font-size: 12px; line-height: 18px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin-bottom: 8px;">Generated design</div>
+              <img src="cid:generated-design" alt="Generated project design" style="display: block; width: 100%; max-height: 440px; object-fit: cover; border-radius: 14px; border: 1px solid #e2e8f0;" />
+            </td>
+          </tr>
+        `
+      : "";
+    const logoHtml = logoUrl
+      ? `<div style="display: inline-block; padding: 8px 12px; border-radius: 10px; background: #ffffff;"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(tenant.companyName)} logo" style="display: block; max-width: 190px; max-height: 58px; object-fit: contain;" /></div>`
+      : `<div style="font-size: 20px; line-height: 26px; font-weight: 800; color: ${primaryTextColor};">${escapeHtml(tenant.companyName)}</div>`;
 
     const { data, error } = await resend.emails.send({
       from: fromEmail,
@@ -112,23 +151,72 @@ export async function sendQuoteLeadNotificationEmail({
       subject: `New quote request from ${fullName || "website visitor"} - ${tenant.companyName}`,
       attachments,
       html: `
-        <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.5;">
-          <h1 style="margin: 0 0 16px;">New quote request</h1>
-          <p style="margin: 0 0 20px;">A visitor submitted a quote request from ${escapeHtml(tenant.companyName)}'s visualizer.</p>
-          <table style="border-collapse: collapse; width: 100%; max-width: 680px;">
-            <tr><td style="padding: 8px; font-weight: 700;">Name</td><td style="padding: 8px;">${escapeHtml(fullName)}</td></tr>
-            <tr><td style="padding: 8px; font-weight: 700;">Email</td><td style="padding: 8px;"><a href="mailto:${escapeHtml(lead.email)}">${escapeHtml(lead.email)}</a></td></tr>
-            <tr><td style="padding: 8px; font-weight: 700;">Phone</td><td style="padding: 8px;">${escapeHtml(lead.phone || "Not provided")}</td></tr>
-            <tr><td style="padding: 8px; font-weight: 700;">Location</td><td style="padding: 8px;">${escapeHtml(lead.location || "Not provided")}</td></tr>
-            <tr><td style="padding: 8px; font-weight: 700;">Service</td><td style="padding: 8px;">${escapeHtml(lead.service || "Not provided")}</td></tr>
-          </table>
-          <h2 style="margin: 24px 0 8px;">Project details</h2>
-          <p style="white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px;">${escapeHtml(lead.projectDetails || "No details provided")}</p>
-          <h2 style="margin: 24px 0 8px;">Selected styles</h2>
-          <pre style="white-space: pre-wrap; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px;">${escapeHtml(selectedStyles)}</pre>
-          <p>${escapeHtml(generatedImageNote)}</p>
-          <p>${escapeHtml(originalImageNote)}</p>
-        </div>
+        <!doctype html>
+        <html>
+          <body style="margin: 0; padding: 0; background: #f1f5f9; font-family: Arial, Helvetica, sans-serif; color: #0f172a;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #f1f5f9;">
+              <tr>
+                <td align="center" style="padding: 32px 16px;">
+                  <table role="presentation" width="680" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 680px; overflow: hidden; border-radius: 18px; background: #ffffff; box-shadow: 0 12px 30px rgba(15, 23, 42, 0.10);">
+                    <tr>
+                      <td style="height: 7px; background: ${secondaryColor}; font-size: 0; line-height: 0;">&nbsp;</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 24px 32px; background: ${primaryColor}; color: ${primaryTextColor};">
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                          <tr>
+                            <td style="vertical-align: middle;">${logoHtml}</td>
+                            <td align="right" style="vertical-align: middle; font-size: 12px; line-height: 18px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: ${primaryTextColor};">Visualizer quote</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 30px 32px 22px;">
+                        <div style="font-size: 12px; line-height: 18px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b;">New project opportunity</div>
+                        <h1 style="margin: 6px 0 8px; font-size: 28px; line-height: 34px; color: #0f172a;">New quote request from ${escapeHtml(fullName || "a website visitor")}</h1>
+                        <p style="margin: 0; font-size: 15px; line-height: 24px; color: #64748b;">Submitted through ${escapeHtml(tenant.companyName)}'s design visualizer. The generated design and project information are together below.</p>
+                      </td>
+                    </tr>
+                    ${generatedImagePreview}
+                    <tr>
+                      <td style="padding: 0 32px 24px;">
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse: separate; border-spacing: 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                          <tr><td style="width: 32%; padding: 11px 14px; background: #f8fafc; font-size: 13px; font-weight: 700; color: #475569;">Name</td><td style="padding: 11px 14px; font-size: 14px;">${escapeHtml(fullName)}</td></tr>
+                          <tr><td style="padding: 11px 14px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 13px; font-weight: 700; color: #475569;">Email</td><td style="padding: 11px 14px; border-top: 1px solid #e2e8f0; font-size: 14px;"><a href="mailto:${escapeHtml(lead.email)}" style="color: ${primaryColor};">${escapeHtml(lead.email)}</a></td></tr>
+                          <tr><td style="padding: 11px 14px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 13px; font-weight: 700; color: #475569;">Phone</td><td style="padding: 11px 14px; border-top: 1px solid #e2e8f0; font-size: 14px;">${escapeHtml(lead.phone || "Not provided")}</td></tr>
+                          <tr><td style="padding: 11px 14px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 13px; font-weight: 700; color: #475569;">Location</td><td style="padding: 11px 14px; border-top: 1px solid #e2e8f0; font-size: 14px;">${escapeHtml(lead.location || "Not provided")}</td></tr>
+                          <tr><td style="padding: 11px 14px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 13px; font-weight: 700; color: #475569;">Service</td><td style="padding: 11px 14px; border-top: 1px solid #e2e8f0; font-size: 14px;">${escapeHtml(lead.service || "Not provided")}</td></tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 0 32px 24px;">
+                        <h2 style="margin: 0 0 8px; font-size: 17px; line-height: 24px; color: #0f172a;">Project details</h2>
+                        <div style="white-space: pre-wrap; background: #f8fafc; border-left: 4px solid ${primaryColor}; padding: 14px 16px; border-radius: 8px; font-size: 14px; line-height: 22px; color: #334155;">${escapeHtml(lead.projectDetails || "No details provided")}</div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 0 32px 26px;">
+                        <h2 style="margin: 0 0 8px; font-size: 17px; line-height: 24px; color: #0f172a;">Selected design details</h2>
+                        <pre style="margin: 0; white-space: pre-wrap; font-family: Arial, Helvetica, sans-serif; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 16px; border-radius: 8px; font-size: 13px; line-height: 21px; color: #475569;">${escapeHtml(selectedStyles)}</pre>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td align="center" style="padding: 0 32px 32px;">
+                        <a href="mailto:${escapeHtml(lead.email)}" style="display: inline-block; padding: 12px 22px; border-radius: 9px; background: ${primaryColor}; color: ${primaryTextColor}; font-size: 14px; font-weight: 700; text-decoration: none;">Reply to ${escapeHtml(lead.firstName || "visitor")}</a>
+                        ${originalImageLink ? `<div style="margin-top: 14px; font-size: 12px;"><a href="${escapeHtml(originalImageLink)}" style="color: #64748b;">View original project photo</a></div>` : ""}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td align="center" style="padding: 18px 32px; border-top: 1px solid #e2e8f0; background: #f8fafc; font-size: 12px; line-height: 18px; color: #94a3b8;">Sent from the ${escapeHtml(tenant.companyName)} DreamBuilder visualizer</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+        </html>
       `,
       text: [
         "New quote request",

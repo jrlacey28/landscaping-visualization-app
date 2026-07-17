@@ -34,6 +34,8 @@ export default function EmbedQuoteLeadForm({
       submitLabel={tenant?.embedCtaText || undefined}
       primaryColor={primaryColor}
       secondaryColor={secondaryColor}
+      companyName={tenant?.companyName || undefined}
+      logoUrl={tenant?.logoUrl || undefined}
       successRedirectUrl={tenant?.embedQuoteSuccessRedirectUrl || null}
     />
   );

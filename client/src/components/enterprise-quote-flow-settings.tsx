@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Send, Webhook } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,8 @@ type QuoteFlowSettings = {
   embedQuoteFormTitle: string;
   embedQuoteFormMessage: string;
   embedQuoteIncludeImages: boolean;
+  embedQuoteCrmEnabled: boolean;
+  embedQuoteCrmWebhookUrl: string;
 };
 
 function settingsFromTenant(tenant: any): QuoteFlowSettings {
@@ -45,6 +47,8 @@ function settingsFromTenant(tenant: any): QuoteFlowSettings {
       tenant?.embedQuoteFormMessage ||
       "Send your project details and the team will follow up with a quote.",
     embedQuoteIncludeImages: tenant?.embedQuoteIncludeImages !== false,
+    embedQuoteCrmEnabled: tenant?.embedCustomizations?.quoteCrm?.enabled === true,
+    embedQuoteCrmWebhookUrl: tenant?.embedCustomizations?.quoteCrm?.webhookUrl || "",
   };
 }
 
@@ -52,6 +56,7 @@ export default function EnterpriseQuoteFlowSettings({ tenant }: { tenant: any })
   const { toast } = useToast();
   const [settings, setSettings] = useState<QuoteFlowSettings>(() => settingsFromTenant(tenant));
   const [isSaving, setIsSaving] = useState(false);
+  const [isTestingCrm, setIsTestingCrm] = useState(false);
 
   useEffect(() => {
     setSettings(settingsFromTenant(tenant));
@@ -88,6 +93,42 @@ export default function EnterpriseQuoteFlowSettings({ tenant }: { tenant: any })
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const testCrmConnection = async () => {
+    if (!settings.embedQuoteCrmWebhookUrl.trim()) {
+      toast({
+        title: "CRM webhook required",
+        description: "Enter the HTTPS webhook URL supplied by your CRM or automation provider.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTestingCrm(true);
+    try {
+      const token = localStorage.getItem("auth_token");
+      await apiRequest(
+        "POST",
+        "/api/tenant/my-tenant/quote-crm/test",
+        { webhookUrl: settings.embedQuoteCrmWebhookUrl },
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        },
+      );
+      toast({
+        title: "CRM connection works",
+        description: "Your webhook accepted the DreamBuilder test quote.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "CRM connection failed",
+        description: error.message || "The webhook did not accept the test quote.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingCrm(false);
     }
   };
 
@@ -247,6 +288,57 @@ export default function EnterpriseQuoteFlowSettings({ tenant }: { tenant: any })
             checked={settings.embedQuoteIncludeImages}
             onCheckedChange={(checked) => update("embedQuoteIncludeImages", checked)}
           />
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-slate-700 shadow-sm">
+                <Webhook className="h-5 w-5" />
+              </span>
+              <div>
+                <Label htmlFor="accountCrmEnabled" className="text-base">CRM delivery</Label>
+                <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">
+                  Send every submitted quote to a CRM webhook. Compatible with Zapier, Make, CRM workflows, and custom HTTPS endpoints.
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="accountCrmEnabled"
+              checked={settings.embedQuoteCrmEnabled}
+              onCheckedChange={(checked) => update("embedQuoteCrmEnabled", checked)}
+            />
+          </div>
+
+          {settings.embedQuoteCrmEnabled && (
+            <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
+              <div>
+                <Label htmlFor="accountCrmWebhook">CRM webhook URL</Label>
+                <Input
+                  id="accountCrmWebhook"
+                  type="url"
+                  value={settings.embedQuoteCrmWebhookUrl}
+                  onChange={(event) => update("embedQuoteCrmWebhookUrl", event.target.value)}
+                  placeholder="https://hooks.zapier.com/..."
+                />
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs leading-5 text-muted-foreground">
+                  CRM delivery runs after the popup quote form is submitted. Phone and external-link destinations bypass the form.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={testCrmConnection}
+                  disabled={isTestingCrm}
+                  className="shrink-0"
+                >
+                  {isTestingCrm ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                  {isTestingCrm ? "Sending test..." : "Send test quote"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <Button type="button" onClick={save} disabled={isSaving}>

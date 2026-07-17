@@ -19,12 +19,31 @@ import {
   getStyleForRegion,
 } from "./style-config";
 import { buildTenantExteriorCustomContext } from "./tenant-exterior-context";
+import {
+  buildUnlimitedEnterpriseEmbedStatus,
+  hasUnlimitedEnterpriseEmbedAccess,
+} from "./embed-account-access";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 import { authenticateToken, optionalAuthenticateToken, AuthRequest } from "./auth";
 import jwt from 'jsonwebtoken';
 import { sendQuoteLeadNotificationEmail, sendTeamInvitationEmail } from "./email-service";
+import {
+  mergeQuoteCrmConfig,
+  removePrivateQuoteCrmConfig,
+  sendQuoteLeadToCrm,
+  validateQuoteCrmWebhookUrl,
+} from "./quote-crm";
 
 const upload = multer({ storage: multer.memoryStorage() });
+
+function toPublicTenant(tenant: any) {
+  if (!tenant) return tenant;
+
+  return {
+    ...tenant,
+    embedCustomizations: removePrivateQuoteCrmConfig(tenant.embedCustomizations),
+  };
+}
 
 function sanitizeDatabaseError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -986,6 +1005,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     embedQuoteFormTitle: z.string().trim().min(1).max(160),
     embedQuoteFormMessage: z.string().trim().min(1).max(1200),
     embedQuoteIncludeImages: z.boolean(),
+    embedQuoteCrmEnabled: z.boolean(),
+    embedQuoteCrmWebhookUrl: z.string().trim().max(1000),
   });
 
   app.patch("/api/tenant/my-tenant/quote-flow", authenticateToken as any, async (req: AuthRequest, res) => {
@@ -1001,14 +1022,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const settings = accountQuoteFlowSettingsSchema.parse(req.body);
-      const updatedTenant = await storage.updateTenant(userTenant.id, settings);
+      const {
+        embedQuoteCrmEnabled,
+        embedQuoteCrmWebhookUrl,
+        ...tenantSettings
+      } = settings;
+      if (embedQuoteCrmEnabled && !embedQuoteCrmWebhookUrl) {
+        return res.status(400).json({ error: "CRM webhook URL is required when CRM delivery is enabled" });
+      }
+      const normalizedCrmWebhookUrl = embedQuoteCrmWebhookUrl
+        ? validateQuoteCrmWebhookUrl(embedQuoteCrmWebhookUrl)
+        : "";
+      const updatedTenant = await storage.updateTenant(userTenant.id, {
+        ...tenantSettings,
+        embedCustomizations: mergeQuoteCrmConfig(userTenant.embedCustomizations, {
+          enabled: embedQuoteCrmEnabled,
+          webhookUrl: normalizedCrmWebhookUrl,
+        }),
+      });
       res.json(updatedTenant);
     } catch (error) {
       console.error("Error updating account quote flow:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid quote flow settings", details: error.errors });
       }
+      if (error instanceof Error && error.message.startsWith("CRM webhook URL")) {
+        return res.status(400).json({ error: error.message });
+      }
       res.status(500).json({ error: "Failed to update quote flow settings" });
+    }
+  });
+
+  app.get("/api/tenant/my-tenant/quote-leads", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
+      const userTenant = await storage.getTenantByUserId(workspaceOwnerId);
+      if (!userTenant) {
+        return res.status(404).json({ error: "Enterprise tenant not found" });
+      }
+
+      const tenantLeads = await storage.getLeadsByTenant(userTenant.id);
+      const quoteLeads = tenantLeads.filter((lead) => lead.leadType === "quote");
+      res.json({
+        tenant: {
+          id: userTenant.id,
+          companyName: userTenant.companyName,
+        },
+        leads: quoteLeads,
+      });
+    } catch (error) {
+      console.error("Error fetching account quote leads:", error);
+      res.status(500).json({ error: "Failed to fetch quote leads" });
+    }
+  });
+
+  const quoteCrmTestSchema = z.object({
+    webhookUrl: z.string().trim().min(1).max(1000),
+  });
+
+  app.post("/api/tenant/my-tenant/quote-crm/test", authenticateToken as any, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
+      const userTenant = await storage.getTenantByUserId(workspaceOwnerId);
+      if (!userTenant) {
+        return res.status(404).json({ error: "Enterprise tenant not found" });
+      }
+
+      const { webhookUrl } = quoteCrmTestSchema.parse(req.body);
+      const delivery = await sendQuoteLeadToCrm({
+        tenant: userTenant,
+        webhookUrl,
+        test: true,
+        lead: {
+          id: null,
+          createdAt: new Date(),
+          service: "roofing-siding",
+          firstName: "Test",
+          lastName: "Lead",
+          email: "test@example.com",
+          phone: "(555) 555-0100",
+          location: "Your service area",
+          projectDetails: "DreamBuilder CRM connection test",
+          timeline: "Planning",
+          selectedStyles: { roof: "Test roof", siding: "Test siding" },
+          originalImageUrl: null,
+          generatedImageUrl: null,
+        },
+      });
+
+      if (!delivery.sent) {
+        return res.status(502).json({ error: delivery.error || "CRM webhook did not accept the test" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error testing account CRM webhook:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid CRM webhook settings", details: error.errors });
+      }
+      const message = error instanceof Error ? error.message : "Failed to test CRM webhook";
+      res.status(400).json({ error: message });
     }
   });
 
@@ -1032,14 +1153,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Tenant not found" });
       }
 
-      res.json(tenant);
+      res.json(toPublicTenant(tenant));
     } catch (error) {
       console.error("Error fetching tenant:", error);
       res.status(500).json({ error: "Failed to fetch tenant" });
     }
   });
 
-  app.get("/api/embed/visitor-usage", async (req, res) => {
+  app.get("/api/embed/visitor-usage", optionalAuthenticateToken as any, async (req: AuthRequest, res) => {
     try {
       const tenantId = parsePositiveId(req.query.tenantId);
       const tenantSlug = typeof req.query.tenantSlug === "string" ? req.query.tenantSlug.trim() : "";
@@ -1306,17 +1427,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   async function getEmbedVisitorStatusForRequest(req: any, tenant: any) {
+    const unlimitedAccountAccess = await hasUnlimitedEnterpriseEmbedAccess(
+      req.user?.id,
+      tenant,
+      (userId) => storage.getUserTeamAccess(userId),
+    );
+
+    if (unlimitedAccountAccess) {
+      return {
+        visitorKey: "",
+        status: buildUnlimitedEnterpriseEmbedStatus(),
+        unlimitedAccountAccess: true,
+      };
+    }
+
     const visitorKey = buildEmbedVisitorKey(req, tenant.id);
     const limit = getEmbedVisitorLimit(tenant);
     const status = await storage.getEmbedVisitorUsageStatus(tenant.id, visitorKey, limit);
 
-    return { visitorKey, status };
+    return { visitorKey, status, unlimitedAccountAccess: false };
   }
 
   async function assertEmbedVisitorCanGenerate(req: any, tenant: any) {
-    const visitorKey = buildEmbedVisitorKey(req, tenant.id);
-    const limit = getEmbedVisitorLimit(tenant);
-    const before = await storage.getEmbedVisitorUsageStatus(tenant.id, visitorKey, limit);
+    const access = await getEmbedVisitorStatusForRequest(req, tenant);
+    const before = access.status;
 
     if (before.limitEnabled && !before.canGenerate) {
       throw new GenerationRequestError(
@@ -1329,7 +1463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
     }
 
-    return before;
+    return access;
   }
 
   async function recordSuccessfulEmbedVisitorGeneration(generationOwner: any) {
@@ -1627,19 +1761,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw new GenerationRequestError(429, error.message || "Embed usage limit reached");
         }
 
-        const embedVisitorStatus = await assertEmbedVisitorCanGenerate(req, checkedTenant);
+        const embedVisitorAccess = await assertEmbedVisitorCanGenerate(req, checkedTenant);
 
         return {
           userId: ownerUserId,
           tenantId: checkedTenant.id,
           shouldTrackUserUsage: false,
           hasBusinessPro: await storage.hasBusinessProAccess(ownerUserId),
-          embedVisitorTracking: {
-            tenantId: checkedTenant.id,
-            visitorKey: buildEmbedVisitorKey(req, checkedTenant.id),
-            limit: getEmbedVisitorLimit(checkedTenant),
-            status: embedVisitorStatus,
-          },
+          embedVisitorTracking: embedVisitorAccess.unlimitedAccountAccess
+            ? undefined
+            : {
+                tenantId: checkedTenant.id,
+                visitorKey: embedVisitorAccess.visitorKey,
+                limit: getEmbedVisitorLimit(checkedTenant),
+                status: embedVisitorAccess.status,
+              },
         };
       }
 
@@ -2475,6 +2611,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const lead = await storage.createLead(leadData);
       let quoteNotificationSent = false;
+      let crmWebhookAttempted = false;
+      let crmWebhookSent = false;
 
       if (lead.leadType === "quote" && lead.tenantId) {
         const tenant = await storage.getTenant(lead.tenantId);
@@ -2483,16 +2621,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tenant?.email ||
           undefined;
 
-        if (tenant && quoteRecipientEmail) {
-          quoteNotificationSent = await sendQuoteLeadNotificationEmail({
-            tenant,
-            lead,
-            toEmail: quoteRecipientEmail,
-          });
+        if (tenant) {
+          const [emailSent, crmDelivery] = await Promise.all([
+            quoteRecipientEmail
+              ? sendQuoteLeadNotificationEmail({
+                  tenant,
+                  lead,
+                  toEmail: quoteRecipientEmail,
+                })
+              : Promise.resolve(false),
+            sendQuoteLeadToCrm({ tenant, lead }),
+          ]);
+          quoteNotificationSent = emailSent;
+          crmWebhookAttempted = crmDelivery.attempted;
+          crmWebhookSent = crmDelivery.sent;
+          if (crmDelivery.attempted && !crmDelivery.sent) {
+            console.error("CRM quote delivery failed:", crmDelivery.error || "Unknown CRM webhook error");
+          }
         }
       }
 
-      res.json({ ...lead, quoteNotificationSent });
+      res.json({ ...lead, quoteNotificationSent, crmWebhookAttempted, crmWebhookSent });
     } catch (error) {
       console.error("Error creating lead:", error);
       if (error instanceof z.ZodError) {

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useTenant } from "../hooks/use-tenant";
 import StyleSelector from "../components/style-selector";
 import { Button } from "../components/ui/button";
-import { Upload, Sparkles, Download, Eye, Camera, Phone, XCircle } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, Upload, Sparkles, Download, Eye, Camera, Phone, XCircle, Check } from "lucide-react";
 import { SparklesText } from "@/components/ui/sparkles-text";
 import EmbedQuoteGate from "@/components/embed-quote-gate";
 import EmbedQuoteLeadForm from "@/components/embed-quote-lead-form";
@@ -13,16 +13,48 @@ import { getEmbedQuoteButtonText, runEmbedQuoteAction } from "@/lib/embed-quote"
 import {
   DEFAULT_EMBED_BACKGROUND_COLOR,
   getEmbedBackground,
-  getEmbedThemeClasses,
   parseEmbedBackgroundScheme,
 } from "@/lib/embed-theme";
 import { isEmbedServiceEnabled } from "@/lib/embed-services";
+import roofingBeforeImage from "@assets/roofing-before.jpg";
+import roofingAfterImage from "@assets/roofing-after.jpg";
 
 function normalizeToken(value: unknown) {
   return String(value || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
+}
+
+function getContrastTextColor(color: string) {
+  const normalized = color.trim().replace("#", "");
+  const expanded = normalized.length === 3
+    ? normalized.split("").map((character) => `${character}${character}`).join("")
+    : normalized;
+
+  if (!/^[0-9a-f]{6}$/i.test(expanded)) return "#ffffff";
+
+  const value = Number.parseInt(expanded, 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
+  return luminance > 165 ? "#0f172a" : "#ffffff";
+}
+
+function colorWithAlpha(color: string, alpha: number) {
+  const normalized = color.trim().replace("#", "");
+  const expanded = normalized.length === 3
+    ? normalized.split("").map((character) => `${character}${character}`).join("")
+    : normalized;
+
+  if (!/^[0-9a-f]{6}$/i.test(expanded)) return `rgba(15, 118, 110, ${alpha})`;
+
+  const value = Number.parseInt(expanded, 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
 function normalizeCustomColor(color: any) {
@@ -151,9 +183,10 @@ export default function EmbedRoofingPage() {
     resolvedSecondaryColor,
     backgroundColor,
   );
-  const themeClasses = getEmbedThemeClasses(backgroundScheme);
+  const primaryButtonTextColor = getContrastTextColor(resolvedPrimaryColor);
   
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [comparisonPosition, setComparisonPosition] = useState(50);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [visualizationResult, setVisualizationResult] = useState<any>(null);
@@ -167,6 +200,10 @@ export default function EmbedRoofingPage() {
     siding: { enabled: false, type: "" },
     windows: { enabled: false, type: "" },
     surpriseMe: { enabled: false, type: "" },
+  });
+  const [styleSelectionStatus, setStyleSelectionStatus] = useState({
+    hasEnabledCategories: false,
+    allEnabledCategoriesComplete: false,
   });
 
   // Apply custom branding
@@ -275,24 +312,27 @@ export default function EmbedRoofingPage() {
   }
 
   return (
-    <div className="min-h-screen p-2" style={{ background: pageBackground }}>
-      <div className="max-w-4xl mx-auto">
+    <div className="w-full p-2 sm:p-4" style={{ background: pageBackground }}>
+      <div className="mx-auto max-w-6xl">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-2xl shadow-slate-950/15 lg:flex lg:h-[calc(100vh-2rem)] lg:max-h-[760px] lg:flex-col">
         {showHeader && (
-          <div className="text-center mb-8 pt-4">
+          <header className="flex shrink-0 flex-col gap-2.5 border-b border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
             {resolvedLogoUrl && (
               <img
                 src={resolvedLogoUrl}
                 alt={`${displayCompanyName} logo`}
-                className="mx-auto mb-4 max-h-20 max-w-[220px] object-contain"
+                className="max-h-14 max-w-[190px] shrink-0 object-contain object-left"
               />
             )}
-            <h1 className={`text-3xl md:text-4xl font-bold mb-2 ${themeClasses.headerText}`}>
-              {displayCompanyName} Roofing & Siding Visualizer
-            </h1>
-            <p className={`text-lg ${themeClasses.subheadingText}`}>
-              Transform your home with AI-powered roofing and siding visualization
-            </p>
-          </div>
+            <div className={`min-w-0 ${resolvedLogoUrl ? "sm:border-l sm:border-slate-200 sm:pl-4" : ""}`}>
+              <h1 className="text-lg font-bold leading-tight text-slate-950 sm:text-xl">
+                Exterior Design Visualizer
+              </h1>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm">
+                Upload a photo, choose your finishes, and preview a fresh look for your home.
+              </p>
+            </div>
+          </header>
         )}
 
         {showQuoteForm && (
@@ -308,12 +348,11 @@ export default function EmbedRoofingPage() {
           />
         )}
 
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
         {/* Image Upload */}
-        <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
-          <h2 className={`text-xl font-semibold mb-4 text-center ${themeClasses.panelTitle}`}>Upload Your Home Photo</h2>
-          
+        <section className="flex min-h-0 flex-col overflow-hidden bg-white p-4">
           {!uploadedImage ? (
-            <div className={`border-2 border-dashed ${themeClasses.uploadBorder} rounded-lg p-8 text-center`}>
+            <>
               <input
                 type="file"
                 accept="image/*"
@@ -321,20 +360,72 @@ export default function EmbedRoofingPage() {
                 className="hidden"
                 id="image-upload"
               />
-              <label
-                htmlFor="image-upload"
-                className="cursor-pointer flex flex-col items-center space-y-4"
-              >
-                <Upload className={`h-12 w-12 ${themeClasses.uploadIcon}`} />
-                <div>
-                  <p className={`${themeClasses.uploadPrimaryText} font-medium`}>Click to upload your photo</p>
-                  <p className={`${themeClasses.uploadSecondaryText} text-sm`}>PNG, JPG up to 10MB</p>
+              <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-slate-100 shadow-inner lg:min-h-0 lg:flex-1 lg:aspect-auto">
+                <img
+                  src={roofingAfterImage}
+                  alt="Exterior design after visualization"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <img
+                  src={roofingBeforeImage}
+                  alt="Exterior before visualization"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  style={{ clipPath: `inset(0 ${100 - comparisonPosition}% 0 0)` }}
+                />
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={comparisonPosition}
+                  onChange={(event) => setComparisonPosition(Number(event.target.value))}
+                  aria-label="Adjust the before and after comparison"
+                  className="peer absolute inset-0 z-30 h-full w-full cursor-col-resize opacity-0"
+                />
+                <div
+                  className="pointer-events-none absolute inset-y-0 z-20 w-px -translate-x-1/2 bg-white shadow-[0_0_14px_rgba(15,23,42,0.65)]"
+                  style={{ left: `${comparisonPosition}%` }}
+                />
+                <span
+                  className="pointer-events-none absolute top-1/2 z-20 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-white shadow-xl transition-shadow peer-focus-visible:ring-4 peer-focus-visible:ring-white/80"
+                  style={{ left: `${comparisonPosition}%`, backgroundColor: resolvedPrimaryColor, color: primaryButtonTextColor }}
+                >
+                  <ArrowLeftRight className="h-4 w-4" strokeWidth={2.5} />
+                </span>
+                <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center bg-gradient-to-b from-slate-950/55 to-transparent px-4 pb-10 pt-4">
+                  <span className="rounded-full border border-white/30 bg-slate-950/45 px-3 py-1.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md">
+                    Drag to compare
+                  </span>
                 </div>
-              </label>
-            </div>
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between bg-gradient-to-t from-slate-950/70 to-transparent px-4 pb-4 pt-14 sm:px-5">
+                  <span className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-slate-800 shadow-md">Before</span>
+                  <span
+                    className="rounded-full px-3 py-1.5 text-xs font-bold shadow-md"
+                    style={{ backgroundColor: resolvedPrimaryColor, color: primaryButtonTextColor }}
+                  >
+                    After
+                  </span>
+                </div>
+              </div>
+            </>
           ) : (
-            <div className="space-y-4">
-              <div className={`relative w-full overflow-hidden rounded-lg bg-gray-100 ${showQuoteGate ? "min-h-[340px]" : "aspect-video"}`}>
+            <div className="flex min-h-0 flex-1 flex-col gap-3">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                id="image-upload"
+              />
+              <div className={`relative w-full overflow-hidden rounded-xl bg-slate-100 shadow-inner ${showQuoteGate ? "min-h-[300px] lg:min-h-0 lg:flex-1" : "aspect-video lg:min-h-0 lg:flex-1 lg:aspect-auto"}`}>
+                {!isGenerating && !showQuoteGate && (
+                  <label
+                    htmlFor="image-upload"
+                    className="absolute right-3 top-3 z-20 cursor-pointer rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm transition hover:bg-white"
+                    style={{ color: resolvedPrimaryColor }}
+                  >
+                    Change photo
+                  </label>
+                )}
                 <img
                   src={visualizationResult?.status === "completed" && visualizationResult?.generatedImageUrl ? 
                     (showingOriginal ? uploadedImage : visualizationResult.generatedImageUrl) : 
@@ -355,7 +446,7 @@ export default function EmbedRoofingPage() {
                   />
                 )}
                 {isGenerating && (
-                  <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/55 backdrop-blur-sm">
                     <div className="text-center">
                       <SparklesText
                         text="Designing your perfect roof & siding..."
@@ -370,13 +461,12 @@ export default function EmbedRoofingPage() {
               
               {/* Action buttons when generation is complete */}
               {visualizationResult?.status === "completed" && visualizationResult?.generatedImageUrl && (
-                <div className="space-y-4 mt-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3">
                     <Button
-                      size="lg"
-                      className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
+                      className="font-semibold shadow-sm"
                       style={{ 
-                        backgroundColor: resolvedPrimaryColor
+                        backgroundColor: resolvedPrimaryColor,
+                        color: primaryButtonTextColor,
                       }}
                       onClick={() => {
                         const img = document.createElement("img");
@@ -407,30 +497,22 @@ export default function EmbedRoofingPage() {
                         img.src = visualizationResult.generatedImageUrl;
                       }}
                     >
-                      <Download className="h-5 w-5 mr-2" />
-                      Download Image
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
                     </Button>
 
                     <Button
-                      size="lg"
-                      className="text-white font-semibold shadow-md hover:shadow-lg transition-all"
-                      style={{ 
-                        backgroundColor: "#475569"
-                      }}
+                      variant="outline"
+                      className="border-slate-300 bg-white font-semibold text-slate-700"
                       onClick={() => setShowingOriginal(!showingOriginal)}
                     >
-                      <Eye className="h-5 w-5 mr-2" />
-                      {showingOriginal ? "View Roofing Design" : "View Original Photo"}
+                      <Eye className="mr-2 h-4 w-4" />
+                      {showingOriginal ? "View design" : "View original"}
                     </Button>
-                  </div>
-                  
-                  <div className="w-full">
+
                     <Button
-                      size="lg"
-                      className="w-full text-white font-semibold shadow-md hover:shadow-lg transition-all py-3"
-                      style={{ 
-                        backgroundColor: resolvedPrimaryColor
-                      }}
+                      variant="outline"
+                      className="col-span-2 border-slate-300 bg-white font-semibold text-slate-700 sm:col-span-1"
                       onClick={() => {
                         setUploadedImage(null);
                         setOriginalFile(null);
@@ -443,35 +525,81 @@ export default function EmbedRoofingPage() {
                           windows: { enabled: false, type: "" },
                           surpriseMe: { enabled: false, type: "" },
                         });
+                        setStyleSelectionStatus({
+                          hasEnabledCategories: false,
+                          allEnabledCategoriesComplete: false,
+                        });
                       }}
                     >
-                      <Camera className="h-5 w-5 mr-2" />
-                      Try Another Photo
+                      <Camera className="mr-2 h-4 w-4" />
+                      Start over
                     </Button>
-                  </div>
                   
                   {/* Get Free Quote button */}
                   <Button
-                    size="lg"
-                    className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all"
+                    className="col-span-2 min-w-0 font-semibold shadow-sm sm:col-span-3"
                     style={{ 
-                      backgroundColor: resolvedPrimaryColor
+                      backgroundColor: resolvedPrimaryColor,
+                      color: primaryButtonTextColor,
                     }}
                     onClick={handleQuoteClick}
                   >
-                    <Phone className="h-5 w-5 mr-2" />
+                    <Phone className="mr-2 h-4 w-4" />
                     {quoteButtonText}
                   </Button>
                 </div>
               )}
             </div>
           )}
-        </div>
+        </section>
+
+        {!uploadedImage && (
+          <aside
+            className="flex min-h-0 flex-col items-center justify-center border-t border-slate-200 p-6 text-center sm:p-8 lg:border-l lg:border-t-0"
+            style={{ backgroundColor: colorWithAlpha(resolvedPrimaryColor, 0.065) }}
+          >
+            <span
+              className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm"
+              style={{ backgroundColor: resolvedPrimaryColor, color: primaryButtonTextColor }}
+            >
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <h3 className="max-w-sm text-2xl font-bold leading-tight text-slate-950">
+              Now picture it on your home.
+            </h3>
+            <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600">
+              Upload one exterior photo and explore new roofing, siding, and window combinations in minutes.
+            </p>
+            <label
+              htmlFor="image-upload"
+              className="group mt-6 flex w-full max-w-xs cursor-pointer items-center justify-center gap-2.5 rounded-xl px-5 py-3.5 text-sm font-semibold shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+              style={{ backgroundColor: resolvedPrimaryColor, color: primaryButtonTextColor }}
+            >
+              <Upload className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
+              Upload my home photo
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </label>
+            <p className="mt-3 text-xs font-medium text-slate-500">JPG or PNG · Up to 10MB</p>
+            <div className="mt-5 flex max-w-sm items-start justify-center gap-2 rounded-xl border border-white/80 bg-white/70 px-4 py-3 text-xs leading-5 text-slate-600 shadow-sm">
+              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: resolvedPrimaryColor }} strokeWidth={3} />
+              <p className="text-left">Use a straight-on daylight photo with the full exterior in frame.</p>
+            </div>
+          </aside>
+        )}
 
         {/* Style Selection */}
         {uploadedImage && (
-          <div className={`${themeClasses.panel} rounded-2xl p-4 mb-4`}>
-            <h2 className={`text-xl font-semibold mb-4 ${themeClasses.panelTitle}`}>Choose Your Style</h2>
+          <aside className="min-h-0 overflow-y-auto border-t border-slate-200 bg-slate-50 p-4 lg:border-l lg:border-t-0">
+            <div className="mb-3">
+              <h2 className="font-semibold text-slate-950">Customize your design</h2>
+              <p className="mt-0.5 text-xs text-slate-500">Turn on an area, then choose both its style and color.</p>
+            </div>
+            {embedVisitor.status?.unlimitedAccountAccess && (
+              <div className="mb-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: resolvedPrimaryColor }} />
+                <p className="text-xs font-semibold text-slate-700">Unlimited team access</p>
+              </div>
+            )}
             <StyleSelector
               selectedStyles={{
                 roof: selectedStyles.roof.type,
@@ -506,28 +634,24 @@ export default function EmbedRoofingPage() {
               customSidingStyles={customSidingStyles}
               customWindowOptions={customWindowOptions}
               defaultOptionVisibility={embedCustomizations.defaultOptionVisibility}
+              compact
+              onSelectionStatusChange={setStyleSelectionStatus}
             />
-          </div>
-        )}
 
-        {/* Generate Button */}
-        {uploadedImage && (
-          <div className="mb-4">
+            {/* Generate Button */}
+          <div className="sticky bottom-0 mt-3 border-t border-slate-200 bg-slate-50/95 pt-3 backdrop-blur-sm">
             <Button
               size="lg"
-              className="w-full text-white font-semibold py-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+              className="w-full rounded-xl font-semibold shadow-lg transition-all hover:shadow-xl disabled:opacity-50"
               style={{ 
-                backgroundColor: resolvedPrimaryColor
+                backgroundColor: resolvedPrimaryColor,
+                color: primaryButtonTextColor,
               }}
               disabled={
                 isGenerating ||
                 embedVisitor.isLoading ||
-                !(
-                  selectedStyles.roof.enabled ||
-                  selectedStyles.siding.enabled ||
-                  selectedStyles.windows.enabled ||
-                  selectedStyles.surpriseMe.enabled
-                )
+                !styleSelectionStatus.hasEnabledCategories ||
+                !styleSelectionStatus.allEnabledCategoriesComplete
               }
               onClick={async () => {
                 if (visitorLimitReached) {
@@ -585,19 +709,24 @@ export default function EmbedRoofingPage() {
             >
               {isGenerating ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  Generating Your Design...
+                  <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Creating your preview...
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-5 w-5 mr-2" />
-                  Generate AI Roofing Design
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  {styleSelectionStatus.hasEnabledCategories && !styleSelectionStatus.allEnabledCategoriesComplete
+                    ? "Choose style and color"
+                    : "Create my design"}
                 </>
               )}
             </Button>
           </div>
+          </aside>
         )}
 
+        </div>
+        </div>
       </div>
     </div>
   );
