@@ -775,7 +775,7 @@ export default function EmbedInteriorPage() {
   }
 
   return (
-    <div className="w-full p-2 sm:p-4" style={{ background: pageBackground }}>
+    <div className="min-h-screen w-full p-2 sm:p-4" style={{ background: pageBackground }}>
       <div className="mx-auto max-w-6xl">
         <div className="overflow-hidden rounded-[22px] border border-slate-200/80 bg-white shadow-2xl shadow-slate-950/15 lg:flex lg:h-[calc(100vh-2rem)] lg:max-h-[760px] lg:flex-col">
           {showHeader && (

@@ -270,7 +270,7 @@ export default function DemoEmbedPage() {
                 key={embedUrl}
                 src={embedUrl}
                 title={`${displayCompanyName} ${selectedService.label} visualizer demo`}
-                className="h-[52rem] w-full bg-white"
+                className="block h-[52rem] w-full border-0 bg-transparent"
                 allow="clipboard-write"
               />
               <div className="flex items-center justify-center gap-2 border-t border-blue-300/10 bg-[#0b1220] px-4 py-3 text-xs text-blue-100/70">
