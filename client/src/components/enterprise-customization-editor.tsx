@@ -1,7 +1,14 @@
 import { useRef, useState } from "react";
-import { Bath, Edit3, Home, Layers, Palette, Plus, Settings2, Trash2, Upload } from "lucide-react";
+import { Bath, ChevronDown, Edit3, Home, Layers, Palette, Plus, Settings2, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -20,6 +27,15 @@ import {
   normalizeEmbedDefaultOptionVisibility,
 } from "@/lib/embed-default-visibility";
 import { useToast } from "@/hooks/use-toast";
+import {
+  getAssignableExteriorColorValue,
+  getDesignColorValues,
+  isColorAssignedToDesign,
+  makeDesignColorAssignmentsExplicit,
+  removeColorFromDesignAssignments,
+  replaceColorValueInDesignAssignments,
+  setColorAssignmentForDesign,
+} from "@/lib/exterior-color-assignments";
 
 type ReferenceImage = string;
 
@@ -118,6 +134,19 @@ type CategoryConfig = {
   icon: typeof Palette;
 };
 
+function getExteriorDesignCategory(categoryKey: CategoryKey) {
+  if (categoryKey === "roofColors") {
+    return { source: "roof" as const, categoryKey: "roofDesigns" as const };
+  }
+  if (categoryKey === "sidingColors") {
+    return { source: "siding" as const, categoryKey: "sidingDesigns" as const };
+  }
+  if (categoryKey === "windowColors") {
+    return { source: "windows" as const, categoryKey: "windowDesigns" as const };
+  }
+  return null;
+}
+
 const emptyCustomizations: EnterpriseCustomizations = {
   enabledServices: DEFAULT_EMBED_SERVICE_ACCESS,
   defaultOptionVisibility: DEFAULT_EMBED_DEFAULT_OPTION_VISIBILITY,
@@ -212,12 +241,7 @@ function normalizeToken(value: unknown) {
 }
 
 function getCustomColorValue(color: CustomColor) {
-  const explicitValue = normalizeToken(color.value);
-  if (explicitValue) return explicitValue;
-
-  const label = normalizeToken(color.label || "custom");
-  const hex = normalizeToken(String(color.hex || "").replace("#", ""));
-  return normalizeToken(`tenant_color_${label}_${hex}`);
+  return getAssignableExteriorColorValue(color);
 }
 
 export function cleanEnterpriseCustomizations(value: EnterpriseCustomizations): EnterpriseCustomizations {
@@ -391,27 +415,72 @@ function ColorItemEditor({
   index,
   onChange,
   onRemove,
-  includeGroup = false,
+  availableColors,
+  availableDesigns,
+  onToggleDesign,
 }: {
   color: CustomColor;
   index: number;
   onChange: (patch: Partial<CustomColor>) => void;
   onRemove: () => void;
-  includeGroup?: boolean;
+  availableColors: CustomColor[];
+  availableDesigns: CustomOption[];
+  onToggleDesign: (designIndex: number, checked: boolean) => void;
 }) {
+  const assignedDesigns = availableDesigns.filter((design) =>
+    isColorAssignedToDesign(design, color, availableColors),
+  );
+  const assignmentLabel = availableDesigns.length === 0
+    ? "Add designs first"
+    : assignedDesigns.length === 0
+      ? "Choose designs"
+      : assignedDesigns.length === 1
+        ? assignedDesigns[0].label || "1 design selected"
+        : `${assignedDesigns.length} designs selected`;
+
   return (
     <div className="space-y-3 rounded-md border bg-background p-3">
-      <div className="flex flex-col gap-3 md:grid md:grid-cols-[1fr_1fr_128px_auto] md:items-end">
-        {includeGroup && (
-          <div>
-            <Label className="text-xs">Category</Label>
-            <Input
-              value={color.groupLabel || ""}
-              onChange={(event) => onChange({ groupLabel: event.target.value })}
-              placeholder="Manufacturer / collection"
-            />
-          </div>
-        )}
+      <div className="flex flex-col gap-3 md:grid md:grid-cols-[minmax(220px,1fr)_minmax(220px,1fr)_128px_auto] md:items-end">
+        <div>
+          <Label className="text-xs">Design Categories</Label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-1 w-full justify-between font-normal"
+                disabled={availableDesigns.length === 0}
+              >
+                <span className="truncate">{assignmentLabel}</span>
+                <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-64"
+            >
+              <DropdownMenuLabel>Choose one or more designs</DropdownMenuLabel>
+              {availableDesigns.map((design, designIndex) => {
+                const checked = isColorAssignedToDesign(design, color, availableColors);
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={design.value || `${design.label}-${designIndex}`}
+                    checked={checked}
+                    onCheckedChange={(nextChecked) => onToggleDesign(designIndex, nextChecked === true)}
+                    onSelect={(event) => event.preventDefault()}
+                  >
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate">{design.label || "Untitled design"}</span>
+                      {design.groupLabel && (
+                        <span className="truncate text-xs text-muted-foreground">{design.groupLabel}</span>
+                      )}
+                    </span>
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <div>
           <Label className="text-xs">Name</Label>
           <Input
@@ -470,9 +539,7 @@ function OptionItemEditor({
   availableColors?: CustomColor[];
   supportsColorAssignments?: boolean;
 }) {
-  const selectedColorValues = Array.isArray(option.allowedColorValues)
-    ? option.allowedColorValues
-    : availableColors.map(getCustomColorValue);
+  const selectedColorValues = getDesignColorValues(option, availableColors);
 
   const toggleColor = (colorValue: string, checked: boolean) => {
     const nextValues = checked
@@ -621,17 +688,26 @@ export default function EnterpriseCustomizationEditor({
     return [];
   };
 
-  const setColorItems = (categoryKey: CategoryKey, colors: CustomColor[]) => {
+  const setColorItems = (
+    categoryKey: CategoryKey,
+    colors: CustomColor[],
+    designs?: CustomOption[],
+  ) => {
+    const designCategory = getExteriorDesignCategory(categoryKey);
+    const exteriorOptions = designCategory && designs
+      ? { ...customizations.exteriorOptions, [designCategory.source]: designs }
+      : customizations.exteriorOptions;
+
     if (categoryKey === "roofColors") {
-      update({ ...customizations, roofColors: colors });
+      update({ ...customizations, roofColors: colors, exteriorOptions });
     }
 
     if (categoryKey === "sidingColors") {
-      update({ ...customizations, sidingColors: colors });
+      update({ ...customizations, sidingColors: colors, exteriorOptions });
     }
 
     if (categoryKey === "windowColors") {
-      update({ ...customizations, windowColors: colors });
+      update({ ...customizations, windowColors: colors, exteriorOptions });
     }
   };
 
@@ -782,7 +858,7 @@ export default function EnterpriseCustomizationEditor({
     {
       key: "roofColors",
       label: "Roof Colors",
-      description: "Manufacturer roof colors that only this client can select.",
+      description: "Create private roof colors and assign them to one or more roof designs.",
       singular: "roof color",
       count: (customizations.roofColors || []).filter((color) => color.label).length,
       kind: "color",
@@ -791,7 +867,7 @@ export default function EnterpriseCustomizationEditor({
     {
       key: "sidingColors",
       label: "Siding Colors",
-      description: "Private siding colors and manufacturer-specific color references.",
+      description: "Create private siding colors and assign them to one or more siding designs.",
       singular: "siding color",
       count: (customizations.sidingColors || []).filter((color) => color.label).length,
       kind: "color",
@@ -800,7 +876,7 @@ export default function EnterpriseCustomizationEditor({
     {
       key: "windowColors",
       label: "Window Colors",
-      description: "Private window frame and trim colors that can be assigned to specific window designs.",
+      description: "Create private frame and trim colors and assign them to one or more window designs.",
       singular: "window color",
       count: (customizations.windowColors || []).filter((color) => color.label).length,
       kind: "color",
@@ -989,11 +1065,15 @@ export default function EnterpriseCustomizationEditor({
   const selectedColors = getColorItems(selectedCategory.key);
   const selectedOptions = getOptionItems(selectedCategory.key);
   const selectedDesignColors = getDesignColors(selectedCategory.colorSource);
+  const selectedColorDesignCategory = getExteriorDesignCategory(selectedCategory.key);
+  const selectedColorDesigns = selectedColorDesignCategory
+    ? getOptionItems(selectedColorDesignCategory.categoryKey)
+    : [];
   const selectedItemsCount = selectedCategory.kind === "color" ? selectedColors.length : selectedOptions.length;
-  const selectedSupportsGroups = selectedCategory.kind === "color" || selectedCategory.kind === "option";
+  const selectedSupportsGroups = selectedCategory.kind === "option";
   const selectedGroups = Array.from(
     new Set(
-      (selectedCategory.kind === "color" ? selectedColors : selectedOptions)
+      selectedOptions
         .map((option) => option.groupLabel?.trim())
         .filter(Boolean) as string[],
     ),
@@ -1003,10 +1083,18 @@ export default function EnterpriseCustomizationEditor({
     setEditingIndex(null);
 
     if (selectedCategory.kind === "color") {
-      setColorItems(selectedCategory.key, [
-        ...selectedColors,
-        { label: "", hex: "#ffffff", groupLabel: selectedGroups[0] || "", referenceImageUrls: [] },
-      ]);
+      const existingDesignAssignments = makeDesignColorAssignmentsExplicit(
+        selectedColorDesigns,
+        selectedColors,
+      );
+      setColorItems(
+        selectedCategory.key,
+        [
+          ...selectedColors,
+          { label: "", hex: "#ffffff", referenceImageUrls: [] },
+        ],
+        existingDesignAssignments,
+      );
       setEditingIndex(selectedColors.length);
       return;
     }
@@ -1029,12 +1117,43 @@ export default function EnterpriseCustomizationEditor({
   };
 
   const updateColorAt = (index: number, patch: Partial<CustomColor>) => {
-    setColorItems(
-      selectedCategory.key,
-      selectedColors.map((color, currentIndex) =>
-        currentIndex === index ? { ...color, ...patch } : color,
-      ),
+    const previousColor = selectedColors[index];
+    if (!previousColor) return;
+
+    const nextColor = { ...previousColor, ...patch };
+    const nextColors = selectedColors.map((color, currentIndex) =>
+      currentIndex === index ? nextColor : color,
     );
+    const previousValue = getCustomColorValue(previousColor);
+    const nextValue = getCustomColorValue(nextColor);
+    const nextDesigns = replaceColorValueInDesignAssignments(
+      selectedColorDesigns,
+      previousValue,
+      nextValue,
+    );
+
+    setColorItems(selectedCategory.key, nextColors, nextDesigns);
+  };
+
+  const toggleColorDesignAt = (color: CustomColor, designIndex: number, checked: boolean) => {
+    if (!selectedColorDesignCategory) return;
+    const nextDesigns = setColorAssignmentForDesign(
+      selectedColorDesigns,
+      selectedColors,
+      color,
+      designIndex,
+      checked,
+    );
+    setColorItems(selectedCategory.key, selectedColors, nextDesigns);
+  };
+
+  const removeColorAt = (index: number) => {
+    const color = selectedColors[index];
+    if (!color) return;
+    const nextColors = selectedColors.filter((_, currentIndex) => currentIndex !== index);
+    const nextDesigns = removeColorFromDesignAssignments(selectedColorDesigns, color);
+    setColorItems(selectedCategory.key, nextColors, nextDesigns);
+    setEditingIndex(null);
   };
 
   const updateOptionAt = (index: number, patch: Partial<CustomOption>) => {
@@ -1184,7 +1303,12 @@ export default function EnterpriseCustomizationEditor({
           ) : (
             <div className="space-y-3">
               {selectedCategory.kind === "color"
-                ? selectedColors.map((color, index) => (
+                ? selectedColors.map((color, index) => {
+                    const assignedDesignCount = selectedColorDesigns.filter((design) =>
+                      isColorAssignedToDesign(design, color, selectedColors),
+                    ).length;
+
+                    return (
                     <div key={index} className="rounded-md border">
                       <div className="flex items-center justify-between gap-3 p-3">
                         <div className="flex min-w-0 items-center gap-3">
@@ -1195,7 +1319,12 @@ export default function EnterpriseCustomizationEditor({
                           <div className="min-w-0">
                             <p className="truncate font-medium">{color.label || "Untitled color"}</p>
                             <p className="text-xs text-muted-foreground">
-                              {[color.groupLabel, `${color.referenceImageUrls?.length || 0} reference images`]
+                              {[
+                                selectedColorDesigns.length > 0
+                                  ? `${assignedDesignCount} of ${selectedColorDesigns.length} designs`
+                                  : "no designs added",
+                                `${color.referenceImageUrls?.length || 0} reference images`,
+                              ]
                                 .filter(Boolean)
                                 .join(" - ")}
                             </p>
@@ -1214,13 +1343,7 @@ export default function EnterpriseCustomizationEditor({
                             type="button"
                             size="icon"
                             variant="outline"
-                            onClick={() => {
-                              setColorItems(
-                                selectedCategory.key,
-                                selectedColors.filter((_, currentIndex) => currentIndex !== index),
-                              );
-                              setEditingIndex(null);
-                            }}
+                            onClick={() => removeColorAt(index)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -1231,20 +1354,19 @@ export default function EnterpriseCustomizationEditor({
                           <ColorItemEditor
                             color={color}
                             index={index}
-                            includeGroup={selectedSupportsGroups}
+                            availableColors={selectedColors}
+                            availableDesigns={selectedColorDesigns}
+                            onToggleDesign={(designIndex, checked) =>
+                              toggleColorDesignAt(color, designIndex, checked)
+                            }
                             onChange={(patch) => updateColorAt(index, patch)}
-                            onRemove={() => {
-                              setColorItems(
-                                selectedCategory.key,
-                                selectedColors.filter((_, currentIndex) => currentIndex !== index),
-                              );
-                              setEditingIndex(null);
-                            }}
+                            onRemove={() => removeColorAt(index)}
                           />
                         </div>
                       )}
                     </div>
-                  ))
+                    );
+                  })
                 : selectedOptions.map((option, index) => (
                     <div key={index} className="rounded-md border">
                       <div className="flex items-center justify-between gap-3 p-3">

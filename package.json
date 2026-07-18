@@ -12,6 +12,7 @@
     "test:enterprise-embed-access": "tsx scripts/test-enterprise-embed-access.ts",
     "test:embed-selection": "tsx scripts/test-embed-exterior-selection.ts",
     "test:embed-quote-action": "tsx scripts/test-embed-quote-action.ts",
+    "test:exterior-color-assignments": "tsx scripts/test-exterior-color-assignments.ts",
     "test:quote-crm": "tsx scripts/test-quote-crm.ts",
     "test:quote-email-formatting": "tsx scripts/test-quote-email-formatting.ts",
     "db:push": "drizzle-kit push",
