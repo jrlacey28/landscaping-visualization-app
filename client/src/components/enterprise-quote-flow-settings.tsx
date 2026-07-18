@@ -81,6 +81,7 @@ export default function EnterpriseQuoteFlowSettings({ tenant }: { tenant: any })
       const updatedTenant = await response.json();
       setSettings(settingsFromTenant(updatedTenant));
       await queryClient.invalidateQueries({ queryKey: ["/api/tenant/my-tenant"] });
+      window.dispatchEvent(new CustomEvent("dreambuilder:quote-flow-saved"));
       toast({
         title: "Quote flow saved",
         description: "Your embedded visualizers will use these settings immediately.",
@@ -137,7 +138,7 @@ export default function EnterpriseQuoteFlowSettings({ tenant }: { tenant: any })
       <CardHeader>
         <CardTitle>Visitor Quote Flow</CardTitle>
         <CardDescription>
-          Control the free visitor limit, quote prompt, form copy, and lead destination for every enterprise embed.
+          Control the free visitor limit, quote prompt, form copy, and the single lead destination used by every enterprise embed.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">

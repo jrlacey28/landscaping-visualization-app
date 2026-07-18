@@ -21,16 +21,120 @@ function escapeHtml(value: unknown) {
     .replace(/'/g, "&#39;");
 }
 
-function formatSelectedStyles(selectedStyles: unknown) {
-  if (!selectedStyles) return "Not provided";
+export type SelectedStyleTag = {
+  label: string;
+  value: string;
+};
 
-  if (typeof selectedStyles === "string") return selectedStyles;
+const SELECTION_LABELS: Record<string, string> = {
+  roof: "Roof",
+  siding: "Siding",
+  windows: "Windows",
+  surpriseMe: "Surprise Me",
+  curbing: "Curbing",
+  landscape: "Landscape",
+  patios: "Patio",
+  patio: "Patio",
+  poolType: "Pool Type",
+  poolSize: "Pool Size",
+  decking: "Decking",
+  landscaping: "Landscaping",
+  features: "Features",
+  hotTub: "Hot Tub",
+  sauna: "Sauna",
+  service: "Service",
+  styles: "Styles",
+};
 
-  try {
-    return JSON.stringify(selectedStyles, null, 2);
-  } catch {
-    return "Provided";
+function titleCaseSelection(value: string) {
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function friendlySelectionValue(value: unknown, category = "") {
+  const rawValue = String(value ?? "").trim();
+  if (!rawValue) return "";
+
+  return rawValue
+    .split("__color__")
+    .map((part) => part
+      .replace(/^tenant_custom_exterior_(roof|siding|windows)_/i, "")
+      .replace(/^tenant_color_/i, "")
+      .replace(new RegExp(`^${category}_`, "i"), "")
+      .replace(/_[0-9a-f]{6}$/i, "")
+      .replace(/\s*\(#[0-9a-f]{6}\)\s*$/i, "")
+      .trim())
+    .filter(Boolean)
+    .map(titleCaseSelection)
+    .join(" · ");
+}
+
+function selectionTag(label: string, value: unknown, category = ""): SelectedStyleTag | null {
+  const friendlyValue = friendlySelectionValue(value, category);
+  return friendlyValue ? { label, value: friendlyValue } : null;
+}
+
+export function formatSelectedStyleTags(selectedStyles: unknown): SelectedStyleTag[] {
+  if (!selectedStyles) return [];
+
+  if (typeof selectedStyles === "string") {
+    try {
+      const parsed = JSON.parse(selectedStyles);
+      if (parsed !== selectedStyles) return formatSelectedStyleTags(parsed);
+    } catch {
+      // Plain strings are valid selections.
+    }
+    const tag = selectionTag("Design", selectedStyles);
+    return tag ? [tag] : [];
   }
+
+  if (Array.isArray(selectedStyles)) {
+    return selectedStyles
+      .map((value) => selectionTag("Style", value))
+      .filter((tag): tag is SelectedStyleTag => Boolean(tag));
+  }
+
+  if (typeof selectedStyles !== "object") {
+    const tag = selectionTag("Design", selectedStyles);
+    return tag ? [tag] : [];
+  }
+
+  return Object.entries(selectedStyles as Record<string, unknown>).flatMap(([category, selection]) => {
+    const label = SELECTION_LABELS[category] || titleCaseSelection(category);
+
+    if (selection && typeof selection === "object" && !Array.isArray(selection)) {
+      const details = selection as Record<string, unknown>;
+      if (details.enabled === false) return [];
+
+      const styleValue = details.type
+        ?? details.style
+        ?? details.design
+        ?? details.selectedStyle
+        ?? details.value;
+      const colorValue = details.color ?? details.selectedColor;
+      const friendlyStyle = friendlySelectionValue(styleValue, category);
+      const friendlyColor = friendlySelectionValue(colorValue, category);
+      const value = [friendlyStyle, friendlyColor]
+        .filter((part, index, parts) => Boolean(part) && parts.indexOf(part) === index)
+        .join(" · ");
+
+      return value ? [{ label, value }] : [];
+    }
+
+    if (Array.isArray(selection)) {
+      const value = selection
+        .map((item) => friendlySelectionValue(item, category))
+        .filter(Boolean)
+        .join(", ");
+      return value ? [{ label, value }] : [];
+    }
+
+    const tag = selectionTag(label, selection, category);
+    return tag ? [tag] : [];
+  });
 }
 
 function normalizeEmailColor(value: unknown, fallback: string) {
@@ -125,12 +229,22 @@ export async function sendQuoteLeadNotificationEmail({
         : imageReferenceNote("Generated", lead.generatedImageUrl)
       : "No generated visualization was attached.";
     const originalImageNote = imageReferenceNote("Original", lead.originalImageUrl);
-    const selectedStyles = formatSelectedStyles(lead.selectedStyles);
+    const selectedStyleTags = formatSelectedStyleTags(lead.selectedStyles);
+    const selectedStylesText = selectedStyleTags.length
+      ? selectedStyleTags.map((tag) => `${tag.label}: ${tag.value}`).join("\n")
+      : "Not provided";
     const primaryColor = normalizeEmailColor(tenant.embedPrimaryColor || tenant.primaryColor, "#0f766e");
     const secondaryColor = normalizeEmailColor(tenant.embedSecondaryColor || tenant.secondaryColor, primaryColor);
     const primaryTextColor = getEmailContrastColor(primaryColor);
     const logoUrl = safeExternalImageUrl(tenant.logoUrl);
     const originalImageLink = safeExternalImageUrl(lead.originalImageUrl);
+    const selectedStylesHtml = selectedStyleTags.length
+      ? selectedStyleTags.map((tag) => `
+          <span style="display: inline-block; margin: 0 8px 8px 0; padding: 8px 11px; border: 1px solid ${primaryColor}; border-radius: 999px; background: #f8fafc; font-size: 13px; line-height: 18px; color: #334155;">
+            <strong style="color: #0f172a;">${escapeHtml(tag.label)}:</strong> ${escapeHtml(tag.value)}
+          </span>
+        `).join("")
+      : `<span style="display: inline-block; padding: 8px 11px; border: 1px solid #e2e8f0; border-radius: 999px; background: #f8fafc; font-size: 13px; line-height: 18px; color: #64748b;">Not provided</span>`;
     const generatedImagePreview = generatedImageAttachment
       ? `
           <tr>
@@ -198,8 +312,8 @@ export async function sendQuoteLeadNotificationEmail({
                     </tr>
                     <tr>
                       <td style="padding: 0 32px 26px;">
-                        <h2 style="margin: 0 0 8px; font-size: 17px; line-height: 24px; color: #0f172a;">Selected design details</h2>
-                        <pre style="margin: 0; white-space: pre-wrap; font-family: Arial, Helvetica, sans-serif; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 16px; border-radius: 8px; font-size: 13px; line-height: 21px; color: #475569;">${escapeHtml(selectedStyles)}</pre>
+                        <h2 style="margin: 0 0 10px; font-size: 17px; line-height: 24px; color: #0f172a;">Selected design</h2>
+                        <div style="font-size: 0;">${selectedStylesHtml}</div>
                       </td>
                     </tr>
                     <tr>
@@ -232,7 +346,7 @@ export async function sendQuoteLeadNotificationEmail({
         lead.projectDetails || "No details provided",
         "",
         "Selected styles:",
-        selectedStyles,
+        selectedStylesText,
         "",
         generatedImageNote,
         originalImageNote,

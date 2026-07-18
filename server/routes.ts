@@ -1030,6 +1030,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (embedQuoteCrmEnabled && !embedQuoteCrmWebhookUrl) {
         return res.status(400).json({ error: "CRM webhook URL is required when CRM delivery is enabled" });
       }
+      if (settings.embedQuoteDestinationType === "link" && !settings.embedCtaUrl) {
+        return res.status(400).json({ error: "External quote URL is required when the quote destination is an external link" });
+      }
+      if (settings.embedQuoteDestinationType === "phone" && !settings.embedCtaPhone) {
+        return res.status(400).json({ error: "Quote phone number is required when the quote destination is a phone call" });
+      }
       const normalizedCrmWebhookUrl = embedQuoteCrmWebhookUrl
         ? validateQuoteCrmWebhookUrl(embedQuoteCrmWebhookUrl)
         : "";

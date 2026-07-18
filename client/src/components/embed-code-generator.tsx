@@ -90,11 +90,19 @@ function buildDefaultConfig(tenant: any): EmbedConfig {
 
 export default function EmbedCodeGenerator({ tenant, accountUserId }: EmbedCodeGeneratorProps) {
   const enabledServices = useMemo(() => getEnabledEmbedServices(tenant), [tenant?.embedCustomizations]);
+  const usesTenantQuoteFlow = tenant?.isEnterprise === true || tenant?.clientType === "enterprise";
   const [config, setConfig] = useState<EmbedConfig>(() =>
     buildDefaultConfig(tenant),
   );
   const [copied, setCopied] = useState(false);
   const [isLogoUploading, setIsLogoUploading] = useState(false);
+  const [previewVersion, setPreviewVersion] = useState(0);
+
+  useEffect(() => {
+    const refreshPreview = () => setPreviewVersion((current) => current + 1);
+    window.addEventListener("dreambuilder:quote-flow-saved", refreshPreview);
+    return () => window.removeEventListener("dreambuilder:quote-flow-saved", refreshPreview);
+  }, []);
 
   useEffect(() => {
     if (!tenant?.slug) return;
@@ -179,13 +187,16 @@ export default function EmbedCodeGenerator({ tenant, accountUserId }: EmbedCodeG
       primaryColor: config.primaryColor,
       secondaryColor: config.secondaryColor,
       companyName: config.companyName || "",
-      contactPhone: config.contactPhone || "",
-      contactType: config.contactType,
-      contactLink: config.contactLink || "",
       showHeader: config.showHeader.toString(),
       backgroundScheme: config.backgroundScheme,
       backgroundColor: config.backgroundColor,
     });
+
+    if (!usesTenantQuoteFlow) {
+      params.set("contactPhone", config.contactPhone || "");
+      params.set("contactType", config.contactType);
+      params.set("contactLink", config.contactLink || "");
+    }
 
     if (embedAccountUserId) {
       params.set("accountUserId", String(embedAccountUserId));
@@ -196,7 +207,7 @@ export default function EmbedCodeGenerator({ tenant, accountUserId }: EmbedCodeG
     }
 
     return `${baseUrl}${visualizerPaths[config.visualizerType]}?${params.toString()}`;
-  }, [baseUrl, config, embedAccountUserId, tenantSlug]);
+  }, [baseUrl, config, embedAccountUserId, tenantSlug, usesTenantQuoteFlow]);
 
   const iframeCode = `<iframe
   src="${embedUrl}"
@@ -505,63 +516,65 @@ export default function EmbedCodeGenerator({ tenant, accountUserId }: EmbedCodeG
             </div>
           </section>
 
-          <section className="border-t pt-6">
-            <div className="mb-4 flex items-center gap-2 text-slate-900">
-              <Phone className="h-4 w-4 text-blue-600" />
-              <h4 className="text-sm font-semibold">Quote Button</h4>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <Label htmlFor="contactType">Action</Label>
-                <select
-                  id="contactType"
-                  value={config.contactType}
-                  onChange={(event) =>
-                    setConfig({
-                      ...config,
-                      contactType: event.target.value as ContactType,
-                    })
-                  }
-                  className={selectClassName}
-                >
-                  <option value="phone">Phone Number</option>
-                  <option value="link">Custom Link</option>
-                </select>
+          {!usesTenantQuoteFlow && (
+            <section className="border-t pt-6">
+              <div className="mb-4 flex items-center gap-2 text-slate-900">
+                <Phone className="h-4 w-4 text-blue-600" />
+                <h4 className="text-sm font-semibold">Quote Button</h4>
               </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <Label htmlFor="contactType">Action</Label>
+                  <select
+                    id="contactType"
+                    value={config.contactType}
+                    onChange={(event) =>
+                      setConfig({
+                        ...config,
+                        contactType: event.target.value as ContactType,
+                      })
+                    }
+                    className={selectClassName}
+                  >
+                    <option value="phone">Phone Number</option>
+                    <option value="link">Custom Link</option>
+                  </select>
+                </div>
 
-              {config.contactType === "phone" ? (
-                <div className="md:col-span-2">
-                  <Label htmlFor="contactPhone">Contact Phone Number</Label>
-                  <Input
-                    id="contactPhone"
-                    value={config.contactPhone}
-                    onChange={(event) =>
-                      setConfig({
-                        ...config,
-                        contactPhone: event.target.value,
-                      })
-                    }
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-              ) : (
-                <div className="md:col-span-2">
-                  <Label htmlFor="contactLink">Contact Link URL</Label>
-                  <Input
-                    id="contactLink"
-                    value={config.contactLink}
-                    onChange={(event) =>
-                      setConfig({
-                        ...config,
-                        contactLink: event.target.value,
-                      })
-                    }
-                    placeholder="https://yoursite.com/contact"
-                  />
-                </div>
-              )}
-            </div>
-          </section>
+                {config.contactType === "phone" ? (
+                  <div className="md:col-span-2">
+                    <Label htmlFor="contactPhone">Contact Phone Number</Label>
+                    <Input
+                      id="contactPhone"
+                      value={config.contactPhone}
+                      onChange={(event) =>
+                        setConfig({
+                          ...config,
+                          contactPhone: event.target.value,
+                        })
+                      }
+                      placeholder="(555) 123-4567"
+                    />
+                  </div>
+                ) : (
+                  <div className="md:col-span-2">
+                    <Label htmlFor="contactLink">Contact Link URL</Label>
+                    <Input
+                      id="contactLink"
+                      value={config.contactLink}
+                      onChange={(event) =>
+                        setConfig({
+                          ...config,
+                          contactLink: event.target.value,
+                        })
+                      }
+                      placeholder="https://yoursite.com/contact"
+                    />
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
         </div>
 
         <div className="space-y-5">
@@ -607,6 +620,7 @@ export default function EmbedCodeGenerator({ tenant, accountUserId }: EmbedCodeG
             <div className="overflow-hidden rounded-lg border bg-slate-100 p-3">
               <div className="overflow-hidden rounded-md border bg-white">
                 <iframe
+                  key={`${embedUrl}-${previewVersion}`}
                   src={embedUrl}
                   width="100%"
                   height="520"
