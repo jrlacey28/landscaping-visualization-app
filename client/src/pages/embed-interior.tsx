@@ -1,24 +1,47 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Camera, Download, Eye, Phone, Sparkles, Upload, XCircle } from "lucide-react";
+import { ArrowRight, Check, Download, Eye, Phone, RotateCcw, Sparkles, Upload, XCircle } from "lucide-react";
 import { Button } from "../components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "../components/ui/select";
 import EmbedQuoteGate from "@/components/embed-quote-gate";
 import EmbedQuoteLeadForm from "@/components/embed-quote-lead-form";
+import EmbedPoweredBy from "@/components/embed-powered-by";
 import { useTenant } from "../hooks/use-tenant";
 import { useEmbedVisitorLimit } from "@/hooks/use-embed-visitor-limit";
+import { useDemoEmbedTrial } from "@/hooks/use-demo-embed-trial";
 import { checkVisualizationStatus, uploadInteriorImage } from "../lib/api";
 import { getEmbedQuoteButtonText, runEmbedQuoteAction } from "@/lib/embed-quote";
 import {
   DEFAULT_EMBED_BACKGROUND_COLOR,
   getEmbedBackground,
-  getEmbedThemeClasses,
   parseEmbedBackgroundScheme,
 } from "@/lib/embed-theme";
 import { normalizeEmbedDefaultOptionVisibility } from "@/lib/embed-default-visibility";
 import { type EmbedServiceKey, isEmbedServiceEnabled } from "@/lib/embed-services";
 
 type InteriorService = "painting" | "bathroom" | "kitchen" | "living_room";
+
+function getContrastTextColor(color: string) {
+  const normalized = color.replace("#", "");
+  const hex = normalized.length === 3
+    ? normalized.split("").map((character) => `${character}${character}`).join("")
+    : normalized;
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return "#ffffff";
+
+  const red = Number.parseInt(hex.slice(0, 2), 16);
+  const green = Number.parseInt(hex.slice(2, 4), 16);
+  const blue = Number.parseInt(hex.slice(4, 6), 16);
+  return (red * 299 + green * 587 + blue * 114) / 1000 > 160 ? "#0f172a" : "#ffffff";
+}
+
+function colorWithAlpha(color: string, alpha: number) {
+  const normalized = color.replace("#", "");
+  const hex = normalized.length === 3
+    ? normalized.split("").map((character) => `${character}${character}`).join("")
+    : normalized;
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return `rgba(37, 99, 235, ${alpha})`;
+
+  return `rgba(${Number.parseInt(hex.slice(0, 2), 16)}, ${Number.parseInt(hex.slice(2, 4), 16)}, ${Number.parseInt(hex.slice(4, 6), 16)}, ${alpha})`;
+}
 
 type InteriorOption = {
   value: string;
@@ -402,10 +425,8 @@ export default function EmbedInteriorPage() {
     primaryColorParam || (tenant ? effectiveTenant.embedPrimaryColor || effectiveTenant.primaryColor || primaryColor : primaryColor);
   const resolvedSecondaryColor =
     secondaryColorParam || (tenant ? effectiveTenant.embedSecondaryColor || effectiveTenant.secondaryColor || secondaryColor : secondaryColor);
-  const resolvedLogoUrl = tenant ? effectiveTenant.logoUrl || logoUrlParam || "" : logoUrlParam || effectiveTenant.logoUrl || "";
-  const displayCompanyName = tenant
-    ? effectiveTenant.companyName || companyName || "DreamBuilder"
-    : companyName || effectiveTenant.companyName || "DreamBuilder";
+  const resolvedLogoUrl = logoUrlParam || effectiveTenant.logoUrl || "";
+  const displayCompanyName = companyName || effectiveTenant.companyName || "DreamBuilder";
   const embedCustomizations = effectiveTenant.embedCustomizations || {};
   const defaultOptionVisibility = normalizeEmbedDefaultOptionVisibility(
     embedCustomizations.defaultOptionVisibility,
@@ -463,6 +484,7 @@ export default function EmbedInteriorPage() {
     tenantId: tenant?.id || null,
     tenantSlug: tenant?.slug || null,
   });
+  const demoTrial = useDemoEmbedTrial();
   const visitorLimitReached =
     !!embedVisitor.status?.limitEnabled && !embedVisitor.status.canGenerate;
   const quoteButtonText = getEmbedQuoteButtonText(effectiveTenant);
@@ -472,7 +494,7 @@ export default function EmbedInteriorPage() {
     resolvedSecondaryColor,
     backgroundColor,
   );
-  const themeClasses = getEmbedThemeClasses(backgroundScheme);
+  const primaryButtonTextColor = getContrastTextColor(resolvedPrimaryColor);
 
   const selectedStyleIds = useMemo(
     () =>
@@ -575,6 +597,10 @@ export default function EmbedInteriorPage() {
   };
 
   const generateDesign = async () => {
+    if (!demoTrial.canStartGeneration()) {
+      return;
+    }
+
     if (visitorLimitReached) {
       setShowQuoteGate(true);
       return;
@@ -607,17 +633,20 @@ export default function EmbedInteriorPage() {
         setVisualizationResult(status);
         if (status?.generatedImageUrl) {
           setLastGeneratedImageUrl(status.generatedImageUrl);
+          demoTrial.recordSuccessfulGeneration();
         }
       } else {
         setVisualizationResult(result);
         if (result?.generatedImageUrl) {
           setLastGeneratedImageUrl(result.generatedImageUrl);
+          demoTrial.recordSuccessfulGeneration();
         }
       }
     } catch (error) {
       console.error("Error generating interior embed visualization:", error);
       const apiError = error as any;
       if (apiError.code === "EMBED_VISITOR_LIMIT") {
+        if (demoTrial.handleServerLimitReached()) return;
         embedVisitor.markLimitReached(apiError.details?.embedVisitorUsage);
         setShowQuoteGate(true);
         return;
@@ -635,6 +664,23 @@ export default function EmbedInteriorPage() {
     setVisualizationResult(null);
     setLastGeneratedImageUrl(null);
     setShowingOriginal(false);
+  };
+
+  const handleStartOver = () => {
+    setShowQuoteGate(false);
+    setVisualizationResult(null);
+    setLastGeneratedImageUrl(null);
+    setShowingOriginal(false);
+  };
+
+  const handleDownloadDesign = () => {
+    const generatedImage = visualizationResult?.generatedImageUrl || lastGeneratedImageUrl;
+    if (!generatedImage) return;
+
+    const anchor = document.createElement("a");
+    anchor.href = generatedImage;
+    anchor.download = config.resultFileName;
+    anchor.click();
   };
 
   const openQuote = () => {
@@ -728,257 +774,128 @@ export default function EmbedInteriorPage() {
   }
 
   return (
-    <div className="min-h-screen p-2" style={{ background: pageBackground }}>
-      <div className="mx-auto max-w-4xl">
-        {showHeader && (
-          <div className="mb-8 pt-4 text-center">
-            {resolvedLogoUrl && (
-              <img
-                src={resolvedLogoUrl}
-                alt={`${displayCompanyName} logo`}
-                className="mx-auto mb-4 max-h-20 max-w-[220px] object-contain"
-              />
-            )}
-            <h1 className={`mb-2 text-3xl font-bold md:text-4xl ${themeClasses.headerText}`}>
-              {displayCompanyName} {config.title}
-            </h1>
-            <p className={`text-lg ${themeClasses.subheadingText}`}>{config.subtitle}</p>
-          </div>
-        )}
-
-        {showQuoteForm && (
-          <EmbedQuoteLeadForm
-            tenant={effectiveTenant}
-            service={config.service}
-            selectedStyles={selectedStyleIds}
-            originalImageUrl={uploadedImage}
-            generatedImageUrl={visualizationResult?.generatedImageUrl || lastGeneratedImageUrl}
-            primaryColor={resolvedPrimaryColor}
-            secondaryColor={resolvedSecondaryColor}
-            onClose={() => setShowQuoteForm(false)}
-          />
-        )}
-
-        <div className={`${themeClasses.panel} mb-4 rounded-2xl p-4`}>
-          <h2 className={`mb-4 text-center text-xl font-semibold ${themeClasses.panelTitle}`}>
-            {config.uploadLabel}
-          </h2>
-
-          {!uploadedImage ? (
-            <div className={`rounded-lg border-2 border-dashed p-8 text-center ${themeClasses.uploadBorder}`}>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-                id="interior-image-upload"
-              />
-              <label htmlFor="interior-image-upload" className="flex cursor-pointer flex-col items-center space-y-4">
-                <Upload className={`h-12 w-12 ${themeClasses.uploadIcon}`} />
-                <div>
-                  <p className={`${themeClasses.uploadPrimaryText} font-medium`}>Click to upload your photo</p>
-                  <p className={`${themeClasses.uploadSecondaryText} text-sm`}>PNG, JPG up to 10MB</p>
+    <div className="w-full p-2 sm:p-4" style={{ background: pageBackground }}>
+      <div className="mx-auto max-w-6xl">
+        <div className="overflow-hidden rounded-[22px] border border-slate-200/80 bg-white shadow-2xl shadow-slate-950/15 lg:flex lg:h-[calc(100vh-2rem)] lg:max-h-[760px] lg:flex-col">
+          {showHeader && (
+            <header className="flex shrink-0 items-center gap-3 border-b border-slate-200 px-4 py-2 sm:px-5">
+              {resolvedLogoUrl && <img src={resolvedLogoUrl} alt={`${displayCompanyName} logo`} className="max-h-11 max-w-[175px] shrink-0 object-contain object-left" />}
+              <div className={`min-w-0 flex-1 ${resolvedLogoUrl ? "border-l border-slate-200 pl-3 sm:pl-4" : ""}`}>
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                  <h1 className="text-base font-bold leading-tight text-slate-950 sm:text-lg">{config.title}</h1>
+                  <EmbedPoweredBy tenant={effectiveTenant} className="shrink-0 justify-start" />
                 </div>
-              </label>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className={`relative w-full overflow-hidden rounded-lg bg-gray-100 ${showQuoteGate ? "min-h-[340px]" : "aspect-video"}`}>
-                <img
-                  src={activeImage || ""}
-                  alt="Uploaded project"
-                  className={`h-full w-full object-cover transition duration-300 ${showQuoteGate ? "scale-105 blur-xl" : ""}`}
-                />
-                {showQuoteGate && (
-                  <EmbedQuoteGate
-                    status={embedVisitor.status}
-                    primaryColor={resolvedPrimaryColor}
-                    secondaryColor={resolvedSecondaryColor}
-                    buttonText={quoteButtonText}
-                    onQuoteClick={openQuote}
-                    onClose={() => setShowQuoteGate(false)}
-                  />
-                )}
-                {isGenerating && (
-                  <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 backdrop-blur-sm">
-                    <div className="flex items-center gap-3 text-lg font-bold text-white">
-                      <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Rendering your design
-                    </div>
-                  </div>
-                )}
+                <p className="mt-0.5 hidden text-xs leading-relaxed text-slate-500 sm:block">{config.subtitle}</p>
               </div>
-
-              {completedImage ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <Button
-                      size="lg"
-                      className="font-semibold text-white shadow-md transition-all hover:shadow-lg"
-                      style={{ backgroundColor: resolvedPrimaryColor }}
-                      onClick={() => {
-                        const anchor = document.createElement("a");
-                        anchor.href = completedImage;
-                        anchor.download = config.resultFileName;
-                        anchor.click();
-                      }}
-                    >
-                      <Download className="mr-2 h-5 w-5" />
-                      Download Image
-                    </Button>
-                    <Button
-                      size="lg"
-                      className="font-semibold text-white shadow-md transition-all hover:shadow-lg"
-                      style={{ backgroundColor: "#475569" }}
-                      onClick={() => setShowingOriginal(!showingOriginal)}
-                    >
-                      <Eye className="mr-2 h-5 w-5" />
-                      {showingOriginal ? "View New Design" : "View Original Photo"}
-                    </Button>
-                  </div>
-                  <Button
-                    size="lg"
-                    className="w-full font-semibold text-white shadow-md transition-all hover:shadow-lg"
-                    style={{ backgroundColor: resolvedPrimaryColor }}
-                    onClick={resetPhoto}
-                  >
-                    <Camera className="mr-2 h-5 w-5" />
-                    Try Another Photo
-                  </Button>
-                  <Button
-                    size="lg"
-                    className="w-full py-4 font-semibold text-white shadow-lg transition-all hover:shadow-xl"
-                    style={{ backgroundColor: resolvedPrimaryColor }}
-                    onClick={openQuote}
-                  >
-                    <Phone className="mr-2 h-5 w-5" />
-                    {quoteButtonText}
-                  </Button>
-                </div>
-              ) : (
-                <Button variant="outline" onClick={resetPhoto} className="w-full">
-                  Upload Different Photo
-                </Button>
-              )}
-            </div>
+            </header>
           )}
-        </div>
+          {!showHeader && <EmbedPoweredBy tenant={effectiveTenant} className="shrink-0 justify-start border-b border-slate-200 bg-slate-50 px-4 py-1 sm:px-5" />}
 
-        {uploadedImage && (
-          <div className={`${themeClasses.panel} mb-4 rounded-2xl p-4`}>
-            <h2 className={`mb-4 text-xl font-semibold ${themeClasses.panelTitle}`}>Choose Your Style</h2>
-            {config.groups.length === 0 ? (
-              <div className="rounded-xl border border-white/10 bg-white/10 p-4 text-sm text-white">
-                No style options are currently configured for this client embed.
-              </div>
-            ) : (
-            <div className="grid gap-3 md:grid-cols-2">
-              {config.groups.map((group) => {
-                const isActive = activeGroups[group.id];
-                const selectedOption =
-                  group.options.find((option) => option.value === selectedOptions[group.id]) ||
-                  group.options[0];
+          {showQuoteForm && (
+            <EmbedQuoteLeadForm tenant={effectiveTenant} service={config.service} selectedStyles={selectedStyleIds} originalImageUrl={uploadedImage} generatedImageUrl={visualizationResult?.generatedImageUrl || lastGeneratedImageUrl} primaryColor={resolvedPrimaryColor} secondaryColor={resolvedSecondaryColor} onClose={() => setShowQuoteForm(false)} />
+          )}
 
-                return (
-                  <div
-                    key={group.id}
-                    className="rounded-xl p-4 ring-1 ring-white/15 transition"
-                    style={{
-                      backgroundColor: isActive ? resolvedPrimaryColor : `${resolvedPrimaryColor}99`,
-                    }}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className={`font-semibold ${themeClasses.panelTitle}`}>{group.label}</h3>
-                      <button
-                        type="button"
-                        aria-label={`Toggle ${group.label}`}
-                        aria-pressed={isActive}
-                        onClick={() => toggleGroup(group)}
-                        className="flex h-7 w-12 items-center rounded-full p-1 transition"
-                        style={{ backgroundColor: isActive ? resolvedPrimaryColor : "#64748b" }}
-                      >
-                        <span
-                          className={`h-5 w-5 rounded-full bg-white transition-transform ${
-                            isActive ? "translate-x-5" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                    </div>
-                    <Select
-                      value={selectedOptions[group.id] || group.options[0]?.value || ""}
-                      onValueChange={(value) => selectGroupOption(group, value)}
-                      disabled={!isActive}
-                    >
-                      <SelectTrigger className="mt-3 h-12 border-white/10 bg-[#111827] text-white focus:border-blue-300 disabled:cursor-not-allowed disabled:opacity-55">
-                        <OptionDisplay option={selectedOption} />
-                      </SelectTrigger>
-                      <SelectContent className="border-white/10 bg-[#111827] text-white">
-                        {group.options.map((option) => (
-                          <SelectItem key={option.value} value={option.value} textValue={option.label}>
-                            <OptionDisplay option={option} />
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+          <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
+            <section className="flex min-h-0 flex-col overflow-hidden bg-white p-4">
+              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" id="interior-image-upload" />
+              {!uploadedImage ? (
+                <label htmlFor="interior-image-upload" className="group relative flex aspect-video min-h-[320px] cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-950 text-center shadow-inner lg:min-h-0 lg:flex-1 lg:aspect-auto">
+                  <div className="absolute inset-0 opacity-70" style={{ background: `radial-gradient(circle at 22% 25%, ${colorWithAlpha(resolvedPrimaryColor, 0.55)}, transparent 34%), radial-gradient(circle at 78% 72%, ${colorWithAlpha(resolvedSecondaryColor, 0.45)}, transparent 34%), linear-gradient(145deg, #0f172a, #1e293b)` }} />
+                  <div className="absolute inset-5 rounded-xl border border-dashed border-white/30" />
+                  <div className="relative z-10 max-w-sm px-8 py-8 text-white">
+                    <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl shadow-xl transition group-hover:-translate-y-0.5" style={{ backgroundColor: resolvedPrimaryColor, color: primaryButtonTextColor }}><Upload className="h-6 w-6" /></span>
+                    <h2 className="mt-5 text-xl font-bold">Add your {config.pageLabel.toLowerCase()} photo</h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-200">Use a bright, clear photo that shows the full room and the surfaces you want to update.</p>
+                    <span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-lg">Choose photo <ArrowRight className="h-4 w-4" /></span>
+                    <p className="mt-3 text-xs font-medium text-slate-300">JPG or PNG &middot; Up to 10MB</p>
                   </div>
-                );
-              })}
-            </div>
-            )}
-
-            {customPaintSelected && (
-              <div className="mt-4 rounded-xl border border-white/10 bg-white p-4 shadow-sm">
-                <h3 className="mb-3 font-semibold text-slate-800">Custom Paint Color</h3>
-                <div className="grid gap-4 sm:grid-cols-[96px_1fr]">
-                  <label className="space-y-2">
-                    <span className="text-sm font-medium text-slate-600">Color</span>
-                    <input
-                      type="color"
-                      value={customPaintHex}
-                      onChange={(event) => setCustomPaintHex(event.target.value)}
-                      className="h-12 w-full rounded-lg border border-slate-300 bg-white p-1"
-                    />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-sm font-medium text-slate-600">Color name or notes</span>
-                    <input
-                      type="text"
-                      value={customPaintName}
-                      onChange={(event) => setCustomPaintName(event.target.value)}
-                      placeholder="Example: soft sage, SW 6184, Benjamin Moore Hale Navy"
-                      className="h-12 w-full rounded-lg border border-slate-300 bg-white px-3 text-slate-800 outline-none focus:border-slate-600"
-                    />
-                  </label>
+                </label>
+              ) : (
+                <div className="relative aspect-video min-h-[320px] w-full overflow-hidden rounded-xl bg-slate-100 shadow-inner lg:min-h-0 lg:flex-1 lg:aspect-auto">
+                  {!isGenerating && !showQuoteGate && (
+                    <div className="absolute right-3 top-3 z-20 flex flex-wrap justify-end gap-2">
+                      {completedImage && <button type="button" onClick={() => setShowingOriginal((current) => !current)} className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-md backdrop-blur-sm transition hover:bg-white"><Eye className="h-3.5 w-3.5" />{showingOriginal ? "View design" : "View original"}</button>}
+                      <label htmlFor="interior-image-upload" className="cursor-pointer rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm transition hover:bg-white" style={{ color: resolvedPrimaryColor }}>Change photo</label>
+                    </div>
+                  )}
+                  <img src={activeImage || ""} alt="Uploaded project" className={`h-full w-full object-cover transition duration-300 ${showQuoteGate ? "scale-105 blur-xl" : ""}`} />
+                  {showQuoteGate && <EmbedQuoteGate status={embedVisitor.status} primaryColor={resolvedPrimaryColor} secondaryColor={resolvedSecondaryColor} buttonText={quoteButtonText} onQuoteClick={openQuote} onClose={() => setShowQuoteGate(false)} />}
+                  {isGenerating && <div className="absolute inset-0 flex items-center justify-center bg-black/55 backdrop-blur-sm"><div className="flex items-center gap-3 text-sm font-bold text-white sm:text-lg"><span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />Rendering your design</div></div>}
+                  {completedImage && !isGenerating && !showQuoteGate && <button type="button" onClick={handleDownloadDesign} aria-label="Download design" title="Download design" className="absolute bottom-3 left-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-md backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg" style={{ color: resolvedPrimaryColor }}><Download className="h-4 w-4" /></button>}
                 </div>
-              </div>
+              )}
+            </section>
+
+            {!uploadedImage ? (
+              <aside className="flex min-h-0 flex-col items-center justify-center border-t border-slate-200 p-6 text-center sm:p-8 lg:border-l lg:border-t-0" style={{ backgroundColor: colorWithAlpha(resolvedPrimaryColor, 0.065) }}>
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm" style={{ backgroundColor: resolvedPrimaryColor, color: primaryButtonTextColor }}><Sparkles className="h-5 w-5" /></span>
+                <h3 className="mt-5 max-w-sm text-2xl font-bold leading-tight text-slate-950">Picture the finished room before you begin.</h3>
+                <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600">Choose colors, materials, fixtures, and room details, then preview them in your own space.</p>
+                <div className="mt-5 flex max-w-sm items-start gap-2 rounded-xl border border-white/80 bg-white/80 px-4 py-3 text-xs leading-5 text-slate-600 shadow-sm"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: resolvedPrimaryColor }} strokeWidth={3} /><p className="text-left">For the best result, keep the room well lit and the main surfaces fully visible.</p></div>
+              </aside>
+            ) : (
+              <aside className="min-h-0 overflow-y-auto border-t border-slate-200 bg-slate-50 p-4 lg:border-l lg:border-t-0">
+                {completedImage ? (
+                  <div className="flex min-h-full flex-col items-center justify-center px-2 py-6 text-center">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm" style={{ backgroundColor: resolvedPrimaryColor, color: primaryButtonTextColor }}><Check className="h-5 w-5" strokeWidth={3} /></span>
+                    <h2 className="mt-4 text-xl font-bold text-slate-950">Your {config.pageLabel.toLowerCase()} design is ready</h2>
+                    <p className="mt-2 max-w-xs text-sm leading-6 text-slate-600">Send this concept to {displayCompanyName} for pricing and next steps.</p>
+                    <div className="mt-6 w-full space-y-2.5">
+                      <Button size="lg" className="w-full rounded-xl font-semibold shadow-lg transition hover:shadow-xl" style={{ backgroundColor: resolvedPrimaryColor, color: primaryButtonTextColor }} onClick={openQuote}><Phone className="mr-2 h-4 w-4" />{quoteButtonText}</Button>
+                      <Button type="button" size="lg" variant="outline" className="w-full rounded-xl border-slate-300 bg-white font-semibold text-slate-700" onClick={handleStartOver}><RotateCcw className="mr-2 h-4 w-4" />Try another design</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-3"><h2 className="font-semibold text-slate-950">Customize your {config.pageLabel.toLowerCase()}</h2><p className="mt-0.5 text-xs text-slate-500">Turn on the areas you want to update, then choose each finish.</p></div>
+                    {embedVisitor.status?.unlimitedAccountAccess && <div className="mb-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: resolvedPrimaryColor }} /><p className="text-xs font-semibold text-slate-700">Unlimited team access</p></div>}
+                    {config.groups.length === 0 ? (
+                      <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">No style options are currently configured for this client embed.</div>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {config.groups.map((group) => {
+                          const isActive = activeGroups[group.id];
+                          return (
+                            <section key={group.id} className="rounded-xl border p-3 shadow-sm transition" style={{ borderColor: isActive ? resolvedPrimaryColor : "#dbe3ec", backgroundColor: isActive ? colorWithAlpha(resolvedPrimaryColor, 0.06) : "#ffffff" }}>
+                              <div className="flex items-center justify-between gap-3">
+                                <div><h3 className="font-semibold text-slate-950">{group.label}</h3><p className="text-xs text-slate-500">Choose one finish</p></div>
+                                <button type="button" aria-label={`Toggle ${group.label}`} aria-pressed={isActive} onClick={() => toggleGroup(group)} className="flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition" style={{ backgroundColor: isActive ? resolvedPrimaryColor : "#cbd5e1" }}><span className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${isActive ? "translate-x-5" : "translate-x-0"}`} /></button>
+                              </div>
+                              {isActive && (
+                                <label className="mt-3 block space-y-1">
+                                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Selection</span>
+                                  <select value={selectedOptions[group.id] || group.options[0]?.value || ""} onChange={(event) => selectGroupOption(group, event.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200">
+                                    {group.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                                  </select>
+                                </label>
+                              )}
+                            </section>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {customPaintSelected && (
+                      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                        <h3 className="font-semibold text-slate-900">Custom paint color</h3>
+                        <div className="mt-2 grid grid-cols-[64px_1fr] gap-2">
+                          <input type="color" value={customPaintHex} onChange={(event) => setCustomPaintHex(event.target.value)} className="h-10 w-full rounded-lg border border-slate-300 bg-white p-1" aria-label="Custom paint color" />
+                          <input type="text" value={customPaintName} onChange={(event) => setCustomPaintName(event.target.value)} placeholder="Color name or paint code" className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none focus:border-slate-600" />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="sticky bottom-0 mt-3 border-t border-slate-200 bg-slate-50/95 pt-3 backdrop-blur-sm">
+                      <Button size="lg" className="w-full rounded-xl font-semibold shadow-lg transition-all hover:shadow-xl disabled:opacity-50" style={{ backgroundColor: resolvedPrimaryColor, color: primaryButtonTextColor }} disabled={isGenerating || embedVisitor.isLoading || selectedStyleIds.length === 0} onClick={generateDesign}>
+                        {isGenerating ? <><span className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />Creating your preview...</> : <><Sparkles className="mr-2 h-5 w-5" />Create my design</>}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </aside>
             )}
           </div>
-        )}
-
-        {uploadedImage && !completedImage && (
-          <>
-            <Button
-              size="lg"
-              className="mb-4 w-full py-4 font-semibold text-white shadow-lg transition-all hover:shadow-xl disabled:opacity-50"
-              style={{ backgroundColor: resolvedPrimaryColor }}
-              disabled={isGenerating || embedVisitor.isLoading || selectedStyleIds.length === 0}
-              onClick={generateDesign}
-            >
-              {isGenerating ? (
-                <>
-                  <span className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Generating Your Design
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-5 w-5" />
-                  Generate AI {config.pageLabel} Design
-                </>
-              )}
-            </Button>
-
-          </>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -289,7 +289,12 @@ export default function Dashboard() {
   };
   const embedTenant = tenant && tenant.slug !== 'demo' ? tenant : fallbackTenant;
   const embedAccountUserId = user.workspaceOwnerId || user.user.id;
-  const enterpriseTenant = user.enterpriseTenant;
+  const workspaceTenant = user.enterpriseTenant;
+  const enterpriseTenant =
+    workspaceTenant?.isEnterprise === true || workspaceTenant?.clientType === 'enterprise'
+      ? workspaceTenant
+      : null;
+  const canManageQuotes = user.hasBusinessProAccess;
   const enterpriseUsagePercentage = enterpriseTenant?.monthlyGenerationLimit
     ? ((enterpriseTenant.currentMonthGenerations || 0) / enterpriseTenant.monthlyGenerationLimit) * 100
     : 0;
@@ -317,7 +322,7 @@ export default function Dashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className={`grid h-auto w-full bg-white p-1 shadow-sm ${enterpriseTenant ? 'grid-cols-4 lg:w-[680px]' : 'grid-cols-3 lg:w-[520px]'}`}>
+          <TabsList className={`grid h-auto w-full bg-white p-1 shadow-sm ${canManageQuotes ? 'grid-cols-4 lg:w-[680px]' : 'grid-cols-3 lg:w-[520px]'}`}>
             <TabsTrigger value="overview" className="gap-2 py-2.5">
               <LayoutDashboard className="h-4 w-4" />
               Overview
@@ -326,7 +331,7 @@ export default function Dashboard() {
               <Folder className="h-4 w-4" />
               Projects
             </TabsTrigger>
-            {enterpriseTenant && (
+            {canManageQuotes && (
               <TabsTrigger value="quotes" className="gap-2 py-2.5">
                 <Mail className="h-4 w-4" />
                 Quotes
@@ -643,7 +648,7 @@ export default function Dashboard() {
             <SavedGenerations />
           </TabsContent>
 
-          {enterpriseTenant && (
+          {canManageQuotes && (
             <TabsContent value="quotes" className="mt-0">
               <ClientQuoteInbox />
             </TabsContent>
@@ -658,11 +663,10 @@ export default function Dashboard() {
 
               {user.hasEmbedAccess ? (
                 <>
-                  {enterpriseTenant && (
-                    <EnterpriseQuoteFlowSettings
-                      tenant={tenant && tenant.slug !== 'demo' ? tenant : enterpriseTenant}
-                    />
-                  )}
+                  <EnterpriseQuoteFlowSettings
+                    tenant={tenant && tenant.slug !== 'demo' ? tenant : enterpriseTenant}
+                    mode={canManageQuotes ? 'advanced' : 'basic'}
+                  />
                   <EmbedCodeGenerator tenant={embedTenant} accountUserId={embedAccountUserId} />
                 </>
               ) : (
@@ -672,16 +676,16 @@ export default function Dashboard() {
                       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
                         <Lock className="h-7 w-7 text-gray-500" />
                       </div>
-                      <h3 className="mb-2 font-semibold text-gray-900">Professional Feature Required</h3>
+                      <h3 className="mb-2 font-semibold text-gray-900">Contractor Feature Required</h3>
                       <p className="mb-5 text-sm text-gray-600">
-                        Embed visualizers directly on your website for an interactive design experience.
+                        Contractor includes a basic branded website embed with a per-visitor quote limit.
                       </p>
                       <Button
-                        onClick={() => handleUpgrade('price_1SGN4YBY2SPm2HvOrpREWCn1')}
+                        onClick={() => handleUpgrade('price_1TcynuBY2SPm2HvO1Eri2ogI')}
                         disabled={checkoutLoading}
                         className="w-full max-w-xs"
                       >
-                        Upgrade to Professional
+                        Upgrade to Contractor
                       </Button>
                     </div>
                   </CardContent>

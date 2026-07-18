@@ -90,7 +90,10 @@ function buildDefaultConfig(tenant: any): EmbedConfig {
 
 export default function EmbedCodeGenerator({ tenant, accountUserId }: EmbedCodeGeneratorProps) {
   const enabledServices = useMemo(() => getEnabledEmbedServices(tenant), [tenant?.embedCustomizations]);
-  const usesTenantQuoteFlow = tenant?.isEnterprise === true || tenant?.clientType === "enterprise";
+  const usesTenantQuoteFlow =
+    tenant?.isEnterprise === true ||
+    tenant?.clientType === "enterprise" ||
+    (Number(tenant?.id) > 0 && tenant?.slug !== "demo");
   const [config, setConfig] = useState<EmbedConfig>(() =>
     buildDefaultConfig(tenant),
   );

@@ -199,12 +199,14 @@ export function InlinePromptChat({
   isBusinessPro, 
   customPrompt,
   onPromptChange,
-  buttonClassName
+  buttonClassName,
+  accentColor,
 }: {
   isBusinessPro: boolean;
   customPrompt: string;
   onPromptChange: (prompt: string) => void;
   buttonClassName?: string;
+  accentColor?: string;
 }) {
   const [showInline, setShowInline] = useState(false);
 
@@ -220,16 +222,23 @@ export function InlinePromptChat({
           size="sm"
           onClick={() => setShowInline(true)}
           className={buttonClassName || "w-full"}
+          style={accentColor ? { borderColor: accentColor, color: accentColor } : undefined}
         >
           <Sparkles className="h-4 w-4 mr-2" />
           Add Custom Instructions
         </Button>
       ) : (
-        <Card className="border-purple-200 bg-purple-50">
+        <Card
+          className={accentColor ? "bg-white" : "border-purple-200 bg-purple-50"}
+          style={accentColor ? { borderColor: accentColor } : undefined}
+        >
           <CardHeader className="py-3 px-4">
             <div className="flex justify-between items-center">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-purple-600" />
+                <Sparkles
+                  className={accentColor ? "h-4 w-4" : "h-4 w-4 text-purple-600"}
+                  style={accentColor ? { color: accentColor } : undefined}
+                />
                 Custom Instructions
               </CardTitle>
               <Button

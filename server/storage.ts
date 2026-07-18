@@ -1332,8 +1332,12 @@ export class DatabaseStorage implements IStorage {
       const subscription = await this.getUserActiveSubscription(effectiveUserId);
       const tenant = await this.getTenantByUserId(effectiveUserId);
 
-      if (tenant?.active && tenant.embedEnabled) {
-        console.log(`[Embed] User ${userId} has tenant embed enabled ${isTeamMember ? '(via team)' : ''}`);
+      if (
+        tenant?.active &&
+        tenant.embedEnabled &&
+        (tenant.isEnterprise || tenant.clientType === 'enterprise')
+      ) {
+        console.log(`[Embed] User ${userId} has enterprise tenant embed enabled ${isTeamMember ? '(via team)' : ''}`);
         return true;
       }
       

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import {
   buildUnlimitedEnterpriseEmbedStatus,
+  canUseEmbedCustomInstructions,
+  getEmbedVisitorLimit,
   hasUnlimitedEnterpriseEmbedAccess,
 } from "../server/embed-account-access";
 
@@ -53,5 +55,24 @@ assert.deepEqual(buildUnlimitedEnterpriseEmbedStatus(), {
   limitEnabled: false,
   unlimitedAccountAccess: true,
 });
+
+assert.equal(
+  canUseEmbedCustomInstructions(false, true),
+  true,
+  "enterprise owners and team members with unlimited embed access should receive custom instructions",
+);
+assert.equal(canUseEmbedCustomInstructions(false, false), false);
+assert.equal(canUseEmbedCustomInstructions(true, false), true);
+
+assert.equal(
+  getEmbedVisitorLimit({ slug: "demo", embedRequireQuoteAfterLimit: false, embedVisitorLimit: 99 }),
+  3,
+  "the public embed demo must always be capped at three successful generations",
+);
+assert.equal(
+  getEmbedVisitorLimit({ slug: "contractor", embedRequireQuoteAfterLimit: true, embedVisitorLimit: 4 }),
+  4,
+  "contractor embeds should retain their configured visitor limit",
+);
 
 console.log("Enterprise embed account access regression passed");

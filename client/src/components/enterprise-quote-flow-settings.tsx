@@ -52,7 +52,12 @@ function settingsFromTenant(tenant: any): QuoteFlowSettings {
   };
 }
 
-export default function EnterpriseQuoteFlowSettings({ tenant }: { tenant: any }) {
+type QuoteFlowSettingsProps = {
+  tenant: any;
+  mode?: "basic" | "advanced";
+};
+
+export default function EnterpriseQuoteFlowSettings({ tenant, mode = "advanced" }: QuoteFlowSettingsProps) {
   const { toast } = useToast();
   const [settings, setSettings] = useState<QuoteFlowSettings>(() => settingsFromTenant(tenant));
   const [isSaving, setIsSaving] = useState(false);
@@ -66,14 +71,15 @@ export default function EnterpriseQuoteFlowSettings({ tenant }: { tenant: any })
     setSettings((current) => ({ ...current, [key]: value }));
   };
 
-  const save = async () => {
+  const save = async (overrides?: Partial<QuoteFlowSettings>) => {
     setIsSaving(true);
     try {
       const token = localStorage.getItem("auth_token");
+      const payload = { ...settings, ...overrides };
       const response = await apiRequest(
         "PATCH",
         "/api/tenant/my-tenant/quote-flow",
-        settings,
+        payload,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         },
@@ -133,12 +139,52 @@ export default function EnterpriseQuoteFlowSettings({ tenant }: { tenant: any })
     }
   };
 
+  if (mode === "basic") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Contractor Embed Visitor Limit</CardTitle>
+          <CardDescription>
+            Choose how many completed visualizations each website visitor can create before the standard quote form appears.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+            Your basic embed includes DreamBuilderAI.com branding and a ready-to-use quote form. Custom quote form copy and CRM delivery are available on Professional.
+          </div>
+          <div className="max-w-sm">
+            <Label htmlFor="contractorVisitorLimit">Free visualizations per visitor</Label>
+            <Input
+              id="contractorVisitorLimit"
+              type="number"
+              min={1}
+              max={100}
+              value={Math.max(settings.embedVisitorLimit, 1)}
+              onChange={(event) => update("embedVisitorLimit", Math.max(Number(event.target.value) || 1, 1))}
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Only successful visualizations count. Failed generations do not use a visitor try.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => void save({ embedRequireQuoteAfterLimit: true })}
+            disabled={isSaving}
+          >
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {isSaving ? "Saving..." : "Save Visitor Limit"}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Visitor Quote Flow</CardTitle>
+        <CardTitle>Quote Flow & CRM Integration</CardTitle>
         <CardDescription>
-          Control the free visitor limit, quote prompt, form copy, and the single lead destination used by every enterprise embed.
+          Control visitor limits, quote form content, lead destinations, and CRM delivery for every embed.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -342,7 +388,7 @@ export default function EnterpriseQuoteFlowSettings({ tenant }: { tenant: any })
           )}
         </div>
 
-        <Button type="button" onClick={save} disabled={isSaving}>
+        <Button type="button" onClick={() => void save()} disabled={isSaving}>
           {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           {isSaving ? "Saving..." : "Save Quote Flow"}
         </Button>

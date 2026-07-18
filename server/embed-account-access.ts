@@ -18,6 +18,20 @@ export type EmbedVisitorAccessStatus = {
   unlimitedAccountAccess?: boolean;
 };
 
+type EmbedLimitTenant = {
+  slug?: string | null;
+  embedRequireQuoteAfterLimit?: boolean | null;
+  embedVisitorLimit?: number | null;
+};
+
+export function getEmbedVisitorLimit(tenant: EmbedLimitTenant) {
+  if (tenant.slug === "demo") return 3;
+
+  return tenant.embedRequireQuoteAfterLimit
+    ? Math.max(Number(tenant.embedVisitorLimit ?? 3), 0)
+    : 0;
+}
+
 export async function hasUnlimitedEnterpriseEmbedAccess(
   authenticatedUserId: number | null | undefined,
   tenant: EnterpriseEmbedTenant,
@@ -49,4 +63,11 @@ export function buildUnlimitedEnterpriseEmbedStatus(): EmbedVisitorAccessStatus 
     limitEnabled: false,
     unlimitedAccountAccess: true,
   };
+}
+
+export function canUseEmbedCustomInstructions(
+  hasBusinessProAccess: boolean,
+  unlimitedAccountAccess: boolean | undefined,
+) {
+  return hasBusinessProAccess || unlimitedAccountAccess === true;
 }

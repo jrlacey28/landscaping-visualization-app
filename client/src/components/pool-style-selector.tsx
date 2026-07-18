@@ -28,7 +28,10 @@ interface PoolStyleSelectorProps {
     sauna?: SelectorOption[];
   };
   defaultOptionVisibility?: Partial<EmbedDefaultOptionVisibility>;
+  compact?: boolean;
 }
+
+type PoolCategory = "poolType" | "poolSize" | "decking" | "landscaping" | "features" | "hotTub" | "sauna";
 
 type SelectorOption = {
   value: string;
@@ -36,6 +39,16 @@ type SelectorOption = {
   swatch?: string;
   groupLabel?: string;
 };
+
+function colorWithAlpha(color: string, alpha: number) {
+  const normalized = color.replace("#", "");
+  const hex = normalized.length === 3
+    ? normalized.split("").map((character) => `${character}${character}`).join("")
+    : normalized;
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return `rgba(37, 99, 235, ${alpha})`;
+
+  return `rgba(${Number.parseInt(hex.slice(0, 2), 16)}, ${Number.parseInt(hex.slice(2, 4), 16)}, ${Number.parseInt(hex.slice(4, 6), 16)}, ${alpha})`;
+}
 
 const poolTypes: SelectorOption[] = [
   { value: "rectangular_pool", label: "Rectangular Pool" },
@@ -140,6 +153,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
   secondaryColor = "#059669",
   customOptions,
   defaultOptionVisibility,
+  compact = false,
 }: PoolStyleSelectorProps) {
   const defaultVisibility = normalizeEmbedDefaultOptionVisibility(defaultOptionVisibility);
   const allPoolTypes = [...(defaultVisibility["pools.poolType"] ? poolTypes : []), ...(customOptions?.poolType || [])];
@@ -160,7 +174,7 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
     sauna: !!selectedStyles.sauna,
   });
 
-  const handleToggleChange = (category: 'poolType' | 'poolSize' | 'decking' | 'landscaping' | 'features' | 'hotTub' | 'sauna', enabled: boolean) => {
+  const handleToggleChange = (category: PoolCategory, enabled: boolean) => {
     setActiveToggles(prev => ({ ...prev, [category]: enabled }));
 
     if (!enabled) {
@@ -172,12 +186,82 @@ const PoolStyleSelector = React.memo(function PoolStyleSelector({
     }
   };
 
-  const handleOptionSelect = (category: 'poolType' | 'poolSize' | 'decking' | 'landscaping' | 'features' | 'hotTub' | 'sauna', value: string) => {
+  const handleOptionSelect = (category: PoolCategory, value: string) => {
     onStyleChange({
       ...selectedStyles,
       [category]: value,
     });
   };
+
+  if (compact) {
+    const sections: Array<{
+      key: PoolCategory;
+      label: string;
+      description: string;
+      options: SelectorOption[];
+    }> = [
+      { key: "poolType", label: "Pool type", description: "Shape and overall design", options: allPoolTypes },
+      { key: "poolSize", label: "Pool size", description: "Approximate footprint", options: allPoolSizes },
+      { key: "decking", label: "Pool decking", description: "Surface around the pool", options: allDeckingOptions },
+      { key: "landscaping", label: "Landscaping", description: "Planting and yard style", options: allLandscapingOptions },
+      { key: "features", label: "Special features", description: "Spa, waterfall, or lighting", options: allFeatureOptions },
+      { key: "hotTub", label: "Hot tub", description: "Add a separate hot tub", options: allHotTubOptions },
+      { key: "sauna", label: "Sauna", description: "Add an outdoor sauna", options: allSaunaOptions },
+    ];
+
+    return (
+      <div className="space-y-2.5">
+        {sections.filter((section) => section.options.length > 0).map((section) => {
+          const active = activeToggles[section.key];
+          return (
+            <section
+              key={section.key}
+              className="rounded-xl border p-3 shadow-sm transition"
+              style={{
+                borderColor: active ? primaryColor : "#dbe3ec",
+                backgroundColor: active ? colorWithAlpha(primaryColor, 0.06) : "#ffffff",
+              }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold text-slate-950">{section.label}</h3>
+                  <p className="text-xs text-slate-500">{section.description}</p>
+                </div>
+                <Switch
+                  checked={active}
+                  onCheckedChange={(checked) => handleToggleChange(section.key, checked)}
+                  style={{ backgroundColor: active ? primaryColor : "#cbd5e1" }}
+                />
+              </div>
+              {active && (
+                <label className="mt-3 block space-y-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Selection</span>
+                  <select
+                    value={selectedStyles[section.key]}
+                    onChange={(event) => handleOptionSelect(section.key, event.target.value)}
+                    className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                  >
+                    <option value="">Choose an option</option>
+                    {groupOptions(section.options).map((group, groupIndex) =>
+                      group.label ? (
+                        <optgroup key={group.label} label={group.label}>
+                          {group.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                        </optgroup>
+                      ) : (
+                        <Fragment key={`ungrouped-${groupIndex}`}>
+                          {group.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                        </Fragment>
+                      ),
+                    )}
+                  </select>
+                </label>
+              )}
+            </section>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

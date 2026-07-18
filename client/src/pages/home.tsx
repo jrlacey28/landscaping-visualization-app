@@ -83,7 +83,12 @@ const pricingTiers: PricingTier[] = [
     description: "For small business owners ready to impress clients",
     monthlyPrice: 300,
     yearlyPrice: 3600,
-    features: ["200 visualizations per month", "Full-resolution downloads", "Priority rendering speeds"],
+    features: [
+      "200 visualizations per month",
+      "Basic embed widget",
+      "Full-resolution downloads",
+      "Priority rendering speeds",
+    ],
     cta: "Get Started",
     ctaLink: "price_1TcynuBY2SPm2HvO1Eri2ogI",
   },
@@ -96,11 +101,28 @@ const pricingTiers: PricingTier[] = [
       "650 visualizations per month",
       "Team access for up to 3 users",
       "Custom embed widget",
+      "Custom quote form and visitor limits",
+      "CRM integration via secure webhook",
       "Advanced customization chat",
       "Higher quality image model",
     ],
     cta: "Get Started",
     ctaLink: "price_1SGN4YBY2SPm2HvOrpREWCn1",
+  },
+  {
+    name: "Enterprise",
+    description: "For organizations scaling visual sales across teams and locations",
+    priceLabel: "Custom pricing",
+    features: [
+      "Everything in Professional",
+      "Higher visualization volume",
+      "White-label app and widget",
+      "CRM integration and lead delivery workflows",
+      "Custom training integrations",
+      "Advanced storage and tracking",
+    ],
+    cta: "Contact Sales",
+    ctaLink: "/contact",
   },
 ];
 
@@ -445,7 +467,7 @@ export default function Home() {
               <p className="mt-4 text-lg text-slate-300">Start simple Add volume when you need it</p>
             </div>
 
-            <div className="mt-12 grid gap-6 lg:grid-cols-3">
+            <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
               {pricingTiers.map((tier) => (
                 <PricingCard key={tier.name} tier={tier} paymentFrequency="Monthly" />
               ))}

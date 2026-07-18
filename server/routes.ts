@@ -21,6 +21,8 @@ import {
 import { buildTenantExteriorCustomContext } from "./tenant-exterior-context";
 import {
   buildUnlimitedEnterpriseEmbedStatus,
+  canUseEmbedCustomInstructions,
+  getEmbedVisitorLimit,
   hasUnlimitedEnterpriseEmbedAccess,
 } from "./embed-account-access";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
@@ -967,6 +969,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  async function ensureStandardEmbedTenant(workspaceOwnerId: number) {
+    const existingTenant = await storage.getTenantByUserId(workspaceOwnerId);
+    if (existingTenant) return existingTenant;
+
+    const hasEmbedAccess = await storage.computeEmbedAccess(workspaceOwnerId);
+    if (!hasEmbedAccess) return undefined;
+
+    const [owner, usage] = await Promise.all([
+      storage.getUser(workspaceOwnerId),
+      storage.checkUsageLimits(workspaceOwnerId),
+    ]);
+    if (!owner) return undefined;
+
+    const monthlyLimit = usage.limit === -1 ? 10_000 : Math.max(usage.limit, 1);
+
+    try {
+      return await storage.createTenant({
+        userId: workspaceOwnerId,
+        slug: `account-${workspaceOwnerId}`,
+        companyName: owner.businessName || `${owner.firstName} ${owner.lastName}`.trim() || "Your Company",
+        clientType: "standard",
+        isEnterprise: false,
+        phone: owner.phone || null,
+        contactPhone: owner.phone || null,
+        email: owner.email,
+        address: owner.address || null,
+        active: true,
+        embedEnabled: true,
+        embedVisitorLimit: 3,
+        embedRequireQuoteAfterLimit: true,
+        embedQuoteDestinationType: "email",
+        embedQuoteRecipientEmail: owner.email,
+        monthlyGenerationLimit: monthlyLimit,
+        currentMonthGenerations: Math.max(usage.currentUsage, 0),
+      });
+    } catch (error) {
+      const concurrentlyCreatedTenant = await storage.getTenantByUserId(workspaceOwnerId);
+      if (concurrentlyCreatedTenant) return concurrentlyCreatedTenant;
+      throw error;
+    }
+  }
+
+  async function isEmbedBrandingRequired(tenant: any) {
+    if (!tenant || tenant.isEnterprise || tenant.clientType === "enterprise") return false;
+    if (tenant.slug === "demo" || !tenant.userId) return true;
+
+    const subscription = await storage.getUserActiveSubscription(tenant.userId);
+    if (!subscription || subscription.status !== "active") return true;
+
+    const plan = await storage.getSubscriptionPlan(subscription.planId);
+    const normalizedPlanName = String(plan?.name || "").trim().toLowerCase();
+    const isProfessional =
+      subscription.planId === "price_1SGN4YBY2SPm2HvOrpREWCn1" ||
+      normalizedPlanName === "professional" ||
+      normalizedPlanName === "business pro" ||
+      normalizedPlanName === "pro";
+
+    return !isProfessional;
+  }
+
+  async function withEmbedBrandingEntitlement(tenant: any, includePrivateSettings = false) {
+    if (!tenant) return tenant;
+
+    return {
+      ...(includePrivateSettings ? tenant : toPublicTenant(tenant)),
+      embedBrandingRequired: await isEmbedBrandingRequired(tenant),
+    };
+  }
+
   // Get tenant by slug (for multi-tenant setup)
   // Get authenticated user's tenant
   app.get("/api/tenant/my-tenant", authenticateToken as any, async (req: AuthRequest, res) => {
@@ -976,15 +1047,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
-      const userTenant = await storage.getTenantByUserId(workspaceOwnerId);
+      const userTenant = await ensureStandardEmbedTenant(workspaceOwnerId);
       
       if (!userTenant) {
         // If user doesn't have a tenant, return the demo tenant
         const demoTenant = await storage.getTenantBySlug("demo");
-        return res.json(demoTenant);
+        return res.json(await withEmbedBrandingEntitlement(demoTenant, true));
       }
 
-      res.json(userTenant);
+      res.json(await withEmbedBrandingEntitlement(userTenant, true));
     } catch (error) {
       console.error("Error fetching user tenant:", error);
       res.status(500).json({ error: "Failed to fetch tenant" });
@@ -1016,12 +1087,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
-      const userTenant = await storage.getTenantByUserId(workspaceOwnerId);
+      const userTenant = await ensureStandardEmbedTenant(workspaceOwnerId);
       if (!userTenant) {
-        return res.status(404).json({ error: "Enterprise tenant not found" });
+        return res.status(404).json({ error: "Embed account not found" });
       }
 
       const settings = accountQuoteFlowSettingsSchema.parse(req.body);
+      const hasAdvancedQuoteFlowAccess = await storage.hasBusinessProAccess(req.user.id);
+
+      if (!hasAdvancedQuoteFlowAccess) {
+        const updatedTenant = await storage.updateTenant(userTenant.id, {
+          embedRequireQuoteAfterLimit: true,
+          embedVisitorLimit: Math.max(settings.embedVisitorLimit, 1),
+        });
+        return res.json(updatedTenant);
+      }
+
       const {
         embedQuoteCrmEnabled,
         embedQuoteCrmWebhookUrl,
@@ -1066,9 +1147,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
-      const userTenant = await storage.getTenantByUserId(workspaceOwnerId);
+      const userTenant = await ensureStandardEmbedTenant(workspaceOwnerId);
       if (!userTenant) {
-        return res.status(404).json({ error: "Enterprise tenant not found" });
+        return res.status(404).json({ error: "Embed account not found" });
+      }
+
+      if (!(await storage.hasBusinessProAccess(req.user.id))) {
+        return res.status(403).json({ error: "Professional or Enterprise plan required" });
       }
 
       const tenantLeads = await storage.getLeadsByTenant(userTenant.id);
@@ -1097,9 +1182,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
-      const userTenant = await storage.getTenantByUserId(workspaceOwnerId);
+      const userTenant = await ensureStandardEmbedTenant(workspaceOwnerId);
       if (!userTenant) {
-        return res.status(404).json({ error: "Enterprise tenant not found" });
+        return res.status(404).json({ error: "Embed account not found" });
+      }
+
+
+      if (!(await storage.hasBusinessProAccess(req.user.id))) {
+        return res.status(403).json({ error: "Professional or Enterprise plan required" });
       }
 
       const { webhookUrl } = quoteCrmTestSchema.parse(req.body);
@@ -1159,7 +1249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Tenant not found" });
       }
 
-      res.json(toPublicTenant(tenant));
+      res.json(await withEmbedBrandingEntitlement(tenant));
     } catch (error) {
       console.error("Error fetching tenant:", error);
       res.status(500).json({ error: "Failed to fetch tenant" });
@@ -1206,7 +1296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Embed account not found" });
       }
 
-      const visitorKey = buildEmbedVisitorKey(req, tenant.id);
+      const visitorKey = buildEmbedVisitorKey(req, tenant);
       await storage.recordEmbedQuoteClick(tenant.id, visitorKey);
       res.json({ success: true });
     } catch (error) {
@@ -1389,13 +1479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return req.ip || req.socket?.remoteAddress || "";
   }
 
-  function getEmbedVisitorLimit(tenant: any) {
-    return tenant.embedRequireQuoteAfterLimit
-      ? Math.max(Number(tenant.embedVisitorLimit ?? 3), 0)
-      : 0;
-  }
-
-  function buildEmbedVisitorKey(req: any, tenantId: number) {
+  function buildEmbedVisitorKey(req: any, tenant: any) {
     const suppliedVisitorId =
       typeof req.body?.visitorId === "string"
         ? req.body.visitorId
@@ -1404,16 +1488,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : "";
     const ip = getClientIp(req);
     const userAgent = req.get?.("user-agent") || "";
-    const fingerprintSource = suppliedVisitorId
-      ? `visitor:${suppliedVisitorId}`
-      : ip
-        ? `ip:${ip}`
-        : `agent:${userAgent || "unknown"}`;
+    const fingerprintSource = tenant?.slug === "demo"
+      ? `demo:${ip || "unknown"}:agent:${userAgent || "unknown"}`
+      : suppliedVisitorId
+        ? `visitor:${suppliedVisitorId}`
+        : ip
+          ? `ip:${ip}`
+          : `agent:${userAgent || "unknown"}`;
     const salt = process.env.EMBED_VISITOR_HASH_SALT || process.env.JWT_SECRET || "dreambuilder-embed";
 
     return crypto
       .createHash("sha256")
-      .update(`${salt}:${tenantId}:${fingerprintSource}`)
+      .update(`${salt}:${tenant.id}:${fingerprintSource}`)
       .digest("hex");
   }
 
@@ -1447,7 +1533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
     }
 
-    const visitorKey = buildEmbedVisitorKey(req, tenant.id);
+    const visitorKey = buildEmbedVisitorKey(req, tenant);
     const limit = getEmbedVisitorLimit(tenant);
     const status = await storage.getEmbedVisitorUsageStatus(tenant.id, visitorKey, limit);
 
@@ -1744,7 +1830,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   async function resolveGenerationOwner(req: AuthRequest, usageType: 'visualization' | 'landscape' | 'pool') {
     const accountUserId = parsePositiveId(req.body.accountUserId);
-    const tenant = await getTenantFromGenerationRequest(req, !!accountUserId);
+    let tenant = await getTenantFromGenerationRequest(req, !!accountUserId);
+    if (!tenant && accountUserId) {
+      tenant = (await ensureStandardEmbedTenant(accountUserId)) || null;
+    }
     const isEmbedGeneration = req.body.source === "embed" || (!req.user && (!!tenant || !!accountUserId));
 
     if (isEmbedGeneration) {
@@ -1775,6 +1864,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customizationTenantId: checkedTenant.id,
           shouldTrackUserUsage: false,
           hasBusinessPro: await storage.hasBusinessProAccess(ownerUserId),
+          unlimitedAccountAccess: embedVisitorAccess.unlimitedAccountAccess,
           embedVisitorTracking: embedVisitorAccess.unlimitedAccountAccess
             ? undefined
             : {
@@ -2315,6 +2405,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const maskData = typeof req.body.maskData === "string" ? req.body.maskData.trim() : "";
       const userId = generationOwner.userId;
       const hasBusinessPro = generationOwner.hasBusinessPro;
+      const hasCustomPromptAccess = canUseEmbedCustomInstructions(
+        hasBusinessPro,
+        generationOwner.unlimitedAccountAccess,
+      );
       const selectedStyles = {
         roof: selectedRoof || undefined,
         siding: selectedSiding || undefined,
@@ -2360,7 +2454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (customPrompt && customPrompt.trim()) {
-        if (hasBusinessPro) {
+        if (hasCustomPromptAccess) {
           validatedCustomPrompt = [validatedCustomPrompt, customPrompt.trim()].filter(Boolean).join("\n\n");
         } else {
           console.log(`User ${userId} attempted to use custom prompt without Professional access`);

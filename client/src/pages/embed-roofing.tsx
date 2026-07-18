@@ -3,11 +3,14 @@ import { useState, useEffect } from "react";
 import { useTenant } from "../hooks/use-tenant";
 import StyleSelector from "../components/style-selector";
 import { Button } from "../components/ui/button";
-import { ArrowLeftRight, ArrowRight, Upload, Sparkles, Download, Eye, Camera, Phone, XCircle, Check } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, Upload, Sparkles, Download, Eye, RotateCcw, Phone, XCircle, Check } from "lucide-react";
 import { SparklesText } from "@/components/ui/sparkles-text";
+import { InlinePromptChat } from "@/components/custom-prompt-chat";
 import EmbedQuoteGate from "@/components/embed-quote-gate";
 import EmbedQuoteLeadForm from "@/components/embed-quote-lead-form";
+import EmbedPoweredBy from "@/components/embed-powered-by";
 import { useEmbedVisitorLimit } from "@/hooks/use-embed-visitor-limit";
+import { useDemoEmbedTrial } from "@/hooks/use-demo-embed-trial";
 import { uploadImage, checkVisualizationStatus } from "../lib/api";
 import { getEmbedQuoteButtonText, runEmbedQuoteAction } from "@/lib/embed-quote";
 import {
@@ -19,6 +22,22 @@ import { isEmbedServiceEnabled } from "@/lib/embed-services";
 import { getExteriorSelectorCustomizations } from "@/lib/exterior-custom-options";
 import roofingBeforeImage from "@assets/roofing-before.jpg";
 import roofingAfterImage from "@assets/roofing-after.jpg";
+
+function createEmptyExteriorSelections() {
+  return {
+    roof: { enabled: false, type: "" },
+    siding: { enabled: false, type: "" },
+    windows: { enabled: false, type: "" },
+    surpriseMe: { enabled: false, type: "" },
+  };
+}
+
+function createEmptySelectionStatus() {
+  return {
+    hasEnabledCategories: false,
+    allEnabledCategoriesComplete: false,
+  };
+}
 
 function getContrastTextColor(color: string) {
   const normalized = color.trim().replace("#", "");
@@ -102,14 +121,13 @@ export default function EmbedRoofingPage() {
     primaryColorParam || (tenant ? (effectiveTenant as any).embedPrimaryColor || effectiveTenant.primaryColor || primaryColor : primaryColor);
   const resolvedSecondaryColor =
     secondaryColorParam || (tenant ? (effectiveTenant as any).embedSecondaryColor || effectiveTenant.secondaryColor || secondaryColor : secondaryColor);
-  const resolvedLogoUrl = tenant ? effectiveTenant.logoUrl || logoUrlParam || "" : logoUrlParam || effectiveTenant.logoUrl || "";
-  const displayCompanyName = tenant
-    ? effectiveTenant.companyName || companyName || "DreamBuilder"
-    : companyName || effectiveTenant.companyName || "DreamBuilder";
+  const resolvedLogoUrl = logoUrlParam || effectiveTenant.logoUrl || "";
+  const displayCompanyName = companyName || effectiveTenant.companyName || "DreamBuilder";
   const embedVisitor = useEmbedVisitorLimit({
     tenantId: tenant?.id || null,
     tenantSlug: tenant?.slug || null,
   });
+  const demoTrial = useDemoEmbedTrial();
   const visitorLimitReached =
     !!embedVisitor.status?.limitEnabled && !embedVisitor.status.canGenerate;
   const quoteButtonText = getEmbedQuoteButtonText(effectiveTenant);
@@ -130,17 +148,11 @@ export default function EmbedRoofingPage() {
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showQuoteGate, setShowQuoteGate] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
-  
-  const [selectedStyles, setSelectedStyles] = useState({
-    roof: { enabled: false, type: "" },
-    siding: { enabled: false, type: "" },
-    windows: { enabled: false, type: "" },
-    surpriseMe: { enabled: false, type: "" },
-  });
-  const [styleSelectionStatus, setStyleSelectionStatus] = useState({
-    hasEnabledCategories: false,
-    allEnabledCategoriesComplete: false,
-  });
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [selectedStyles, setSelectedStyles] = useState(createEmptyExteriorSelections);
+  const [styleSelectionStatus, setStyleSelectionStatus] = useState(createEmptySelectionStatus);
+  const hasCompletedVisualization =
+    visualizationResult?.status === "completed" && Boolean(visualizationResult?.generatedImageUrl);
 
   // Apply custom branding
   useEffect(() => {
@@ -152,6 +164,10 @@ export default function EmbedRoofingPage() {
     const file = event.target.files?.[0];
     if (file) {
       setShowQuoteGate(false);
+      setShowingOriginal(false);
+      setCustomPrompt("");
+      setSelectedStyles(createEmptyExteriorSelections());
+      setStyleSelectionStatus(createEmptySelectionStatus());
       setOriginalFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -173,6 +189,46 @@ export default function EmbedRoofingPage() {
       contactLink,
       openForm: () => setShowQuoteForm(true),
     });
+  };
+
+  const handleStartOver = () => {
+    setShowQuoteGate(false);
+    setVisualizationResult(null);
+    setLastGeneratedImageUrl(null);
+    setShowingOriginal(false);
+    setCustomPrompt("");
+    setSelectedStyles(createEmptyExteriorSelections());
+    setStyleSelectionStatus(createEmptySelectionStatus());
+  };
+
+  const handleDownloadDesign = () => {
+    if (!visualizationResult?.generatedImageUrl) return;
+
+    const image = document.createElement("img");
+    image.crossOrigin = "anonymous";
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      if (!context) return;
+
+      canvas.width = image.width;
+      canvas.height = image.height;
+      context.drawImage(image, 0, 0);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement("a");
+          anchor.href = url;
+          anchor.download = "roofing-design.jpg";
+          anchor.click();
+          URL.revokeObjectURL(url);
+        },
+        "image/jpeg",
+        0.9,
+      );
+    };
+    image.src = visualizationResult.generatedImageUrl;
   };
 
   if (!tenant && tenantLoading && !isDemoLookup && !canUseAccountFallback) {
@@ -250,25 +306,34 @@ export default function EmbedRoofingPage() {
   return (
     <div className="w-full p-2 sm:p-4" style={{ background: pageBackground }}>
       <div className="mx-auto max-w-6xl">
-        <div className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-2xl shadow-slate-950/15 lg:flex lg:h-[calc(100vh-2rem)] lg:max-h-[760px] lg:flex-col">
+        <div className="overflow-hidden rounded-[22px] border border-slate-200/80 bg-white shadow-2xl shadow-slate-950/15 lg:flex lg:h-[calc(100vh-2rem)] lg:max-h-[760px] lg:flex-col">
         {showHeader && (
-          <header className="flex shrink-0 flex-col gap-2.5 border-b border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:px-5">
+          <header className="flex shrink-0 items-center gap-3 border-b border-slate-200 px-4 py-2 sm:px-5">
             {resolvedLogoUrl && (
               <img
                 src={resolvedLogoUrl}
                 alt={`${displayCompanyName} logo`}
-                className="max-h-14 max-w-[190px] shrink-0 object-contain object-left"
+                className="max-h-11 max-w-[175px] shrink-0 object-contain object-left"
               />
             )}
-            <div className={`min-w-0 ${resolvedLogoUrl ? "sm:border-l sm:border-slate-200 sm:pl-4" : ""}`}>
-              <h1 className="text-lg font-bold leading-tight text-slate-950 sm:text-xl">
-                Exterior Design Visualizer
-              </h1>
-              <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm">
+            <div className={`min-w-0 flex-1 ${resolvedLogoUrl ? "border-l border-slate-200 pl-3 sm:pl-4" : ""}`}>
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                <h1 className="text-base font-bold leading-tight text-slate-950 sm:text-lg">
+                  Exterior Design Visualizer
+                </h1>
+                <EmbedPoweredBy tenant={effectiveTenant} className="shrink-0 justify-start" />
+              </div>
+              <p className="mt-0.5 hidden text-xs leading-relaxed text-slate-500 sm:block">
                 Upload a photo, choose your finishes, and preview a fresh look for your home.
               </p>
             </div>
           </header>
+        )}
+        {!showHeader && (
+          <EmbedPoweredBy
+            tenant={effectiveTenant}
+            className="shrink-0 justify-start border-b border-slate-200 bg-slate-50 px-4 py-1 sm:px-5"
+          />
         )}
 
         {showQuoteForm && (
@@ -354,13 +419,25 @@ export default function EmbedRoofingPage() {
               />
               <div className={`relative w-full overflow-hidden rounded-xl bg-slate-100 shadow-inner ${showQuoteGate ? "min-h-[300px] lg:min-h-0 lg:flex-1" : "aspect-video lg:min-h-0 lg:flex-1 lg:aspect-auto"}`}>
                 {!isGenerating && !showQuoteGate && (
-                  <label
-                    htmlFor="image-upload"
-                    className="absolute right-3 top-3 z-20 cursor-pointer rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm transition hover:bg-white"
-                    style={{ color: resolvedPrimaryColor }}
-                  >
-                    Change photo
-                  </label>
+                  <div className="absolute right-3 top-3 z-20 flex flex-wrap justify-end gap-2">
+                    {hasCompletedVisualization && (
+                      <button
+                        type="button"
+                        onClick={() => setShowingOriginal((current) => !current)}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-md backdrop-blur-sm transition hover:bg-white"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        {showingOriginal ? "View design" : "View original"}
+                      </button>
+                    )}
+                    <label
+                      htmlFor="image-upload"
+                      className="cursor-pointer rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm transition hover:bg-white"
+                      style={{ color: resolvedPrimaryColor }}
+                    >
+                      Change photo
+                    </label>
+                  </div>
                 )}
                 <img
                   src={visualizationResult?.status === "completed" && visualizationResult?.generatedImageUrl ? 
@@ -393,98 +470,19 @@ export default function EmbedRoofingPage() {
                     </div>
                   </div>
                 )}
-              </div>
-              
-              {/* Action buttons when generation is complete */}
-              {visualizationResult?.status === "completed" && visualizationResult?.generatedImageUrl && (
-                <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3">
-                    <Button
-                      className="font-semibold shadow-sm"
-                      style={{ 
-                        backgroundColor: resolvedPrimaryColor,
-                        color: primaryButtonTextColor,
-                      }}
-                      onClick={() => {
-                        const img = document.createElement("img");
-                        img.crossOrigin = "anonymous";
-                        img.onload = function () {
-                          const canvas = document.createElement("canvas");
-                          const ctx = canvas.getContext("2d");
-                          if (ctx) {
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            ctx.drawImage(img, 0, 0);
-                            canvas.toBlob(
-                              (blob) => {
-                                if (blob) {
-                                  const url = URL.createObjectURL(blob);
-                                  const a = document.createElement("a");
-                                  a.href = url;
-                                  a.download = "roofing-design.jpg";
-                                  a.click();
-                                  URL.revokeObjectURL(url);
-                                }
-                              },
-                              "image/jpeg",
-                              0.9,
-                            );
-                          }
-                        };
-                        img.src = visualizationResult.generatedImageUrl;
-                      }}
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      Download
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      className="border-slate-300 bg-white font-semibold text-slate-700"
-                      onClick={() => setShowingOriginal(!showingOriginal)}
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      {showingOriginal ? "View design" : "View original"}
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      className="col-span-2 border-slate-300 bg-white font-semibold text-slate-700 sm:col-span-1"
-                      onClick={() => {
-                        setUploadedImage(null);
-                        setOriginalFile(null);
-                        setVisualizationResult(null);
-                        setLastGeneratedImageUrl(null);
-                        setShowingOriginal(false);
-                        setSelectedStyles({
-                          roof: { enabled: false, type: "" },
-                          siding: { enabled: false, type: "" },
-                          windows: { enabled: false, type: "" },
-                          surpriseMe: { enabled: false, type: "" },
-                        });
-                        setStyleSelectionStatus({
-                          hasEnabledCategories: false,
-                          allEnabledCategoriesComplete: false,
-                        });
-                      }}
-                    >
-                      <Camera className="mr-2 h-4 w-4" />
-                      Start over
-                    </Button>
-                  
-                  {/* Get Free Quote button */}
-                  <Button
-                    className="col-span-2 min-w-0 font-semibold shadow-sm sm:col-span-3"
-                    style={{ 
-                      backgroundColor: resolvedPrimaryColor,
-                      color: primaryButtonTextColor,
-                    }}
-                    onClick={handleQuoteClick}
+                {hasCompletedVisualization && !isGenerating && !showQuoteGate && (
+                  <button
+                    type="button"
+                    onClick={handleDownloadDesign}
+                    aria-label="Download design"
+                    title="Download design"
+                    className="absolute bottom-3 left-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-md backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg"
+                    style={{ color: resolvedPrimaryColor }}
                   >
-                    <Phone className="mr-2 h-4 w-4" />
-                    {quoteButtonText}
-                  </Button>
-                </div>
-              )}
+                    <Download className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </section>
@@ -526,6 +524,42 @@ export default function EmbedRoofingPage() {
         {/* Style Selection */}
         {uploadedImage && (
           <aside className="min-h-0 overflow-y-auto border-t border-slate-200 bg-slate-50 p-4 lg:border-l lg:border-t-0">
+            {hasCompletedVisualization ? (
+              <div className="flex min-h-full flex-col items-center justify-center px-2 py-6 text-center">
+                <span
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm"
+                  style={{ backgroundColor: resolvedPrimaryColor, color: primaryButtonTextColor }}
+                >
+                  <Check className="h-5 w-5" strokeWidth={3} />
+                </span>
+                <h2 className="mt-4 text-xl font-bold text-slate-950">Your design is ready</h2>
+                <p className="mt-2 max-w-xs text-sm leading-6 text-slate-600">
+                  Send this design to {displayCompanyName} for pricing and next steps.
+                </p>
+                <div className="mt-6 w-full space-y-2.5">
+                  <Button
+                    size="lg"
+                    className="w-full rounded-xl font-semibold shadow-lg transition hover:shadow-xl"
+                    style={{ backgroundColor: resolvedPrimaryColor, color: primaryButtonTextColor }}
+                    onClick={handleQuoteClick}
+                  >
+                    <Phone className="mr-2 h-4 w-4" />
+                    {quoteButtonText}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="lg"
+                    variant="outline"
+                    className="w-full rounded-xl border-slate-300 bg-white font-semibold text-slate-700"
+                    onClick={handleStartOver}
+                  >
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Start over
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
             <div className="mb-3">
               <h2 className="font-semibold text-slate-950">Customize your design</h2>
               <p className="mt-0.5 text-xs text-slate-500">Turn on an area, then choose both its style and color.</p>
@@ -569,6 +603,18 @@ export default function EmbedRoofingPage() {
               onSelectionStatusChange={setStyleSelectionStatus}
             />
 
+            {embedVisitor.status?.unlimitedAccountAccess && (
+              <div className="mt-3">
+                <InlinePromptChat
+                  isBusinessPro
+                  customPrompt={customPrompt}
+                  onPromptChange={setCustomPrompt}
+                  accentColor={resolvedPrimaryColor}
+                  buttonClassName="w-full rounded-xl bg-white font-semibold hover:bg-slate-50"
+                />
+              </div>
+            )}
+
             {/* Generate Button */}
           <div className="sticky bottom-0 mt-3 border-t border-slate-200 bg-slate-50/95 pt-3 backdrop-blur-sm">
             <Button
@@ -585,6 +631,10 @@ export default function EmbedRoofingPage() {
                 !styleSelectionStatus.allEnabledCategoriesComplete
               }
               onClick={async () => {
+                if (!demoTrial.canStartGeneration()) {
+                  return;
+                }
+
                 if (visitorLimitReached) {
                   setShowQuoteGate(true);
                   return;
@@ -604,7 +654,7 @@ export default function EmbedRoofingPage() {
                     effectiveTenant.id,
                     selectedStyles,
                     undefined,
-                    undefined,
+                    embedVisitor.status?.unlimitedAccountAccess ? customPrompt : undefined,
                     {
                       source: "embed",
                       accountUserId: accountUserIdParam ? Number(accountUserIdParam) : null,
@@ -621,12 +671,14 @@ export default function EmbedRoofingPage() {
                     setVisualizationResult(status);
                     if (status?.generatedImageUrl) {
                       setLastGeneratedImageUrl(status.generatedImageUrl);
+                      demoTrial.recordSuccessfulGeneration();
                     }
                   }
                 } catch (error) {
                   console.error("Error generating visualization:", error);
                   const apiError = error as any;
                   if (apiError.code === "EMBED_VISITOR_LIMIT") {
+                    if (demoTrial.handleServerLimitReached()) return;
                     embedVisitor.markLimitReached(apiError.details?.embedVisitorUsage);
                     setShowQuoteGate(true);
                     return;
@@ -653,6 +705,8 @@ export default function EmbedRoofingPage() {
               )}
             </Button>
           </div>
+              </>
+            )}
           </aside>
         )}
 

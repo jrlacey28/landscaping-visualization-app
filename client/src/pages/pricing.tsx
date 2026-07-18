@@ -2,10 +2,8 @@
 
 import * as React from "react"
 import { PricingCard, type PricingTier } from "@/components/ui/pricing-card"
-import { Tab } from "@/components/ui/pricing-tab"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useTenant } from "@/hooks/use-tenant"
-import { cn } from "@/lib/utils"
 import Header from "@/components/header"
 
 interface PricingSectionProps {
@@ -96,6 +94,7 @@ export default function PricingPage() {
       yearlyPrice: 3600,
       features: [
         "200 visualizations per month",
+        "Basic embed widget",
         "Full-resolution downloads (no watermarks)",
         "Priority rendering speeds"
       ],
@@ -111,6 +110,8 @@ export default function PricingPage() {
         "650 visualizations per month",
         "Team access for up to 3 users",
         "Custom embed widget",
+        "Custom quote form and visitor limits",
+        "CRM integration via secure webhook",
         "Advanced customization chat",
         "Higher quality image model",
         "Priority rendering speeds",
@@ -126,6 +127,7 @@ export default function PricingPage() {
         "Everything in Professional, plus:",
         "Higher visualization amount",
         "White-label app and widget",
+        "CRM integration and lead delivery workflows",
         "Custom training integrations",
         "Advanced storage and tracking"
       ],

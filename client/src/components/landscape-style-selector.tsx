@@ -21,6 +21,7 @@ interface LandscapeStyleSelectorProps {
     patios?: SelectorOption[];
   };
   defaultOptionVisibility?: Partial<EmbedDefaultOptionVisibility>;
+  compact?: boolean;
 }
 
 interface PatioSelection {
@@ -90,6 +91,16 @@ type SelectorOption = {
 
 function isMulchValue(value: string) {
   return value === "fresh_mulch" || mulchColors.some((color) => color.value === value);
+}
+
+function colorWithAlpha(color: string, alpha: number) {
+  const normalized = color.replace("#", "");
+  const hex = normalized.length === 3
+    ? normalized.split("").map((character) => `${character}${character}`).join("")
+    : normalized;
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return `rgba(37, 99, 235, ${alpha})`;
+
+  return `rgba(${Number.parseInt(hex.slice(0, 2), 16)}, ${Number.parseInt(hex.slice(2, 4), 16)}, ${Number.parseInt(hex.slice(4, 6), 16)}, ${alpha})`;
 }
 
 function Swatch({ color, className = "h-4 w-4" }: { color: string; className?: string }) {
@@ -187,6 +198,7 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
   secondaryColor = "#059669",
   customOptions,
   defaultOptionVisibility,
+  compact = false,
 }: LandscapeStyleSelectorProps) {
   const defaultVisibility = normalizeEmbedDefaultOptionVisibility(defaultOptionVisibility);
   const allCurbingOptions = [
@@ -355,6 +367,149 @@ const LandscapeStyleSelector = React.memo(function LandscapeStyleSelector({
       patios: patioSpec,
     });
   };
+
+  const compactCardStyle = (active: boolean) => ({
+    borderColor: active ? primaryColor : "#dbe3ec",
+    backgroundColor: active ? colorWithAlpha(primaryColor, 0.06) : "#ffffff",
+  });
+  const compactSelectClassName =
+    "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200";
+
+  if (compact) {
+    return (
+      <div className="space-y-2.5">
+        {showCurbingCard && (
+          <section className="rounded-xl border p-3 shadow-sm transition" style={compactCardStyle(activeToggles.curbing)}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-slate-950">Curbing</h3>
+                <p className="text-xs text-slate-500">Edging style and finish</p>
+              </div>
+              <Switch
+                checked={activeToggles.curbing}
+                onCheckedChange={(checked) => handleToggleChange("curbing", checked)}
+                style={{ backgroundColor: activeToggles.curbing ? primaryColor : "#cbd5e1" }}
+              />
+            </div>
+            {activeToggles.curbing && (
+              <div className={`mt-3 grid gap-2 ${curbingSelection.type === "natural_stone_curbing" && selectedCurbingColor ? "sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2" : ""}`}>
+                <label className="space-y-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Style</span>
+                  <select
+                    value={curbingSelection.type}
+                    onChange={(event) => handleOptionSelect("curbing", event.target.value)}
+                    className={compactSelectClassName}
+                  >
+                    <GroupedNativeOptions options={allCurbingOptions} />
+                  </select>
+                </label>
+                {curbingSelection.type === "natural_stone_curbing" && selectedCurbingColor && (
+                  <label className="space-y-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Color</span>
+                    <select
+                      value={curbingSelection.color}
+                      onChange={(event) => handleCurbingColorChange(event.target.value)}
+                      className={compactSelectClassName}
+                    >
+                      {allCurbingColors.map((color) => (
+                        <option key={color.value} value={color.value}>{color.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {showLandscapeCard && (
+          <section className="rounded-xl border p-3 shadow-sm transition" style={compactCardStyle(activeToggles.landscape)}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-slate-950">Landscaping</h3>
+                <p className="text-xs text-slate-500">Ground cover and planting beds</p>
+              </div>
+              <Switch
+                checked={activeToggles.landscape}
+                onCheckedChange={(checked) => handleToggleChange("landscape", checked)}
+                style={{ backgroundColor: activeToggles.landscape ? primaryColor : "#cbd5e1" }}
+              />
+            </div>
+            {activeToggles.landscape && (
+              <div className={`mt-3 grid gap-2 ${landscapeSelection.type === "mulch" && selectedMulchColor ? "sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2" : ""}`}>
+                <label className="space-y-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Style</span>
+                  <select
+                    value={landscapeSelection.type}
+                    onChange={(event) => handleOptionSelect("landscape", event.target.value)}
+                    className={compactSelectClassName}
+                  >
+                    <GroupedNativeOptions options={allLandscapeOptions} />
+                  </select>
+                </label>
+                {landscapeSelection.type === "mulch" && selectedMulchColor && (
+                  <label className="space-y-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Color</span>
+                    <select
+                      value={landscapeSelection.mulch}
+                      onChange={(event) => handleMulchColorChange(event.target.value)}
+                      className={compactSelectClassName}
+                    >
+                      {allMulchColors.map((color) => (
+                        <option key={color.value} value={color.value}>{color.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {showPatiosCard && (
+          <section className="rounded-xl border p-3 shadow-sm transition" style={compactCardStyle(activeToggles.patios)}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-slate-950">Concrete patio</h3>
+                <p className="text-xs text-slate-500">Surface, shape, and size</p>
+              </div>
+              <Switch
+                checked={activeToggles.patios}
+                onCheckedChange={(checked) => handleToggleChange("patios", checked)}
+                style={{ backgroundColor: activeToggles.patios ? primaryColor : "#cbd5e1" }}
+              />
+            </div>
+            {activeToggles.patios && (
+              <div className="mt-3 grid gap-2 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                <label className="space-y-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Style</span>
+                  <select value={patioSelection.style} onChange={(event) => updatePatioSelection("style", event.target.value)} className={compactSelectClassName}>
+                    <GroupedNativeOptions options={allPatioStyles} />
+                  </select>
+                </label>
+                {allPatioShapes.length > 0 && (
+                  <label className="space-y-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Shape</span>
+                    <select value={patioSelection.shape} onChange={(event) => updatePatioSelection("shape", event.target.value)} className={compactSelectClassName}>
+                      {allPatioShapes.map((shape) => <option key={shape.value} value={shape.value}>{shape.label}</option>)}
+                    </select>
+                  </label>
+                )}
+                {allPatioSizes.length > 0 && (patioSelection.shape === "rectangular" || patioSelection.shape === "curved") && (
+                  <label className="space-y-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Size</span>
+                    <select value={patioSelection.size} onChange={(event) => updatePatioSelection("size", event.target.value)} className={compactSelectClassName}>
+                      {allPatioSizes.map((size) => <option key={size.value} value={size.value}>{size.label}</option>)}
+                    </select>
+                  </label>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
