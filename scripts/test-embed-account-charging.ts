@@ -1,5 +1,23 @@
 import assert from "node:assert/strict";
-import { resolveEmbedGenerationAccounting } from "../server/embed-account-access";
+import {
+  resolveCanonicalEmbedTenant,
+  resolveEmbedGenerationAccounting,
+} from "../server/embed-account-access";
+
+const legacyTestTenant = { id: 1, userId: null, slug: "test", currentMonthGenerations: 4 };
+const accountTenant = { id: 42, userId: 91, slug: "account-91", currentMonthGenerations: 0 };
+assert.equal(
+  resolveCanonicalEmbedTenant(legacyTestTenant, accountTenant),
+  accountTenant,
+  "a legacy shared /test tenant must not impose its exhausted quota on an account-owned embed",
+);
+
+const ownedTenant = { id: 12, userId: 12, slug: "owned-account" };
+assert.equal(
+  resolveCanonicalEmbedTenant(ownedTenant, accountTenant),
+  ownedTenant,
+  "an owned tenant must remain authoritative when an account parameter is stale or manipulated",
+);
 
 const contractorAccounting = resolveEmbedGenerationAccounting({
   tenantOwnerUserId: 34,

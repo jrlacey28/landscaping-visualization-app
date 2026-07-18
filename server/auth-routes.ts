@@ -173,7 +173,7 @@ export function registerAuthRoutes(app: Express) {
       const teamOwner = await storage.getTeamByOwnerId(user.id);
       const teamAccess = await storage.getUserTeamAccess(user.id);
       const workspaceOwnerId = teamAccess.effectiveUserId;
-      const workspaceTenant = await storage.getTenantByUserId(workspaceOwnerId);
+      const workspaceTenant = await storage.ensureAccountTenant(workspaceOwnerId);
       
       // Add extra logging for debugging production issues
       if (user.email === 'jordanlacey2821@gmail.com') {
@@ -557,7 +557,8 @@ export function registerAuthRoutes(app: Express) {
       res.json({ 
         success: true, 
         message: `User plan updated to ${planId}`,
-        subscription: newSubscription 
+        subscription: newSubscription,
+        tenant: await storage.ensureAccountTenant(userId),
       });
     } catch (error) {
       console.error("Error updating user plan:", error);
@@ -580,6 +581,7 @@ export function registerAuthRoutes(app: Express) {
       const year = now.getFullYear();
 
       await storage.resetUserUsage(userId, month, year);
+      await storage.ensureAccountTenant(userId);
 
       res.json({ 
         success: true, 
@@ -626,7 +628,8 @@ export function registerAuthRoutes(app: Express) {
       res.json({ 
         success: true, 
         message: `User plan set to ${stripePriceId}`,
-        subscription
+        subscription,
+        tenant: await storage.ensureAccountTenant(userId),
       });
     } catch (error) {
       console.error("Error setting user plan by Stripe ID:", error);
@@ -690,6 +693,7 @@ export function registerAuthRoutes(app: Express) {
           currentPeriodEnd,
           cancelAtPeriodEnd: !!(stripeSubscription as any).cancel_at_period_end,
         } as any);
+        await storage.ensureAccountTenant(userIdNum);
         return;
       }
 
@@ -711,6 +715,7 @@ export function registerAuthRoutes(app: Express) {
         currentPeriodEnd,
         cancelAtPeriodEnd: !!(stripeSubscription as any).cancel_at_period_end,
       } as any);
+      await storage.ensureAccountTenant(userIdNum);
     } catch (error) {
       console.error('Error creating subscription:', error);
     }
@@ -733,6 +738,7 @@ export function registerAuthRoutes(app: Express) {
 
       const updatedSubscription = await storage.updateSubscriptionByStripeId(subscription.id, updateData);
       if (updatedSubscription) {
+        await storage.ensureAccountTenant(updatedSubscription.userId);
         return;
       }
 
@@ -761,6 +767,7 @@ export function registerAuthRoutes(app: Express) {
         currentPeriodEnd,
         cancelAtPeriodEnd: !!(subscription as any).cancel_at_period_end,
       } as any);
+      await storage.ensureAccountTenant(userIdNum);
     } catch (error) {
       console.error('Error updating subscription:', error);
     }

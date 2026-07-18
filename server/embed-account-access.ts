@@ -20,6 +20,20 @@ export type EmbedGenerationAccounting = {
   shouldTrackUserUsage: true;
 };
 
+type OwnedEmbedTenant = {
+  userId?: number | null;
+};
+
+export function resolveCanonicalEmbedTenant<T extends OwnedEmbedTenant>(
+  requestedTenant: T | null | undefined,
+  accountTenant: T | null | undefined,
+): T | null {
+  // An owned tenant is authoritative. Legacy shared tenants such as /test are
+  // replaced by the account's managed tenant when the iframe includes its owner.
+  if (requestedTenant?.userId) return requestedTenant;
+  return accountTenant || requestedTenant || null;
+}
+
 export function resolveEmbedGenerationAccounting({
   tenantOwnerUserId,
   accountUserId,

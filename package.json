@@ -11,6 +11,7 @@
     "test:tenant-siding": "tsx scripts/test-tenant-custom-siding-context.ts",
     "test:enterprise-embed-access": "tsx scripts/test-enterprise-embed-access.ts",
     "test:embed-account-charging": "tsx scripts/test-embed-account-charging.ts",
+    "test:account-tenant-plan": "tsx scripts/test-account-tenant-plan.ts",
     "test:embed-selection": "tsx scripts/test-embed-exterior-selection.ts",
     "test:embed-quote-action": "tsx scripts/test-embed-quote-action.ts",
     "test:exterior-color-assignments": "tsx scripts/test-exterior-color-assignments.ts",

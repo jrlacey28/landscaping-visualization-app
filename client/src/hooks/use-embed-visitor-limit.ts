@@ -17,6 +17,7 @@ export type EmbedVisitorUsageStatus = {
 type UseEmbedVisitorLimitArgs = {
   tenantId?: number | null;
   tenantSlug?: string | null;
+  accountUserId?: string | number | null;
 };
 
 function getOrCreateVisitorId() {
@@ -39,7 +40,7 @@ function getOrCreateVisitorId() {
   return value;
 }
 
-export function useEmbedVisitorLimit({ tenantId, tenantSlug }: UseEmbedVisitorLimitArgs) {
+export function useEmbedVisitorLimit({ tenantId, tenantSlug, accountUserId }: UseEmbedVisitorLimitArgs) {
   const visitorId = useMemo(() => getOrCreateVisitorId(), []);
   const [status, setStatus] = useState<EmbedVisitorUsageStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,6 +54,7 @@ export function useEmbedVisitorLimit({ tenantId, tenantSlug }: UseEmbedVisitorLi
     const params = new URLSearchParams();
     if (tenantId) params.set("tenantId", String(tenantId));
     if (tenantSlug) params.set("tenantSlug", tenantSlug);
+    if (accountUserId) params.set("accountUserId", String(accountUserId));
     if (visitorId) params.set("visitorId", visitorId);
 
     setIsLoading(true);
@@ -75,7 +77,7 @@ export function useEmbedVisitorLimit({ tenantId, tenantSlug }: UseEmbedVisitorLi
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, tenantSlug, visitorId]);
+  }, [accountUserId, tenantId, tenantSlug, visitorId]);
 
   const trackQuoteClick = useCallback(async () => {
     if (!tenantId && !tenantSlug) {
@@ -90,13 +92,14 @@ export function useEmbedVisitorLimit({ tenantId, tenantSlug }: UseEmbedVisitorLi
         body: JSON.stringify({
           tenantId,
           tenantSlug,
+          accountUserId,
           visitorId,
         }),
       });
     } catch (error) {
       console.error("Failed to track embed quote click:", error);
     }
-  }, [tenantId, tenantSlug, visitorId]);
+  }, [accountUserId, tenantId, tenantSlug, visitorId]);
 
   const markLimitReached = useCallback((nextStatus?: EmbedVisitorUsageStatus) => {
     setStatus((current) => ({

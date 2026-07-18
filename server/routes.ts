@@ -24,6 +24,7 @@ import {
   canUseEmbedCustomInstructions,
   getEmbedVisitorLimit,
   hasUnlimitedEnterpriseEmbedAccess,
+  resolveCanonicalEmbedTenant,
   resolveEmbedGenerationAccounting,
 } from "./embed-account-access";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
@@ -962,7 +963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all tenants (admin only)
   app.get("/api/tenants", requireAdminAuth, async (req, res) => {
     try {
-      const allTenants = await storage.getAllTenants();
+      const allTenants = await storage.syncEligibleAccountTenants();
       res.json(allTenants);
     } catch (error) {
       console.error("Error fetching tenants:", error);
@@ -971,45 +972,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   async function ensureStandardEmbedTenant(workspaceOwnerId: number) {
-    const existingTenant = await storage.getTenantByUserId(workspaceOwnerId);
-    if (existingTenant) return existingTenant;
+    return await storage.ensureAccountTenant(workspaceOwnerId);
+  }
 
-    const hasEmbedAccess = await storage.computeEmbedAccess(workspaceOwnerId);
-    if (!hasEmbedAccess) return undefined;
+  async function resolveEmbedTenantForAccount(tenant: any, accountUserIdValue: unknown) {
+    const accountUserId = parsePositiveId(accountUserIdValue);
+    if (!accountUserId || tenant?.userId) return tenant;
 
-    const [owner, usage] = await Promise.all([
-      storage.getUser(workspaceOwnerId),
-      storage.checkUsageLimits(workspaceOwnerId),
-    ]);
-    if (!owner) return undefined;
-
-    const monthlyLimit = usage.limit === -1 ? 10_000 : Math.max(usage.limit, 1);
-
-    try {
-      return await storage.createTenant({
-        userId: workspaceOwnerId,
-        slug: `account-${workspaceOwnerId}`,
-        companyName: owner.businessName || `${owner.firstName} ${owner.lastName}`.trim() || "Your Company",
-        clientType: "standard",
-        isEnterprise: false,
-        phone: owner.phone || null,
-        contactPhone: owner.phone || null,
-        email: owner.email,
-        address: owner.address || null,
-        active: true,
-        embedEnabled: true,
-        embedVisitorLimit: 3,
-        embedRequireQuoteAfterLimit: true,
-        embedQuoteDestinationType: "email",
-        embedQuoteRecipientEmail: owner.email,
-        monthlyGenerationLimit: monthlyLimit,
-        currentMonthGenerations: Math.max(usage.currentUsage, 0),
-      });
-    } catch (error) {
-      const concurrentlyCreatedTenant = await storage.getTenantByUserId(workspaceOwnerId);
-      if (concurrentlyCreatedTenant) return concurrentlyCreatedTenant;
-      throw error;
-    }
+    const workspaceOwnerId = await getWorkspaceOwnerId(accountUserId);
+    const accountTenant = await ensureStandardEmbedTenant(workspaceOwnerId);
+    return resolveCanonicalEmbedTenant(tenant, accountTenant);
   }
 
   async function isEmbedBrandingRequired(tenant: any) {
@@ -1246,6 +1218,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tenant = await storage.getTenantBySlug(slug);
       }
 
+      tenant = await resolveEmbedTenantForAccount(tenant, req.query.accountUserId);
+
       if (!tenant) {
         return res.status(404).json({ error: "Tenant not found" });
       }
@@ -1268,6 +1242,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (tenantSlug) {
         tenant = await storage.getTenantBySlug(tenantSlug);
       }
+
+      tenant = await resolveEmbedTenantForAccount(tenant, req.query.accountUserId);
 
       if (!tenant) {
         return res.status(404).json({ error: "Embed account not found" });
@@ -1293,6 +1269,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tenant = await storage.getTenantBySlug(tenantSlug);
       }
 
+      tenant = await resolveEmbedTenantForAccount(tenant, req.body.accountUserId);
+
       if (!tenant) {
         return res.status(404).json({ error: "Embed account not found" });
       }
@@ -1310,6 +1288,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tenants", requireAdminAuth, async (req, res) => {
     try {
       const tenantData = insertTenantSchema.parse(req.body);
+      if (tenantData.userId) {
+        const linkedTenant = await storage.getTenantByUserId(tenantData.userId);
+        if (linkedTenant) {
+          return res.status(409).json({
+            error: `That account is already linked to /${linkedTenant.slug}. Edit the existing client instead.`,
+          });
+        }
+      }
       const tenant = await storage.createTenant(tenantData);
       res.json(tenant);
     } catch (error) {
@@ -1332,6 +1318,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const tenantData = insertTenantSchema.partial().parse(requestBody);
+      const existingTenant = await storage.getTenant(parseInt(id));
+      if (!existingTenant) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      if (tenantData.userId) {
+        const linkedTenant = await storage.getTenantByUserId(tenantData.userId);
+        if (linkedTenant && linkedTenant.id !== parseInt(id)) {
+          return res.status(409).json({
+            error: `That account is already linked to /${linkedTenant.slug}. Unlink it there before assigning it to this client.`,
+          });
+        }
+      }
+      if (existingTenant.userId && tenantData.currentMonthGenerations === 0) {
+        const now = new Date();
+        await storage.resetUserUsage(existingTenant.userId, now.getMonth() + 1, now.getFullYear());
+      }
       const tenant = await storage.updateTenant(parseInt(id), tenantData);
       res.json(tenant);
     } catch (error) {
@@ -1340,6 +1342,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid tenant data", details: error.errors });
       }
       res.status(500).json({ error: "Failed to update tenant" });
+    }
+  });
+
+  app.delete("/api/tenants/:id", requireAdminAuth, async (req, res) => {
+    try {
+      const tenantId = parsePositiveId(req.params.id);
+      if (!tenantId) {
+        return res.status(400).json({ error: "Invalid client ID" });
+      }
+
+      const tenant = await storage.getTenant(tenantId);
+      if (!tenant) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+
+      await storage.deleteTenant(tenantId);
+      if (tenant.userId) {
+        await storage.setUserEmbedOverride(tenant.userId, false, "admin-client-delete");
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting tenant:", error);
+      res.status(500).json({ error: "Failed to delete client" });
     }
   });
 
@@ -1396,10 +1421,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // Check monthly generation limits
-    const limit = tenant.monthlyGenerationLimit || 100;
+    const limit = tenant.monthlyGenerationLimit ?? 100;
     const currentUsage = tenant.currentMonthGenerations || 0;
     
-    if (currentUsage >= limit) {
+    if (limit !== -1 && currentUsage >= limit) {
       throw new Error(`Monthly generation limit of ${limit} visualizations exceeded. Please upgrade your plan.`);
     }
 
@@ -1446,26 +1471,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   async function getTenantFromGenerationRequest(req: AuthRequest, allowMissingTenant = false) {
     const tenantSlug = typeof req.body.tenantSlug === "string" ? req.body.tenantSlug.trim() : "";
+    let tenant = null;
     if (tenantSlug) {
-      const tenant = await storage.getTenantBySlug(tenantSlug);
-      if (!tenant) {
-        if (allowMissingTenant) return null;
+      tenant = await storage.getTenantBySlug(tenantSlug);
+      if (!tenant && !allowMissingTenant) {
         throw new GenerationRequestError(404, "Embed account not found");
       }
-      return tenant;
-    }
-
-    const tenantId = parsePositiveId(req.body.tenantId);
-    if (tenantId) {
-      const tenant = await storage.getTenant(tenantId);
-      if (!tenant) {
-        if (allowMissingTenant) return null;
+    } else {
+      const tenantId = parsePositiveId(req.body.tenantId);
+      if (tenantId) {
+        tenant = await storage.getTenant(tenantId);
+      }
+      if (tenantId && !tenant && !allowMissingTenant) {
         throw new GenerationRequestError(404, "Embed account not found");
       }
-      return tenant;
     }
 
-    return null;
+    return await resolveEmbedTenantForAccount(tenant, req.body.accountUserId);
   }
 
   function getClientIp(req: any) {
@@ -1858,9 +1880,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (tenant) {
         let checkedTenant;
         try {
-          checkedTenant = await checkTenantUsageLimits(tenant.id);
-          if (!tenant.isEnterprise && tenant.clientType !== "enterprise") {
+          if (tenant.userId && !tenant.isEnterprise && tenant.clientType !== "enterprise") {
+            if (!tenant.active) {
+              throw new Error("Account is suspended. Please contact support.");
+            }
+            checkedTenant = tenant;
             await checkUserUsageLimits(ownerUserId, usageType);
+          } else {
+            checkedTenant = await checkTenantUsageLimits(tenant.id);
           }
         } catch (error: any) {
           throw new GenerationRequestError(429, error.message || "Embed usage limit reached");

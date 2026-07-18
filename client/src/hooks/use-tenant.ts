@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "./use-auth";
 import type { Tenant } from "@shared/schema";
 
-export function useTenant(slug?: string) {
+export function useTenant(slug?: string, accountUserId?: string | number | null) {
   const { user } = useAuth();
   
   // If user is authenticated and no slug is provided, fetch their tenant
@@ -10,10 +10,10 @@ export function useTenant(slug?: string) {
   const shouldFetchUserTenant = user && !slug;
   const tenantEndpoint = shouldFetchUserTenant 
     ? "/api/tenant/my-tenant" 
-    : `/api/tenant/${slug || "demo"}`;
+    : `/api/tenant/${slug || "demo"}${accountUserId ? `?accountUserId=${encodeURIComponent(String(accountUserId))}` : ""}`;
 
   const { data: tenant, isLoading, error } = useQuery<Tenant>({
-    queryKey: [tenantEndpoint, shouldFetchUserTenant ? user?.user.id : slug || "demo"],
+    queryKey: [tenantEndpoint, shouldFetchUserTenant ? user?.user.id : slug || "demo", accountUserId || null],
     queryFn: async () => {
       const headers: Record<string, string> = {};
       const token = localStorage.getItem("auth_token");

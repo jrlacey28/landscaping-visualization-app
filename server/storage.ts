@@ -12,6 +12,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte } from "drizzle-orm";
+import { getManagedAccountClientPlan } from "./account-tenant-plan";
 
 // Usage stats functionality temporarily disabled
 // TODO: Implement proper usageStats table in schema when needed
@@ -48,6 +49,9 @@ export interface IStorage {
   getAllTenants(): Promise<Tenant[]>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
   updateTenant(id: number, tenant: Partial<InsertTenant>): Promise<Tenant>;
+  deleteTenant(id: number): Promise<boolean>;
+  ensureAccountTenant(userId: number): Promise<Tenant | undefined>;
+  syncEligibleAccountTenants(): Promise<Tenant[]>;
   getEmbedVisitorUsage(tenantId: number, visitorKey: string, month: number, year: number): Promise<EmbedVisitorUsage | undefined>;
   getEmbedVisitorUsageStatus(tenantId: number, visitorKey: string, limit: number): Promise<{ canGenerate: boolean; currentUsage: number; limit: number; remaining: number; limitEnabled: boolean }>;
   recordEmbedVisitorGeneration(tenantId: number, visitorKey: string, limit: number): Promise<{ canGenerate: boolean; currentUsage: number; limit: number; remaining: number; limitEnabled: boolean }>;
@@ -813,6 +817,120 @@ export class DatabaseStorage implements IStorage {
     return tenant;
   }
 
+  async deleteTenant(id: number): Promise<boolean> {
+    const tenant = await this.getTenant(id);
+    if (!tenant) return false;
+
+    await this.db.transaction(async (tx) => {
+      await tx.delete(embedVisitorUsage).where(eq(embedVisitorUsage.tenantId, id));
+      await tx.delete(leads).where(eq(leads.tenantId, id));
+      await tx.delete(visualizations).where(eq(visualizations.tenantId, id));
+      await tx.delete(poolVisualizations).where(eq(poolVisualizations.tenantId, id));
+      await tx.delete(landscapeVisualizations).where(eq(landscapeVisualizations.tenantId, id));
+      await tx.delete(halloweenVisualizations).where(eq(halloweenVisualizations.tenantId, id));
+      await tx.delete(christmasLightsVisualizations).where(eq(christmasLightsVisualizations.tenantId, id));
+      await tx.delete(tenants).where(eq(tenants.id, id));
+    });
+
+    return true;
+  }
+
+  async ensureAccountTenant(userId: number): Promise<Tenant | undefined> {
+    const [owner, existingTenant, subscription, featureOverride] = await Promise.all([
+      this.getUser(userId),
+      this.getTenantByUserId(userId),
+      this.getUserActiveSubscription(userId),
+      this.getUserFeatureOverrides(userId),
+    ]);
+    if (!owner) return undefined;
+
+    const plan = subscription
+      ? await this.getSubscriptionPlan(subscription.planId)
+      : undefined;
+    const managedPlan = getManagedAccountClientPlan(subscription, plan);
+    const isExistingEnterprise = Boolean(
+      existingTenant?.isEnterprise || existingTenant?.clientType === "enterprise",
+    );
+    const explicitlyEnabled = featureOverride?.embedOverride === true;
+    const explicitlyDisabled = featureOverride?.embedOverride === false;
+
+    if (existingTenant && isExistingEnterprise) {
+      return existingTenant;
+    }
+
+    if (explicitlyDisabled || (!managedPlan && !explicitlyEnabled)) {
+      return existingTenant;
+    }
+
+    const usage = await this.checkUsageLimits(userId);
+    const clientType = managedPlan?.clientType || existingTenant?.clientType || "standard";
+    const isEnterprise = managedPlan?.isEnterprise || false;
+    const monthlyGenerationLimit = managedPlan?.monthlyGenerationLimit ??
+      (usage.limit === -1 ? -1 : Math.max(usage.limit, 1));
+
+    if (existingTenant) {
+      return await this.updateTenant(existingTenant.id, {
+        clientType,
+        isEnterprise,
+        monthlyGenerationLimit,
+        currentMonthGenerations: Math.max(usage.currentUsage, 0),
+      });
+    }
+
+    const baseSlug = `account-${userId}`;
+    const slugOwner = await this.getTenantBySlug(baseSlug);
+    const slug = slugOwner && slugOwner.userId !== userId
+      ? `${baseSlug}-embed`
+      : baseSlug;
+
+    try {
+      return await this.createTenant({
+        userId,
+        slug,
+        companyName:
+          owner.businessName ||
+          `${owner.firstName} ${owner.lastName}`.trim() ||
+          "Your Company",
+        clientType,
+        isEnterprise,
+        phone: owner.phone || null,
+        contactPhone: owner.phone || null,
+        email: owner.email,
+        address: owner.address || null,
+        active: true,
+        embedEnabled: true,
+        embedVisitorLimit: 3,
+        embedRequireQuoteAfterLimit: true,
+        embedQuoteDestinationType: "email",
+        embedQuoteRecipientEmail: owner.email,
+        monthlyGenerationLimit,
+        currentMonthGenerations: Math.max(usage.currentUsage, 0),
+      });
+    } catch (error) {
+      const concurrentlyCreatedTenant = await this.getTenantByUserId(userId);
+      if (concurrentlyCreatedTenant) return concurrentlyCreatedTenant;
+      throw error;
+    }
+  }
+
+  async syncEligibleAccountTenants(): Promise<Tenant[]> {
+    const activeSubscriptions = await this.db
+      .select({ userId: subscriptions.userId })
+      .from(subscriptions)
+      .where(eq(subscriptions.status, "active"));
+    const userIds = Array.from(new Set(activeSubscriptions.map(({ userId }) => userId)));
+
+    for (const userId of userIds) {
+      try {
+        await this.ensureAccountTenant(userId);
+      } catch (error) {
+        console.error(`[Tenant] Failed to synchronize embed client for user ${userId}:`, error);
+      }
+    }
+
+    return await this.getAllTenants();
+  }
+
   async getEmbedVisitorUsage(
     tenantId: number,
     visitorKey: string,
@@ -995,6 +1113,19 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Tenant not found');
     }
 
+    if (tenant.userId && !tenant.isEnterprise && tenant.clientType !== "enterprise") {
+      const usage = await this.checkUsageLimits(tenant.userId);
+      await this.db
+        .update(tenants)
+        .set({
+          currentMonthGenerations: Math.max(usage.currentUsage, 0),
+          monthlyGenerationLimit: usage.limit,
+          lastResetDate: new Date(),
+        })
+        .where(eq(tenants.id, tenantId));
+      return;
+    }
+
     // Check if we need to reset the monthly count (start of new month)
     const now = new Date();
     const lastReset = new Date(tenant.lastResetDate || tenant.createdAt || now);
@@ -1005,7 +1136,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     const newCount = shouldReset ? 1 : (tenant.currentMonthGenerations || 0) + 1;
-    const limit = tenant.monthlyGenerationLimit || 100;
+    const limit = tenant.monthlyGenerationLimit ?? 100;
 
     // Update the generation count and reset date if needed
     const updateData: any = {
@@ -1017,7 +1148,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Auto-suspend if over limit
-    if (newCount > limit && tenant.active) {
+    if (limit !== -1 && newCount > limit && tenant.active) {
       updateData.active = false;
       console.log(`Auto-suspending tenant ${tenant.slug} - exceeded limit: ${newCount}/${limit}`);
     }
@@ -1596,6 +1727,7 @@ export class DatabaseStorage implements IStorage {
       { id: 'price_1S5X2XBY2SPm2HvO2he9Unto', name: 'Contractor (Legacy)', description: 'Legacy Contractor plan retained for existing subscriptions', price: 30000, interval: 'month', visualizationLimit: 200, embedAccess: true, active: false },
       { id: 'price_1TcynuBY2SPm2HvO1Eri2ogI', name: 'Contractor', description: 'For small business owners ready to impress clients', price: 30000, interval: 'month', visualizationLimit: 200, embedAccess: true, active: true },
       { id: 'price_1SGN4YBY2SPm2HvOrpREWCn1', name: 'Professional', description: 'For growing teams and advanced features', price: 50000, interval: 'month', visualizationLimit: 650, embedAccess: true, active: true },
+      { id: 'enterprise', name: 'Enterprise', description: 'White-label enterprise visualizer access', price: 75000, interval: 'month', visualizationLimit: -1, embedAccess: true, active: true },
       { id: 'custom', name: 'Custom', description: 'Admin-managed custom plan', price: 0, interval: 'month', visualizationLimit: 100, embedAccess: false, active: true },
     ];
 

@@ -54,6 +54,26 @@ import EnterpriseCustomizationEditor, {
   type EnterpriseCustomizations,
 } from "./enterprise-customization-editor";
 
+function getClientDefaultGenerationLimit(clientType: string) {
+  if (clientType === "contractor") return 200;
+  if (clientType === "professional") return 650;
+  if (clientType === "enterprise") return -1;
+  return 100;
+}
+
+function getTenantUsagePercent(tenant: Tenant) {
+  if (tenant.monthlyGenerationLimit === -1) return 0;
+  const limit = tenant.monthlyGenerationLimit || 100;
+  return Math.min(((tenant.currentMonthGenerations || 0) / limit) * 100, 100);
+}
+
+function formatTenantUsage(tenant: Tenant) {
+  const used = tenant.currentMonthGenerations || 0;
+  return tenant.monthlyGenerationLimit === -1
+    ? `${used}/Unlimited`
+    : `${used}/${tenant.monthlyGenerationLimit || 100}`;
+}
+
 export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -69,6 +89,7 @@ export default function AdminDashboard() {
         description: "User plan has been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
     },
     onError: (error: any) => {
       toast({
@@ -90,6 +111,7 @@ export default function AdminDashboard() {
         description: "User monthly usage has been reset successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
     },
     onError: (error: any) => {
       toast({
@@ -796,8 +818,9 @@ export default function AdminDashboard() {
                       </thead>
                       <tbody>
                         {allTenants.map((tenant: Tenant) => {
-                          const usagePercent = Math.min((tenant.currentMonthGenerations || 0) / (tenant.monthlyGenerationLimit || 100) * 100, 100);
-                          const isOverLimit = (tenant.currentMonthGenerations || 0) > (tenant.monthlyGenerationLimit || 100);
+                          const usagePercent = getTenantUsagePercent(tenant);
+                          const isOverLimit = tenant.monthlyGenerationLimit !== -1 &&
+                            (tenant.currentMonthGenerations || 0) > (tenant.monthlyGenerationLimit || 100);
 
                           return (
                             <tr key={tenant.id} className="border-b hover:bg-gray-50">
@@ -814,7 +837,7 @@ export default function AdminDashboard() {
                               </td>
                               <td className="py-4 px-2 text-right">
                                 <span className={`font-mono ${isOverLimit ? 'text-red-600' : ''}`}>
-                                  {tenant.currentMonthGenerations || 0}/{tenant.monthlyGenerationLimit || 100}
+                                  {formatTenantUsage(tenant)}
                                 </span>
                               </td>
                               <td className="py-4 px-2 text-right">
@@ -974,11 +997,13 @@ export default function AdminDashboard() {
                               ...prev,
                               clientType: e.target.value,
                               isEnterprise: e.target.value === "enterprise",
-                              monthlyGenerationLimit: e.target.value === "enterprise" ? 1800 : prev.monthlyGenerationLimit,
+                              monthlyGenerationLimit: getClientDefaultGenerationLimit(e.target.value),
                             }))}
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           >
                             <option value="standard">Standard</option>
+                            <option value="contractor">Contractor (200)</option>
+                            <option value="professional">Professional (650)</option>
                             <option value="enterprise">Enterprise</option>
                           </select>
                         </div>
@@ -987,7 +1012,7 @@ export default function AdminDashboard() {
                           <Input
                             id="newMonthlyLimit"
                             type="number"
-                            min="0"
+                            min="-1"
                             value={newClientData.monthlyGenerationLimit}
                             onChange={(e) => setNewClientData(prev => ({ ...prev, monthlyGenerationLimit: parseInt(e.target.value) || 0 }))}
                           />
@@ -1158,6 +1183,17 @@ export default function AdminDashboard() {
                           />
                         </div>
                         <div>
+                          <Label htmlFor="editSlug">Embed Slug</Label>
+                          <Input
+                            id="editSlug"
+                            value={editingClient.slug}
+                            onChange={(e) => setEditingClient(prev => prev ? ({
+                              ...prev,
+                              slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"),
+                            }) : null)}
+                          />
+                        </div>
+                        <div>
                           <Label htmlFor="editEmail">Email</Label>
                           <Input
                             id="editEmail"
@@ -1223,8 +1259,8 @@ export default function AdminDashboard() {
                           <Input
                             id="editMonthlyLimit"
                             type="number"
-                            min="0"
-                            value={editingClient.monthlyGenerationLimit || 100}
+                            min="-1"
+                            value={editingClient.monthlyGenerationLimit ?? 100}
                             onChange={(e) => setEditingClient(prev => prev ? ({ ...prev, monthlyGenerationLimit: parseInt(e.target.value) }) : null)}
                           />
                         </div>
@@ -1252,11 +1288,13 @@ export default function AdminDashboard() {
                               ...prev,
                               clientType: e.target.value,
                               isEnterprise: e.target.value === "enterprise",
-                              monthlyGenerationLimit: e.target.value === "enterprise" ? 1800 : prev.monthlyGenerationLimit,
+                              monthlyGenerationLimit: getClientDefaultGenerationLimit(e.target.value),
                             } as any) : null)}
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           >
                             <option value="standard">Standard</option>
+                            <option value="contractor">Contractor (200)</option>
+                            <option value="professional">Professional (650)</option>
                             <option value="enterprise">Enterprise</option>
                           </select>
                         </div>
@@ -1478,23 +1516,20 @@ export default function AdminDashboard() {
                             <div className="flex justify-between items-center mb-2">
                               <span className="text-sm font-medium">Generation Usage</span>
                               <span className="text-xs text-muted-foreground">
-                                {tenant.currentMonthGenerations || 0}/{tenant.monthlyGenerationLimit || 100}
+                                {formatTenantUsage(tenant)}
                               </span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div 
                                 className={`h-2 rounded-full ${
-                                  (tenant.currentMonthGenerations || 0) > (tenant.monthlyGenerationLimit || 100) 
+                                  tenant.monthlyGenerationLimit !== -1 && (tenant.currentMonthGenerations || 0) > (tenant.monthlyGenerationLimit || 100)
                                     ? 'bg-red-500' 
-                                    : (tenant.currentMonthGenerations || 0) / (tenant.monthlyGenerationLimit || 100) > 0.8
+                                    : getTenantUsagePercent(tenant) > 80
                                     ? 'bg-yellow-500'
                                     : 'bg-green-500'
                                 }`}
                                 style={{ 
-                                  width: `${Math.min(
-                                    ((tenant.currentMonthGenerations || 0) / (tenant.monthlyGenerationLimit || 100)) * 100, 
-                                    100
-                                  )}%` 
+                                  width: `${getTenantUsagePercent(tenant)}%`
                                 }}
                               />
                             </div>
@@ -1710,13 +1745,15 @@ export default function AdminDashboard() {
                                     value={
                                       user.subscription?.planId === 'price_1TcynuBY2SPm2HvO1Eri2ogI' ? 'contractor' :
                                       user.subscription?.planId === 'price_1SGN4YBY2SPm2HvOrpREWCn1' ? 'professional' :
+                                      user.subscription?.planId === 'enterprise' ? 'enterprise' :
                                       'free'
                                     }
                                     onValueChange={(value) => {
                                       const planIdMap: Record<string, string> = {
                                         'free': 'free',
                                         'contractor': 'price_1TcynuBY2SPm2HvO1Eri2ogI',
-                                        'professional': 'price_1SGN4YBY2SPm2HvOrpREWCn1'
+                                        'professional': 'price_1SGN4YBY2SPm2HvOrpREWCn1',
+                                        'enterprise': 'enterprise',
                                       };
                                       const planId = planIdMap[value];
                                       console.log(`[ADMIN FRONTEND] Updating plan for user ${user.id} to: ${planId}`);
@@ -1730,6 +1767,7 @@ export default function AdminDashboard() {
                                       <SelectItem value="free">Free</SelectItem>
                                       <SelectItem value="contractor">Contractor ($300)</SelectItem>
                                       <SelectItem value="professional">Professional ($500)</SelectItem>
+                                      <SelectItem value="enterprise">Enterprise</SelectItem>
                                     </SelectContent>
                                   </Select>
                                   

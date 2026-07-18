@@ -89,7 +89,7 @@ export default function EmbedRoofingPage() {
   const backgroundScheme = parseEmbedBackgroundScheme(urlParams.get('backgroundScheme'));
   const backgroundColor = urlParams.get('backgroundColor') || DEFAULT_EMBED_BACKGROUND_COLOR;
   
-  const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant(tenantLookup);
+  const { tenant, isLoading: tenantLoading, error: tenantError } = useTenant(tenantLookup, accountUserIdParam);
   const isDemoLookup = tenantLookup === 'demo';
   const canUseAccountFallback = Boolean(accountUserIdParam);
 
@@ -126,6 +126,7 @@ export default function EmbedRoofingPage() {
   const embedVisitor = useEmbedVisitorLimit({
     tenantId: tenant?.id || null,
     tenantSlug: tenant?.slug || null,
+    accountUserId: accountUserIdParam,
   });
   const demoTrial = useDemoEmbedTrial();
   const visitorLimitReached =
