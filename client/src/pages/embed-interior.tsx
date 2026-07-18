@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowRight, Check, Download, Eye, Phone, RotateCcw, Sparkles, Upload, XCircle } from "lucide-react";
 import { Button } from "../components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import EmbedQuoteGate from "@/components/embed-quote-gate";
 import EmbedQuoteLeadForm from "@/components/embed-quote-lead-form";
 import EmbedPoweredBy from "@/components/embed-powered-by";
@@ -17,6 +18,7 @@ import {
 } from "@/lib/embed-theme";
 import { normalizeEmbedDefaultOptionVisibility } from "@/lib/embed-default-visibility";
 import { type EmbedServiceKey, isEmbedServiceEnabled } from "@/lib/embed-services";
+import { getInteriorReferencePreviewUrl } from "@shared/interior-reference-options";
 
 type InteriorService = "painting" | "bathroom" | "kitchen" | "living_room";
 
@@ -48,6 +50,7 @@ type InteriorOption = {
   label: string;
   swatch?: string;
   overall?: boolean;
+  referenceImageUrl?: string;
 };
 
 type InteriorGroup = {
@@ -296,16 +299,30 @@ function Swatch({ color }: { color: string }) {
   );
 }
 
+function InteriorOptionPreview({ option }: { option?: InteriorOption }) {
+  if (option?.referenceImageUrl) {
+    return (
+      <img
+        src={option.referenceImageUrl}
+        alt=""
+        className="h-7 w-7 shrink-0 rounded-full border border-slate-300 object-cover shadow-sm"
+      />
+    );
+  }
+
+  return option?.swatch ? <Swatch color={option.swatch} /> : null;
+}
+
 function OptionDisplay({ option }: { option?: InteriorOption }) {
   return (
     <span className="flex min-w-0 items-center gap-2 text-left">
-      {option?.swatch && <Swatch color={option.swatch} />}
+      <InteriorOptionPreview option={option} />
       <span className="truncate">{option?.label || "Choose an option"}</span>
     </span>
   );
 }
 
-function toTenantCustomOption(option: any): InteriorOption | null {
+function toTenantCustomOption(option: any, service: InteriorService): InteriorOption | null {
   const label = String(option?.label || option?.name || option?.value || "").trim();
   if (!label) {
     return null;
@@ -320,6 +337,7 @@ function toTenantCustomOption(option: any): InteriorOption | null {
     value: rawValue.startsWith("tenant_custom_") ? rawValue : `tenant_custom_${rawValue}`,
     label,
     swatch: typeof option?.swatch === "string" ? option.swatch : undefined,
+    referenceImageUrl: service === "bathroom" ? getInteriorReferencePreviewUrl(option) : undefined,
   };
 }
 
@@ -344,7 +362,7 @@ function getTenantInteriorGroups(config: InteriorEmbedConfig, tenant: any): Inte
   const groupedOptions = new Map<string, InteriorOption[]>();
 
   source.forEach((option: any) => {
-    const normalizedOption = toTenantCustomOption(option);
+    const normalizedOption = toTenantCustomOption(option, config.service);
     if (!normalizedOption) {
       return;
     }
@@ -856,6 +874,8 @@ export default function EmbedInteriorPage() {
                       <div className="space-y-2.5">
                         {config.groups.map((group) => {
                           const isActive = activeGroups[group.id];
+                          const selectedValue = selectedOptions[group.id] || group.options[0]?.value || "";
+                          const selectedOption = group.options.find((option) => option.value === selectedValue);
                           return (
                             <section key={group.id} className="rounded-xl border p-3 shadow-sm transition" style={{ borderColor: isActive ? resolvedPrimaryColor : "#dbe3ec", backgroundColor: isActive ? colorWithAlpha(resolvedPrimaryColor, 0.06) : "#ffffff" }}>
                               <div className="flex items-center justify-between gap-3">
@@ -865,9 +885,29 @@ export default function EmbedInteriorPage() {
                               {isActive && (
                                 <label className="mt-3 block space-y-1">
                                   <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Selection</span>
-                                  <select value={selectedOptions[group.id] || group.options[0]?.value || ""} onChange={(event) => selectGroupOption(group, event.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200">
-                                    {group.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                                  </select>
+                                  {config.service === "bathroom" ? (
+                                    <Select value={selectedValue} onValueChange={(value) => selectGroupOption(group, value)}>
+                                      <SelectTrigger className="h-11 rounded-lg border-slate-200 bg-white text-slate-900">
+                                        <OptionDisplay option={selectedOption} />
+                                      </SelectTrigger>
+                                      <SelectContent className="border-slate-200 bg-white text-slate-900">
+                                        {group.options.map((option) => (
+                                          <SelectItem
+                                            key={option.value}
+                                            value={option.value}
+                                            textValue={option.label}
+                                            className="focus:bg-slate-100 focus:text-slate-950"
+                                          >
+                                            <OptionDisplay option={option} />
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <select value={selectedValue} onChange={(event) => selectGroupOption(group, event.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200">
+                                      {group.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                                    </select>
+                                  )}
                                 </label>
                               )}
                             </section>

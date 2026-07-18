@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { checkVisualizationStatus, uploadInteriorImage } from "@/lib/api";
 import { downloadImageWithWatermark } from "@/lib/download-utils";
 import { normalizeEmbedDefaultOptionVisibility } from "@/lib/embed-default-visibility";
+import { getInteriorReferencePreviewUrl } from "@shared/interior-reference-options";
 
 type InteriorService = "painting" | "bathroom" | "kitchen" | "living_room";
 
@@ -36,6 +37,7 @@ interface InteriorStyleOption {
   group?: string;
   swatch?: string;
   overall?: boolean;
+  referenceImageUrl?: string;
 }
 
 interface InteriorServiceConfig {
@@ -174,7 +176,7 @@ const serviceConfigs: Record<string, InteriorServiceConfig> = {
   },
 };
 
-function normalizeTenantInteriorStyle(option: any): InteriorStyleOption | null {
+function normalizeTenantInteriorStyle(option: any, service: InteriorService): InteriorStyleOption | null {
   const label = String(option?.label || option?.name || option?.value || "").trim();
   if (!label) return null;
 
@@ -193,6 +195,7 @@ function normalizeTenantInteriorStyle(option: any): InteriorStyleOption | null {
       : typeof option?.hex === "string"
         ? option.hex
         : undefined,
+    referenceImageUrl: service === "bathroom" ? getInteriorReferencePreviewUrl(option) : undefined,
   };
 }
 
@@ -206,12 +209,40 @@ function getTenantInteriorStyles(customizations: any, service: InteriorService) 
       : [];
 
   return source
-    .map(normalizeTenantInteriorStyle)
+    .map((option) => normalizeTenantInteriorStyle(option, service))
     .filter(Boolean) as InteriorStyleOption[];
 }
 
 function getInteriorDefaultVisibilityKey(service: InteriorService) {
   return service === "living_room" ? "interior.livingRoom" : `interior.${service}`;
+}
+
+function InteriorStylePreview({
+  option,
+  size = "small",
+}: {
+  option?: InteriorStyleOption;
+  size?: "small" | "large";
+}) {
+  const sizeClass = size === "large" ? "h-6 w-6" : "h-5 w-5";
+
+  if (option?.referenceImageUrl) {
+    return (
+      <img
+        src={option.referenceImageUrl}
+        alt=""
+        className={`${sizeClass} shrink-0 rounded-full border border-black/15 object-cover shadow-sm`}
+      />
+    );
+  }
+
+  if (!option?.swatch) return null;
+  return (
+    <span
+      className={`${sizeClass} shrink-0 rounded-full border border-black/15 shadow-inner`}
+      style={{ background: option.swatch }}
+    />
+  );
 }
 
 export default function InteriorDesign() {
@@ -664,12 +695,7 @@ export default function InteriorDesign() {
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                {selectedOption?.swatch && (
-                                  <span
-                                    className="h-6 w-6 shrink-0 rounded-full border border-white/60 shadow-inner"
-                                    style={{ background: selectedOption.swatch }}
-                                  />
-                                )}
+                                <InteriorStylePreview option={selectedOption} size="large" />
                                 <h4 className="text-lg font-semibold text-white drop-shadow-sm">
                                   {group}
                                 </h4>
@@ -694,12 +720,7 @@ export default function InteriorDesign() {
                               >
                                 <SelectTrigger className="bg-white/95 border-white/40 text-slate-800">
                                   <span className="flex min-w-0 items-center gap-2 text-left">
-                                    {selectedOption?.swatch && (
-                                      <span
-                                        className="h-5 w-5 shrink-0 rounded-full border border-black/15 shadow-inner"
-                                        style={{ background: selectedOption.swatch }}
-                                      />
-                                    )}
+                                    <InteriorStylePreview option={selectedOption} />
                                     <span className="truncate">
                                       {selectedOption?.label || "Choose an option"}
                                     </span>
@@ -709,12 +730,7 @@ export default function InteriorDesign() {
                                   {styles.map((style) => (
                                     <SelectItem key={style.value} value={style.value} textValue={style.label}>
                                       <span className="flex items-center gap-2">
-                                        {style.swatch && (
-                                          <span
-                                            className="h-4 w-4 shrink-0 rounded-full border border-black/15 shadow-inner"
-                                            style={{ background: style.swatch }}
-                                          />
-                                        )}
+                                        <InteriorStylePreview option={style} />
                                         <span>{style.label}</span>
                                       </span>
                                     </SelectItem>

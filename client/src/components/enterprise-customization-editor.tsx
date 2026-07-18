@@ -36,6 +36,7 @@ import {
   replaceColorValueInDesignAssignments,
   setColorAssignmentForDesign,
 } from "@/lib/exterior-color-assignments";
+import { getInteriorReferencePreviewUrl } from "@shared/interior-reference-options";
 
 type ReferenceImage = string;
 
@@ -130,6 +131,7 @@ type CategoryConfig = {
   kind: "services" | "defaults" | "color" | "option";
   includeGroup?: boolean;
   includeSwatch?: boolean;
+  referenceImagePreview?: boolean;
   colorSource?: "roof" | "siding" | "windows";
   icon: typeof Palette;
 };
@@ -314,14 +316,17 @@ export function cleanEnterpriseCustomizations(value: EnterpriseCustomizations): 
 function ReferenceImagesEditor({
   urls,
   onChange,
+  previewAsSample = false,
 }: {
   urls: ReferenceImage[] | undefined;
   onChange: (urls: ReferenceImage[]) => void;
+  previewAsSample?: boolean;
 }) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const normalizedUrls = urls || [];
+  const previewUrl = getInteriorReferencePreviewUrl({ referenceImageUrls: normalizedUrls });
 
   const updateUrl = (index: number, value: string) => {
     const next = [...normalizedUrls];
@@ -363,8 +368,15 @@ function ReferenceImagesEditor({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <Label className="text-xs">Reference Images</Label>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <Label className="text-xs">{previewAsSample ? "Tile Sample Images" : "Reference Images"}</Label>
+          {previewAsSample && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              The first image becomes the customer-facing sample circle. Every image is sent to the AI.
+            </p>
+          )}
+        </div>
         <div>
           <input
             ref={fileInputRef}
@@ -385,6 +397,21 @@ function ReferenceImagesEditor({
           </Button>
         </div>
       </div>
+      {previewAsSample && previewUrl && (
+        <div className="flex items-center gap-3 rounded-md border bg-muted/20 p-3">
+          <img
+            src={previewUrl}
+            alt="Bathroom tile sample preview"
+            className="h-14 w-14 shrink-0 rounded-full border-2 border-background object-cover shadow-sm"
+          />
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Customer preview</p>
+            <p className="text-xs text-muted-foreground">
+              This sample replaces the single-color swatch in the bathroom visualizer.
+            </p>
+          </div>
+        </div>
+      )}
       {normalizedUrls.map((url, index) => (
         <div key={index} className="flex gap-2">
           <Input
@@ -529,6 +556,7 @@ function OptionItemEditor({
   includeSwatch = false,
   availableColors = [],
   supportsColorAssignments = false,
+  referenceImagePreview = false,
 }: {
   option: CustomOption;
   index: number;
@@ -538,6 +566,7 @@ function OptionItemEditor({
   includeSwatch?: boolean;
   availableColors?: CustomColor[];
   supportsColorAssignments?: boolean;
+  referenceImagePreview?: boolean;
 }) {
   const selectedColorValues = getDesignColorValues(option, availableColors);
 
@@ -595,6 +624,7 @@ function OptionItemEditor({
       <ReferenceImagesEditor
         urls={option.referenceImageUrls}
         onChange={(referenceImageUrls) => onChange({ referenceImageUrls })}
+        previewAsSample={referenceImagePreview}
       />
       {supportsColorAssignments && (
         <div className="space-y-2 rounded-md border bg-muted/20 p-3">
@@ -1017,13 +1047,14 @@ export default function EnterpriseCustomizationEditor({
     },
     {
       key: "bathroomOptions",
-      label: "Bathroom Options",
-      description: "Bath tile, vanity, fixture, and remodel options with reference images.",
-      singular: "bathroom option",
+      label: "Bathroom Tile & Finish Samples",
+      description: "Upload multicolor tile and finish samples. The first reference image is shown to customers instead of a single-color swatch.",
+      singular: "bathroom sample",
       count: (customizations.interiorOptions?.bathroom || []).filter((option) => option.label).length,
       kind: "option",
       includeGroup: true,
-      includeSwatch: true,
+      includeSwatch: false,
+      referenceImagePreview: true,
       icon: Bath,
     },
     {
@@ -1367,25 +1398,39 @@ export default function EnterpriseCustomizationEditor({
                     </div>
                     );
                   })
-                : selectedOptions.map((option, index) => (
+                : selectedOptions.map((option, index) => {
+                    const referencePreviewUrl = selectedCategory.referenceImagePreview
+                      ? getInteriorReferencePreviewUrl(option)
+                      : undefined;
+
+                    return (
                     <div key={index} className="rounded-md border">
                       <div className="flex items-center justify-between gap-3 p-3">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">{option.label || "Untitled option"}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {[
-                              option.groupLabel,
-                              option.swatch,
-                              selectedCategory.colorSource && Array.isArray(option.allowedColorValues)
-                                ? `${option.allowedColorValues.length} assigned colors`
-                                : selectedCategory.colorSource
-                                  ? "all category colors"
-                                  : null,
-                              `${option.referenceImageUrls?.length || 0} reference images`,
-                            ]
-                              .filter(Boolean)
-                              .join(" - ")}
-                          </p>
+                        <div className="flex min-w-0 items-center gap-3">
+                          {referencePreviewUrl && (
+                            <img
+                              src={referencePreviewUrl}
+                              alt=""
+                              className="h-10 w-10 shrink-0 rounded-full border object-cover shadow-sm"
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{option.label || "Untitled option"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {[
+                                option.groupLabel,
+                                selectedCategory.referenceImagePreview ? null : option.swatch,
+                                selectedCategory.colorSource && Array.isArray(option.allowedColorValues)
+                                  ? `${option.allowedColorValues.length} assigned colors`
+                                  : selectedCategory.colorSource
+                                    ? "all category colors"
+                                    : null,
+                                `${option.referenceImageUrls?.length || 0} reference images`,
+                              ]
+                                .filter(Boolean)
+                                .join(" - ")}
+                            </p>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
@@ -1419,6 +1464,7 @@ export default function EnterpriseCustomizationEditor({
                             index={index}
                              includeGroup={selectedSupportsGroups}
                              includeSwatch={selectedCategory.includeSwatch}
+                             referenceImagePreview={selectedCategory.referenceImagePreview}
                              availableColors={selectedDesignColors}
                              supportsColorAssignments={Boolean(selectedCategory.colorSource)}
                             onChange={(patch) => updateOptionAt(index, patch)}
@@ -1433,7 +1479,8 @@ export default function EnterpriseCustomizationEditor({
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
             </div>
           )}
         </section>

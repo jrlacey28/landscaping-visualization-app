@@ -20,6 +20,10 @@ import {
 } from "./style-config";
 import { buildTenantExteriorCustomContext } from "./tenant-exterior-context";
 import {
+  buildTenantInteriorOptionPrompt,
+  collectInteriorReferenceImageUrls,
+} from "@shared/interior-reference-options";
+import {
   buildUnlimitedEnterpriseEmbedStatus,
   canUseEmbedCustomInstructions,
   getEmbedVisitorLimit,
@@ -1655,7 +1659,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           value: normalizeTenantCustomOptionValue(option?.value || label),
           label,
           prompt: String(option?.prompt || option?.instructions || "").trim(),
-          referenceImageUrls: collectReferenceImageUrls(option),
+          referenceImageUrls: collectInteriorReferenceImageUrls(option),
         };
       })
       .filter(Boolean) as Array<{ value: string; label: string; prompt: string; referenceImageUrls: string[] }>;
@@ -1670,7 +1674,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const matchingOptions = collectTenantInteriorOptions(tenant, service)
       .filter((option) => selected.has(option.value));
     const matchingPrompts = matchingOptions.map((option) =>
-      option.prompt || `Apply the client-specific option "${option.label}".`
+      buildTenantInteriorOptionPrompt({
+        service,
+        label: option.label,
+        prompt: option.prompt,
+        referenceImageUrls: option.referenceImageUrls,
+      }),
     );
 
     return {
