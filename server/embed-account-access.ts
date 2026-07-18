@@ -15,6 +15,12 @@ type EmbedGenerationAccountingInput = {
   authenticatedViewerUserId?: number | null;
 };
 
+type PlatformDemoEmbedInput = {
+  tenantSlug?: string | null;
+  tenantOwnerUserId?: number | null;
+  accountUserId?: number | null;
+};
+
 export type EmbedGenerationAccounting = {
   ownerUserId: number;
   shouldTrackUserUsage: true;
@@ -47,6 +53,14 @@ export function resolveEmbedGenerationAccounting({
     ownerUserId,
     shouldTrackUserUsage: true,
   };
+}
+
+export function isPlatformDemoEmbed({
+  tenantSlug,
+  tenantOwnerUserId,
+  accountUserId,
+}: PlatformDemoEmbedInput) {
+  return tenantSlug === "demo" && !tenantOwnerUserId && !accountUserId;
 }
 
 export type EmbedVisitorAccessStatus = {

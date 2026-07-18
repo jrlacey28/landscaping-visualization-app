@@ -26,6 +26,7 @@ import {
   hasUnlimitedEnterpriseEmbedAccess,
   resolveCanonicalEmbedTenant,
   resolveEmbedGenerationAccounting,
+  isPlatformDemoEmbed,
 } from "./embed-account-access";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 import { authenticateToken, optionalAuthenticateToken, AuthRequest } from "./auth";
@@ -975,6 +976,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return await storage.ensureAccountTenant(workspaceOwnerId);
   }
 
+  async function getEmbedTenantBySlug(slug: string) {
+    return slug === "demo"
+      ? await storage.ensureDemoTenant()
+      : await storage.getTenantBySlug(slug);
+  }
+
   async function resolveEmbedTenantForAccount(tenant: any, accountUserIdValue: unknown) {
     const accountUserId = parsePositiveId(accountUserIdValue);
     if (!accountUserId || tenant?.userId) return tenant;
@@ -1024,7 +1031,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!userTenant) {
         // If user doesn't have a tenant, return the demo tenant
-        const demoTenant = await storage.getTenantBySlug("demo");
+        const demoTenant = await storage.ensureDemoTenant();
         return res.json(await withEmbedBrandingEntitlement(demoTenant, true));
       }
 
@@ -1215,7 +1222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tenant = await storage.getTenant(parseInt(slug));
       } else {
         // Treat as slug
-        tenant = await storage.getTenantBySlug(slug);
+        tenant = await getEmbedTenantBySlug(slug);
       }
 
       tenant = await resolveEmbedTenantForAccount(tenant, req.query.accountUserId);
@@ -1240,7 +1247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (tenantId) {
         tenant = await storage.getTenant(tenantId);
       } else if (tenantSlug) {
-        tenant = await storage.getTenantBySlug(tenantSlug);
+        tenant = await getEmbedTenantBySlug(tenantSlug);
       }
 
       tenant = await resolveEmbedTenantForAccount(tenant, req.query.accountUserId);
@@ -1266,7 +1273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (tenantId) {
         tenant = await storage.getTenant(tenantId);
       } else if (tenantSlug) {
-        tenant = await storage.getTenantBySlug(tenantSlug);
+        tenant = await getEmbedTenantBySlug(tenantSlug);
       }
 
       tenant = await resolveEmbedTenantForAccount(tenant, req.body.accountUserId);
@@ -1355,6 +1362,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tenant = await storage.getTenant(tenantId);
       if (!tenant) {
         return res.status(404).json({ error: "Client not found" });
+      }
+
+      if (tenant.slug === "demo") {
+        return res.status(409).json({
+          error: "The DreamBuilder homepage demo is a protected system client and cannot be deleted.",
+        });
       }
 
       await storage.deleteTenant(tenantId);
@@ -1473,7 +1486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const tenantSlug = typeof req.body.tenantSlug === "string" ? req.body.tenantSlug.trim() : "";
     let tenant = null;
     if (tenantSlug) {
-      tenant = await storage.getTenantBySlug(tenantSlug);
+      tenant = await getEmbedTenantBySlug(tenantSlug);
       if (!tenant && !allowMissingTenant) {
         throw new GenerationRequestError(404, "Embed account not found");
       }
@@ -1861,6 +1874,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const isEmbedGeneration = req.body.source === "embed" || (!req.user && (!!tenant || !!accountUserId));
 
     if (isEmbedGeneration) {
+      if (isPlatformDemoEmbed({
+        tenantSlug: tenant?.slug,
+        tenantOwnerUserId: tenant?.userId,
+        accountUserId,
+      })) {
+        let checkedTenant;
+        try {
+          checkedTenant = await checkTenantUsageLimits(tenant.id);
+        } catch (error: any) {
+          throw new GenerationRequestError(429, error.message || "Demo usage limit reached");
+        }
+
+        const embedVisitorAccess = await assertEmbedVisitorCanGenerate(req, checkedTenant);
+        return {
+          userId: null,
+          tenantId: checkedTenant.id,
+          customizationTenantId: checkedTenant.id,
+          shouldTrackUserUsage: false as const,
+          hasBusinessPro: false,
+          unlimitedAccountAccess: false,
+          embedVisitorTracking: {
+            tenantId: checkedTenant.id,
+            visitorKey: embedVisitorAccess.visitorKey,
+            limit: getEmbedVisitorLimit(checkedTenant),
+            status: embedVisitorAccess.status,
+          },
+        };
+      }
+
       const accounting = resolveEmbedGenerationAccounting({
         tenantOwnerUserId: tenant?.userId,
         accountUserId,
@@ -2514,7 +2556,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      if (generationOwner.shouldTrackUserUsage) {
+      if (generationOwner.shouldTrackUserUsage && userId) {
         await storage.createOrUpdateUserUsage(userId, 'visualization');
       }
 
@@ -2677,7 +2719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      if (generationOwner.shouldTrackUserUsage) {
+      if (generationOwner.shouldTrackUserUsage && userId) {
         await storage.createOrUpdateUserUsage(userId, 'visualization');
       }
 
@@ -2910,7 +2952,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      if (generationOwner.shouldTrackUserUsage) {
+      if (generationOwner.shouldTrackUserUsage && userId) {
         await storage.createOrUpdateUserUsage(userId, 'pool');
       }
 
@@ -3159,7 +3201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      if (generationOwner.shouldTrackUserUsage) {
+      if (generationOwner.shouldTrackUserUsage && userId) {
         await storage.createOrUpdateUserUsage(userId, 'landscape');
       }
 
@@ -3290,7 +3332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      if (generationOwner.shouldTrackUserUsage) {
+      if (generationOwner.shouldTrackUserUsage && userId) {
         await storage.createOrUpdateUserUsage(userId, 'visualization');
       }
 
@@ -3419,7 +3461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      if (generationOwner.shouldTrackUserUsage) {
+      if (generationOwner.shouldTrackUserUsage && userId) {
         await storage.createOrUpdateUserUsage(userId, 'visualization');
       }
 

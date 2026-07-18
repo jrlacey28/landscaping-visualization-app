@@ -1,8 +1,39 @@
 import assert from "node:assert/strict";
 import {
+  isPlatformDemoEmbed,
   resolveCanonicalEmbedTenant,
   resolveEmbedGenerationAccounting,
 } from "../server/embed-account-access";
+
+assert.equal(
+  isPlatformDemoEmbed({
+    tenantSlug: "demo",
+    tenantOwnerUserId: null,
+    accountUserId: null,
+  }),
+  true,
+  "the unowned DreamBuilder demo must use platform demo accounting",
+);
+
+assert.equal(
+  isPlatformDemoEmbed({
+    tenantSlug: "demo",
+    tenantOwnerUserId: 34,
+    accountUserId: 34,
+  }),
+  false,
+  "an account-owned tenant must never bypass account charging",
+);
+
+assert.equal(
+  isPlatformDemoEmbed({
+    tenantSlug: "test",
+    tenantOwnerUserId: null,
+    accountUserId: null,
+  }),
+  false,
+  "legacy shared tenants must not receive the homepage demo exception",
+);
 
 const legacyTestTenant = { id: 1, userId: null, slug: "test", currentMonthGenerations: 4 };
 const accountTenant = { id: 42, userId: 91, slug: "account-91", currentMonthGenerations: 0 };

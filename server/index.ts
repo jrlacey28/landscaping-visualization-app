@@ -122,14 +122,9 @@ app.use((req, res, next) => {
 
 async function initializeDatabase() {
   try {
-    // Ensure demo tenant has correct company name
-    const demoTenant = await storage.getTenantBySlug("demo");
-    if (demoTenant && demoTenant.companyName !== "DreamBuilder") {
-      await storage.updateTenant(demoTenant.id, {
-        companyName: "DreamBuilder"
-      });
-      console.log("Updated demo tenant company name to DreamBuilder");
-    }
+    // The homepage demo is a protected platform tenant, not a customer account.
+    await storage.ensureDemoTenant();
+    console.log("DreamBuilder homepage demo tenant verified");
 
     // Ensure subscription plans have correct visualization limits
     await storage.ensureSubscriptionPlanLimits();

@@ -50,6 +50,7 @@ export interface IStorage {
   createTenant(tenant: InsertTenant): Promise<Tenant>;
   updateTenant(id: number, tenant: Partial<InsertTenant>): Promise<Tenant>;
   deleteTenant(id: number): Promise<boolean>;
+  ensureDemoTenant(): Promise<Tenant>;
   ensureAccountTenant(userId: number): Promise<Tenant | undefined>;
   syncEligibleAccountTenants(): Promise<Tenant[]>;
   getEmbedVisitorUsage(tenantId: number, visitorKey: string, month: number, year: number): Promise<EmbedVisitorUsage | undefined>;
@@ -835,6 +836,50 @@ export class DatabaseStorage implements IStorage {
     return true;
   }
 
+  async ensureDemoTenant(): Promise<Tenant> {
+    const existingTenant = await this.getTenantBySlug("demo");
+    const requiredSettings: Partial<InsertTenant> = {
+      userId: null,
+      companyName: "DreamBuilder",
+      clientType: "standard",
+      isEnterprise: false,
+      active: true,
+      embedEnabled: true,
+      embedVisitorLimit: 3,
+      embedRequireQuoteAfterLimit: true,
+      monthlyGenerationLimit: -1,
+    };
+
+    if (existingTenant) {
+      const needsRepair = Object.entries(requiredSettings).some(
+        ([key, value]) => existingTenant[key as keyof Tenant] !== value,
+      );
+      return needsRepair
+        ? await this.updateTenant(existingTenant.id, requiredSettings)
+        : existingTenant;
+    }
+
+    try {
+      return await this.createTenant({
+        ...requiredSettings,
+        slug: "demo",
+        companyName: "DreamBuilder",
+        primaryColor: "#2563EB",
+        secondaryColor: "#2563EB",
+        embedPrimaryColor: "#2563EB",
+        embedSecondaryColor: "#2563EB",
+        description: "DreamBuilder public visualizer demo",
+        showPricing: false,
+        requirePhone: false,
+        embedCtaText: "Create Your Account",
+      });
+    } catch (error) {
+      const concurrentlyCreatedTenant = await this.getTenantBySlug("demo");
+      if (concurrentlyCreatedTenant) return concurrentlyCreatedTenant;
+      throw error;
+    }
+  }
+
   async ensureAccountTenant(userId: number): Promise<Tenant | undefined> {
     const [owner, existingTenant, subscription, featureOverride] = await Promise.all([
       this.getUser(userId),
@@ -914,6 +959,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async syncEligibleAccountTenants(): Promise<Tenant[]> {
+    await this.ensureDemoTenant();
+
     const activeSubscriptions = await this.db
       .select({ userId: subscriptions.userId })
       .from(subscriptions)
