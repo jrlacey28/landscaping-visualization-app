@@ -16,15 +16,9 @@ import {
   parseEmbedBackgroundScheme,
 } from "@/lib/embed-theme";
 import { isEmbedServiceEnabled } from "@/lib/embed-services";
+import { getExteriorSelectorCustomizations } from "@/lib/exterior-custom-options";
 import roofingBeforeImage from "@assets/roofing-before.jpg";
 import roofingAfterImage from "@assets/roofing-after.jpg";
-
-function normalizeToken(value: unknown) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
 
 function getContrastTextColor(color: string) {
   const normalized = color.trim().replace("#", "");
@@ -55,47 +49,6 @@ function colorWithAlpha(color: string, alpha: number) {
   const green = (value >> 8) & 255;
   const blue = value & 255;
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-}
-
-function normalizeCustomColor(color: any) {
-  const hex = String(color?.hex || color?.color || "");
-  const label = String(color?.label || color?.name || color?.value || "").trim();
-  const rawValue = color?.value || `tenant_color_${normalizeToken(label || "custom")}_${hex.replace("#", "")}`;
-
-  return {
-    value: normalizeToken(rawValue),
-    label,
-    hex,
-    groupLabel: typeof color?.groupLabel === "string" ? color.groupLabel.trim() || undefined : undefined,
-  };
-}
-
-function normalizeCustomExteriorOption(option: any, category: "roof" | "siding" | "windows") {
-  const label = String(option?.label || option?.name || option?.value || "").trim();
-  const rawValue = option?.value || `tenant_custom_exterior_${category}_${normalizeToken(label || "option")}`;
-
-  return {
-    value: normalizeToken(rawValue).startsWith("tenant_custom_")
-      ? normalizeToken(rawValue)
-      : `tenant_custom_exterior_${category}_${normalizeToken(rawValue)}`,
-    label,
-    hex: typeof option?.hex === "string" ? option.hex : typeof option?.swatch === "string" ? option.swatch : undefined,
-    groupLabel: typeof option?.groupLabel === "string" ? option.groupLabel.trim() || undefined : undefined,
-    custom: true,
-    allowedColorValues: Array.isArray(option?.allowedColorValues)
-      ? option.allowedColorValues.map(normalizeToken).filter(Boolean)
-      : undefined,
-  };
-}
-
-function getCustomExteriorOptions(customizations: any, category: "roof" | "siding" | "windows") {
-  const options = customizations?.exteriorOptions?.[category];
-
-  return Array.isArray(options)
-    ? options
-        .map((option: any) => normalizeCustomExteriorOption(option, category))
-        .filter((option: any) => option.value && option.label)
-    : [];
 }
 
 export default function EmbedRoofingPage() {
@@ -143,24 +96,7 @@ export default function EmbedRoofingPage() {
   };
 
   const embedCustomizations = (effectiveTenant as any).embedCustomizations || {};
-  const customRoofColors = Array.isArray(embedCustomizations.roofColors)
-    ? embedCustomizations.roofColors
-        .map(normalizeCustomColor)
-        .filter((color: any) => color.value && color.label && /^#[0-9a-f]{6}$/i.test(color.hex))
-    : [];
-  const customSidingColors = Array.isArray(embedCustomizations.sidingColors)
-    ? embedCustomizations.sidingColors
-        .map(normalizeCustomColor)
-        .filter((color: any) => color.value && color.label && /^#[0-9a-f]{6}$/i.test(color.hex))
-    : [];
-  const customWindowColors = Array.isArray(embedCustomizations.windowColors)
-    ? embedCustomizations.windowColors
-        .map(normalizeCustomColor)
-        .filter((color: any) => color.value && color.label && /^#[0-9a-f]{6}$/i.test(color.hex))
-    : [];
-  const customRoofStyles = getCustomExteriorOptions(embedCustomizations, "roof");
-  const customSidingStyles = getCustomExteriorOptions(embedCustomizations, "siding");
-  const customWindowOptions = getCustomExteriorOptions(embedCustomizations, "windows");
+  const exteriorSelectorCustomizations = getExteriorSelectorCustomizations(embedCustomizations);
 
   const resolvedPrimaryColor =
     primaryColorParam || (tenant ? (effectiveTenant as any).embedPrimaryColor || effectiveTenant.primaryColor || primaryColor : primaryColor);
@@ -627,12 +563,7 @@ export default function EmbedRoofingPage() {
               primaryColor={resolvedPrimaryColor}
               secondaryColor={resolvedSecondaryColor}
               showWindows
-              customRoofColors={customRoofColors}
-              customSidingColors={customSidingColors}
-              customWindowColors={customWindowColors}
-              customRoofStyles={customRoofStyles}
-              customSidingStyles={customSidingStyles}
-              customWindowOptions={customWindowOptions}
+              {...exteriorSelectorCustomizations}
               defaultOptionVisibility={embedCustomizations.defaultOptionVisibility}
               compact
               onSelectionStatusChange={setStyleSelectionStatus}

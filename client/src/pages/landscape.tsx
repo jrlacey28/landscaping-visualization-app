@@ -29,9 +29,10 @@ import {
 } from "@/lib/api";
 import { InlinePromptChat } from "@/components/custom-prompt-chat";
 import { downloadImageWithWatermark } from "@/lib/download-utils";
+import { normalizeEmbedCustomOptions } from "@/lib/embed-custom-options";
 
 export default function Landscape() {
-  const { tenant } = useTenant(); // Removed isLoading to prevent blocking
+  const { tenant } = useTenant("demo");
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -83,6 +84,21 @@ export default function Landscape() {
     "--primary": effectiveTenant.primaryColor,
     "--secondary": effectiveTenant.secondaryColor,
   } as React.CSSProperties), [effectiveTenant.primaryColor, effectiveTenant.secondaryColor]);
+  const mainSiteCustomizations = (effectiveTenant as any).embedCustomizations || {};
+  const landscapeCustomOptions = {
+    curbing: normalizeEmbedCustomOptions(
+      mainSiteCustomizations.landscapeOptions?.curbing,
+      "tenant_custom_landscape_curbing",
+    ),
+    landscape: normalizeEmbedCustomOptions(
+      mainSiteCustomizations.landscapeOptions?.landscape,
+      "tenant_custom_landscape_landscape",
+    ),
+    patios: normalizeEmbedCustomOptions(
+      mainSiteCustomizations.landscapeOptions?.patios,
+      "tenant_custom_landscape_patios",
+    ),
+  };
 
   // Removed loading state to prevent blocking page render
 
@@ -271,8 +287,10 @@ export default function Landscape() {
                   <LandscapeStyleSelector
                     selectedStyles={selectedLandscapeStyles}
                     onStyleChange={setSelectedLandscapeStyles}
-                    primaryColor="#10b981"
-                    secondaryColor="#14b8a6"
+                    primaryColor={effectiveTenant.primaryColor || "#10b981"}
+                    secondaryColor={effectiveTenant.secondaryColor || "#14b8a6"}
+                    customOptions={landscapeCustomOptions}
+                    defaultOptionVisibility={mainSiteCustomizations.defaultOptionVisibility}
                   />
 
                   {/* Custom Prompt Chat for Professional users */}
@@ -334,7 +352,12 @@ export default function Landscape() {
                           originalFile,
                           effectiveTenant.id,
                           selectedLandscapeStyles,
-                          customPrompt
+                          customPrompt,
+                          {
+                            source: "site",
+                            tenantId: effectiveTenant.id,
+                            tenantSlug: effectiveTenant.slug,
+                          },
                         );
 
                         if (result.landscapeVisualizationId) {

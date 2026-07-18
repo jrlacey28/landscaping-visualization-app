@@ -32,9 +32,10 @@ import {
 } from "@/lib/api";
 import { InlinePromptChat } from "@/components/custom-prompt-chat";
 import { downloadImageWithWatermark } from "@/lib/download-utils";
+import { getExteriorSelectorCustomizations } from "@/lib/exterior-custom-options";
 
 export default function RoofingSiding() {
-  const { tenant } = useTenant(); // Removed isLoading to prevent blocking
+  const { tenant } = useTenant("demo");
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -99,6 +100,8 @@ export default function RoofingSiding() {
     "--primary": effectiveTenant.primaryColor,
     "--secondary": effectiveTenant.secondaryColor,
   } as React.CSSProperties;
+  const mainSiteCustomizations = (effectiveTenant as any).embedCustomizations || {};
+  const exteriorSelectorCustomizations = getExteriorSelectorCustomizations(mainSiteCustomizations);
 
   return (
     <div
@@ -302,6 +305,10 @@ export default function RoofingSiding() {
                         surpriseMe: { enabled: !!styles.surpriseMe, type: styles.surpriseMe },
                       });
                     }}
+                    primaryColor={effectiveTenant.primaryColor || "#475569"}
+                    secondaryColor={effectiveTenant.secondaryColor || "#64748b"}
+                    {...exteriorSelectorCustomizations}
+                    defaultOptionVisibility={mainSiteCustomizations.defaultOptionVisibility}
                   />
 
                   {/* Custom Prompt Chat for Professional users */}
@@ -371,7 +378,12 @@ export default function RoofingSiding() {
                           accountId,
                           selectedStyles,
                           maskData || undefined,  // Pass mask data if available
-                          customPrompt  // Pass custom prompt for Professional users
+                          customPrompt,  // Pass custom prompt for Professional users
+                          {
+                            source: "site",
+                            tenantId: effectiveTenant.id,
+                            tenantSlug: effectiveTenant.slug,
+                          },
                         );
 
                         if (result.visualizationId) {

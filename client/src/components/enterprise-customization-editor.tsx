@@ -42,7 +42,7 @@ type CustomOption = {
   allowedColorValues?: string[];
 };
 
-type EnterpriseCustomizations = {
+export type EnterpriseCustomizations = {
   enabledServices?: Partial<EmbedServiceAccess>;
   defaultOptionVisibility?: Partial<EmbedDefaultOptionVisibility>;
   roofColors?: CustomColor[];
@@ -78,6 +78,7 @@ type EnterpriseCustomizations = {
 type Props = {
   value: EnterpriseCustomizations | null | undefined;
   onChange: (value: EnterpriseCustomizations) => void;
+  context?: "client-embed" | "main-site";
 };
 
 type CategoryKey =
@@ -569,9 +570,14 @@ function OptionItemEditor({
   );
 }
 
-export default function EnterpriseCustomizationEditor({ value, onChange }: Props) {
+export default function EnterpriseCustomizationEditor({
+  value,
+  onChange,
+  context = "client-embed",
+}: Props) {
   const [activeCategory, setActiveCategory] = useState<CategoryKey>("services");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const isMainSite = context === "main-site";
   const customizations = normalizeEnterpriseCustomizations(value);
   const enabledServices = normalizeEmbedServiceAccess(customizations.enabledServices);
   const defaultOptionVisibility = normalizeEmbedDefaultOptionVisibility(customizations.defaultOptionVisibility);
@@ -753,8 +759,10 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
   const categories: CategoryConfig[] = [
     {
       key: "services",
-      label: "Embed Services",
-      description: "Choose which embed pages this client can use.",
+      label: isMainSite ? "Main Site Services" : "Embed Services",
+      description: isMainSite
+        ? "Choose which visualizer services appear on the main website."
+        : "Choose which embed pages this client can use.",
       singular: "service",
       count: Object.values(enabledServices).filter(Boolean).length,
       kind: "services",
@@ -763,7 +771,9 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
     {
       key: "defaultOptions",
       label: "Original Options",
-      description: "Show or hide DreamBuilder's built-in categories and colors for this client's embeds.",
+      description: isMainSite
+        ? "Show or hide DreamBuilder's built-in categories and colors on the main website."
+        : "Show or hide DreamBuilder's built-in categories and colors for this client's embeds.",
       singular: "original option",
       count: Object.values(defaultOptionVisibility).filter(Boolean).length,
       kind: "defaults",
@@ -1039,9 +1049,13 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
   return (
     <div className="overflow-hidden rounded-md border">
       <div className="border-b p-4">
-        <h3 className="font-semibold">Enterprise Choices Manager</h3>
+        <h3 className="font-semibold">
+          {isMainSite ? "Main Site Choices Manager" : "Enterprise Choices Manager"}
+        </h3>
         <p className="text-sm text-muted-foreground">
-          Pick a category, then edit the private options that only this client can use.
+          {isMainSite
+            ? "Pick a category, then edit the services, designs, and colors available on the main website."
+            : "Pick a category, then edit the private options that only this client can use."}
         </p>
       </div>
 
@@ -1161,9 +1175,11 @@ export default function EnterpriseCustomizationEditor({ value, onChange }: Props
           ) : selectedItemsCount === 0 ? (
             <div className="rounded-md border border-dashed p-6 text-center">
               <p className="font-medium">No {selectedCategory.label.toLowerCase()} yet.</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Add one to make it available in this client's private embed.
-              </p>
+               <p className="mt-1 text-sm text-muted-foreground">
+                 {isMainSite
+                   ? "Add one to make it available on the main website."
+                   : "Add one to make it available in this client's private embed."}
+               </p>
             </div>
           ) : (
             <div className="space-y-3">

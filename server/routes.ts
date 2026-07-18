@@ -1738,7 +1738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!tenant) return;
 
     if (!isTenantEmbedServiceEnabled(tenant, serviceKey)) {
-      throw new GenerationRequestError(403, "This embed service is not enabled for this client");
+      throw new GenerationRequestError(403, "This visualizer service is not enabled");
     }
   }
 
@@ -1772,6 +1772,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           userId: ownerUserId,
           tenantId: checkedTenant.id,
+          customizationTenantId: checkedTenant.id,
           shouldTrackUserUsage: false,
           hasBusinessPro: await storage.hasBusinessProAccess(ownerUserId),
           embedVisitorTracking: embedVisitorAccess.unlimitedAccountAccess
@@ -1794,6 +1795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return {
         userId: ownerUserId,
         tenantId: null,
+        customizationTenantId: null,
         shouldTrackUserUsage: true,
         hasBusinessPro: await storage.hasBusinessProAccess(ownerUserId),
       };
@@ -1812,6 +1814,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return {
       userId: req.user.id,
       tenantId: null,
+      customizationTenantId: tenant?.id || null,
       shouldTrackUserUsage: true,
       hasBusinessPro: await storage.hasBusinessProAccess(req.user.id),
     };
@@ -2318,7 +2321,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         surpriseMe: selectedSurpriseMe || undefined,
         windows: selectedWindows || undefined
       };
-      await requireTenantEmbedServiceEnabled(generationOwner.tenantId, "roofing");
+      const customizationTenantId = generationOwner.customizationTenantId || generationOwner.tenantId;
+      await requireTenantEmbedServiceEnabled(customizationTenantId, "roofing");
 
       // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
@@ -2331,8 +2335,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         resolvedSidingColorPrompt: "",
         referenceImagesCount: 0,
       };
-      if (generationOwner.tenantId) {
-        const ownerTenant = await storage.getTenant(generationOwner.tenantId);
+      if (customizationTenantId) {
+        const ownerTenant = await storage.getTenant(customizationTenantId);
         const customContext = buildTenantExteriorCustomContext(ownerTenant, selectedStyles);
         validatedCustomPrompt = customContext.prompt || undefined;
         tenantReferenceImages = customContext.referenceImages;
@@ -2509,12 +2513,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hasBusinessPro = generationOwner.hasBusinessPro;
       const embedServiceKey =
         service === "living_room" ? "living-room" : service;
-      await requireTenantEmbedServiceEnabled(generationOwner.tenantId, embedServiceKey);
+      const customizationTenantId = generationOwner.customizationTenantId || generationOwner.tenantId;
+      await requireTenantEmbedServiceEnabled(customizationTenantId, embedServiceKey);
 
       let validatedCustomPrompt = "";
       let tenantReferenceImageUrls: string[] = [];
-      if (generationOwner.tenantId) {
-        const ownerTenant = await storage.getTenant(generationOwner.tenantId);
+      if (customizationTenantId) {
+        const ownerTenant = await storage.getTenant(customizationTenantId);
         const customContext = buildTenantInteriorCustomContext(ownerTenant, service, selectedStyles);
         validatedCustomPrompt = customContext.prompt;
         tenantReferenceImageUrls = customContext.referenceImageUrls;
@@ -2735,13 +2740,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hotTub: selectedHotTub || undefined,
         sauna: selectedSauna || undefined
       };
-      await requireTenantEmbedServiceEnabled(generationOwner.tenantId, "pools");
+      const customizationTenantId = generationOwner.customizationTenantId || generationOwner.tenantId;
+      await requireTenantEmbedServiceEnabled(customizationTenantId, "pools");
 
       // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
       let tenantReferenceImageUrls: string[] = [];
-      if (generationOwner.tenantId) {
-        const ownerTenant = await storage.getTenant(generationOwner.tenantId);
+      if (customizationTenantId) {
+        const ownerTenant = await storage.getTenant(customizationTenantId);
         const customContext = buildTenantPoolCustomContext(ownerTenant, selectedPoolStyles);
         validatedCustomPrompt = customContext.prompt || undefined;
         tenantReferenceImageUrls = customContext.referenceImageUrls;
@@ -2985,13 +2991,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         landscape: selectedLandscape || undefined,
         patios: selectedPatios || undefined
       };
-      await requireTenantEmbedServiceEnabled(generationOwner.tenantId, "landscape");
+      const customizationTenantId = generationOwner.customizationTenantId || generationOwner.tenantId;
+      await requireTenantEmbedServiceEnabled(customizationTenantId, "landscape");
 
       // Validate custom prompt access (Professional feature)
       let validatedCustomPrompt = undefined;
       let tenantReferenceImageUrls: string[] = [];
-      if (generationOwner.tenantId) {
-        const ownerTenant = await storage.getTenant(generationOwner.tenantId);
+      if (customizationTenantId) {
+        const ownerTenant = await storage.getTenant(customizationTenantId);
         const customContext = buildTenantLandscapeCustomContext(ownerTenant, selectedLandscapeStyles);
         validatedCustomPrompt = customContext.prompt || undefined;
         tenantReferenceImageUrls = customContext.referenceImageUrls;

@@ -11,18 +11,81 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bath, ChefHat, ChevronDown, Home, LogOut, Paintbrush, Sofa, TreePine, User, Waves } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { normalizeEmbedServiceAccess, type EmbedServiceKey } from "@/lib/embed-services";
 
 interface HeaderProps {
   tenant: {
     companyName: string;
+    embedCustomizations?: unknown;
   };
   compactMobile?: boolean;
 }
 
+const mainSiteServices: Array<{
+  key: EmbedServiceKey;
+  href: string;
+  label: string;
+  description: string;
+  icon: typeof Home;
+}> = [
+  {
+    key: "roofing",
+    href: "/roofing-siding",
+    label: "Roofing & Siding",
+    description: "AI home exterior visualization",
+    icon: Home,
+  },
+  {
+    key: "pools",
+    href: "/pools",
+    label: "Pool Visualization",
+    description: "AI pool design visualization",
+    icon: Waves,
+  },
+  {
+    key: "landscape",
+    href: "/landscape",
+    label: "Landscape Design",
+    description: "AI landscape visualization",
+    icon: TreePine,
+  },
+  {
+    key: "painting",
+    href: "/painting",
+    label: "Painting",
+    description: "Indoor room paint visualization",
+    icon: Paintbrush,
+  },
+  {
+    key: "bathroom",
+    href: "/bathroom-redesign",
+    label: "Bathroom Redesign",
+    description: "AI bathroom remodel concepts",
+    icon: Bath,
+  },
+  {
+    key: "kitchen",
+    href: "/kitchen-redesign",
+    label: "Kitchen Redesign",
+    description: "AI kitchen remodel concepts",
+    icon: ChefHat,
+  },
+  {
+    key: "living-room",
+    href: "/living-room-design",
+    label: "Living Room Design",
+    description: "AI living room concepts",
+    icon: Sofa,
+  },
+];
+
 export default function Header({ tenant, compactMobile = false }: HeaderProps) {
   const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
-  const currentService = location === "/pools" ? "pools" : "roofing";
+  const serviceAccess = normalizeEmbedServiceAccess(
+    (tenant.embedCustomizations as any)?.enabledServices,
+  );
+  const visibleServices = mainSiteServices.filter((service) => serviceAccess[service.key]);
 
   return (
     <header className="relative z-50">
@@ -61,90 +124,23 @@ export default function Header({ tenant, compactMobile = false }: HeaderProps) {
                 className="w-56 bg-white/95 backdrop-blur-md border border-slate-200 shadow-lg"
                 align="center"
               >
-                <DropdownMenuItem asChild>
-                  <Link 
-                    href="/roofing-siding"
-                    className="group relative select-none rounded-sm text-sm outline-none hover:bg-slate-100 hover:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors font-medium bg-[#ffffff] text-[#000000]"
-                  >
-                    <Home className="h-4 w-4" />
-                    <div>
-                      <div className="font-medium">Roofing & Siding</div>
-                      <div className="text-xs text-slate-500 group-hover:text-white">AI home exterior visualization</div>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link 
-                    href="/pools"
-                    className="group relative select-none rounded-sm text-sm outline-none hover:bg-slate-100 hover:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors font-medium bg-[#ffffff] text-[#000000]"
-                  >
-                    <Waves className="h-4 w-4" />
-                    <div>
-                      <div className="font-medium">Pool Visualization</div>
-                      <div className="text-xs text-slate-500 group-hover:text-white">AI pool design visualization</div>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/landscape"
-                    className="group relative select-none rounded-sm text-sm outline-none hover:bg-slate-100 hover:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors font-medium bg-[#ffffff] text-[#000000]"
-                  >
-                    <TreePine className="h-4 w-4" />
-                    <div>
-                      <div className="font-medium">Landscape Design</div>
-                      <div className="text-xs text-slate-500 group-hover:text-white">AI landscape visualization</div>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/painting"
-                    className="group relative select-none rounded-sm text-sm outline-none hover:bg-slate-100 hover:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors font-medium bg-[#ffffff] text-[#000000]"
-                  >
-                    <Paintbrush className="h-4 w-4" />
-                    <div>
-                      <div className="font-medium">Painting</div>
-                      <div className="text-xs text-slate-500 group-hover:text-white">Indoor room paint visualization</div>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/bathroom-redesign"
-                    className="group relative select-none rounded-sm text-sm outline-none hover:bg-slate-100 hover:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors font-medium bg-[#ffffff] text-[#000000]"
-                  >
-                    <Bath className="h-4 w-4" />
-                    <div>
-                      <div className="font-medium">Bathroom Redesign</div>
-                      <div className="text-xs text-slate-500 group-hover:text-white">AI bathroom remodel concepts</div>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/kitchen-redesign"
-                    className="group relative select-none rounded-sm text-sm outline-none hover:bg-slate-100 hover:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors font-medium bg-[#ffffff] text-[#000000]"
-                  >
-                    <ChefHat className="h-4 w-4" />
-                    <div>
-                      <div className="font-medium">Kitchen Redesign</div>
-                      <div className="text-xs text-slate-500 group-hover:text-white">AI kitchen remodel concepts</div>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/living-room-design"
-                    className="group relative select-none rounded-sm text-sm outline-none hover:bg-slate-100 hover:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors font-medium bg-[#ffffff] text-[#000000]"
-                  >
-                    <Sofa className="h-4 w-4" />
-                    <div>
-                      <div className="font-medium">Living Room Design</div>
-                      <div className="text-xs text-slate-500 group-hover:text-white">AI living room concepts</div>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
+                {visibleServices.map((service) => {
+                  const Icon = service.icon;
+                  return (
+                    <DropdownMenuItem key={service.key} asChild>
+                      <Link
+                        href={service.href}
+                        className="group relative flex cursor-pointer select-none items-center gap-3 rounded-sm bg-white px-3 py-2 text-sm font-medium text-black outline-none transition-colors hover:bg-slate-100 hover:text-white"
+                      >
+                        <Icon className="h-4 w-4" />
+                        <div>
+                          <div className="font-medium">{service.label}</div>
+                          <div className="text-xs text-slate-500 group-hover:text-white">{service.description}</div>
+                        </div>
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -214,48 +210,17 @@ export default function Header({ tenant, compactMobile = false }: HeaderProps) {
                 className="w-48 bg-white/95 backdrop-blur-md border border-slate-200 shadow-lg"
                 align="end"
               >
-                <DropdownMenuItem asChild>
-                  <Link href="/roofing-siding" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100 transition-colors">
-                    <Home className="h-4 w-4" />
-                    Roofing & Siding
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/pools" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100">
-                    <Waves className="h-4 w-4" />
-                    Pool Visualization
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/landscape" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100">
-                    <TreePine className="h-4 w-4" />
-                    Landscape Design
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/painting" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100">
-                    <Paintbrush className="h-4 w-4" />
-                    Painting
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/bathroom-redesign" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100">
-                    <Bath className="h-4 w-4" />
-                    Bathroom Redesign
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/kitchen-redesign" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100">
-                    <ChefHat className="h-4 w-4" />
-                    Kitchen Redesign
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/living-room-design" className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100">
-                    <Sofa className="h-4 w-4" />
-                    Living Room Design
-                  </Link>
-                </DropdownMenuItem>
+                {visibleServices.map((service) => {
+                  const Icon = service.icon;
+                  return (
+                    <DropdownMenuItem key={service.key} asChild>
+                      <Link href={service.href} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100">
+                        <Icon className="h-4 w-4" />
+                        {service.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
                 <DropdownMenuItem asChild>
                   <Link href="/pricing" className="flex items-center px-3 py-2 hover:bg-slate-100">
                     Pricing

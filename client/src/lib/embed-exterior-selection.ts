@@ -5,6 +5,37 @@ export type ExteriorSelectionState = {
   surpriseMe: { enabled: boolean; selected: boolean };
 };
 
+export type ExteriorSelectedStyles = {
+  roof: string;
+  siding: string;
+  windows: string;
+  surpriseMe: string;
+};
+
+export function getExteriorToggleSelection(
+  selectedStyles: ExteriorSelectedStyles,
+  category: keyof ExteriorSelectedStyles,
+  enabled: boolean,
+  currentCategorySelection = "",
+): ExteriorSelectedStyles {
+  if (category === "surpriseMe") {
+    return enabled
+      ? {
+          roof: "",
+          siding: "",
+          windows: "",
+          surpriseMe: selectedStyles.surpriseMe || "random_roof_and_siding",
+        }
+      : { ...selectedStyles, surpriseMe: "" };
+  }
+
+  return {
+    ...selectedStyles,
+    [category]: enabled ? currentCategorySelection : "",
+    surpriseMe: enabled ? "" : selectedStyles.surpriseMe,
+  };
+}
+
 export function validateExteriorSelection(state: ExteriorSelectionState) {
   const enabledCategories = [state.roof, state.siding, state.windows].filter((category) => category.enabled);
   const hasEnabledCategories = enabledCategories.length > 0 || state.surpriseMe.enabled;

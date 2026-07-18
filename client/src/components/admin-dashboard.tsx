@@ -51,6 +51,7 @@ import EnterpriseCustomizationEditor, {
   cleanEnterpriseCustomizations,
   createEmptyEnterpriseCustomizations,
   normalizeEnterpriseCustomizations,
+  type EnterpriseCustomizations,
 } from "./enterprise-customization-editor";
 
 export default function AdminDashboard() {
@@ -197,12 +198,13 @@ export default function AdminDashboard() {
     embedCustomizations: createEmptyEnterpriseCustomizations(),
   });
 
-  // For the legacy tenant settings panel.
-  const mockTenantId = 1;
+  const fallbackMainSiteTenantId = 1;
 
   const { data: allTenants = [] as Tenant[] } = useQuery<Tenant[]>({
     queryKey: ["/api/tenants"],
   });
+  const mainSiteTenantId =
+    allTenants.find((tenant) => tenant.slug === "demo")?.id || fallbackMainSiteTenantId;
 
   const { data: leads = [], isLoading: leadsLoading } = useQuery<Lead[]>({
     queryKey: ["/api/admin/leads"],
@@ -290,14 +292,16 @@ export default function AdminDashboard() {
 
   const updateTenantMutation = useMutation({
     mutationFn: async (data: Partial<Tenant>) => {
-      return apiRequest("PATCH", `/api/tenants/${mockTenantId}`, data);
+      return apiRequest("PATCH", `/api/tenants/${mainSiteTenantId}`, data);
     },
     onSuccess: () => {
       toast({
         title: "Settings Updated",
         description: "Your branding and settings have been saved successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/tenant/${mockTenantId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/tenant/${mainSiteTenantId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenant/demo"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenant/my-tenant"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
     },
     onError: (error: any) => {
@@ -446,7 +450,7 @@ export default function AdminDashboard() {
 
   // Load current tenant data
   const { data: currentTenant } = useQuery<Tenant>({
-    queryKey: [`/api/tenant/${mockTenantId}`],
+    queryKey: [`/api/tenant/${mainSiteTenantId}`],
   });
 
   const [tenantSettings, setTenantSettings] = useState({
@@ -459,31 +463,44 @@ export default function AdminDashboard() {
     description: "Professional roofing and siding services",
     showPricing: true,
     requirePhone: false,
+    embedCustomizations: createEmptyEnterpriseCustomizations() as EnterpriseCustomizations,
   });
+
+  const settingsTenant = allTenants.find((tenant) => tenant.id === mainSiteTenantId) || currentTenant;
 
   // Update settings when tenant data loads
   useEffect(() => {
-    if (currentTenant) {
+    if (settingsTenant) {
       setTenantSettings({
         companyName:
-          currentTenant.companyName || "DreamBuilder",
-        primaryColor: currentTenant.primaryColor || "#2563EB",
-        secondaryColor: currentTenant.secondaryColor || "#059669",
-        phone: currentTenant.phone || "(555) 123-4567",
-        email: currentTenant.email || "info@roofpro.com",
+          settingsTenant.companyName || "DreamBuilder",
+        primaryColor: settingsTenant.primaryColor || "#2563EB",
+        secondaryColor: settingsTenant.secondaryColor || "#059669",
+        phone: settingsTenant.phone || "(555) 123-4567",
+        email: settingsTenant.email || "info@roofpro.com",
         address:
-          currentTenant.address || "123 Construction Drive\nRiverside, CA 92501",
+          settingsTenant.address || "123 Construction Drive\nRiverside, CA 92501",
         description:
-          currentTenant.description ||
+          settingsTenant.description ||
           "Professional roofing and siding services",
-        showPricing: currentTenant.showPricing ?? true,
-        requirePhone: currentTenant.requirePhone ?? false,
+        showPricing: settingsTenant.showPricing ?? true,
+        requirePhone: settingsTenant.requirePhone ?? false,
+        embedCustomizations: normalizeEnterpriseCustomizations(settingsTenant.embedCustomizations),
       });
     }
-  }, [currentTenant]);
+  }, [settingsTenant]);
 
   const handleSaveSettings = () => {
-    updateTenantMutation.mutate(tenantSettings);
+    const cleanedChoices = cleanEnterpriseCustomizations(
+      normalizeEnterpriseCustomizations(tenantSettings.embedCustomizations),
+    );
+    updateTenantMutation.mutate({
+      ...tenantSettings,
+      embedCustomizations: {
+        ...((settingsTenant as any)?.embedCustomizations || {}),
+        ...cleanedChoices,
+      },
+    });
   };
 
   const prepareClientPayload = (clientData: any) => {
@@ -2332,9 +2349,9 @@ export default function AdminDashboard() {
           <TabsContent value="settings" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Application Settings</CardTitle>
+                <CardTitle>Main Website Settings</CardTitle>
                 <p className="text-muted-foreground">
-                  Configure how your application behaves
+                  Configure the public DreamBuilder website and its visualizer choices
                 </p>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -2375,6 +2392,19 @@ export default function AdminDashboard() {
                       }))
                     }
                     className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-600"
+                  />
+                </div>
+
+                <div className="border-t pt-6">
+                  <EnterpriseCustomizationEditor
+                    context="main-site"
+                    value={tenantSettings.embedCustomizations}
+                    onChange={(embedCustomizations) =>
+                      setTenantSettings((previous) => ({
+                        ...previous,
+                        embedCustomizations,
+                      }))
+                    }
                   />
                 </div>
 

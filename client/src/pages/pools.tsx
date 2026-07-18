@@ -27,9 +27,10 @@ import {
 } from "@/lib/api";
 import { InlinePromptChat } from "@/components/custom-prompt-chat";
 import { downloadImageWithWatermark } from "@/lib/download-utils";
+import { normalizeEmbedCustomOptions } from "@/lib/embed-custom-options";
 
 export default function Pools() {
-  const { tenant } = useTenant(); // Removed isLoading to prevent blocking
+  const { tenant } = useTenant("demo");
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -85,6 +86,37 @@ export default function Pools() {
     "--primary": effectiveTenant.primaryColor,
     "--secondary": effectiveTenant.secondaryColor,
   } as React.CSSProperties), [effectiveTenant.primaryColor, effectiveTenant.secondaryColor]);
+  const mainSiteCustomizations = (effectiveTenant as any).embedCustomizations || {};
+  const poolCustomOptions = {
+    poolType: normalizeEmbedCustomOptions(
+      mainSiteCustomizations.poolOptions?.poolType,
+      "tenant_custom_pool_pool_type",
+    ),
+    poolSize: normalizeEmbedCustomOptions(
+      mainSiteCustomizations.poolOptions?.poolSize,
+      "tenant_custom_pool_pool_size",
+    ),
+    decking: normalizeEmbedCustomOptions(
+      mainSiteCustomizations.poolOptions?.decking,
+      "tenant_custom_pool_decking",
+    ),
+    landscaping: normalizeEmbedCustomOptions(
+      mainSiteCustomizations.poolOptions?.landscaping,
+      "tenant_custom_pool_landscaping",
+    ),
+    features: normalizeEmbedCustomOptions(
+      mainSiteCustomizations.poolOptions?.features,
+      "tenant_custom_pool_features",
+    ),
+    hotTub: normalizeEmbedCustomOptions(
+      mainSiteCustomizations.poolOptions?.hotTub,
+      "tenant_custom_pool_hot_tub",
+    ),
+    sauna: normalizeEmbedCustomOptions(
+      mainSiteCustomizations.poolOptions?.sauna,
+      "tenant_custom_pool_sauna",
+    ),
+  };
 
   // Removed loading state to prevent blocking page render
 
@@ -281,8 +313,10 @@ export default function Pools() {
                   <PoolStyleSelector
                     selectedStyles={selectedPoolStyles}
                     onStyleChange={setSelectedPoolStyles}
-                    primaryColor="#3b82f6"
-                    secondaryColor="#06b6d4"
+                    primaryColor={effectiveTenant.primaryColor || "#3b82f6"}
+                    secondaryColor={effectiveTenant.secondaryColor || "#06b6d4"}
+                    customOptions={poolCustomOptions}
+                    defaultOptionVisibility={mainSiteCustomizations.defaultOptionVisibility}
                   />
 
                   {/* Custom Prompt Chat for Professional users */}
@@ -349,7 +383,12 @@ export default function Pools() {
                           originalFile,
                           user.user.id, // Use user ID for proper tracking
                           selectedPoolStyles,
-                          customPrompt  // Pass custom prompt for Professional users
+                          customPrompt,  // Pass custom prompt for Professional users
+                          {
+                            source: "site",
+                            tenantId: effectiveTenant.id,
+                            tenantSlug: effectiveTenant.slug,
+                          },
                         );
 
                         if (result.poolVisualizationId) {

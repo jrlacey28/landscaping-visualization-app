@@ -6,7 +6,10 @@ import {
   type EmbedDefaultOptionVisibility,
   normalizeEmbedDefaultOptionVisibility,
 } from "@/lib/embed-default-visibility";
-import { validateExteriorSelection } from "@/lib/embed-exterior-selection";
+import {
+  getExteriorToggleSelection,
+  validateExteriorSelection,
+} from "@/lib/embed-exterior-selection";
 
 type ColorOption = {
   value: string;
@@ -477,46 +480,62 @@ export default function StyleSelector({
     });
   }, [allEnabledCategoriesComplete, hasEnabledCategories, onSelectionStatusChange]);
 
-  const handleToggleChange = (category: 'roof' | 'siding' | 'windows' | 'surpriseMe', enabled: boolean) => {
-    // Handle mutual exclusivity between surprise me and other options
-    if (category === 'surpriseMe' && enabled) {
-      // If enabling surprise me, disable roof and siding
-      setActiveToggles(prev => ({ ...prev, roof: false, siding: false, surpriseMe: true }));
-      onStyleChange({
-        ...selectedStyles,
-        roof: "",
-        siding: "",
-        surpriseMe: selectedStyles.surpriseMe || "random_roof_and_siding",
-      });
-    } else if ((category === 'roof' || category === 'siding') && enabled && activeToggles.surpriseMe) {
-      // If enabling roof or siding while surprise me is active, disable surprise me
-      setActiveToggles(prev => ({ ...prev, [category]: enabled, surpriseMe: false }));
-      onStyleChange({
-        ...selectedStyles,
-        [category]: selectedStyles[category],
-        surpriseMe: "",
-      });
-    } else {
-      // Normal toggle behavior
-      setActiveToggles(prev => ({ ...prev, [category]: enabled }));
-      
-      if (!enabled) {
-        // If toggling off, clear the selection
-        onStyleChange({
-          ...selectedStyles,
-          [category]: "",
-        });
-      }
+  const getCurrentCategorySelection = (category: "roof" | "siding" | "windows") => {
+    if (category === "roof") {
+      return buildExteriorStyleSelection(selectedRoofStyle, selectedRoofColor, selectedRoofStyleOption);
     }
+
+    if (category === "siding") {
+      return buildExteriorStyleSelection(selectedSidingStyle, selectedSidingColor, selectedSidingStyleOption);
+    }
+
+    return buildExteriorStyleSelection(selectedWindowStyle, selectedWindowColor, selectedWindowStyleOption);
+  };
+
+  const handleToggleChange = (category: 'roof' | 'siding' | 'windows' | 'surpriseMe', enabled: boolean) => {
+    if (category === 'surpriseMe' && enabled) {
+      setActiveToggles(prev => ({
+        ...prev,
+        roof: false,
+        siding: false,
+        windows: false,
+        surpriseMe: true,
+      }));
+      onStyleChange(getExteriorToggleSelection(selectedStyles, category, enabled));
+      return;
+    }
+
+    if (category === 'surpriseMe') {
+      setActiveToggles(prev => ({ ...prev, surpriseMe: false }));
+      onStyleChange(getExteriorToggleSelection(selectedStyles, category, enabled));
+      return;
+    }
+
+    setActiveToggles(prev => ({
+      ...prev,
+      [category]: enabled,
+      surpriseMe: enabled ? false : prev.surpriseMe,
+    }));
+    onStyleChange(getExteriorToggleSelection(
+      selectedStyles,
+      category,
+      enabled,
+      getCurrentCategorySelection(category),
+    ));
   };
 
   const handleOptionSelect = (category: 'roof' | 'siding' | 'windows' | 'surpriseMe', value: string) => {
-    // Ensure the toggle stays active when making a selection
-    setActiveToggles(prev => ({ ...prev, [category]: true }));
+    const clearSurpriseMe = category !== "surpriseMe";
+    setActiveToggles(prev => ({
+      ...prev,
+      [category]: true,
+      surpriseMe: clearSurpriseMe ? false : prev.surpriseMe,
+    }));
     
     onStyleChange({
       ...selectedStyles,
       [category]: value,
+      surpriseMe: clearSurpriseMe ? "" : value,
     });
   };
 
@@ -530,14 +549,6 @@ export default function StyleSelector({
             active={activeToggles.roof}
             onToggle={(enabled) => {
               handleToggleChange("roof", enabled);
-              if (enabled && selectedRoofStyleOption) {
-                handleOptionSelect(
-                  "roof",
-                  selectedRoofColor
-                    ? buildExteriorStyleSelection(selectedRoofStyle, selectedRoofColor, selectedRoofStyleOption)
-                    : "",
-                );
-              }
             }}
             primaryColor={primaryColor}
             iconStyle={iconStyle}
@@ -567,14 +578,6 @@ export default function StyleSelector({
             active={activeToggles.siding}
             onToggle={(enabled) => {
               handleToggleChange("siding", enabled);
-              if (enabled && selectedSidingStyleOption) {
-                handleOptionSelect(
-                  "siding",
-                  selectedSidingColor
-                    ? buildExteriorStyleSelection(selectedSidingStyle, selectedSidingColor, selectedSidingStyleOption)
-                    : "",
-                );
-              }
             }}
             primaryColor={primaryColor}
             iconStyle={iconStyle}
@@ -604,14 +607,6 @@ export default function StyleSelector({
             active={activeToggles.windows}
             onToggle={(enabled) => {
               handleToggleChange("windows", enabled);
-              if (enabled && selectedWindowStyleOption) {
-                handleOptionSelect(
-                  "windows",
-                  selectedWindowColor
-                    ? buildExteriorStyleSelection(selectedWindowStyle, selectedWindowColor, selectedWindowStyleOption)
-                    : "",
-                );
-              }
             }}
             primaryColor={primaryColor}
             iconStyle={iconStyle}
@@ -661,9 +656,6 @@ export default function StyleSelector({
         {showRoofCard && (
         <div className="rounded-2xl border p-4 transition-all" style={cardStyle(activeToggles.roof)}>
           <div className="flex cursor-pointer items-center gap-3" onClick={() => handleToggleChange('roof', !activeToggles.roof)}>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={iconStyle}>
-              <Home className="h-5 w-5" />
-            </span>
             <div className="min-w-0 flex-1">
               <h3 className="font-semibold text-slate-900">Roof</h3>
               <p className="text-xs text-slate-500">Material and color</p>
@@ -739,9 +731,6 @@ export default function StyleSelector({
         {showSidingCard && (
         <div className="rounded-2xl border p-4 transition-all" style={cardStyle(activeToggles.siding)}>
           <div className="flex cursor-pointer items-center gap-3" onClick={() => handleToggleChange('siding', !activeToggles.siding)}>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={iconStyle}>
-              <Layers className="h-5 w-5" />
-            </span>
             <div className="min-w-0 flex-1">
               <h3 className="font-semibold text-slate-900">Siding</h3>
               <p className="text-xs text-slate-500">Style and color</p>
@@ -817,9 +806,6 @@ export default function StyleSelector({
         {showWindowsCard && (
         <div className="rounded-2xl border p-4 transition-all" style={cardStyle(activeToggles.windows)}>
           <div className="flex cursor-pointer items-center gap-3" onClick={() => handleToggleChange('windows', !activeToggles.windows)}>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={iconStyle}>
-              <Grid3X3 className="h-5 w-5" />
-            </span>
             <div className="min-w-0 flex-1">
               <h3 className="font-semibold text-slate-900">Windows</h3>
               <p className="text-xs text-slate-500">Design and frame color</p>
@@ -891,21 +877,13 @@ export default function StyleSelector({
         {showSurpriseCard && (
         <div className="rounded-2xl border p-4 transition-all" style={cardStyle(activeToggles.surpriseMe)}>
           <div className="flex cursor-pointer items-center gap-3" onClick={() => handleToggleChange('surpriseMe', !activeToggles.surpriseMe)}>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={iconStyle}>
-              <Sparkles className="h-5 w-5" />
-            </span>
             <div className="min-w-0 flex-1">
               <h3 className="font-semibold text-slate-900">Surprise me</h3>
               <p className="text-xs text-slate-500">Let AI choose a combination</p>
             </div>
             <Switch
               checked={activeToggles.surpriseMe}
-              onCheckedChange={(checked) => {
-                handleToggleChange('surpriseMe', checked);
-                if (checked) {
-                  handleOptionSelect('surpriseMe', 'random_roof_and_siding');
-                }
-              }}
+              onCheckedChange={(checked) => handleToggleChange('surpriseMe', checked)}
               onClick={(e) => e.stopPropagation()}
               style={{ backgroundColor: activeToggles.surpriseMe ? primaryColor : "#cbd5e1" }}
             />

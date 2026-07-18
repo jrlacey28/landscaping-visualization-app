@@ -16,6 +16,7 @@ import { Link } from "wouter";
 import Header from "@/components/header";
 import { PricingCard, type PricingTier } from "@/components/ui/pricing-card";
 import { useTenant } from "@/hooks/use-tenant";
+import { normalizeEmbedServiceAccess, type EmbedServiceKey } from "@/lib/embed-services";
 import homepageVideoPath from "@assets/720 Video Homepage_1758030379692.mp4";
 import roofingAfterImage from "@assets/roofing-after.jpg";
 import roofingBeforeImage from "@assets/roofing-before.jpg";
@@ -27,7 +28,16 @@ import roofingDesign20 from "@assets/roofing-design-20.jpg";
 import roofingDesign21 from "@assets/roofing-design-21.jpg";
 import roofingDesign22 from "@assets/roofing-design-22.jpg";
 
-const animatedTexts = ["Roofs", "Siding", "Landscapes", "Patios", "Pools", "Kitchens", "Bathrooms", "Paint"];
+const animatedServiceTexts: Array<{ label: string; key: EmbedServiceKey }> = [
+  { label: "Roofs", key: "roofing" },
+  { label: "Siding", key: "roofing" },
+  { label: "Landscapes", key: "landscape" },
+  { label: "Patios", key: "landscape" },
+  { label: "Pools", key: "pools" },
+  { label: "Kitchens", key: "kitchen" },
+  { label: "Bathrooms", key: "bathroom" },
+  { label: "Paint", key: "painting" },
+];
 
 const designImages = [
   roofingBeforeImage,
@@ -46,16 +56,16 @@ const possibilitySteps = [
   { title: "Get a Quote", label: "Turn the chosen design into an estimate request", icon: Sparkles },
 ];
 
-const services = [
-  { label: "Roofing", href: "/roofing-siding" },
-  { label: "Siding", href: "/roofing-siding" },
-  { label: "Landscape", href: "/landscape" },
-  { label: "Patios", href: "/landscape" },
-  { label: "Pools", href: "/pools" },
-  { label: "Painting", href: "/painting" },
-  { label: "Kitchen Redesign", href: "/kitchen-redesign" },
-  { label: "Bathroom Redesign", href: "/bathroom-redesign" },
-  { label: "Living Room Design", href: "/living-room-design" },
+const services: Array<{ label: string; href: string; key: EmbedServiceKey }> = [
+  { label: "Roofing", href: "/roofing-siding", key: "roofing" },
+  { label: "Siding", href: "/roofing-siding", key: "roofing" },
+  { label: "Landscape", href: "/landscape", key: "landscape" },
+  { label: "Patios", href: "/landscape", key: "landscape" },
+  { label: "Pools", href: "/pools", key: "pools" },
+  { label: "Painting", href: "/painting", key: "painting" },
+  { label: "Kitchen Redesign", href: "/kitchen-redesign", key: "kitchen" },
+  { label: "Bathroom Redesign", href: "/bathroom-redesign", key: "bathroom" },
+  { label: "Living Room Design", href: "/living-room-design", key: "living-room" },
 ];
 
 const pricingTiers: PricingTier[] = [
@@ -95,18 +105,28 @@ const pricingTiers: PricingTier[] = [
 ];
 
 export default function Home() {
-  const { tenant } = useTenant();
+  const { tenant } = useTenant("demo");
+  const serviceAccess = normalizeEmbedServiceAccess((tenant as any)?.embedCustomizations?.enabledServices);
+  const visibleServices = services.filter((service) => serviceAccess[service.key]);
+  const visibleAnimatedTexts = animatedServiceTexts
+    .filter((item) => serviceAccess[item.key])
+    .map((item) => item.label);
+  const rotatingServiceTexts = visibleAnimatedTexts.length > 0 ? visibleAnimatedTexts : ["Designs"];
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   const [currentDesignIndex, setCurrentDesignIndex] = useState(0);
   const [loadedDesignImages, setLoadedDesignImages] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTextIndex((prev) => (prev + 1) % animatedTexts.length);
+      setCurrentTextIndex((prev) => (prev + 1) % rotatingServiceTexts.length);
     }, 1200);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [rotatingServiceTexts.length]);
+
+  useEffect(() => {
+    setCurrentTextIndex((current) => current % rotatingServiceTexts.length);
+  }, [rotatingServiceTexts.length]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -175,7 +195,7 @@ export default function Home() {
                   className="animate-service-word bg-gradient-to-r from-sky-200 via-blue-300 to-indigo-200 bg-clip-text pb-1 text-4xl font-bold leading-tight text-transparent sm:text-5xl md:text-6xl"
                   key={currentTextIndex}
                 >
-                  {animatedTexts[currentTextIndex]}
+                  {rotatingServiceTexts[currentTextIndex]}
                 </span>
               </div>
 
@@ -406,7 +426,7 @@ export default function Home() {
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-[#111827] to-transparent md:w-40" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-[#111827] to-transparent md:w-40" />
           <div className="service-conveyor flex w-max gap-10">
-            {[...services, ...services].map((service, index) => (
+            {[...visibleServices, ...visibleServices].map((service, index) => (
               <Link
                 key={`${service.label}-${index}`}
                 href={service.href}

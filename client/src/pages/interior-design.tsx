@@ -25,6 +25,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { checkVisualizationStatus, uploadInteriorImage } from "@/lib/api";
 import { downloadImageWithWatermark } from "@/lib/download-utils";
+import { normalizeEmbedDefaultOptionVisibility } from "@/lib/embed-default-visibility";
 
 type InteriorService = "painting" | "bathroom" | "kitchen" | "living_room";
 
@@ -173,35 +174,52 @@ const serviceConfigs: Record<string, InteriorServiceConfig> = {
   },
 };
 
+function normalizeTenantInteriorStyle(option: any): InteriorStyleOption | null {
+  const label = String(option?.label || option?.name || option?.value || "").trim();
+  if (!label) return null;
+
+  const rawValue = String(option?.value || label)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return {
+    value: rawValue.startsWith("tenant_custom_") ? rawValue : `tenant_custom_${rawValue}`,
+    label,
+    description: String(option?.prompt || option?.instructions || `Apply the custom ${label} option.`).trim(),
+    group: String(option?.groupLabel || option?.category || "Custom Options").trim() || "Custom Options",
+    swatch: typeof option?.swatch === "string"
+      ? option.swatch
+      : typeof option?.hex === "string"
+        ? option.hex
+        : undefined,
+  };
+}
+
+function getTenantInteriorStyles(customizations: any, service: InteriorService) {
+  const byService = customizations?.interiorOptions?.[service];
+  const legacyBathroomOptions = service === "bathroom" ? customizations?.bathroomOptions : null;
+  const source = Array.isArray(byService)
+    ? byService
+    : Array.isArray(legacyBathroomOptions)
+      ? legacyBathroomOptions
+      : [];
+
+  return source
+    .map(normalizeTenantInteriorStyle)
+    .filter(Boolean) as InteriorStyleOption[];
+}
+
+function getInteriorDefaultVisibilityKey(service: InteriorService) {
+  return service === "living_room" ? "interior.livingRoom" : `interior.${service}`;
+}
+
 export default function InteriorDesign() {
-  const { tenant } = useTenant();
+  const { tenant } = useTenant("demo");
   const { user } = useAuth();
   const [location, navigate] = useLocation();
   const { toast } = useToast();
-  const config = serviceConfigs[location] || serviceConfigs["/painting"];
-  const isPaintingService = config.service === "painting";
-
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [originalFile, setOriginalFile] = useState<File | null>(null);
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedStyleIds, setSelectedStyleIds] = useState<string[]>([config.styles[0].value]);
-  const [activeGroups, setActiveGroups] = useState<Record<string, boolean>>({
-    [config.styles[0].group || "Options"]: true,
-  });
-  const [showingOriginal, setShowingOriginal] = useState(false);
-  const [showLeadForm, setShowLeadForm] = useState(false);
-  const [customPrompt, setCustomPrompt] = useState("");
-  const [customPaintName, setCustomPaintName] = useState("");
-  const [customPaintHex, setCustomPaintHex] = useState("#718ae1");
-
-  useEffect(() => {
-    setSelectedStyleIds([config.styles[0].value]);
-    setActiveGroups({ [config.styles[0].group || "Options"]: true });
-    setGeneratedImage(null);
-    setShowingOriginal(false);
-  }, [config]);
-
+  const baseConfig = serviceConfigs[location] || serviceConfigs["/painting"];
   const effectiveTenant = tenant || {
     id: 1,
     userId: null,
@@ -229,6 +247,47 @@ export default function InteriorDesign() {
     lastResetDate: new Date(),
     createdAt: new Date(),
   };
+  const config = useMemo(() => {
+    const customizations = (effectiveTenant as any).embedCustomizations || {};
+    const defaultVisibility = normalizeEmbedDefaultOptionVisibility(
+      customizations.defaultOptionVisibility,
+    );
+    const showDefaultStyles = defaultVisibility[
+      getInteriorDefaultVisibilityKey(baseConfig.service) as keyof typeof defaultVisibility
+    ];
+    const customStyles = getTenantInteriorStyles(customizations, baseConfig.service);
+
+    return {
+      ...baseConfig,
+      allowCombinations: baseConfig.allowCombinations || customStyles.length > 0,
+      styles: [...(showDefaultStyles ? baseConfig.styles : []), ...customStyles],
+    };
+  }, [baseConfig, tenant?.embedCustomizations]);
+  const isPaintingService = config.service === "painting";
+
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [originalFile, setOriginalFile] = useState<File | null>(null);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedStyleIds, setSelectedStyleIds] = useState<string[]>(() =>
+    config.styles[0] ? [config.styles[0].value] : [],
+  );
+  const [activeGroups, setActiveGroups] = useState<Record<string, boolean>>(() =>
+    config.styles[0] ? { [config.styles[0].group || "Options"]: true } : {},
+  );
+  const [showingOriginal, setShowingOriginal] = useState(false);
+  const [showLeadForm, setShowLeadForm] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [customPaintName, setCustomPaintName] = useState("");
+  const [customPaintHex, setCustomPaintHex] = useState("#718ae1");
+
+  useEffect(() => {
+    const defaultStyle = config.styles[0];
+    setSelectedStyleIds(defaultStyle ? [defaultStyle.value] : []);
+    setActiveGroups(defaultStyle ? { [defaultStyle.group || "Options"]: true } : {});
+    setGeneratedImage(null);
+    setShowingOriginal(false);
+  }, [config]);
 
   const brandColors = useMemo(() => ({
     "--primary": effectiveTenant.primaryColor,
@@ -239,7 +298,7 @@ export default function InteriorDesign() {
     config.styles
       .filter((style) => selectedStyleIds.includes(style.value))
       .map((style) => style.label)
-      .join(", ") || config.styles[0].label;
+      .join(", ") || config.styles[0]?.label || "No option selected";
 
   const stylesByValue = useMemo(() => {
     return new Map(config.styles.map((style) => [style.value, style]));
@@ -363,7 +422,7 @@ export default function InteriorDesign() {
     setGeneratedImage(null);
     setShowingOriginal(false);
     setCustomPrompt("");
-    setSelectedStyleIds([config.styles[0].value]);
+    setSelectedStyleIds(config.styles[0] ? [config.styles[0].value] : []);
   };
 
   const generateDesign = async () => {
@@ -404,6 +463,11 @@ export default function InteriorDesign() {
         selectedStyleIds,
         customPaintSelected ? { name: customPaintName, hex: customPaintHex } : undefined,
         customPrompt,
+        {
+          source: "site",
+          tenantId: effectiveTenant.id,
+          tenantSlug: effectiveTenant.slug,
+        },
       );
 
       const visualizationId = result.visualizationId;
