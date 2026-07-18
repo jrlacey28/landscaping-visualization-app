@@ -9,6 +9,32 @@ type TeamAccess = {
   effectiveUserId: number;
 };
 
+type EmbedGenerationAccountingInput = {
+  tenantOwnerUserId?: number | null;
+  accountUserId?: number | null;
+  authenticatedViewerUserId?: number | null;
+};
+
+export type EmbedGenerationAccounting = {
+  ownerUserId: number;
+  shouldTrackUserUsage: true;
+};
+
+export function resolveEmbedGenerationAccounting({
+  tenantOwnerUserId,
+  accountUserId,
+}: EmbedGenerationAccountingInput): EmbedGenerationAccounting | null {
+  // An embed can be opened while the browser is signed in to a different account.
+  // Billing must follow the embed tenant/account and never the viewing session.
+  const ownerUserId = tenantOwnerUserId || accountUserId;
+  if (!ownerUserId) return null;
+
+  return {
+    ownerUserId,
+    shouldTrackUserUsage: true,
+  };
+}
+
 export type EmbedVisitorAccessStatus = {
   canGenerate: boolean;
   currentUsage: number;

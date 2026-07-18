@@ -24,6 +24,7 @@ import {
   canUseEmbedCustomInstructions,
   getEmbedVisitorLimit,
   hasUnlimitedEnterpriseEmbedAccess,
+  resolveEmbedGenerationAccounting,
 } from "./embed-account-access";
 import { getAllPoolStyles, getPoolStylesByCategory, getPoolStyleForRegion } from "./pool-style-config";
 import { authenticateToken, optionalAuthenticateToken, AuthRequest } from "./auth";
@@ -1444,9 +1445,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   async function getTenantFromGenerationRequest(req: AuthRequest, allowMissingTenant = false) {
-    const tenantId = parsePositiveId(req.body.tenantId);
-    if (tenantId) {
-      const tenant = await storage.getTenant(tenantId);
+    const tenantSlug = typeof req.body.tenantSlug === "string" ? req.body.tenantSlug.trim() : "";
+    if (tenantSlug) {
+      const tenant = await storage.getTenantBySlug(tenantSlug);
       if (!tenant) {
         if (allowMissingTenant) return null;
         throw new GenerationRequestError(404, "Embed account not found");
@@ -1454,8 +1455,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return tenant;
     }
 
-    if (typeof req.body.tenantSlug === "string" && req.body.tenantSlug.trim()) {
-      const tenant = await storage.getTenantBySlug(req.body.tenantSlug.trim());
+    const tenantId = parsePositiveId(req.body.tenantId);
+    if (tenantId) {
+      const tenant = await storage.getTenant(tenantId);
       if (!tenant) {
         if (allowMissingTenant) return null;
         throw new GenerationRequestError(404, "Embed account not found");
@@ -1837,11 +1839,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const isEmbedGeneration = req.body.source === "embed" || (!req.user && (!!tenant || !!accountUserId));
 
     if (isEmbedGeneration) {
-      const ownerUserId = tenant?.userId || accountUserId;
+      const accounting = resolveEmbedGenerationAccounting({
+        tenantOwnerUserId: tenant?.userId,
+        accountUserId,
+        authenticatedViewerUserId: req.user?.id,
+      });
 
-      if (!ownerUserId) {
+      if (!accounting) {
         throw new GenerationRequestError(403, "This embed is not connected to an account");
       }
+      const ownerUserId = accounting.ownerUserId;
 
       const hasEmbedAccess = await storage.computeEmbedAccess(ownerUserId);
       if (!hasEmbedAccess) {
@@ -1852,6 +1859,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let checkedTenant;
         try {
           checkedTenant = await checkTenantUsageLimits(tenant.id);
+          if (!tenant.isEnterprise && tenant.clientType !== "enterprise") {
+            await checkUserUsageLimits(ownerUserId, usageType);
+          }
         } catch (error: any) {
           throw new GenerationRequestError(429, error.message || "Embed usage limit reached");
         }
@@ -1862,7 +1872,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: ownerUserId,
           tenantId: checkedTenant.id,
           customizationTenantId: checkedTenant.id,
-          shouldTrackUserUsage: false,
+          shouldTrackUserUsage: accounting.shouldTrackUserUsage,
           hasBusinessPro: await storage.hasBusinessProAccess(ownerUserId),
           unlimitedAccountAccess: embedVisitorAccess.unlimitedAccountAccess,
           embedVisitorTracking: embedVisitorAccess.unlimitedAccountAccess
@@ -1886,7 +1896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: ownerUserId,
         tenantId: null,
         customizationTenantId: null,
-        shouldTrackUserUsage: true,
+        shouldTrackUserUsage: accounting.shouldTrackUserUsage,
         hasBusinessPro: await storage.hasBusinessProAccess(ownerUserId),
       };
     }
