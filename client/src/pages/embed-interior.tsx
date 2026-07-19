@@ -208,12 +208,12 @@ const serviceConfigs: Record<string, InteriorEmbedConfig> = {
     groups: [
       {
         id: "options",
-        label: "Options",
+        label: "Full Redesign",
         options: [
-          { value: "modern_spa", label: "Modern Spa" },
-          { value: "luxury_marble", label: "Luxury Marble" },
-          { value: "warm_traditional", label: "Warm Traditional" },
-          { value: "compact_refresh", label: "Compact Refresh" },
+          { value: "modern_spa", label: "Modern Spa", overall: true },
+          { value: "luxury_marble", label: "Luxury Marble", overall: true },
+          { value: "warm_traditional", label: "Warm Traditional", overall: true },
+          { value: "compact_refresh", label: "Compact Refresh", overall: true },
         ],
       },
     ],
@@ -285,7 +285,7 @@ const createDefaultSelections = (config: InteriorEmbedConfig) =>
 
 const createDefaultActiveGroups = (config: InteriorEmbedConfig) =>
   config.groups.reduce<Record<string, boolean>>((groups, group) => {
-    groups[group.id] = group.id === config.groups[0]?.id;
+    groups[group.id] = false;
     return groups;
   }, {});
 
@@ -887,7 +887,7 @@ export default function EmbedInteriorPage() {
                                   <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Selection</span>
                                   {config.service === "bathroom" ? (
                                     <Select value={selectedValue} onValueChange={(value) => selectGroupOption(group, value)}>
-                                      <SelectTrigger className="h-11 rounded-lg border-slate-200 bg-white text-slate-900">
+                                      <SelectTrigger className="h-12 rounded-lg border-slate-200 bg-white py-1.5 text-slate-900 [&>span]:!flex [&>span]:items-center [&>span]:gap-2">
                                         <OptionDisplay option={selectedOption} />
                                       </SelectTrigger>
                                       <SelectContent className="border-slate-200 bg-white text-slate-900">

@@ -101,10 +101,10 @@ const serviceConfigs: Record<string, InteriorServiceConfig> = {
     resultFileName: "bathroom-redesign.jpg",
     quoteService: "bathroom-redesign",
     styles: [
-      { value: "modern_spa", label: "Modern Spa", description: "Calm neutrals, clean tile, refined fixtures" },
-      { value: "luxury_marble", label: "Luxury Marble", description: "Bright, polished, high-end hotel feel" },
-      { value: "warm_traditional", label: "Warm Traditional", description: "Timeless finishes and classic warmth" },
-      { value: "compact_refresh", label: "Compact Refresh", description: "Practical upgrades for smaller spaces" },
+      { value: "modern_spa", label: "Modern Spa", description: "Calm neutrals, clean tile, refined fixtures", group: "Full Redesign", overall: true },
+      { value: "luxury_marble", label: "Luxury Marble", description: "Bright, polished, high-end hotel feel", group: "Full Redesign", overall: true },
+      { value: "warm_traditional", label: "Warm Traditional", description: "Timeless finishes and classic warmth", group: "Full Redesign", overall: true },
+      { value: "compact_refresh", label: "Compact Refresh", description: "Practical upgrades for smaller spaces", group: "Full Redesign", overall: true },
     ],
   },
   "/kitchen-redesign": {
@@ -300,12 +300,8 @@ export default function InteriorDesign() {
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedStyleIds, setSelectedStyleIds] = useState<string[]>(() =>
-    config.styles[0] ? [config.styles[0].value] : [],
-  );
-  const [activeGroups, setActiveGroups] = useState<Record<string, boolean>>(() =>
-    config.styles[0] ? { [config.styles[0].group || "Options"]: true } : {},
-  );
+  const [selectedStyleIds, setSelectedStyleIds] = useState<string[]>([]);
+  const [activeGroups, setActiveGroups] = useState<Record<string, boolean>>({});
   const [showingOriginal, setShowingOriginal] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [customPrompt, setCustomPrompt] = useState("");
@@ -313,9 +309,8 @@ export default function InteriorDesign() {
   const [customPaintHex, setCustomPaintHex] = useState("#718ae1");
 
   useEffect(() => {
-    const defaultStyle = config.styles[0];
-    setSelectedStyleIds(defaultStyle ? [defaultStyle.value] : []);
-    setActiveGroups(defaultStyle ? { [defaultStyle.group || "Options"]: true } : {});
+    setSelectedStyleIds([]);
+    setActiveGroups({});
     setGeneratedImage(null);
     setShowingOriginal(false);
   }, [config]);
@@ -329,7 +324,7 @@ export default function InteriorDesign() {
     config.styles
       .filter((style) => selectedStyleIds.includes(style.value))
       .map((style) => style.label)
-      .join(", ") || config.styles[0]?.label || "No option selected";
+      .join(", ") || "No option selected";
 
   const stylesByValue = useMemo(() => {
     return new Map(config.styles.map((style) => [style.value, style]));
@@ -453,7 +448,8 @@ export default function InteriorDesign() {
     setGeneratedImage(null);
     setShowingOriginal(false);
     setCustomPrompt("");
-    setSelectedStyleIds(config.styles[0] ? [config.styles[0].value] : []);
+    setSelectedStyleIds([]);
+    setActiveGroups({});
   };
 
   const generateDesign = async () => {
