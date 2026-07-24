@@ -13,10 +13,20 @@ import {
 import { db } from "./db";
 import { eq, desc, and, gte } from "drizzle-orm";
 import { getManagedAccountClientPlan } from "./account-tenant-plan";
+import { advanceVisualizationRollover } from "./visualization-rollover";
 
 // Usage stats functionality temporarily disabled
 // TODO: Implement proper usageStats table in schema when needed
 
+export interface UsageLimitStatus {
+  canUse: boolean;
+  currentUsage: number;
+  limit: number;
+  baseLimit: number;
+  planName: string;
+  rolloverEnabled: boolean;
+  rolloverBalance: number;
+}
 
 export interface IStorage {
   // User methods
@@ -40,7 +50,7 @@ export interface IStorage {
   // Usage tracking
   getUserUsage(userId: number, month: number, year: number): Promise<UserUsage | undefined>;
   createOrUpdateUserUsage(userId: number, type: 'visualization' | 'landscape' | 'pool'): Promise<UserUsage>;
-  checkUsageLimits(userId: number): Promise<{ canUse: boolean; currentUsage: number; limit: number; planName: string }>;
+  checkUsageLimits(userId: number): Promise<UsageLimitStatus>;
 
   // Tenant methods (for white-label customers)
   getTenant(id: number): Promise<Tenant | undefined>;
@@ -416,83 +426,158 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async checkUsageLimits(userId: number): Promise<{ canUse: boolean; currentUsage: number; limit: number; planName: string }> {
+  private async getEnterpriseRolloverBalance(
+    tenant: Tenant | undefined,
+    effectiveUserId: number,
+    baseLimit: number,
+    now: Date,
+  ): Promise<number> {
+    const isEnterprise = Boolean(
+      tenant && (tenant.isEnterprise || tenant.clientType === "enterprise"),
+    );
+
+    if (
+      !tenant ||
+      !isEnterprise ||
+      !tenant.visualizationRolloverEnabled ||
+      baseLimit <= 0
+    ) {
+      return 0;
+    }
+
+    const usagePeriods = await this.db
+      .select({
+        month: userUsage.month,
+        year: userUsage.year,
+        used: userUsage.totalCount,
+      })
+      .from(userUsage)
+      .where(eq(userUsage.userId, effectiveUserId));
+
+    const rollover = advanceVisualizationRollover({
+      currentBalance: tenant.visualizationRolloverBalance,
+      baseLimit,
+      cap: tenant.visualizationRolloverCap,
+      lastProcessedAt: tenant.visualizationRolloverLastProcessedAt,
+      now,
+      usagePeriods: usagePeriods.map((period) => ({
+        month: period.month,
+        year: period.year,
+        used: period.used || 0,
+      })),
+    });
+
+    const storedLastProcessedAt = tenant.visualizationRolloverLastProcessedAt
+      ? new Date(tenant.visualizationRolloverLastProcessedAt)
+      : null;
+    const shouldPersist =
+      (tenant.visualizationRolloverBalance || 0) !== rollover.balance ||
+      !storedLastProcessedAt ||
+      storedLastProcessedAt.getTime() !== rollover.lastProcessedAt.getTime();
+
+    if (shouldPersist) {
+      await this.db
+        .update(tenants)
+        .set({
+          visualizationRolloverBalance: rollover.balance,
+          visualizationRolloverLastProcessedAt: rollover.lastProcessedAt,
+        })
+        .where(eq(tenants.id, tenant.id));
+    }
+
+    return rollover.balance;
+  }
+
+  async checkUsageLimits(userId: number): Promise<UsageLimitStatus> {
     const now = new Date();
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
 
-    // Use the robust team access check
     const teamAccess = await this.getUserTeamAccess(userId);
     const effectiveUserId = teamAccess.effectiveUserId;
     const isPartOfTeam = teamAccess.isOwner || teamAccess.isMember;
-    const activeTeam = teamAccess.team;
+    const [subscription, tenant, usage] = await Promise.all([
+      this.getUserActiveSubscription(effectiveUserId),
+      this.getTenantByUserId(effectiveUserId),
+      this.getUserUsage(effectiveUserId, month, year),
+    ]);
+    const currentUsage = usage ? (usage.totalCount || 0) : 0;
+    const isEnterpriseTenant = Boolean(
+      tenant && (tenant.isEnterprise || tenant.clientType === "enterprise"),
+    );
 
-    // Get subscription (either user's own or team owner's)
-    const subscription = await this.getUserActiveSubscription(effectiveUserId);
+    if (!subscription) {
+      if (isEnterpriseTenant && tenant) {
+        const baseLimit = tenant.monthlyGenerationLimit ?? 0;
+        const rolloverBalance = await this.getEnterpriseRolloverBalance(
+          tenant,
+          effectiveUserId,
+          baseLimit,
+          now,
+        );
+        const limit = baseLimit === -1 ? -1 : baseLimit + rolloverBalance;
 
-    if (isPartOfTeam && activeTeam && subscription) {
-      // SIMPLIFIED: All team usage is now tracked under the team owner's ID
-      // No need to sum individual member usage anymore
-      const teamUsage = await this.getUserUsage(effectiveUserId, month, year);
-      const totalTeamUsage = teamUsage ? (teamUsage.totalCount || 0) : 0;
-
-      // Get plan details
-      const plan = await this.getSubscriptionPlan(subscription.planId);
-      if (!plan) {
         return {
-          canUse: false,
-          currentUsage: totalTeamUsage,
-          limit: 0,
-          planName: 'Unknown'
+          canUse: limit === -1 || currentUsage < limit,
+          currentUsage,
+          limit,
+          baseLimit,
+          planName: isPartOfTeam ? "Enterprise (Team)" : "Enterprise",
+          rolloverEnabled: Boolean(
+            tenant.visualizationRolloverEnabled && baseLimit > 0,
+          ),
+          rolloverBalance,
         };
       }
 
-      // Check limit (-1 means unlimited)
-      const planLimit = plan.visualizationLimit || 0;
-      const canUse = planLimit === -1 || totalTeamUsage < planLimit;
-
-      return {
-        canUse,
-        currentUsage: totalTeamUsage,
-        limit: plan.visualizationLimit || 0,
-        planName: `${plan.name} (Team)`
-      };
-    }
-
-    // Not part of a team or team owner doesn't have subscription - use individual limits
-    const usage = await this.getUserUsage(userId, month, year);
-    const currentUsage = usage ? (usage.totalCount || 0) : 0;
-
-    if (!subscription) {
-      // No subscription - they get 5 free visualizations
       return {
         canUse: currentUsage < 5,
         currentUsage,
         limit: 5,
-        planName: 'Free'
+        baseLimit: 5,
+        planName: 'Free',
+        rolloverEnabled: false,
+        rolloverBalance: 0,
       };
     }
 
-    // Get plan details
     const plan = await this.getSubscriptionPlan(subscription.planId);
     if (!plan) {
       return {
         canUse: false,
         currentUsage,
         limit: 0,
-        planName: 'Unknown'
+        baseLimit: 0,
+        planName: 'Unknown',
+        rolloverEnabled: false,
+        rolloverBalance: 0,
       };
     }
 
-    // Check limit (-1 means unlimited)
-    const planLimit = plan.visualizationLimit || 0;
-    const canUse = planLimit === -1 || currentUsage < planLimit;
+    const planLimit = plan.visualizationLimit ?? 0;
+    const baseLimit = isEnterpriseTenant && tenant
+      ? tenant.monthlyGenerationLimit ?? planLimit
+      : planLimit;
+    const rolloverBalance = await this.getEnterpriseRolloverBalance(
+      tenant,
+      effectiveUserId,
+      baseLimit,
+      now,
+    );
+    const limit = baseLimit === -1 ? -1 : baseLimit + rolloverBalance;
 
     return {
-      canUse,
+      canUse: limit === -1 || currentUsage < limit,
       currentUsage,
-      limit: plan.visualizationLimit || 0,
-      planName: plan.name
+      limit,
+      baseLimit,
+      planName: isPartOfTeam ? `${plan.name} (Team)` : plan.name,
+      rolloverEnabled: Boolean(
+        isEnterpriseTenant &&
+        tenant?.visualizationRolloverEnabled &&
+        baseLimit > 0
+      ),
+      rolloverBalance,
     };
   }
 
@@ -900,6 +985,12 @@ export class DatabaseStorage implements IStorage {
     const explicitlyDisabled = featureOverride?.embedOverride === false;
 
     if (existingTenant && isExistingEnterprise) {
+      const usage = await this.checkUsageLimits(userId);
+      if ((existingTenant.currentMonthGenerations || 0) !== usage.currentUsage) {
+        return await this.updateTenant(existingTenant.id, {
+          currentMonthGenerations: Math.max(usage.currentUsage, 0),
+        });
+      }
       return existingTenant;
     }
 
@@ -1160,13 +1251,12 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Tenant not found');
     }
 
-    if (tenant.userId && !tenant.isEnterprise && tenant.clientType !== "enterprise") {
+    if (tenant.userId) {
       const usage = await this.checkUsageLimits(tenant.userId);
       await this.db
         .update(tenants)
         .set({
           currentMonthGenerations: Math.max(usage.currentUsage, 0),
-          monthlyGenerationLimit: usage.limit,
           lastResetDate: new Date(),
         })
         .where(eq(tenants.id, tenantId));

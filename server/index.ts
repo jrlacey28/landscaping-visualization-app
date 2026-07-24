@@ -7,7 +7,11 @@ import { setupGoogleAuth } from "./google-auth";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import compression from "compression";
-import { databaseUrl, pool } from "./db";
+import {
+  databaseUrl,
+  ensureEnterpriseVisualizationRolloverSchema,
+  pool,
+} from "./db";
 
 const app = express();
 
@@ -158,6 +162,10 @@ async function initializeDatabaseInBackground() {
 }
 
 (async () => {
+  // Apply additive feature columns before any route can query the tenants table.
+  await ensureEnterpriseVisualizationRolloverSchema();
+  console.log("Enterprise visualization rollover schema verified");
+
   // Register authentication routes first (includes Stripe webhook and sets up sessions)
   registerAuthRoutes(app);
   

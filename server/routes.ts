@@ -1298,7 +1298,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create tenant (admin only)
   app.post("/api/tenants", requireAdminAuth, async (req, res) => {
     try {
-      const tenantData = insertTenantSchema.parse(req.body);
+      const tenantData = insertTenantSchema.parse({
+        ...req.body,
+        visualizationRolloverBalance: 0,
+        visualizationRolloverLastProcessedAt: undefined,
+      });
+      const isEnterprise =
+        tenantData.isEnterprise || tenantData.clientType === "enterprise";
+      if ((tenantData.visualizationRolloverCap ?? 0) < 0) {
+        return res.status(400).json({
+          error: "The visualization rollover cap cannot be negative.",
+        });
+      }
+      if (tenantData.visualizationRolloverEnabled) {
+        if (!isEnterprise) {
+          return res.status(400).json({
+            error: "Visualization rollover is available only for enterprise clients.",
+          });
+        }
+        if (!tenantData.userId) {
+          return res.status(400).json({
+            error: "Link an account before enabling visualization rollover.",
+          });
+        }
+        if ((tenantData.monthlyGenerationLimit ?? -1) <= 0) {
+          return res.status(400).json({
+            error: "Set a finite monthly generation limit before enabling rollover.",
+          });
+        }
+
+        tenantData.visualizationRolloverBalance = 0;
+        tenantData.visualizationRolloverLastProcessedAt = new Date(
+          new Date().getFullYear(),
+          new Date().getMonth(),
+          1,
+        );
+      }
       if (tenantData.userId) {
         const linkedTenant = await storage.getTenantByUserId(tenantData.userId);
         if (linkedTenant) {
@@ -1327,6 +1362,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (requestBody.lastResetDate && typeof requestBody.lastResetDate === 'string') {
         requestBody.lastResetDate = new Date(requestBody.lastResetDate);
       }
+      delete requestBody.visualizationRolloverBalance;
+      delete requestBody.visualizationRolloverLastProcessedAt;
       
       const tenantData = insertTenantSchema.partial().parse(requestBody);
       const existingTenant = await storage.getTenant(parseInt(id));
@@ -1341,6 +1378,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
+
+      const nextClientType = tenantData.clientType ?? existingTenant.clientType;
+      const nextIsEnterprise =
+        Boolean(tenantData.isEnterprise ?? existingTenant.isEnterprise) ||
+        nextClientType === "enterprise";
+      const nextMonthlyLimit =
+        tenantData.monthlyGenerationLimit ??
+        existingTenant.monthlyGenerationLimit ??
+        -1;
+      const nextUserId =
+        tenantData.userId === undefined ? existingTenant.userId : tenantData.userId;
+      const nextRolloverEnabled =
+        tenantData.visualizationRolloverEnabled ??
+        existingTenant.visualizationRolloverEnabled ??
+        false;
+      if (
+        typeof tenantData.visualizationRolloverCap === "number" &&
+        tenantData.visualizationRolloverCap < 0
+      ) {
+        return res.status(400).json({
+          error: "The visualization rollover cap cannot be negative.",
+        });
+      }
+      const currentMonthStart = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        1,
+      );
+
+      if (nextRolloverEnabled) {
+        if (!nextIsEnterprise) {
+          return res.status(400).json({
+            error: "Visualization rollover is available only for enterprise clients.",
+          });
+        }
+        if (!nextUserId) {
+          return res.status(400).json({
+            error: "Link an account before enabling visualization rollover.",
+          });
+        }
+        if (nextMonthlyLimit <= 0) {
+          return res.status(400).json({
+            error: "Set a finite monthly generation limit before enabling rollover.",
+          });
+        }
+      }
+
+      if (
+        nextRolloverEnabled &&
+        !existingTenant.visualizationRolloverEnabled
+      ) {
+        tenantData.visualizationRolloverBalance = 0;
+        tenantData.visualizationRolloverLastProcessedAt = currentMonthStart;
+      } else if (
+        !nextRolloverEnabled &&
+        existingTenant.visualizationRolloverEnabled
+      ) {
+        tenantData.visualizationRolloverBalance = 0;
+        tenantData.visualizationRolloverLastProcessedAt = currentMonthStart;
+      } else if (
+        nextRolloverEnabled &&
+        typeof tenantData.visualizationRolloverCap === "number" &&
+        tenantData.visualizationRolloverCap > 0
+      ) {
+        tenantData.visualizationRolloverBalance = Math.min(
+          existingTenant.visualizationRolloverBalance || 0,
+          tenantData.visualizationRolloverCap,
+        );
+      }
+
       if (existingTenant.userId && tenantData.currentMonthGenerations === 0) {
         const now = new Date();
         await storage.resetUserUsage(existingTenant.userId, now.getMonth() + 1, now.getFullYear());
@@ -1435,6 +1542,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Check if tenant is active
     if (!tenant.active) {
       throw new Error('Account is suspended. Please contact support.');
+    }
+
+    if (tenant.userId) {
+      const usage = await storage.checkUsageLimits(tenant.userId);
+      if (!usage.canUse) {
+        throw new Error(
+          `Monthly generation limit of ${usage.limit} visualizations exceeded. Please contact support.`,
+        );
+      }
+      return tenant;
     }
 
     // Check monthly generation limits

@@ -18,6 +18,7 @@
     "test:quote-crm": "tsx scripts/test-quote-crm.ts",
     "test:quote-email-formatting": "tsx scripts/test-quote-email-formatting.ts",
     "test:bathroom-reference-options": "tsx scripts/test-bathroom-reference-options.ts",
+    "test:visualization-rollover": "tsx scripts/test-visualization-rollover.ts",
     "db:push": "drizzle-kit push",
     "predb:push:local": "node -e \"require('fs').mkdirSync('.local',{recursive:true})\"",
     "db:push:local": "cross-env USE_LOCAL_DB=true drizzle-kit push --config=drizzle.local.config.ts",

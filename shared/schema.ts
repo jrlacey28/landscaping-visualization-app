@@ -105,6 +105,10 @@ export const tenants = pgTable("tenants", {
   embedCustomizations: jsonb("embed_customizations"),
   monthlyGenerationLimit: integer("monthly_generation_limit").default(100),
   currentMonthGenerations: integer("current_month_generations").default(0),
+  visualizationRolloverEnabled: boolean("visualization_rollover_enabled").notNull().default(false),
+  visualizationRolloverBalance: integer("visualization_rollover_balance").notNull().default(0),
+  visualizationRolloverCap: integer("visualization_rollover_cap").notNull().default(0), // 0 means no cap
+  visualizationRolloverLastProcessedAt: timestamp("visualization_rollover_last_processed_at"),
   lastResetDate: timestamp("last_reset_date").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });

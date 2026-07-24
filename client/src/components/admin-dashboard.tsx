@@ -62,16 +62,26 @@ function getClientDefaultGenerationLimit(clientType: string) {
 }
 
 function getTenantUsagePercent(tenant: Tenant) {
-  if (tenant.monthlyGenerationLimit === -1) return 0;
-  const limit = tenant.monthlyGenerationLimit || 100;
+  const limit = getTenantEffectiveGenerationLimit(tenant);
+  if (limit === -1) return 0;
   return Math.min(((tenant.currentMonthGenerations || 0) / limit) * 100, 100);
+}
+
+function getTenantEffectiveGenerationLimit(tenant: Tenant) {
+  const baseLimit = tenant.monthlyGenerationLimit ?? 100;
+  if (baseLimit === -1) return -1;
+  const rolloverBalance = tenant.visualizationRolloverEnabled
+    ? tenant.visualizationRolloverBalance || 0
+    : 0;
+  return baseLimit + rolloverBalance;
 }
 
 function formatTenantUsage(tenant: Tenant) {
   const used = tenant.currentMonthGenerations || 0;
-  return tenant.monthlyGenerationLimit === -1
+  const effectiveLimit = getTenantEffectiveGenerationLimit(tenant);
+  return effectiveLimit === -1
     ? `${used}/Unlimited`
-    : `${used}/${tenant.monthlyGenerationLimit || 100}`;
+    : `${used}/${effectiveLimit}`;
 }
 
 export default function AdminDashboard() {
@@ -206,6 +216,8 @@ export default function AdminDashboard() {
     isEnterprise: false,
     embedEnabled: true,
     monthlyGenerationLimit: 100,
+    visualizationRolloverEnabled: false,
+    visualizationRolloverCap: 0,
     embedVisitorLimit: 3,
     embedRequireQuoteAfterLimit: false,
     embedCtaText: "Get Free Quote",
@@ -280,7 +292,10 @@ export default function AdminDashboard() {
         planName: string;
         currentUsage: number;
         limit: number;
+        baseLimit?: number;
         canUse: boolean;
+        rolloverEnabled?: boolean;
+        rolloverBalance?: number;
       };
       subscription?: {
         status: string;
@@ -359,6 +374,8 @@ export default function AdminDashboard() {
         isEnterprise: false,
         embedEnabled: true,
         monthlyGenerationLimit: 100,
+        visualizationRolloverEnabled: false,
+        visualizationRolloverCap: 0,
         embedVisitorLimit: 3,
         embedRequireQuoteAfterLimit: false,
         embedCtaText: "Get Free Quote",
@@ -546,6 +563,17 @@ export default function AdminDashboard() {
       });
       return;
     }
+    if (
+      newClientData.visualizationRolloverEnabled &&
+      (!newClientData.userId || newClientData.monthlyGenerationLimit <= 0)
+    ) {
+      toast({
+        title: "Rollover Needs an Account Limit",
+        description: "Link an account and set a finite monthly limit before enabling rollover.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     createTenantMutation.mutate(prepareClientPayload(newClientData));
   };
@@ -560,6 +588,17 @@ export default function AdminDashboard() {
 
   const handleSaveClient = () => {
     if (!editingClient) return;
+    if (
+      editingClient.visualizationRolloverEnabled &&
+      (!editingClient.userId || (editingClient.monthlyGenerationLimit ?? -1) <= 0)
+    ) {
+      toast({
+        title: "Rollover Needs an Account Limit",
+        description: "Link an account and set a finite monthly limit before enabling rollover.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     updateClientMutation.mutate({
       id: editingClient.id,
@@ -819,8 +858,9 @@ export default function AdminDashboard() {
                       <tbody>
                         {allTenants.map((tenant: Tenant) => {
                           const usagePercent = getTenantUsagePercent(tenant);
-                          const isOverLimit = tenant.monthlyGenerationLimit !== -1 &&
-                            (tenant.currentMonthGenerations || 0) > (tenant.monthlyGenerationLimit || 100);
+                          const effectiveLimit = getTenantEffectiveGenerationLimit(tenant);
+                          const isOverLimit = effectiveLimit !== -1 &&
+                            (tenant.currentMonthGenerations || 0) > effectiveLimit;
 
                           return (
                             <tr key={tenant.id} className="border-b hover:bg-gray-50">
@@ -836,9 +876,16 @@ export default function AdminDashboard() {
                                 </Badge>
                               </td>
                               <td className="py-4 px-2 text-right">
-                                <span className={`font-mono ${isOverLimit ? 'text-red-600' : ''}`}>
-                                  {formatTenantUsage(tenant)}
-                                </span>
+                                <div>
+                                  <span className={`font-mono ${isOverLimit ? 'text-red-600' : ''}`}>
+                                    {formatTenantUsage(tenant)}
+                                  </span>
+                                  {tenant.visualizationRolloverEnabled && (
+                                    <p className="text-xs text-blue-600">
+                                      {tenant.visualizationRolloverBalance || 0} banked
+                                    </p>
+                                  )}
+                                </div>
                               </td>
                               <td className="py-4 px-2 text-right">
                                 <div className="w-20 ml-auto">
@@ -998,6 +1045,7 @@ export default function AdminDashboard() {
                               clientType: e.target.value,
                               isEnterprise: e.target.value === "enterprise",
                               monthlyGenerationLimit: getClientDefaultGenerationLimit(e.target.value),
+                              visualizationRolloverEnabled: false,
                             }))}
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           >
@@ -1028,6 +1076,59 @@ export default function AdminDashboard() {
                           />
                         </div>
                       </div>
+                      {newClientData.clientType === "enterprise" && (
+                        <div className="space-y-4 rounded-md border p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <Label htmlFor="newVisualizationRollover">
+                                Roll Over Unused Visualizations
+                              </Label>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Bank unused monthly allowance for this linked enterprise account.
+                                Set a positive monthly limit first; unlimited plans do not need rollover.
+                              </p>
+                            </div>
+                            <Switch
+                              id="newVisualizationRollover"
+                              checked={newClientData.visualizationRolloverEnabled}
+                              disabled={
+                                !newClientData.userId ||
+                                newClientData.monthlyGenerationLimit <= 0
+                              }
+                              onCheckedChange={(checked) =>
+                                setNewClientData((prev) => ({
+                                  ...prev,
+                                  visualizationRolloverEnabled: checked,
+                                }))
+                              }
+                            />
+                          </div>
+                          <div className="max-w-sm">
+                            <Label htmlFor="newVisualizationRolloverCap">
+                              Maximum Banked Visualizations
+                            </Label>
+                            <Input
+                              id="newVisualizationRolloverCap"
+                              type="number"
+                              min="0"
+                              value={newClientData.visualizationRolloverCap}
+                              disabled={!newClientData.visualizationRolloverEnabled}
+                              onChange={(e) =>
+                                setNewClientData((prev) => ({
+                                  ...prev,
+                                  visualizationRolloverCap: Math.max(
+                                    parseInt(e.target.value, 10) || 0,
+                                    0,
+                                  ),
+                                }))
+                              }
+                            />
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Use 0 for no cap.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex items-center justify-between rounded-md border p-3">
                           <Label htmlFor="newEmbedEnabled">Embed Enabled</Label>
@@ -1289,6 +1390,7 @@ export default function AdminDashboard() {
                               clientType: e.target.value,
                               isEnterprise: e.target.value === "enterprise",
                               monthlyGenerationLimit: getClientDefaultGenerationLimit(e.target.value),
+                              visualizationRolloverEnabled: false,
                             } as any) : null)}
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           >
@@ -1318,6 +1420,74 @@ export default function AdminDashboard() {
                           />
                         </div>
                       </div>
+                      {(
+                        editingClient.isEnterprise ||
+                        editingClient.clientType === "enterprise"
+                      ) && (
+                        <div className="space-y-4 rounded-md border p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <Label htmlFor="editVisualizationRollover">
+                                Roll Over Unused Visualizations
+                              </Label>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Unused allowance is added to this account&apos;s bank at each
+                                monthly boundary. The current bank is{" "}
+                                <span className="font-medium">
+                                  {editingClient.visualizationRolloverBalance || 0}
+                                </span>
+                                .
+                              </p>
+                            </div>
+                            <Switch
+                              id="editVisualizationRollover"
+                              checked={Boolean(editingClient.visualizationRolloverEnabled)}
+                              disabled={
+                                !editingClient.userId ||
+                                (editingClient.monthlyGenerationLimit ?? -1) <= 0
+                              }
+                              onCheckedChange={(checked) =>
+                                setEditingClient((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        visualizationRolloverEnabled: checked,
+                                      }
+                                    : null
+                                )
+                              }
+                            />
+                          </div>
+                          <div className="max-w-sm">
+                            <Label htmlFor="editVisualizationRolloverCap">
+                              Maximum Banked Visualizations
+                            </Label>
+                            <Input
+                              id="editVisualizationRolloverCap"
+                              type="number"
+                              min="0"
+                              value={editingClient.visualizationRolloverCap || 0}
+                              disabled={!editingClient.visualizationRolloverEnabled}
+                              onChange={(e) =>
+                                setEditingClient((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        visualizationRolloverCap: Math.max(
+                                          parseInt(e.target.value, 10) || 0,
+                                          0,
+                                        ),
+                                      }
+                                    : null
+                                )
+                              }
+                            />
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Use 0 for no cap. Disabling rollover clears the bank.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex items-center justify-between rounded-md border p-3">
                           <Label htmlFor="editEmbedEnabled">Embed Enabled</Label>
@@ -1522,7 +1692,8 @@ export default function AdminDashboard() {
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div 
                                 className={`h-2 rounded-full ${
-                                  tenant.monthlyGenerationLimit !== -1 && (tenant.currentMonthGenerations || 0) > (tenant.monthlyGenerationLimit || 100)
+                                  getTenantEffectiveGenerationLimit(tenant) !== -1 &&
+                                  (tenant.currentMonthGenerations || 0) > getTenantEffectiveGenerationLimit(tenant)
                                     ? 'bg-red-500' 
                                     : getTenantUsagePercent(tenant) > 80
                                     ? 'bg-yellow-500'
@@ -1533,6 +1704,17 @@ export default function AdminDashboard() {
                                 }}
                               />
                             </div>
+                            {tenant.visualizationRolloverEnabled && (
+                              <div className="mt-2 flex items-center justify-between text-xs text-blue-700">
+                                <span>Rollover enabled</span>
+                                <span>
+                                  {tenant.visualizationRolloverBalance || 0} banked
+                                  {(tenant.visualizationRolloverCap || 0) > 0
+                                    ? ` / ${tenant.visualizationRolloverCap} max`
+                                    : ""}
+                                </span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Action Buttons */}
@@ -1687,6 +1869,11 @@ export default function AdminDashboard() {
                                     <span className={`font-mono text-sm ${isOverLimit ? 'text-red-600' : ''}`}>
                                       {user.usage?.currentUsage || 0}/{user.usage?.limit || 5}
                                     </span>
+                                    {user.usage?.rolloverEnabled && (
+                                      <p className="text-xs text-blue-600">
+                                        {user.usage.rolloverBalance || 0} rollover credits
+                                      </p>
+                                    )}
                                     <div className="w-16 mt-1">
                                       <div className="bg-gray-200 rounded-full h-1">
                                         <div 
