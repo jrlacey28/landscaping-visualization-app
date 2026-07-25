@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { registerAuthRoutes } from "./auth-routes";
 import { setupGoogleAuth } from "./google-auth";
@@ -12,6 +13,10 @@ import {
   ensureEnterpriseVisualizationRolloverSchema,
   pool,
 } from "./db";
+import {
+  ensurePublicImagesSchema,
+  importLegacyPublicImages,
+} from "./public-image-store";
 
 const app = express();
 
@@ -165,6 +170,11 @@ async function initializeDatabaseInBackground() {
   // Apply additive feature columns before any route can query the tenants table.
   await ensureEnterpriseVisualizationRolloverSchema();
   console.log("Enterprise visualization rollover schema verified");
+  await ensurePublicImagesSchema();
+  const importedPublicImageCount = await importLegacyPublicImages(
+    path.resolve(process.cwd(), "public", "uploads"),
+  );
+  console.log(`Durable public image storage verified (${importedPublicImageCount} legacy images available)`);
 
   // Register authentication routes first (includes Stripe webhook and sets up sessions)
   registerAuthRoutes(app);

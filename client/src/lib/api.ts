@@ -220,11 +220,15 @@ export const uploadInteriorImage = async (
 export const uploadImageToPublic = async (file: File) => {
   const formData = new FormData();
   formData.append('image', file);
+  const token = getAuthToken();
 
   const response = await fetch('/api/upload-image', {
     method: 'POST',
     body: formData,
     credentials: 'include',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
   });
 
   if (!response.ok) {

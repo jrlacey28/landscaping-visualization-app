@@ -23,6 +23,7 @@ import {
   buildTenantInteriorOptionPrompt,
   collectInteriorReferenceImageUrls,
 } from "@shared/interior-reference-options";
+import { getPublicImage, savePublicImage } from "./public-image-store";
 import {
   buildUnlimitedEnterpriseEmbedStatus,
   canUseEmbedCustomInstructions,
@@ -502,6 +503,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(401).json({ error: "Admin authentication required" });
     }
   };
+  const requirePublicImageUploadAuth = (req: AuthRequest, res: any, next: any) => {
+    if (req.session?.isAdmin) {
+      return next();
+    }
+
+    return authenticateToken(req, res, next);
+  };
 
   // Health check endpoint for debugging production issues
   app.get("/api/health", async (req, res) => {
@@ -964,6 +972,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Serve static files from uploads directory
   app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
+  app.get('/uploads/:objectKey', async (req, res) => {
+    try {
+      const image = await getPublicImage(req.params.objectKey);
+      if (!image) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+
+      res.set({
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "Content-Length": String(image.byteSize),
+        "Content-Type": image.contentType,
+        "X-Content-Type-Options": "nosniff",
+      });
+      return res.send(image.imageData);
+    } catch (error) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+  });
+
+  app.get('/api/public-images/:objectKey', async (req, res) => {
+    try {
+      const image = await getPublicImage(req.params.objectKey);
+      if (!image) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+
+      res.set({
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "Content-Length": String(image.byteSize),
+        "Content-Type": image.contentType,
+        "X-Content-Type-Options": "nosniff",
+      });
+      return res.send(image.imageData);
+    } catch (error) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+  });
 
   // Get all tenants (admin only)
   app.get("/api/tenants", requireAdminAuth, async (req, res) => {
@@ -1492,8 +1537,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload image to public directory and return URL
-  app.post("/api/upload-image", upload.single("image"), async (req, res) => {
+  // Persist public customization images in Postgres so deploys and restarts
+  // cannot leave tenant records pointing at files that no longer exist.
+  app.post("/api/upload-image", requirePublicImageUploadAuth as any, upload.single("image"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -1515,16 +1561,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid image file" });
       }
 
-      // Generate unique filename
-      const timestamp = Date.now();
-      const filename = `upload_${timestamp}.jpg`;
-      const filepath = path.join(uploadsDir, filename);
-
-      // Save file to public directory
-      fs.writeFileSync(filepath, optimizedImageBuffer);
-
-      // Return public URL
-      const publicUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+      const objectKey = await savePublicImage(optimizedImageBuffer, "image/jpeg");
+      const publicUrl = `${req.protocol}://${req.get('host')}/api/public-images/${objectKey}`;
       res.json({ imageUrl: publicUrl });
     } catch (error) {
       console.error("Error uploading image:", error);
