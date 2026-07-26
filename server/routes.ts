@@ -24,6 +24,7 @@ import {
   collectInteriorReferenceImageUrls,
 } from "@shared/interior-reference-options";
 import { getPublicImage, savePublicImage } from "./public-image-store";
+import { runImageModelComparison } from "./image-model-comparison";
 import {
   buildUnlimitedEnterpriseEmbedStatus,
   canUseEmbedCustomInstructions,
@@ -711,6 +712,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Check admin auth status
   app.get("/api/admin/status", (req, res) => {
     res.json({ isAuthenticated: !!req.session?.isAdmin });
+  });
+
+  app.post("/api/admin/model-comparison", requireAdminAuth, async (req, res) => {
+    const comparisonSchema = z.object({
+      prompt: z
+        .string()
+        .trim()
+        .min(1, "Enter a prompt to compare")
+        .max(6_000, "Prompt must be 6,000 characters or less"),
+    });
+    const parsed = comparisonSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: parsed.error.issues[0]?.message || "Invalid comparison prompt",
+      });
+    }
+
+    try {
+      const results = await runImageModelComparison(parsed.data.prompt);
+      res.json({
+        generatedAt: new Date().toISOString(),
+        results,
+      });
+    } catch (error) {
+      console.error("[ADMIN MODEL LAB] Comparison failed:", error);
+      res.status(500).json({ error: "Unable to run the model comparison" });
+    }
   });
 
   // Admin: Delete user

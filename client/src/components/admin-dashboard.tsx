@@ -41,12 +41,14 @@ import {
   XCircle,
   Trash2,
   LogOut,
-  UserCheck
+  UserCheck,
+  FlaskConical,
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import type { Tenant, Lead } from "@shared/schema";
 import EmbedCodeGenerator from "./embed-code-generator";
+import AdminModelLab from "./admin-model-lab";
 import EnterpriseCustomizationEditor, {
   cleanEnterpriseCustomizations,
   createEmptyEnterpriseCustomizations,
@@ -675,7 +677,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 lg:grid-cols-6 gap-1 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-1 h-auto p-1">
             <TabsTrigger
               value="overview"
               className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
@@ -710,6 +712,13 @@ export default function AdminDashboard() {
             >
               <Code className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden sm:inline">Embed</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="model-lab"
+              className="flex items-center justify-center space-x-1 text-xs md:text-sm px-2 py-2"
+            >
+              <FlaskConical className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Model Lab</span>
             </TabsTrigger>
             <TabsTrigger
               value="settings"
@@ -2568,6 +2577,11 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Model Lab Tab */}
+          <TabsContent value="model-lab" className="space-y-6">
+            <AdminModelLab />
           </TabsContent>
 
           {/* Settings Tab */}
