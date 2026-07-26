@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  CheckCircle2,
   Download,
   FlaskConical,
   ImageIcon,
   Loader2,
 } from "lucide-react";
+import type { Tenant } from "@shared/schema";
 import { apiRequest } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 
 const MODELS = [
   {
@@ -33,11 +34,17 @@ const MODELS = [
     id: "gemini-3-pro-image",
     label: "Gemini 3 Pro Image",
   },
-  {
-    id: "imagen-4.0-ultra-generate-001",
-    label: "Imagen 4 Ultra",
-  },
 ] as const;
+
+type ComparisonCase = {
+  id: string;
+  visualizationId: number;
+  service: string;
+  serviceLabel: string;
+  status: string;
+  createdAt: string | null;
+  styles: string[];
+};
 
 type ComparisonResult =
   | {
@@ -47,6 +54,7 @@ type ComparisonResult =
       durationMs: number;
       imageDataUrl: string;
       mimeType: string;
+      prompt: string;
     }
   | {
       modelId: string;
@@ -58,12 +66,28 @@ type ComparisonResult =
 
 type ComparisonResponse = {
   generatedAt: string;
+  tenant: {
+    id: number;
+    companyName: string;
+    slug: string;
+  };
+  caseId: string;
+  service: string;
+  serviceLabel: string;
+  referenceImageCount: number;
+  prompt: string;
+  promptMatchesAcrossModels: boolean;
   results: ComparisonResult[];
 };
 
 function formatDuration(durationMs: number) {
   if (durationMs < 1_000) return `${durationMs} ms`;
   return `${(durationMs / 1_000).toFixed(1)} sec`;
+}
+
+function formatCaseDate(createdAt: string | null) {
+  if (!createdAt) return "Unknown date";
+  return new Date(createdAt).toLocaleString();
 }
 
 function getRequestError(error: Error) {
@@ -80,30 +104,90 @@ function getRequestError(error: Error) {
 }
 
 export default function AdminModelLab() {
-  const [prompt, setPrompt] = useState("");
+  const [tenantId, setTenantId] = useState("");
+  const [caseId, setCaseId] = useState("");
+
+  const tenantsQuery = useQuery<Tenant[]>({
+    queryKey: ["/api/tenants"],
+  });
+
+  const casesQuery = useQuery<{ cases: ComparisonCase[] }>({
+    queryKey: ["/api/admin/model-comparison/cases", tenantId],
+    enabled: Boolean(tenantId),
+    queryFn: async () => {
+      const response = await apiRequest(
+        "GET",
+        `/api/admin/model-comparison/cases?tenantId=${encodeURIComponent(tenantId)}`,
+      );
+      return response.json();
+    },
+  });
 
   const comparisonMutation = useMutation({
-    mutationFn: async (comparisonPrompt: string) => {
+    mutationFn: async ({
+      selectedTenantId,
+      selectedCaseId,
+    }: {
+      selectedTenantId: number;
+      selectedCaseId: string;
+    }) => {
       const response = await apiRequest(
         "POST",
         "/api/admin/model-comparison",
-        { prompt: comparisonPrompt },
+        {
+          tenantId: selectedTenantId,
+          caseId: selectedCaseId,
+        },
       );
       return (await response.json()) as ComparisonResponse;
     },
   });
 
+  const cases = casesQuery.data?.cases || [];
+  const selectedCase = cases.find((entry) => entry.id === caseId);
   const resultsByModel = new Map(
     comparisonMutation.data?.results.map((result) => [
       result.modelId,
       result,
     ]) || [],
   );
+  const completedResultCount =
+    comparisonMutation.data?.results.filter(
+      (result) => result.status === "success",
+    ).length || 0;
+  const sourceImageUrl =
+    tenantId && caseId
+      ? `/api/admin/model-comparison/source?tenantId=${encodeURIComponent(tenantId)}&caseId=${encodeURIComponent(caseId)}`
+      : "";
+
+  const resetComparison = () => {
+    comparisonMutation.reset();
+  };
+
+  const handleTenantChange = (value: string) => {
+    setTenantId(value);
+    setCaseId("");
+    resetComparison();
+  };
+
+  const handleCaseChange = (value: string) => {
+    setCaseId(value);
+    resetComparison();
+  };
 
   const handleGenerate = () => {
-    const trimmedPrompt = prompt.trim();
-    if (!trimmedPrompt || comparisonMutation.isPending) return;
-    comparisonMutation.mutate(trimmedPrompt);
+    const selectedTenantId = Number(tenantId);
+    if (
+      !Number.isInteger(selectedTenantId) ||
+      !caseId ||
+      comparisonMutation.isPending
+    ) {
+      return;
+    }
+    comparisonMutation.mutate({
+      selectedTenantId,
+      selectedCaseId: caseId,
+    });
   };
 
   return (
@@ -112,58 +196,128 @@ export default function AdminModelLab() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <FlaskConical className="h-5 w-5" />
-            <CardTitle>Image Model Lab</CardTitle>
+            <CardTitle>Client Model Lab</CardTitle>
           </div>
           <CardDescription>
-            Send one identical text prompt to all four image models and compare
-            their unmodified results side by side.
+            Replay a real client generation through three Gemini models using
+            the same source image, service selections, production prompt
+            builder, and current client reference images.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>
-                This test is prompt-only. Imagen 4 Ultra does not accept a
-                reference image in this generation API and Google has scheduled
-                this model to shut down on August 17, 2026.
-              </p>
+        <CardContent className="space-y-5">
+          <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-950">
+            These tests do not consume client usage or save duplicate
+            generations. Select a previous generation to reuse its source photo
+            and choices; the client&apos;s current prompts and references are
+            loaded when the comparison starts.
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="model-lab-client">Client</Label>
+              <select
+                id="model-lab-client"
+                value={tenantId}
+                onChange={(event) => handleTenantChange(event.target.value)}
+                disabled={
+                  tenantsQuery.isLoading || comparisonMutation.isPending
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              >
+                <option value="">Select a client...</option>
+                {(tenantsQuery.data || []).map((tenant) => (
+                  <option key={tenant.id} value={tenant.id}>
+                    {tenant.companyName} ({tenant.slug})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="model-lab-case">Saved generation to replay</Label>
+              <select
+                id="model-lab-case"
+                value={caseId}
+                onChange={(event) => handleCaseChange(event.target.value)}
+                disabled={
+                  !tenantId ||
+                  casesQuery.isLoading ||
+                  comparisonMutation.isPending
+                }
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              >
+                <option value="">
+                  {casesQuery.isLoading
+                    ? "Loading generations..."
+                    : "Select a generation..."}
+                </option>
+                {cases.map((testCase) => (
+                  <option key={testCase.id} value={testCase.id}>
+                    {testCase.serviceLabel} —{" "}
+                    {formatCaseDate(testCase.createdAt)}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="model-comparison-prompt">Shared prompt</Label>
-            <Textarea
-              id="model-comparison-prompt"
-              value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
-              maxLength={6_000}
-              rows={7}
-              placeholder="Describe the image you want every model to generate..."
-              disabled={comparisonMutation.isPending}
-            />
-            <div className="flex flex-col justify-between gap-3 text-xs text-muted-foreground sm:flex-row sm:items-center">
-              <span>
-                The four images are displayed here only; they are not saved to
-                client projects.
-              </span>
-              <span>{prompt.length.toLocaleString()} / 6,000</span>
+          {tenantId && !casesQuery.isLoading && cases.length === 0 && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+              This client has no saved generations to replay. First create one
+              generation through their visualizer, then return here.
             </div>
-          </div>
+          )}
+
+          {casesQuery.isError && (
+            <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+              {getRequestError(casesQuery.error)}
+            </div>
+          )}
+
+          {selectedCase && (
+            <div className="grid gap-4 rounded-lg border p-4 md:grid-cols-[220px_1fr]">
+              <img
+                src={sourceImageUrl}
+                alt="Saved source used for the comparison"
+                className="h-40 w-full rounded-md bg-muted object-contain"
+              />
+              <div className="space-y-3">
+                <div>
+                  <p className="font-semibold">{selectedCase.serviceLabel}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {formatCaseDate(selectedCase.createdAt)}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedCase.styles.length > 0 ? (
+                    selectedCase.styles.map((style) => (
+                      <Badge key={style} variant="secondary">
+                        {style}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      Production fallback prompt and saved service settings
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <Button
             onClick={handleGenerate}
-            disabled={!prompt.trim() || comparisonMutation.isPending}
+            disabled={!tenantId || !caseId || comparisonMutation.isPending}
           >
             {comparisonMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating all four...
+                Running three production prompts...
               </>
             ) : (
               <>
                 <FlaskConical className="mr-2 h-4 w-4" />
-                Generate 4 comparisons
+                Compare 3 Gemini models
               </>
             )}
           </Button>
@@ -176,7 +330,58 @@ export default function AdminModelLab() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      {comparisonMutation.data && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-lg">Exact test inputs</CardTitle>
+                <CardDescription>
+                  {comparisonMutation.data.tenant.companyName} ·{" "}
+                  {comparisonMutation.data.serviceLabel} ·{" "}
+                  {comparisonMutation.data.referenceImageCount} client
+                  reference{" "}
+                  {comparisonMutation.data.referenceImageCount === 1
+                    ? "image"
+                    : "images"}
+                </CardDescription>
+              </div>
+              <Badge
+                variant={
+                  comparisonMutation.data.promptMatchesAcrossModels
+                    ? "default"
+                    : completedResultCount === MODELS.length
+                      ? "destructive"
+                      : "secondary"
+                }
+              >
+                {comparisonMutation.data.promptMatchesAcrossModels ? (
+                  <>
+                    <CheckCircle2 className="mr-1 h-3 w-3" />
+                    Same prompt verified
+                  </>
+                ) : completedResultCount < MODELS.length ? (
+                  "Prompt verification incomplete"
+                ) : (
+                  "Prompt mismatch detected"
+                )}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <details className="rounded-md border bg-muted/30 p-3">
+              <summary className="cursor-pointer text-sm font-medium">
+                View exact production prompt
+              </summary>
+              <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs">
+                {comparisonMutation.data.prompt}
+              </pre>
+            </details>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-5 xl:grid-cols-3">
         {MODELS.map((model) => {
           const result = resultsByModel.get(model.id);
 
@@ -188,7 +393,9 @@ export default function AdminModelLab() {
                   {result && (
                     <Badge
                       variant={
-                        result.status === "success" ? "default" : "destructive"
+                        result.status === "success"
+                          ? "default"
+                          : "destructive"
                       }
                     >
                       {result.status === "success" ? "Completed" : "Failed"}
@@ -221,7 +428,7 @@ export default function AdminModelLab() {
                       <Button variant="outline" size="sm" asChild>
                         <a
                           href={result.imageDataUrl}
-                          download={`${result.modelId}-${Date.now()}.${result.mimeType.includes("png") ? "png" : "jpg"}`}
+                          download={`${result.modelId}-${Date.now()}.jpg`}
                         >
                           <Download className="mr-2 h-4 w-4" />
                           Download

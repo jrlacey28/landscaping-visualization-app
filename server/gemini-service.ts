@@ -32,8 +32,20 @@ const MAX_REFERENCE_INLINE_IMAGE_BYTES = 1_250_000;
 const REFERENCE_IMAGE_MAX_DIMENSION = 1024;
 const REFERENCE_IMAGE_JPEG_QUALITY = 82;
 
-function getImageGenerationModel(usePremiumModel?: boolean): string {
-  return usePremiumModel ? BUSINESS_IMAGE_MODEL : STANDARD_IMAGE_MODEL;
+function getImageGenerationModel(
+  usePremiumModel?: boolean,
+  imageModelOverride?: string,
+): string {
+  return (
+    imageModelOverride ||
+    (usePremiumModel ? BUSINESS_IMAGE_MODEL : STANDARD_IMAGE_MODEL)
+  );
+}
+
+function getImageGenerationFallback(imageModelOverride?: string) {
+  // Comparisons must report the selected model's real result. Falling back
+  // would incorrectly label a Gemini 2.5 image as another model.
+  return imageModelOverride ? undefined : STANDARD_IMAGE_MODEL;
 }
 
 async function generateImageContentWithFallback({
@@ -589,6 +601,7 @@ export async function processLandscapeWithGemini({
   referenceImages,
   debugContext,
   usePremiumModel = false,
+  imageModelOverride,
 }: {
   imageBuffer: Buffer;
   selectedStyles: {
@@ -602,6 +615,7 @@ export async function processLandscapeWithGemini({
   referenceImages?: GeminiReferenceImageInput[];
   debugContext?: ExteriorGenerationDebugContext;
   usePremiumModel?: boolean;
+  imageModelOverride?: string;
 }): Promise<{
   editedImageBuffer: Buffer;
   appliedStyles: string[];
@@ -773,7 +787,10 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
       isHouseImage: true,
       isReferenceImage: false,
     });
-    const imageModel = getImageGenerationModel(usePremiumModel);
+    const imageModel = getImageGenerationModel(
+      usePremiumModel,
+      imageModelOverride,
+    );
     console.log(`Using Gemini image model: ${imageModel}`);
 
     await appendReferenceImageParts(
@@ -806,7 +823,7 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
 
     const response = await generateImageContentWithFallback({
       model: imageModel,
-      fallbackModel: STANDARD_IMAGE_MODEL,
+      fallbackModel: getImageGenerationFallback(imageModelOverride),
       contents: [
         {
           role: "user",
@@ -824,7 +841,7 @@ Apply ONLY the specified modifications above. Do not redesign or dramatically al
     if (response.candidates && response.candidates.length > 0) {
       const content = response.candidates[0].content;
       if (content && content.parts) {
-        for (const part of content.parts) {
+        for (const part of [...content.parts].reverse()) {
           if (part.inlineData && part.inlineData.data) {
             // Convert base64 to buffer for the generated image
             const rawGeneratedBuffer = Buffer.from(
@@ -881,12 +898,14 @@ export async function processPoolWithGemini({
   customPrompt,
   referenceImageUrls,
   usePremiumModel = false,
+  imageModelOverride,
 }: {
   imageBuffer: Buffer;
   selectedStyles: Record<string, any>;
   customPrompt?: string;
   referenceImageUrls?: string[];
   usePremiumModel?: boolean;
+  imageModelOverride?: string;
 }): Promise<{
   editedImageBuffer: Buffer;
   appliedStyles: string[];
@@ -979,14 +998,17 @@ Apply ONLY the pool installations specified above. Do not redesign the yard or d
         },
       },
     ];
-    const imageModel = getImageGenerationModel(usePremiumModel);
+    const imageModel = getImageGenerationModel(
+      usePremiumModel,
+      imageModelOverride,
+    );
     console.log(`Using Gemini image model: ${imageModel}`);
 
     await appendReferenceImageParts(contentParts, referenceImageUrls, "Client-specific pool");
 
     const response = await generateImageContentWithFallback({
       model: imageModel,
-      fallbackModel: STANDARD_IMAGE_MODEL,
+      fallbackModel: getImageGenerationFallback(imageModelOverride),
       contents: [
         {
           role: "user",
@@ -1004,7 +1026,7 @@ Apply ONLY the pool installations specified above. Do not redesign the yard or d
     if (response.candidates && response.candidates.length > 0) {
       const content = response.candidates[0].content;
       if (content && content.parts) {
-        for (const part of content.parts) {
+        for (const part of [...content.parts].reverse()) {
           if (part.inlineData && part.inlineData.data) {
             // Convert base64 to buffer for the generated image
             const rawGeneratedBuffer = Buffer.from(
@@ -1090,6 +1112,7 @@ export async function processLandscapeVisualizationWithGemini({
   customPrompt,
   referenceImageUrls,
   usePremiumModel = false,
+  imageModelOverride,
 }: {
   imageBuffer: Buffer;
   selectedStyles: {
@@ -1100,6 +1123,7 @@ export async function processLandscapeVisualizationWithGemini({
   customPrompt?: string;
   referenceImageUrls?: string[];
   usePremiumModel?: boolean;
+  imageModelOverride?: string;
 }): Promise<{
   editedImageBuffer: Buffer;
   appliedStyles: string[];
@@ -1284,7 +1308,10 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
         },
       },
     ];
-    const selectedLandscapeImageModel = getImageGenerationModel(usePremiumModel);
+    const selectedLandscapeImageModel = getImageGenerationModel(
+      usePremiumModel,
+      imageModelOverride,
+    );
     console.log(`Selected Gemini image model: ${selectedLandscapeImageModel}`);
 
     await appendReferenceImageParts(contentParts, referenceImageUrls, "Client-specific landscape");
@@ -1303,7 +1330,7 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
 
         response = await generateImageContentWithFallback({
           model: imageModel,
-          fallbackModel: STANDARD_IMAGE_MODEL,
+          fallbackModel: getImageGenerationFallback(imageModelOverride),
           contents: [
             {
               role: "user",
@@ -1349,7 +1376,7 @@ Apply ONLY the landscape modifications specified above. Do not redesign the enti
     if (response.candidates && response.candidates.length > 0) {
       const content = response.candidates[0].content;
       if (content && content.parts) {
-        for (const part of content.parts) {
+        for (const part of [...content.parts].reverse()) {
           if (part.inlineData && part.inlineData.data) {
             // Convert base64 to buffer for the generated image
             const rawGeneratedBuffer = Buffer.from(
@@ -1409,6 +1436,7 @@ export async function processInteriorVisualizationWithGemini({
   customPrompt,
   referenceImageUrls,
   usePremiumModel = false,
+  imageModelOverride,
 }: {
   imageBuffer: Buffer;
   service: "painting" | "bathroom" | "kitchen" | "living_room";
@@ -1418,6 +1446,7 @@ export async function processInteriorVisualizationWithGemini({
   customPrompt?: string;
   referenceImageUrls?: string[];
   usePremiumModel?: boolean;
+  imageModelOverride?: string;
 }): Promise<{
   editedImageBuffer: Buffer;
   appliedStyles: string[];
@@ -1493,7 +1522,10 @@ Apply ONLY the requested ${serviceLabels[service]} changes and keep the result p
         },
       },
     ];
-    const imageModel = getImageGenerationModel(usePremiumModel);
+    const imageModel = getImageGenerationModel(
+      usePremiumModel,
+      imageModelOverride,
+    );
     console.log(`Selected Gemini image model: ${imageModel}`);
 
     await appendReferenceImageParts(contentParts, referenceImageUrls, "Client-specific interior");
@@ -1508,7 +1540,7 @@ Apply ONLY the requested ${serviceLabels[service]} changes and keep the result p
 
         response = await generateImageContentWithFallback({
           model: imageModel,
-          fallbackModel: STANDARD_IMAGE_MODEL,
+          fallbackModel: getImageGenerationFallback(imageModelOverride),
           contents: [
             {
               role: "user",
@@ -1545,7 +1577,7 @@ Apply ONLY the requested ${serviceLabels[service]} changes and keep the result p
     if (response.candidates && response.candidates.length > 0) {
       const content = response.candidates[0].content;
       if (content && content.parts) {
-        for (const part of content.parts) {
+        for (const part of [...content.parts].reverse()) {
           if (part.inlineData && part.inlineData.data) {
             const rawGeneratedBuffer = Buffer.from(
               part.inlineData.data,
@@ -1587,12 +1619,14 @@ export async function processHalloweenVisualizationWithGemini({
   nightMode,
   spookyMode,
   usePremiumModel = false,
+  imageModelOverride,
 }: {
   imageBuffer: Buffer;
   selectedDecorations: string;
   nightMode: boolean;
   spookyMode: boolean;
   usePremiumModel?: boolean;
+  imageModelOverride?: string;
 }): Promise<{
   editedImageBuffer: Buffer;
   appliedDecorations: string[];
@@ -1788,12 +1822,15 @@ Create a complete Halloween scene with ALL the decorations specified above visib
       try {
         console.log(`🎃 Gemini API attempt ${attempt}/${maxRetries}`);
 
-        const imageModel = getImageGenerationModel(usePremiumModel);
+        const imageModel = getImageGenerationModel(
+          usePremiumModel,
+          imageModelOverride,
+        );
         console.log(`Using Gemini image model: ${imageModel}`);
 
         response = await generateImageContentWithFallback({
           model: imageModel,
-          fallbackModel: STANDARD_IMAGE_MODEL,
+          fallbackModel: getImageGenerationFallback(imageModelOverride),
           contents: [
             {
               role: "user",
@@ -1837,7 +1874,7 @@ Create a complete Halloween scene with ALL the decorations specified above visib
     if (response.candidates && response.candidates.length > 0) {
       const content = response.candidates[0].content;
       if (content && content.parts) {
-        for (const part of content.parts) {
+        for (const part of [...content.parts].reverse()) {
           if (part.inlineData && part.inlineData.data) {
             const rawGeneratedBuffer = Buffer.from(
               part.inlineData.data,
@@ -1894,6 +1931,7 @@ export async function processChristmasLightsWithGemini(
   lightColor: string,
   addSnow: boolean,
   usePremiumModel = false,
+  imageModelOverride?: string,
 ): Promise<{
   editedImageBuffer: Buffer;
   prompt: string;
@@ -2053,12 +2091,15 @@ Create a stunning nighttime Christmas scene with DENSELY-PACKED, ABUNDANT ${ligh
       try {
         console.log(`🎄 Gemini API attempt ${attempt}/${maxRetries}`);
 
-        const imageModel = getImageGenerationModel(usePremiumModel);
+        const imageModel = getImageGenerationModel(
+          usePremiumModel,
+          imageModelOverride,
+        );
         console.log(`Using Gemini image model: ${imageModel}`);
 
         response = await generateImageContentWithFallback({
           model: imageModel,
-          fallbackModel: STANDARD_IMAGE_MODEL,
+          fallbackModel: getImageGenerationFallback(imageModelOverride),
           contents: [
             {
               role: "user",
@@ -2101,7 +2142,7 @@ Create a stunning nighttime Christmas scene with DENSELY-PACKED, ABUNDANT ${ligh
     if (response.candidates && response.candidates.length > 0) {
       const content = response.candidates[0].content;
       if (content && content.parts) {
-        for (const part of content.parts) {
+        for (const part of [...content.parts].reverse()) {
           if (part.inlineData && part.inlineData.data) {
             const rawGeneratedBuffer = Buffer.from(
               part.inlineData.data,

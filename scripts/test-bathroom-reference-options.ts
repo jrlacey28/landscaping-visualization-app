@@ -4,6 +4,7 @@ import {
   collectInteriorReferenceImageUrls,
   getInteriorReferencePreviewUrl,
 } from "../shared/interior-reference-options";
+import { buildTenantInteriorCustomContext } from "../server/tenant-service-context";
 
 const tileSample = {
   referenceImageUrls: ["", "/uploads/calacatta-blue.jpg", "/uploads/detail.jpg"],
@@ -36,5 +37,33 @@ const kitchenPrompt = buildTenantInteriorOptionPrompt({
   referenceImageUrls: ["/uploads/sample.jpg"],
 });
 assert.equal(kitchenPrompt, "Use this sample.", "other services must keep their existing behavior");
+
+const tenantContext = buildTenantInteriorCustomContext(
+  {
+    embedCustomizations: {
+      interiorOptions: {
+        bathroom: [
+          {
+            label: "Calacatta Blue Tile",
+            prompt: "Use this tile on the shower walls.",
+            referenceImageUrls: [
+              "/uploads/calacatta-blue.jpg",
+              "/uploads/detail.jpg",
+            ],
+          },
+        ],
+      },
+    },
+  },
+  "bathroom",
+  ["tenant_custom_calacatta_blue_tile"],
+);
+
+assert.deepEqual(tenantContext.referenceImageUrls, [
+  "/uploads/calacatta-blue.jpg",
+  "/uploads/detail.jpg",
+]);
+assert.match(tenantContext.prompt, /CLIENT-SPECIFIC EMBED OPTIONS/);
+assert.match(tenantContext.prompt, /complete multicolor pattern/i);
 
 console.log("Bathroom reference option regression passed");

@@ -20,11 +20,16 @@ import {
 } from "./style-config";
 import { buildTenantExteriorCustomContext } from "./tenant-exterior-context";
 import {
-  buildTenantInteriorOptionPrompt,
-  collectInteriorReferenceImageUrls,
-} from "@shared/interior-reference-options";
+  buildTenantInteriorCustomContext,
+  buildTenantLandscapeCustomContext,
+  buildTenantPoolCustomContext,
+} from "./tenant-service-context";
 import { getPublicImage, savePublicImage } from "./public-image-store";
-import { runImageModelComparison } from "./image-model-comparison";
+import {
+  createClientComparisonSourceThumbnail,
+  listClientComparisonCases,
+  runClientModelComparison,
+} from "./client-model-comparison";
 import {
   buildUnlimitedEnterpriseEmbedStatus,
   canUseEmbedCustomInstructions,
@@ -714,31 +719,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ isAuthenticated: !!req.session?.isAdmin });
   });
 
+  app.get(
+    "/api/admin/model-comparison/cases",
+    requireAdminAuth,
+    async (req, res) => {
+      const tenantId = Number(req.query.tenantId);
+      if (!Number.isInteger(tenantId) || tenantId <= 0) {
+        return res.status(400).json({ error: "Select a valid client" });
+      }
+
+      try {
+        const tenant = await storage.getTenant(tenantId);
+        if (!tenant) {
+          return res.status(404).json({ error: "Client not found" });
+        }
+        const cases = await listClientComparisonCases(tenantId);
+        res.json({ cases });
+      } catch (error) {
+        console.error("[ADMIN MODEL LAB] Unable to list test cases:", error);
+        res.status(500).json({ error: "Unable to load client test cases" });
+      }
+    },
+  );
+
+  app.get(
+    "/api/admin/model-comparison/source",
+    requireAdminAuth,
+    async (req, res) => {
+      const tenantId = Number(req.query.tenantId);
+      const caseId = String(req.query.caseId || "");
+      if (!Number.isInteger(tenantId) || tenantId <= 0 || !caseId) {
+        return res.status(400).json({ error: "Invalid comparison test case" });
+      }
+
+      try {
+        const thumbnail = await createClientComparisonSourceThumbnail(
+          tenantId,
+          caseId,
+        );
+        res.setHeader("Content-Type", "image/jpeg");
+        res.setHeader("Cache-Control", "private, max-age=60");
+        res.send(thumbnail);
+      } catch (error) {
+        console.error("[ADMIN MODEL LAB] Unable to load source image:", error);
+        res.status(404).json({ error: "Unable to load test case source image" });
+      }
+    },
+  );
+
   app.post("/api/admin/model-comparison", requireAdminAuth, async (req, res) => {
     const comparisonSchema = z.object({
-      prompt: z
-        .string()
-        .trim()
-        .min(1, "Enter a prompt to compare")
-        .max(6_000, "Prompt must be 6,000 characters or less"),
+      tenantId: z.coerce.number().int().positive(),
+      caseId: z.string().trim().min(3).max(100),
     });
     const parsed = comparisonSchema.safeParse(req.body);
 
     if (!parsed.success) {
       return res.status(400).json({
-        error: parsed.error.issues[0]?.message || "Invalid comparison prompt",
+        error:
+          parsed.error.issues[0]?.message || "Invalid comparison test case",
       });
     }
 
     try {
-      const results = await runImageModelComparison(parsed.data.prompt);
-      res.json({
-        generatedAt: new Date().toISOString(),
-        results,
-      });
+      const comparison = await runClientModelComparison(
+        parsed.data.tenantId,
+        parsed.data.caseId,
+      );
+      res.json(comparison);
     } catch (error) {
       console.error("[ADMIN MODEL LAB] Comparison failed:", error);
-      res.status(500).json({ error: "Unable to run the model comparison" });
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to run the model comparison",
+      });
     }
   });
 
@@ -1796,237 +1852,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to record successful embed visitor generation:", error);
     }
-  }
-
-  function normalizeTenantCustomOptionValue(value: unknown) {
-    const rawValue = String(value || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
-
-    return rawValue.startsWith("tenant_custom_") ? rawValue : `tenant_custom_${rawValue}`;
-  }
-
-  function normalizeTenantToken(value: unknown) {
-    return String(value || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "");
-  }
-
-  function collectReferenceImageUrls(source: any) {
-    const references = [
-      ...(Array.isArray(source?.referenceImageUrls) ? source.referenceImageUrls : []),
-      ...(Array.isArray(source?.referenceImages) ? source.referenceImages : []),
-      source?.referenceImageUrl,
-      source?.imageUrl,
-    ];
-
-    return references
-      .map((url) => String(url || "").trim())
-      .filter(Boolean)
-      .slice(0, 8);
-  }
-
-  function collectTenantInteriorOptions(tenant: any, service: "painting" | "bathroom" | "kitchen" | "living_room") {
-    const customizations = tenant?.embedCustomizations || {};
-    const byService = customizations?.interiorOptions?.[service];
-    const legacyBathroomOptions = service === "bathroom" ? customizations?.bathroomOptions : null;
-    const source = Array.isArray(byService) ? byService : Array.isArray(legacyBathroomOptions) ? legacyBathroomOptions : [];
-
-    return source
-      .map((option: any) => {
-        const label = String(option?.label || option?.name || option?.value || "").trim();
-        if (!label) return null;
-
-        return {
-          value: normalizeTenantCustomOptionValue(option?.value || label),
-          label,
-          prompt: String(option?.prompt || option?.instructions || "").trim(),
-          referenceImageUrls: collectInteriorReferenceImageUrls(option),
-        };
-      })
-      .filter(Boolean) as Array<{ value: string; label: string; prompt: string; referenceImageUrls: string[] }>;
-  }
-
-  function buildTenantInteriorCustomContext(
-    tenant: any,
-    service: "painting" | "bathroom" | "kitchen" | "living_room",
-    selectedStyles: string[],
-  ) {
-    const selected = new Set(selectedStyles);
-    const matchingOptions = collectTenantInteriorOptions(tenant, service)
-      .filter((option) => selected.has(option.value));
-    const matchingPrompts = matchingOptions.map((option) =>
-      buildTenantInteriorOptionPrompt({
-        service,
-        label: option.label,
-        prompt: option.prompt,
-        referenceImageUrls: option.referenceImageUrls,
-      }),
-    );
-
-    return {
-      prompt: matchingPrompts.length
-        ? [
-            "CLIENT-SPECIFIC EMBED OPTIONS:",
-            ...matchingPrompts.map((prompt, index) => `${index + 1}. ${prompt}`),
-          ].join("\n")
-        : "",
-      referenceImageUrls: matchingOptions.flatMap((option) => option.referenceImageUrls),
-    };
-  }
-
-  function normalizeTenantPrefixedOptionValue(option: any, prefix: string) {
-    const label = String(option?.label || option?.name || option?.value || "option").trim();
-    const rawValue = normalizeTenantToken(option?.value || `${prefix}_${normalizeTenantToken(label)}`);
-    return rawValue.startsWith("tenant_custom_") ? rawValue : `${prefix}_${rawValue}`;
-  }
-
-  function buildTenantOptionContext(
-    entries: Array<{
-      categoryLabel: string;
-      selectedStyle?: string;
-      options: any[];
-      valuePrefix: string;
-      transformSelectedStyle?: (value: string) => string;
-    }>,
-    heading: string,
-  ) {
-    const prompts: string[] = [];
-    const referenceImageUrls: string[] = [];
-
-    for (const entry of entries) {
-      if (!entry.selectedStyle || !Array.isArray(entry.options)) continue;
-
-      const selectedStyle = entry.transformSelectedStyle
-        ? entry.transformSelectedStyle(entry.selectedStyle)
-        : entry.selectedStyle;
-      const selectedToken = normalizeTenantToken(selectedStyle);
-      if (!selectedToken) continue;
-
-      const matchedOption = entry.options.find((option: any) =>
-        normalizeTenantToken(normalizeTenantPrefixedOptionValue(option, entry.valuePrefix)) === selectedToken
-      );
-
-      if (!matchedOption) continue;
-
-      const label = String(matchedOption.label || matchedOption.name || selectedStyle).trim();
-      const swatch = String(matchedOption.swatch || matchedOption.hex || matchedOption.color || "").trim();
-      const prompt = String(matchedOption.prompt || matchedOption.instructions || "").trim();
-
-      prompts.push(
-        prompt ||
-          `Apply the client-specific ${entry.categoryLabel} option "${label}"${swatch ? ` (${swatch})` : ""} exactly as configured for this tenant.`,
-      );
-      referenceImageUrls.push(...collectReferenceImageUrls(matchedOption));
-    }
-
-    return {
-      prompt: prompts.length
-        ? [heading, ...prompts.map((prompt, index) => `${index + 1}. ${prompt}`)].join("\n")
-        : "",
-      referenceImageUrls,
-    };
-  }
-
-  function buildTenantLandscapeCustomContext(
-    tenant: any,
-    selectedStyles: {
-      curbing?: string;
-      landscape?: string;
-      patios?: string;
-    },
-  ) {
-    const customizations = tenant?.embedCustomizations || {};
-
-    return buildTenantOptionContext(
-      [
-        {
-          categoryLabel: "curbing",
-          selectedStyle: selectedStyles.curbing,
-          options: customizations?.landscapeOptions?.curbing || [],
-          valuePrefix: "tenant_custom_landscape_curbing",
-        },
-        {
-          categoryLabel: "landscape material",
-          selectedStyle: selectedStyles.landscape,
-          options: customizations?.landscapeOptions?.landscape || [],
-          valuePrefix: "tenant_custom_landscape_landscape",
-        },
-        {
-          categoryLabel: "patio",
-          selectedStyle: selectedStyles.patios,
-          options: customizations?.landscapeOptions?.patios || [],
-          valuePrefix: "tenant_custom_landscape_patios",
-          transformSelectedStyle: (value) => value.split("|")[0],
-        },
-      ],
-      "CLIENT-SPECIFIC LANDSCAPE EMBED OPTIONS:",
-    );
-  }
-
-  function buildTenantPoolCustomContext(
-    tenant: any,
-    selectedStyles: {
-      poolType?: string;
-      poolSize?: string;
-      decking?: string;
-      landscaping?: string;
-      features?: string;
-      hotTub?: string;
-      sauna?: string;
-    },
-  ) {
-    const customizations = tenant?.embedCustomizations || {};
-
-    return buildTenantOptionContext(
-      [
-        {
-          categoryLabel: "pool type",
-          selectedStyle: selectedStyles.poolType,
-          options: customizations?.poolOptions?.poolType || [],
-          valuePrefix: "tenant_custom_pool_pool_type",
-        },
-        {
-          categoryLabel: "pool size",
-          selectedStyle: selectedStyles.poolSize,
-          options: customizations?.poolOptions?.poolSize || [],
-          valuePrefix: "tenant_custom_pool_pool_size",
-        },
-        {
-          categoryLabel: "decking",
-          selectedStyle: selectedStyles.decking,
-          options: customizations?.poolOptions?.decking || [],
-          valuePrefix: "tenant_custom_pool_decking",
-        },
-        {
-          categoryLabel: "pool landscaping",
-          selectedStyle: selectedStyles.landscaping,
-          options: customizations?.poolOptions?.landscaping || [],
-          valuePrefix: "tenant_custom_pool_landscaping",
-        },
-        {
-          categoryLabel: "pool feature",
-          selectedStyle: selectedStyles.features,
-          options: customizations?.poolOptions?.features || [],
-          valuePrefix: "tenant_custom_pool_features",
-        },
-        {
-          categoryLabel: "hot tub",
-          selectedStyle: selectedStyles.hotTub,
-          options: customizations?.poolOptions?.hotTub || [],
-          valuePrefix: "tenant_custom_pool_hot_tub",
-        },
-        {
-          categoryLabel: "sauna",
-          selectedStyle: selectedStyles.sauna,
-          options: customizations?.poolOptions?.sauna || [],
-          valuePrefix: "tenant_custom_pool_sauna",
-        },
-      ],
-      "CLIENT-SPECIFIC POOL EMBED OPTIONS:",
-    );
   }
 
   type EmbedServiceKey =
