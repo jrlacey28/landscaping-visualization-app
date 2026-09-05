@@ -1,3 +1,4 @@
+import { useAuth } from "@/hooks/use-auth";
 import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -26,6 +27,7 @@ interface PricingCardProps {
 }
 
 export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
+  const { user } = useAuth();
   const monthlyPrice = tier.monthlyPrice ?? 0
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
@@ -49,7 +51,7 @@ export function PricingCard({ tier, paymentFrequency }: PricingCardProps) {
       setLoading(true);
       const token = localStorage.getItem('auth_token');
       
-      if (!token) {
+      if (!user) {
         // User not logged in, redirect to auth first
         window.location.href = `/auth?plan=${planId}`;
         return;

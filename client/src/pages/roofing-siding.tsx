@@ -1,3 +1,4 @@
+import RegionSelector from "@/components/region-selector";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -270,6 +271,7 @@ export default function RoofingSiding() {
                   </div>
                 </div>
 
+                <RegionSelector image={uploadedImage!} onChange={setMaskData} />
                 {/* Feature Selection Section */}
                 <div className="space-y-4">
                   <div className="text-center">

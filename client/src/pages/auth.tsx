@@ -12,70 +12,18 @@ import { apiRequest } from '@/lib/queryClient';
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
-  const { login, register, loading, refreshUser } = useAuth();
+  const { login, register, loading } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [tokenProcessed, setTokenProcessed] = useState(false);
 
   // Get plan from URL params for direct checkout
   const urlParams = new URLSearchParams(window.location.search);
   const planId = urlParams.get('plan');
-  const token = urlParams.get('token');
   const error = urlParams.get('error');
 
-  // Handle Google OAuth callback
-  useEffect(() => {    
-    if (token && !tokenProcessed) {
-      setTokenProcessed(true); // Prevent multiple executions
-
-      const handleGoogleAuth = async () => {
-        try {
-          // Store the token immediately
-          localStorage.setItem('auth_token', token);
-
-          // Refresh user data to validate token
-          await refreshUser();
-
-          // Show success message
-          toast({
-            title: 'Success',
-            description: 'Signed in with Google successfully!',
-          });
-
-          // Allow time for auth state to fully propagate
-          setTimeout(() => {
-            if (planId) {
-              redirectToCheckout(planId);
-            } else {
-              setLocation('/');
-            }
-          }, 500);
-        } catch (error) {
-          console.error('Google auth token processing error:', error);
-          toast({
-            title: 'Error',
-            description: 'Failed to complete Google sign-in. Please try again.',
-            variant: 'destructive',
-          });
-        }
-      };
-
-      handleGoogleAuth();
-    } else if (error) {
-      let errorMessage = 'Authentication failed';
-      if (error === 'google_auth_failed') {
-        errorMessage = 'Google authentication failed. Please try again.';
-      } else if (error === 'callback_failed') {
-        errorMessage = 'Authentication callback failed. Please try again.';
-      }
-
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-    }
-  }, [token, error, planId, tokenProcessed]); // Added tokenProcessed to dependencies
+  useEffect(() => {
+    if (error) toast({ title: "Sign-in unavailable", description: error === "google_unavailable" ? "Use email sign-in, or try Google later." : "Please try signing in again.", variant: "destructive" });
+  }, [error]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -97,7 +45,7 @@ export default function AuthPage() {
         if (planId) {
           redirectToCheckout(planId);
         } else {
-          setLocation('/');
+          setLocation('/setup');
         }
       }, 100);
     } catch (error: any) {
@@ -120,8 +68,7 @@ export default function AuthPage() {
       password: formData.get('password') as string,
       firstName: formData.get('firstName') as string,
       lastName: formData.get('lastName') as string,
-      businessName: formData.get('businessName') as string,
-      phone: formData.get('phone') as string,
+      termsAccepted: true as const,
     };
 
     try {
@@ -138,7 +85,7 @@ export default function AuthPage() {
         if (planId) {
           redirectToCheckout(planId);
         } else {
-          setLocation('/');
+          setLocation('/setup');
         }
       }, 100);
     } catch (error: any) {
@@ -289,6 +236,7 @@ export default function AuthPage() {
                   >
                     {isLoading || loading ? 'Signing in...' : 'Sign In'}
                   </Button>
+                  <a href="/account/forgot" className="block text-center text-sm text-blue-700">Forgot your password?</a>
                 </form>
               </TabsContent>
 
@@ -334,28 +282,16 @@ export default function AuthPage() {
                       type="password"
                       required
                       placeholder="Create a strong password"
-                      minLength={8}
+                      minLength={10}
+                      maxLength={72}
+                      autoComplete="new-password"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="businessName">Business Name (Optional)</Label>
-                    <Input
-                      id="businessName"
-                      name="businessName"
-                      placeholder="Your Business Name"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone (Optional)</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      placeholder="(555) 123-4567"
-                    />
-                  </div>
+                  <label className="flex items-start gap-3 text-sm text-slate-600">
+                    <input type="checkbox" required name="termsAccepted" className="mt-1" />
+                    <span>I agree to the <a href="/terms" target="_blank" rel="noreferrer" className="underline">Terms of Service</a> and acknowledge the <a href="/privacy" target="_blank" rel="noreferrer" className="underline">Privacy Policy</a>. I am authorized to act for my business.</span>
+                  </label>
 
                   <Button 
                     type="submit" 

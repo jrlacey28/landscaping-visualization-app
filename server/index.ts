@@ -1,3 +1,4 @@
+import { registerOnboardingRoutes } from "./onboarding-routes";
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -9,6 +10,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import compression from "compression";
 import {
+  ensureSecuritySchema,
   databaseUrl,
   ensureEnterpriseVisualizationRolloverSchema,
   pool,
@@ -18,28 +20,15 @@ import {
   importLegacyPublicImages,
 } from "./public-image-store";
 
+import { requestSecurity, productionSecret, securityErrorHandler } from "./security";
 const app = express();
+app.disable("x-powered-by");
+app.use(requestSecurity);
 
 // Configure trust proxy for production (required for secure sessions behind load balancer)
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
-
-// Add CORS headers for embed functionality
-app.use((req, res, next) => {
-  // Allow all origins for embed routes and API calls
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  
-  next();
-});
 
 // Add compression middleware for better performance
 app.use(compression());
@@ -58,13 +47,13 @@ app.use((req, res, next) => {
   if (req.originalUrl === '/api/stripe/webhook') {
     return next();
   }
-  return express.json({ limit: '50mb' })(req, res, next);
+  return express.json({ limit: '2mb' })(req, res, next);
 });
 app.use((req, res, next) => {
   if (req.originalUrl === '/api/stripe/webhook') {
     return next();
   }
-  return express.urlencoded({ extended: true, limit: '50mb' })(req, res, next);
+  return express.urlencoded({ extended: false, limit: '100kb', parameterLimit: 100 })(req, res, next);
 });
 
 // Enforce SESSION_SECRET in production for security
@@ -77,7 +66,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
 const PgSession = connectPgSimple(session);
 
 const sessionConfig: any = {
-  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+  secret: productionSecret("SESSION_SECRET"),
   resave: false,
   saveUninitialized: false,
   cookie: { 
@@ -102,22 +91,10 @@ app.use(session(sessionConfig));
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }
@@ -167,6 +144,7 @@ async function initializeDatabaseInBackground() {
 }
 
 (async () => {
+  await ensureSecuritySchema();
   // Apply additive feature columns before any route can query the tenants table.
   await ensureEnterpriseVisualizationRolloverSchema();
   console.log("Enterprise visualization rollover schema verified");
@@ -177,20 +155,15 @@ async function initializeDatabaseInBackground() {
   console.log(`Durable public image storage verified (${importedPublicImageCount} legacy images available)`);
 
   // Register authentication routes first (includes Stripe webhook and sets up sessions)
-  registerAuthRoutes(app);
-  
-  // Setup Google OAuth after session middleware is configured
   setupGoogleAuth(app);
+  registerAuthRoutes(app);
+  registerOnboardingRoutes(app);
+  
+
   
   const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    console.error('Server error:', err);
-    res.status(status).json({ message });
-  });
+  app.use(securityErrorHandler);
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route

@@ -4,6 +4,16 @@ import type { Lead, Tenant } from '@shared/schema';
 const resendApiKey = process.env.RESEND_API || process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
+export async function sendAccountEmail(to: string, subject: string, message: string, linkPath: string): Promise<boolean> {
+  const base = process.env.APP_URL || process.env.PRODUCTION_URL || (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : `http://localhost:${process.env.PORT || 5000}`);
+  if (!resend) return false;
+  try {
+    const result = await resend.emails.send({ from: process.env.EMAIL_FROM || "onboarding@resend.dev", to, subject,
+      html: `<p>${escapeHtml(message)}</p><p><a href="${escapeHtml(base.replace(/\/$/, '') + linkPath)}">Continue to DreamBuilder</a></p>` });
+    return !result.error;
+  } catch { return false; }
+}
+
 type EmailAttachment = {
   filename?: string | false;
   content?: Buffer;

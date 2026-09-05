@@ -6,6 +6,10 @@ import { AuthService, authenticateToken, requireProPlan, type AuthRequest } from
 import { insertUserSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
+import { rateLimit, acquireLease, releaseLease, rows } from "./security";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
+import { sendVerification } from "./onboarding-routes";
 
 // Initialize Stripe
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -48,7 +52,13 @@ export function registerAuthRoutes(app: Express) {
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
+    const object = event.data.object as any;
+    const leaseKey = `stripe:${object.subscription || object.id}`;
+    let lease: string | null = null;
     try {
+      lease = await acquireLease(leaseKey);
+      if (!lease) return res.status(503).json({ error: "Event processing in progress" });
+      if (rows(await db.execute(sql`SELECT id FROM processed_stripe_events WHERE id = ${event.id}`)).length) return res.json({ received: true });
       switch (event.type) {
         case 'checkout.session.completed':
           const session = event.data.object as Stripe.Checkout.Session;
@@ -57,42 +67,30 @@ export function registerAuthRoutes(app: Express) {
         case 'customer.subscription.updated':
         case 'customer.subscription.deleted':
           const subscription = event.data.object as Stripe.Subscription;
-          await handleSubscriptionChange(subscription);
+          await handleSubscriptionChange(await stripe.subscriptions.retrieve(subscription.id));
           break;
         default:
           console.log(`Unhandled event type ${event.type}`);
       }
+      await db.execute(sql`INSERT INTO processed_stripe_events (id) VALUES (${event.id}) ON CONFLICT DO NOTHING`);
       res.json({received: true});
     } catch (error) {
       console.error('Error processing webhook:', error);
       res.status(500).json({error: 'Webhook processing failed'});
-    }
-  });
-
-  // Google OAuth callback success handler
-  app.get('/api/auth/google/success', async (req, res) => {
-    try {
-      const token = req.query.token as string;
-      if (!token) {
-        return res.redirect('/auth?error=no_token');
-      }
-
-      // Redirect to frontend with token
-      res.redirect(`/auth/success?token=${encodeURIComponent(token)}`);
-    } catch (error) {
-      console.error('Google success handler error:', error);
-      res.redirect('/auth?error=callback_failed');
+    } finally {
+      if (lease) await releaseLease(leaseKey, lease);
     }
   });
 
   // Authentication routes
-  app.post('/api/auth/register', async (req, res) => {
+  app.post('/api/auth/register', rateLimit('register', 5, 3600), async (req, res) => {
     try {
       const userSchema = z.object({
-        email: z.string().email(),
-        password: z.string().min(8),
-        firstName: z.string().min(1),
-        lastName: z.string().min(1),
+        email: z.string().trim().email().max(254),
+        password: z.string().min(10).max(72),
+        termsAccepted: z.literal(true),
+        firstName: z.string().trim().min(1).max(150),
+        lastName: z.string().trim().min(1).max(150),
         businessName: z.string().optional(),
         phone: z.string().optional(),
       });
@@ -105,8 +103,10 @@ export function registerAuthRoutes(app: Express) {
         });
       }
 
-      const { user, token } = await AuthService.register(validationResult.data);
+      const { user } = await AuthService.register(validationResult.data);
+      await sendVerification(user).catch(() => false);
 
+      await new Promise<void>((resolve, reject) => req.logIn(user, error => error ? reject(error) : resolve()));
       res.status(201).json({
         success: true,
         data: {
@@ -118,7 +118,6 @@ export function registerAuthRoutes(app: Express) {
             businessName: user.businessName,
             emailVerified: user.emailVerified,
           },
-          token
         }
       });
     } catch (error: any) {
@@ -127,15 +126,16 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  app.post('/api/auth/login', async (req, res) => {
+  app.post('/api/auth/login', rateLimit('login', 15, 900), async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const { email, password } = z.object({email:z.string().email().max(254),password:z.string().min(1).max(72)}).parse(req.body);
       if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required' });
       }
 
-      const { user, token } = await AuthService.login(email, password);
+      const { user } = await AuthService.login(email, password);
 
+      await new Promise<void>((resolve, reject) => req.logIn(user, error => error ? reject(error) : resolve()));
       res.json({
         success: true,
         data: {
@@ -147,7 +147,6 @@ export function registerAuthRoutes(app: Express) {
             businessName: user.businessName,
             emailVerified: user.emailVerified,
           },
-          token
         }
       });
     } catch (error: any) {
@@ -269,7 +268,7 @@ export function registerAuthRoutes(app: Express) {
           quantity: 1,
         }],
         mode: 'subscription',
-        success_url: `${baseUrl}/dashboard?success=true`,
+        success_url: `${baseUrl}/setup?success=true`,
         cancel_url: `${baseUrl}/pricing?canceled=true`,
         metadata: {
           userId: user.id.toString(),
@@ -717,7 +716,8 @@ export function registerAuthRoutes(app: Express) {
       } as any);
       await storage.ensureAccountTenant(userIdNum);
     } catch (error) {
-      console.error('Error creating subscription:', error);
+      console.error('Error creating subscription');
+      throw error;
     }
   }
 
@@ -769,7 +769,8 @@ export function registerAuthRoutes(app: Express) {
       } as any);
       await storage.ensureAccountTenant(userIdNum);
     } catch (error) {
-      console.error('Error updating subscription:', error);
+      console.error('Error updating subscription');
+      throw error;
     }
   }
 }

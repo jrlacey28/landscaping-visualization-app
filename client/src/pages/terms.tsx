@@ -1,3 +1,4 @@
+import { POLICY_EFFECTIVE_DATE } from "@shared/legal";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/header";
@@ -43,7 +44,7 @@ export default function TermsPage() {
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
               <CardTitle className="text-3xl text-white">Terms of Service</CardTitle>
-              <p className="text-slate-300">Last updated: {new Date().toLocaleDateString()}</p>
+              <p className="text-slate-300">Last updated: {POLICY_EFFECTIVE_DATE}</p>
             </CardHeader>
             <CardContent className="space-y-6 text-slate-200">
               <section>
@@ -93,7 +94,7 @@ export default function TermsPage() {
                   <p><strong>Free Plan:</strong> 5 visualizations per month</p>
                   <p><strong>Contractor Plan:</strong> $300/month - 200 visualizations per month</p>
                   <p><strong>Professional Plan:</strong> $500/month - 650 visualizations per month with team collaboration</p>
-                  <p><strong>Enterprise Plan:</strong> $750/month - Higher visualization amount plus white-label features</p>
+                  <p><strong>Enterprise Plan:</strong> Custom pricing - Higher visualization amount plus white-label features</p>
                   <div className="mt-4">
                     <p className="mb-2"><strong>Billing Terms:</strong></p>
                     <ul className="list-disc pl-6 space-y-2">

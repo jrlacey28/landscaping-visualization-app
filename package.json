@@ -25,7 +25,8 @@
     "predb:push:local": "node -e \"require('fs').mkdirSync('.local',{recursive:true})\"",
     "db:push:local": "cross-env USE_LOCAL_DB=true drizzle-kit push --config=drizzle.local.config.ts",
     "db:seed:local": "cross-env USE_LOCAL_DB=true node --env-file-if-exists=.env scripts/seed-local-db.mjs",
-    "db:repair:generation-dashboard": "node --env-file-if-exists=.env scripts/repair-generation-dashboard-db.mjs"
+    "db:repair:generation-dashboard": "node --env-file-if-exists=.env scripts/repair-generation-dashboard-db.mjs",
+    "test:security-onboarding": "node --import tsx scripts/test-security-onboarding.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.4.5",
@@ -79,7 +80,7 @@
     "cross-env": "^10.1.0",
     "date-fns": "^3.6.0",
     "dotenv": "^17.4.2",
-    "drizzle-orm": "^0.39.1",
+    "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.7.0",
     "embla-carousel-react": "^8.6.0",
     "express": "^4.21.2",
@@ -108,7 +109,7 @@
     "recharts": "^2.15.2",
     "replicate": "^1.0.1",
     "resend": "^6.1.2",
-    "sharp": "^0.34.2",
+    "sharp": "^0.35.4",
     "stripe": "^18.5.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
@@ -133,17 +134,24 @@
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "@types/ws": "^8.5.13",
-    "@vitejs/plugin-react": "^4.3.2",
+    "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.20",
-    "drizzle-kit": "^0.30.4",
+    "drizzle-kit": "^0.31.10",
     "esbuild": "^0.25.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.1",
     "typescript": "5.6.3",
-    "vite": "^5.4.14"
+    "vite": "^6.4.3"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "overrides": {
+    "qs": "^6.16.0",
+    "gaxios": {
+      "uuid": "^11.1.1"
+    },
+    "esbuild": "$esbuild"
   }
 }

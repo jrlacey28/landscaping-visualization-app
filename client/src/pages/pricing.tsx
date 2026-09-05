@@ -85,7 +85,7 @@ export default function PricingPage() {
         "Images include watermark"
       ],
       cta: "Start Free Trial",
-      ctaLink: "/auth"
+      ctaLink: "/auth?mode=signup"
     },
     {
       name: "Contractor",
@@ -222,7 +222,7 @@ export default function PricingPage() {
             </Accordion>
             <p className="text-slate-300 mt-6 text-center">
               Can't find what you're looking for? Contact our{' '}
-              <a href="mailto:support@company.com" className="text-blue-400 font-medium hover:underline">
+              <a href="mailto:support@dreambuilderai.com" className="text-blue-400 font-medium hover:underline">
                 customer support team
               </a>
             </p>

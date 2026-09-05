@@ -1,3 +1,4 @@
+import { POLICY_EFFECTIVE_DATE } from "@shared/legal";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/header";
@@ -43,7 +44,7 @@ export default function PrivacyPage() {
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
               <CardTitle className="text-3xl text-white">Privacy Policy</CardTitle>
-              <p className="text-slate-300">Last updated: {new Date().toLocaleDateString()}</p>
+              <p className="text-slate-300">Last updated: {POLICY_EFFECTIVE_DATE}</p>
             </CardHeader>
             <CardContent className="space-y-6 text-slate-200">
               <section>

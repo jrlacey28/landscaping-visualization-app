@@ -1,3 +1,4 @@
+import { safeRequest, publicHttpsUrl } from "./safe-request";
 import net from "node:net";
 
 import type { Lead, Tenant } from "@shared/schema";
@@ -71,7 +72,7 @@ export function validateQuoteCrmWebhookUrl(value: string) {
     throw new Error("CRM webhook URL must use a public HTTPS address");
   }
 
-  return parsed.toString();
+  return publicHttpsUrl(parsed.toString()).toString();
 }
 
 export function getQuoteCrmConfig(tenant: Pick<Tenant, "embedCustomizations"> | any): QuoteCrmConfig {
@@ -182,18 +183,16 @@ export async function sendQuoteLeadToCrm({
     return { attempted: false, sent: false };
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8_000);
-
   try {
-    const response = await fetch(resolvedUrl, {
+    const response = await safeRequest(resolvedUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "User-Agent": "DreamBuilder-Quote-Webhook/1.0",
       },
       body: JSON.stringify(buildQuoteCrmPayload({ tenant, lead, test })),
-      signal: controller.signal,
+      timeoutMs: 8000,
+      maxBytes: 64 * 1024,
     });
 
     if (!response.ok) {
@@ -209,7 +208,5 @@ export async function sendQuoteLeadToCrm({
         : "CRM webhook failed";
 
     return { attempted: true, sent: false, error: message };
-  } finally {
-    clearTimeout(timeout);
   }
 }

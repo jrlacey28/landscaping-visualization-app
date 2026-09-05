@@ -1,3 +1,5 @@
+import { validateRegionMask, compositeRegion } from "./region-edit";
+import { rateLimit, jobToken, validJobToken, acquireLease, releaseLease, hashToken } from "./security";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import express from "express";
@@ -50,7 +52,15 @@ import {
   validateQuoteCrmWebhookUrl,
 } from "./quote-crm";
 
-const upload = multer({ storage: multer.memoryStorage() });
+const boundedUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 1, fields: 35, fieldSize: 5 * 1024 * 1024 } });
+const upload = { single(field: string) { return [boundedUpload.single(field), async (req: any, res: any, next: any) => {
+  if (!req.file) return next();
+  try {
+    req.file.buffer = await sharp(req.file.buffer, { limitInputPixels: 40_000_000 }).rotate().jpeg({ quality: 92 }).toBuffer();
+    req.file.mimetype = "image/jpeg";
+    next();
+  } catch { res.status(400).json({ error: "Use a valid JPG, PNG, WebP or supported HEIC image under 15 MB and 40 megapixels." }); }
+}]; } };
 
 function toPublicTenant(tenant: any) {
   if (!tenant) return tenant;
@@ -498,6 +508,49 @@ async function getOwnedGenerationForService(userId: number, service: GenerationS
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.use("/api", rateLimit("api", 180));
+  app.post("/api/admin/login", rateLimit("admin-login", 10, 900));
+  app.post("/api/teams/join-with-code", rateLimit("join-team", 10, 3600));
+  app.post("/api/leads", rateLimit("lead", 10, 3600));
+  app.post(["/api/upload", "/api/interior/upload", "/api/pools/upload", "/api/landscape/upload", "/api/halloween/upload", "/api/christmas-lights/upload", "/api/analyze"], rateLimit("generation", 20, 3600));
+  app.use("/api/debug", (_req, res) => { res.sendStatus(404); });
+  app.get("/api/health", (_req, res) => { res.json({ status: "ok" }); });
+  app.post(["/api/tenants/:tenantId/subscription", "/api/tenants/:tenantId/api-key"], (_req, res) => { res.sendStatus(410); });
+  const privateTenantAccess = async (req: AuthRequest, res: any, next: any) => {
+    try {
+      const tenant = await storage.getTenant(Number(req.params.tenantId));
+      const access = await storage.getUserTeamAccess(req.user!.id);
+      if (!tenant || tenant.userId !== access.effectiveUserId) return res.sendStatus(404);
+      next();
+    } catch { res.sendStatus(500); }
+  };
+  app.get(["/api/tenants/:tenantId/visualizations", "/api/tenants/:tenantId/pool-visualizations", "/api/tenants/:tenantId/landscape-visualizations", "/api/tenants/:tenantId/usage"], authenticateToken as any, privateTenantAccess as any);
+  const statusPaths = ["/api/visualizations/:id/status", "/api/pools/:id/status", "/api/landscape/:id/status", "/api/halloween/:id/status", "/api/christmas-lights/:id/status"];
+  app.get(statusPaths, optionalAuthenticateToken as any, async (req: AuthRequest, res, next) => {
+    try {
+      const service = req.path.split("/")[2];
+      const id = Number(req.params.id);
+      if (validJobToken(req.get("x-generation-token"), service, id)) return next();
+      if (!req.user) return res.sendStatus(401);
+      const getter = service === "pools" ? "getPoolVisualization" : service === "landscape" ? "getLandscapeVisualization" : service === "halloween" ? "getHalloweenVisualization" : service === "christmas-lights" ? "getChristmasLightsVisualization" : "getVisualization";
+      const generation = await storage[getter](id);
+      if (!await isGenerationOwnedByUser(req.user.id, generation)) return res.sendStatus(404);
+      next();
+    } catch { res.sendStatus(500); }
+  });
+  app.use((req, res, next) => {
+    if (req.method === "POST" && /\/upload$/.test(req.path)) {
+      const originalJson = res.json.bind(res);
+      res.json = (body: any) => {
+        const keys: Record<string, string> = { visualizationId: "visualizations", poolVisualizationId: "pools", landscapeVisualizationId: "landscape", halloweenVisualizationId: "halloween", christmasLightsVisualizationId: "christmas-lights" };
+        const key = Object.keys(keys).find(key => Number.isInteger(body?.[key]));
+        if (key && res.statusCode < 400) body = { ...body, generationToken: jobToken(keys[key], body[key]), generationService: keys[key] };
+        return originalJson(body);
+      };
+    }
+    next();
+  });
+
   // Session middleware is now configured in server/index.ts BEFORE this function is called
   // This ensures all routes (including auth routes) have access to sessions
 
@@ -697,8 +750,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     if (password === adminPassword) {
-      req.session.isAdmin = true;
-      res.json({ success: true, message: "Authenticated successfully" });
+      req.session.regenerate(error => {
+        if (error) return res.sendStatus(500);
+        req.session.isAdmin = true;
+        res.json({ success: true, message: "Authenticated successfully" });
+      });
     } else {
       res.status(401).json({ error: "Invalid password" });
     }
@@ -1154,7 +1210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get tenant by slug (for multi-tenant setup)
   // Get authenticated user's tenant
-  app.get("/api/tenant/my-tenant", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.get("/api/tenant/my-tenant", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
@@ -1194,13 +1250,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     embedQuoteCrmWebhookUrl: z.string().trim().max(1000),
   });
 
-  app.patch("/api/tenant/my-tenant/quote-flow", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.patch("/api/tenant/my-tenant/quote-flow", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
       const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
+      if (workspaceOwnerId !== req.user.id) return res.sendStatus(403);
       const userTenant = await ensureStandardEmbedTenant(workspaceOwnerId);
       if (!userTenant) {
         return res.status(404).json({ error: "Embed account not found" });
@@ -1254,7 +1311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/tenant/my-tenant/quote-leads", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.get("/api/tenant/my-tenant/quote-leads", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
@@ -1289,13 +1346,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     webhookUrl: z.string().trim().min(1).max(1000),
   });
 
-  app.post("/api/tenant/my-tenant/quote-crm/test", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.post("/api/tenant/my-tenant/quote-crm/test", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
       const workspaceOwnerId = await getWorkspaceOwnerId(req.user.id);
+      if (workspaceOwnerId !== req.user.id) return res.sendStatus(403);
       const userTenant = await ensureStandardEmbedTenant(workspaceOwnerId);
       if (!userTenant) {
         return res.status(404).json({ error: "Embed account not found" });
@@ -1372,7 +1430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/embed/visitor-usage", optionalAuthenticateToken as any, async (req: AuthRequest, res) => {
+  app.get("/api/embed/visitor-usage", optionalAuthenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       const tenantId = parsePositiveId(req.query.tenantId);
       const tenantSlug = typeof req.query.tenantSlug === "string" ? req.query.tenantSlug.trim() : "";
@@ -1624,7 +1682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Persist public customization images in Postgres so deploys and restarts
   // cannot leave tenant records pointing at files that no longer exist.
-  app.post("/api/upload-image", requirePublicImageUploadAuth as any, upload.single("image"), async (req, res) => {
+  app.post("/api/upload-image", requirePublicImageUploadAuth as any, upload.single("image"), async (req: any, res: any) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -1748,15 +1806,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   function getClientIp(req: any) {
-    const forwardedFor = req.headers["x-forwarded-for"];
-    if (typeof forwardedFor === "string" && forwardedFor.trim()) {
-      return forwardedFor.split(",")[0].trim();
-    }
-
-    if (Array.isArray(forwardedFor) && forwardedFor[0]) {
-      return forwardedFor[0].split(",")[0].trim();
-    }
-
     return req.ip || req.socket?.remoteAddress || "";
   }
 
@@ -1840,6 +1889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   async function recordSuccessfulEmbedVisitorGeneration(generationOwner: any) {
+    if (!generationOwner?.userId && generationOwner?.tenantId) await storage.incrementTenantGenerations(generationOwner.tenantId);
     const tracking = generationOwner?.embedVisitorTracking;
     if (!tracking) return;
 
@@ -1884,6 +1934,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   async function resolveGenerationOwner(req: AuthRequest, usageType: 'visualization' | 'landscape' | 'pool') {
+    const tenant = await getTenantFromGenerationRequest(req, true);
+    const account = tenant?.userId || (req.user ? (await storage.getUserTeamAccess(req.user.id)).effectiveUserId : Number(req.body.accountUserId));
+    const key = `generation:${account || `tenant-${tenant?.id || "demo"}`}`;
+    const lease = await acquireLease(key, 900);
+    if (!lease) throw new GenerationRequestError(429, "A design is already being generated for this workspace. Please wait for it to finish.");
+    req.res?.once("finish", () => { void releaseLease(key, lease).catch(() => {}); });
+    try {
+      return await resolveGenerationOwnerUnchecked(req, usageType);
+    } catch (error) { await releaseLease(key, lease); throw error; }
+  }
+
+  async function resolveGenerationOwnerUnchecked(req: AuthRequest, usageType: 'visualization' | 'landscape' | 'pool') {
     const accountUserId = parsePositiveId(req.body.accountUserId);
     let tenant = await getTenantFromGenerationRequest(req, !!accountUserId);
     if (!tenant && accountUserId) {
@@ -1931,6 +1993,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new GenerationRequestError(403, "This embed is not connected to an account");
       }
       const ownerUserId = accounting.ownerUserId;
+      const owner = await storage.getUser(ownerUserId);
+      if ((owner?.onboarding as any)?.requiresSetup && (!owner?.emailVerified || !owner?.termsVersion || !(owner?.onboarding as any)?.publishedAt)) {
+        const access = req.user ? await storage.getUserTeamAccess(req.user.id) : null;
+        if (access?.effectiveUserId !== ownerUserId) throw new GenerationRequestError(403, "This business visualizer has not been published yet.");
+      }
 
       const hasEmbedAccess = await storage.computeEmbedAccess(ownerUserId);
       if (!hasEmbedAccess) {
@@ -2032,7 +2099,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return teamAccess.effectiveUserId;
   }
 
-  app.get("/api/generation-projects", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.get("/api/generation-projects", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
@@ -2068,7 +2135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/generation-projects", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.post("/api/generation-projects", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
@@ -2093,7 +2160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/generation-projects/:projectId", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.patch("/api/generation-projects/:projectId", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
@@ -2122,7 +2189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/generation-projects/:projectId", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.delete("/api/generation-projects/:projectId", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
@@ -2143,7 +2210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/generations", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.get("/api/generations", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
@@ -2347,7 +2414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/generations/:service/:visualizationId/thumbnail", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.get("/api/generations/:service/:visualizationId/thumbnail", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
@@ -2382,7 +2449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/generations/:service/:visualizationId/image", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.get("/api/generations/:service/:visualizationId/image", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
@@ -2414,7 +2481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/generation-projects/:projectId/generations", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.post("/api/generation-projects/:projectId/generations", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
@@ -2468,7 +2535,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/project-generations/:assignmentId", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.delete("/api/project-generations/:assignmentId", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
@@ -2484,7 +2551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Gemini-powered roofing/siding editing workflow (account or embed-owned)
-  app.post("/api/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+  app.post("/api/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res: any) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -2500,6 +2567,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { selectedRoof, selectedSiding, selectedSurpriseMe, selectedWindows, customPrompt } = req.body;
       const maskData = typeof req.body.maskData === "string" ? req.body.maskData.trim() : "";
+      let regionMask: Buffer | null = null;
+      if (maskData) {
+        try { regionMask = await validateRegionMask(maskData, req.file.buffer); }
+        catch (error: any) { return res.status(400).json({ error: error.message }); }
+      }
       const userId = generationOwner.userId;
       const hasBusinessPro = generationOwner.hasBusinessPro;
       const hasCustomPromptAccess = canUseEmbedCustomInstructions(
@@ -2544,9 +2616,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         referenceImages: tenantExteriorDebug.referenceImages,
         masking: {
           maskProvided: Boolean(maskData),
-          maskApplied: false,
+          maskApplied: Boolean(regionMask),
           reason:
-            "Gemini exterior generateContent flow does not currently apply a deterministic siding-area mask; prompt fallback restricts edits to siding only.",
+            "Region selection is provided as a model reference; final compositing preserves pixels outside the mask.",
         },
       });
 
@@ -2574,10 +2646,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      if (generationOwner.shouldTrackUserUsage && userId) {
-        await storage.createOrUpdateUserUsage(userId, 'visualization');
-      }
 
+
+      if (regionMask) {
+        tenantReferenceImages.push({ url: `data:image/png;base64,${regionMask.toString("base64")}`, role: "edit mask", label: "White pixels mark the ONLY area to edit. Black pixels must stay unchanged.", category: "selection" });
+        validatedCustomPrompt = [validatedCustomPrompt, "Apply the requested material only within the white region of the selection mask. Preserve camera position, scale, windows, and geometry. Return the full original framing."].filter(Boolean).join("\n");
+      }
       // Process with Gemini AI
       try {
         const result = await processLandscapeWithGemini({
@@ -2589,16 +2663,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...tenantExteriorDebug,
             masking: {
               maskProvided: Boolean(maskData),
-              maskApplied: false,
+              maskApplied: Boolean(regionMask),
               reason:
-                "TODO: wire a true siding-area mask into an image-edit endpoint that accepts masks. Current Gemini flow uses strict prompt constraints only.",
+                "Selected regions are enforced by final compositing; the model receives the selection as a reference.",
             },
           },
           usePremiumModel: hasBusinessPro
         });
 
         // Convert edited image to base64 for storage
-        const editedBase64 = `data:image/jpeg;base64,${result.editedImageBuffer.toString('base64')}`;
+        const finalImage = regionMask ? await compositeRegion(originalImageBuffer, result.editedImageBuffer, regionMask) : result.editedImageBuffer;
+        const editedBase64 = `data:image/${regionMask ? "png" : "jpeg"};base64,${finalImage.toString('base64')}`;
 
         // Create a prediction-like object for compatibility
         const prediction = {
@@ -2615,6 +2690,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedImageUrl: editedBase64,
           status: "completed",
         });
+        if (generationOwner.shouldTrackUserUsage && userId) await storage.createOrUpdateUserUsage(userId, 'visualization');
         await recordSuccessfulEmbedVisitorGeneration(generationOwner);
 
         res.json({
@@ -2672,7 +2748,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Interior visualization upload (account or embed-owned)
-  app.post("/api/interior/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+  app.post("/api/interior/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res: any) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -2737,9 +2813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      if (generationOwner.shouldTrackUserUsage && userId) {
-        await storage.createOrUpdateUserUsage(userId, 'visualization');
-      }
+
 
       try {
         const result = await processInteriorVisualizationWithGemini({
@@ -2761,6 +2835,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedImageUrl: editedBase64,
           status: "completed",
         });
+        if (generationOwner.shouldTrackUserUsage && userId) await storage.createOrUpdateUserUsage(userId, 'visualization');
         await recordSuccessfulEmbedVisitorGeneration(generationOwner);
 
         res.json({
@@ -2792,25 +2867,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Submit lead
-  app.post("/api/leads", async (req, res) => {
+  app.post("/api/leads", optionalAuthenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       let leadData = insertLeadSchema.parse(req.body);
       
-      // If user is authenticated, override tenantId with their actual tenant
-      const authHeader = req.headers.authorization;
-      if (authHeader) {
-        const token = authHeader.split(' ')[1];
-        try {
-          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
-          const userTenant = await storage.getTenantByUserId(decoded.userId);
-          if (userTenant) {
-            leadData = { ...leadData, tenantId: userTenant.id };
-          }
-        } catch (tokenError) {
-          // Token invalid or expired, continue with original tenantId
-        }
+      // Attribute account requests using verified auth, never a second ad-hoc JWT verifier.
+      if (req.user && !leadData.tenantId) {
+        const access = await storage.getUserTeamAccess(req.user.id);
+        const userTenant = await storage.getTenantByUserId(access.effectiveUserId);
+        if (userTenant) leadData = { ...leadData, tenantId: userTenant.id };
       }
-      
+      leadData = { ...leadData, userId: req.user?.id || null };
+
       const lead = await storage.createLead(leadData);
       let quoteNotificationSent = false;
       let crmWebhookAttempted = false;
@@ -2905,7 +2973,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Pool-specific API routes - completely separate from roofing/siding
   
   // Pool visualization upload (account or embed-owned)
-  app.post("/api/pools/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+  app.post("/api/pools/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res: any) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -2970,9 +3038,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      if (generationOwner.shouldTrackUserUsage && userId) {
-        await storage.createOrUpdateUserUsage(userId, 'pool');
-      }
+
 
       // Process with Gemini AI using pool-specific prompts
       try {
@@ -3040,6 +3106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedImageUrl: editedBase64,
           status: "completed",
         });
+        if (generationOwner.shouldTrackUserUsage && userId) await storage.createOrUpdateUserUsage(userId, 'pool');
         await recordSuccessfulEmbedVisitorGeneration(generationOwner);
 
         res.json({
@@ -3134,12 +3201,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Gemini-powered image analysis endpoint
-  app.post("/api/analyze", upload.single("image"), async (req, res) => {
+  app.post("/api/analyze", authenticateToken as any, rateLimit("analysis", 5, 3600), upload.single("image"), async (req: any, res: any) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
 
+      await checkUserUsageLimits((req as AuthRequest).user!.id, "landscape");
       const analysis = await analyzeLandscapeImage(req.file.buffer);
 
       res.json({
@@ -3160,7 +3228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Landscape-specific API routes
   
   // Landscape visualization upload (account or embed-owned)
-  app.post("/api/landscape/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+  app.post("/api/landscape/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res: any) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -3219,9 +3287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      if (generationOwner.shouldTrackUserUsage && userId) {
-        await storage.createOrUpdateUserUsage(userId, 'landscape');
-      }
+
 
       // Process with Gemini AI using landscape-specific prompts
       try {
@@ -3244,6 +3310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedImageUrl: processedBase64,
           status: "completed"
         });
+        if (generationOwner.shouldTrackUserUsage && userId) await storage.createOrUpdateUserUsage(userId, 'landscape');
         await recordSuccessfulEmbedVisitorGeneration(generationOwner);
 
         res.json({
@@ -3314,7 +3381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Halloween-specific API routes
   
   // Halloween visualization upload (account or embed-owned)
-  app.post("/api/halloween/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+  app.post("/api/halloween/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res: any) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -3350,9 +3417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      if (generationOwner.shouldTrackUserUsage && userId) {
-        await storage.createOrUpdateUserUsage(userId, 'visualization');
-      }
+
 
       // Process with Halloween AI
       try {
@@ -3379,6 +3444,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedImageUrl: editedBase64Image,
           status: "completed"
         });
+        if (generationOwner.shouldTrackUserUsage && userId) await storage.createOrUpdateUserUsage(userId, 'visualization');
         await recordSuccessfulEmbedVisitorGeneration(generationOwner);
 
         res.json({
@@ -3410,7 +3476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get Halloween visualizations for authenticated user
-  app.get("/api/halloween/visualizations", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.get("/api/halloween/visualizations", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
@@ -3444,7 +3510,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Christmas Lights-specific API routes
   
   // Christmas Lights visualization upload (account or embed-owned)
-  app.post("/api/christmas-lights/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res) => {
+  app.post("/api/christmas-lights/upload", optionalAuthenticateToken as any, upload.single("image"), async (req: AuthRequest, res: any) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -3479,9 +3545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processing",
       });
 
-      if (generationOwner.shouldTrackUserUsage && userId) {
-        await storage.createOrUpdateUserUsage(userId, 'visualization');
-      }
+
 
       // Process with Christmas Lights AI
       try {
@@ -3508,6 +3572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           generatedImageUrl: editedBase64Image,
           status: "completed"
         });
+        if (generationOwner.shouldTrackUserUsage && userId) await storage.createOrUpdateUserUsage(userId, 'visualization');
         await recordSuccessfulEmbedVisitorGeneration(generationOwner);
 
         res.json({
@@ -3539,7 +3604,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get Christmas Lights visualizations for authenticated user
-  app.get("/api/christmas-lights/visualizations", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.get("/api/christmas-lights/visualizations", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
@@ -3649,7 +3714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Team management routes for Professional users
-  app.get("/api/teams/my-team", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.get("/api/teams/my-team", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       const userId = req.user!.id;
       const team = await storage.getTeamByOwnerId(userId);
@@ -3684,7 +3749,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/teams", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.post("/api/teams", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       const userId = req.user!.id;
       const { name } = req.body;
@@ -3718,7 +3783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/teams/:teamId/invite", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.post("/api/teams/:teamId/invite", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       const userId = req.user!.id;
       const { teamId } = req.params;
@@ -3787,18 +3852,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/teams/:teamId/members/:memberId", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.patch("/api/teams/:teamId/members/:memberId", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       const userId = req.user!.id;
       const { teamId, memberId } = req.params;
-      const { role, status } = req.body;
+      const { role, status } = z.object({ role: z.enum(["admin", "member"]).optional(), status: z.enum(["active", "deactivated"]).optional() }).strict().parse(req.body);
       
       const team = await storage.getTeamById(parseInt(teamId));
       if (!team || team.ownerId !== userId) {
         return res.status(403).json({ error: "Not authorized" });
       }
       
-      const member = await storage.updateTeamMember(parseInt(memberId), { role, status });
+      const members = await storage.getTeamMembers(team.id);
+      const target = members.find(member => member.id === Number(memberId));
+      if (!target || target.userId === team.ownerId) return res.sendStatus(404);
+      const member = await storage.updateTeamMember(parseInt(memberId), { role, status }, parseInt(teamId));
       res.json({ member });
     } catch (error) {
       console.error("Error updating team member:", error);
@@ -3806,7 +3874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/teams/:teamId/members/:memberId", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.delete("/api/teams/:teamId/members/:memberId", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       const userId = req.user!.id;
       const { teamId, memberId } = req.params;
@@ -3816,7 +3884,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized" });
       }
       
-      await storage.removeTeamMember(parseInt(memberId));
+      const members = await storage.getTeamMembers(team.id);
+      const target = members.find(member => member.id === Number(memberId));
+      if (!target || target.userId === team.ownerId) return res.sendStatus(404);
+      await storage.removeTeamMember(parseInt(memberId), parseInt(teamId));
       res.json({ success: true });
     } catch (error) {
       console.error("Error removing team member:", error);
@@ -3824,7 +3895,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/teams/:teamId/add-seats", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.post("/api/teams/:teamId/add-seats", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       const userId = req.user!.id;
       const { teamId } = req.params;
@@ -3874,7 +3945,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/invitations/:token/accept", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.post("/api/invitations/:token/accept", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       const userId = req.user!.id;
       const { token } = req.params;
@@ -3888,7 +3959,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invitation already accepted" });
       }
       
-      // RELAXED ACCEPTANCE: Allow any authenticated user with valid token
+      if (!req.user!.emailVerified || req.user!.email.toLowerCase() !== invitation.email.toLowerCase()) return res.status(403).json({ error: "Verify and sign in with the invited email address first." });
+      // Require the intended verified recipient
       // This allows new users to create accounts and accept invitations seamlessly
       const user = await storage.getUser(userId);
       if (!user) {
@@ -3909,7 +3981,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Join team using join code (backup method)
-  app.post("/api/teams/join-with-code", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.post("/api/teams/join-with-code", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       const userId = req.user!.id;
       const { joinCode } = req.body;
@@ -3924,6 +3996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Invalid join code" });
       }
       
+      if (!req.user!.emailVerified || req.user!.email.toLowerCase() !== invitation.email.toLowerCase()) return res.status(403).json({ error: "Verify and sign in with the invited email address first." });
       if (invitation.status !== 'pending') {
         return res.status(400).json({ error: "This join code has already been used" });
       }
@@ -3943,7 +4016,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Leave team endpoint
-  app.delete("/api/teams/:teamId/leave", authenticateToken as any, async (req: AuthRequest, res) => {
+  app.delete("/api/teams/:teamId/leave", authenticateToken as any, async (req: AuthRequest, res: any) => {
     try {
       const userId = req.user!.id;
       const { teamId } = req.params;

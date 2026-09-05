@@ -37,7 +37,7 @@ const poolConfig: PoolConfig = {
 };
 
 if (dbUsesSsl) {
-  poolConfig.ssl = { rejectUnauthorized: false };
+  poolConfig.ssl = { rejectUnauthorized: true, ...(process.env.DATABASE_SSL_CA ? { ca: process.env.DATABASE_SSL_CA.replace(/\\n/g, "\n") } : {}) };
 }
 
 export const pool = useLocalDatabase
@@ -94,4 +94,26 @@ export async function ensureEnterpriseVisualizationRolloverSchema() {
   }
 
   await localClient!.exec(enterpriseVisualizationRolloverSchemaSql);
+}
+
+export async function ensureSecuritySchema() {
+  const statement = `
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_expires timestamp;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_version integer NOT NULL DEFAULT 0;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_version text;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_accepted_at timestamp;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding jsonb;
+    CREATE TABLE IF NOT EXISTS security_rate_limits (
+      key text PRIMARY KEY, count integer NOT NULL, expires_at timestamptz NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS security_rate_limits_expiry ON security_rate_limits (expires_at);
+    CREATE TABLE IF NOT EXISTS security_leases (
+      key text PRIMARY KEY, token text NOT NULL, expires_at timestamptz NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS processed_stripe_events (
+      id text PRIMARY KEY, processed_at timestamptz NOT NULL DEFAULT now()
+    );
+  `;
+  if (pool) await pool.query(statement);
+  else await localClient!.exec(statement);
 }

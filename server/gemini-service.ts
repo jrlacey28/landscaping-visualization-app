@@ -1,3 +1,4 @@
+import { safeRequest } from "./safe-request";
 import * as fs from "fs";
 import * as path from "path";
 import { GoogleGenAI, Modality } from "@google/genai";
@@ -269,17 +270,6 @@ async function prepareReferenceImageBuffer(imageBuffer: Buffer, sourceLabel: str
   }
 }
 
-async function fetchWithTimeout(url: string, timeoutMs: number) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(url, { signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 async function loadReferenceImage(refImageUrl: string) {
   const trimmedUrl = refImageUrl.trim();
   if (!trimmedUrl) return null;
@@ -300,28 +290,9 @@ async function loadReferenceImage(refImageUrl: string) {
     return null;
   }
 
-  const response = await fetchWithTimeout(trimmedUrl, REFERENCE_IMAGE_LOAD_TIMEOUT_MS);
-  if (!response.ok) {
-    return null;
-  }
-
-  const contentLength = Number(response.headers.get("content-length") || 0);
-  if (contentLength > MAX_REFERENCE_SOURCE_IMAGE_BYTES) {
-    console.log(
-      `Skipping reference image larger than ${MAX_REFERENCE_SOURCE_IMAGE_BYTES} bytes: ${trimmedUrl}`,
-    );
-    return null;
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  if (arrayBuffer.byteLength > MAX_REFERENCE_SOURCE_IMAGE_BYTES) {
-    console.log(
-      `Skipping reference image larger than ${MAX_REFERENCE_SOURCE_IMAGE_BYTES} bytes: ${trimmedUrl}`,
-    );
-    return null;
-  }
-
-  return prepareReferenceImageBuffer(Buffer.from(arrayBuffer), trimmedUrl);
+  const response = await safeRequest(trimmedUrl, { timeoutMs: REFERENCE_IMAGE_LOAD_TIMEOUT_MS, maxBytes: MAX_REFERENCE_SOURCE_IMAGE_BYTES });
+  if (!response.ok) return null;
+  return prepareReferenceImageBuffer(response.buffer, trimmedUrl);
 }
 
 function normalizeReferenceImageInputs(

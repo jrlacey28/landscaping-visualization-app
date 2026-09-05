@@ -2,6 +2,13 @@ import { apiRequest } from "./queryClient";
 
 export { apiRequest };
 
+const generationTokens = new Map<string, string>();
+async function readUploadResponse(response: Response) {
+  const data = await response.json();
+  const id = data.visualizationId || data.poolVisualizationId || data.landscapeVisualizationId || data.halloweenVisualizationId || data.christmasLightsVisualizationId;
+  if (data.generationToken && id) generationTokens.set(`${data.generationService}:${id}`, data.generationToken);
+  return data;
+}
 // Helper function to get auth token
 const getAuthToken = () => {
   return localStorage.getItem('auth_token');
@@ -107,6 +114,7 @@ export const uploadImage = async (
   customPrompt?: string,
   options?: UploadRequestOptions,
 ) => {
+  if (maskData === "selection-required") throw new Error("Paint or select an area before generating, or turn off specific-area editing.");
   const formData = new FormData();
   formData.append('image', file);
   // Note: tenantId is no longer needed - backend will determine it
@@ -153,7 +161,7 @@ export const uploadImage = async (
     throw createApiError(`Upload failed: ${errorMessage}`, response, errorData);
   }
 
-  const data = await response.json();
+  const data = await readUploadResponse(response);
   return data;
 };
 
@@ -162,6 +170,7 @@ export const checkVisualizationStatus = async (visualizationId: number) => {
   const response = await fetch(`/api/visualizations/${visualizationId}/status`, {
     credentials: 'include',
     headers: {
+      "X-Generation-Token": generationTokens.get(`visualizations:${visualizationId}`) || "",
       'Authorization': token ? `Bearer ${token}` : '',
     },
   });
@@ -214,7 +223,7 @@ export const uploadInteriorImage = async (
     throw createApiError(`Interior upload failed: ${errorData.error || 'Unknown error'}`, response, errorData);
   }
 
-  return response.json();
+  return readUploadResponse(response);
 };
 
 export const uploadImageToPublic = async (file: File) => {
@@ -369,7 +378,7 @@ export const uploadPoolImage = async (
     throw createApiError(`Pool upload failed: ${errorMessage}`, response, errorData);
   }
 
-  const data = await response.json();
+  const data = await readUploadResponse(response);
   return data;
 };
 
@@ -378,6 +387,7 @@ export const checkPoolVisualizationStatus = async (poolVisualizationId: number) 
   const response = await fetch(`/api/pools/${poolVisualizationId}/status`, {
     credentials: 'include',
     headers: {
+      "X-Generation-Token": generationTokens.get(`pools:${poolVisualizationId}`) || "",
       'Authorization': token ? `Bearer ${token}` : '',
     },
   });
@@ -438,7 +448,7 @@ export const uploadLandscapeImage = async (
     throw createApiError(`Landscape upload failed: ${errorMessage}`, response, errorData);
   }
 
-  const data = await response.json();
+  const data = await readUploadResponse(response);
   return data;
 };
 
@@ -447,6 +457,7 @@ export const checkLandscapeVisualizationStatus = async (landscapeVisualizationId
   const response = await fetch(`/api/landscape/${landscapeVisualizationId}/status`, {
     credentials: "include",
     headers: {
+      "X-Generation-Token": generationTokens.get(`landscape:${landscapeVisualizationId}`) || "",
       'Authorization': token ? `Bearer ${token}` : '',
     },
   });
@@ -492,7 +503,7 @@ export const uploadHalloweenImage = async (
     throw createApiError(`Halloween upload failed: ${errorMessage}`, response, errorData);
   }
 
-  const data = await response.json();
+  const data = await readUploadResponse(response);
   return data;
 };
 
@@ -501,6 +512,7 @@ export const checkHalloweenVisualizationStatus = async (halloweenVisualizationId
   const response = await fetch(`/api/halloween/${halloweenVisualizationId}/status`, {
     credentials: "include",
     headers: {
+      "X-Generation-Token": generationTokens.get(`halloween:${halloweenVisualizationId}`) || "",
       'Authorization': token ? `Bearer ${token}` : '',
     },
   });
@@ -546,7 +558,7 @@ export const uploadChristmasLightsImage = async (
     throw createApiError(`Christmas lights upload failed: ${errorMessage}`, response, errorData);
   }
 
-  const data = await response.json();
+  const data = await readUploadResponse(response);
   return data;
 };
 
@@ -555,6 +567,7 @@ export const checkChristmasLightsVisualizationStatus = async (christmasLightsVis
   const response = await fetch(`/api/christmas-lights/${christmasLightsVisualizationId}/status`, {
     credentials: "include",
     headers: {
+      "X-Generation-Token": generationTokens.get(`christmas-lights:${christmasLightsVisualizationId}`) || "",
       'Authorization': token ? `Bearer ${token}` : '',
     },
   });

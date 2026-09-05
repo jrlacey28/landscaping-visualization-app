@@ -76,7 +76,7 @@ const pricingTiers: PricingTier[] = [
     yearlyPrice: 0,
     features: ["5 visualizations per month", "Standard sharing options", "Images include watermark"],
     cta: "Start Free Trial",
-    ctaLink: "/auth",
+    ctaLink: "/auth?mode=signup",
   },
   {
     name: "Contractor",
@@ -227,7 +227,7 @@ export default function Home() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  href="/auth"
+                  href="/auth?mode=signup"
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-6 py-3 font-semibold text-white transition hover:bg-blue-400"
                 >
                   Get Started
@@ -484,7 +484,7 @@ export default function Home() {
             </div>
             <p className="mt-5 text-lg text-slate-300">Start free Upgrade when ready</p>
             <Link
-              href="/auth"
+              href="/auth?mode=signup"
               className="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-500 px-7 py-3 font-semibold text-white transition hover:bg-blue-400"
             >
               Start Free Trial

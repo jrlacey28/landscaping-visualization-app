@@ -11,7 +11,7 @@ import {
   type Team, type InsertTeam, type TeamMember, type InsertTeamMember
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte } from "drizzle-orm";
+import { eq, desc, and, gte, sql } from "drizzle-orm";
 import { getManagedAccountClientPlan } from "./account-tenant-plan";
 import { advanceVisualizationRollover } from "./visualization-rollover";
 
@@ -143,8 +143,8 @@ export interface IStorage {
   getTeamMembers(teamId: number): Promise<TeamMember[]>;
   getTeamMemberByEmail(teamId: number, email: string): Promise<TeamMember | undefined>;
   addTeamMember(member: InsertTeamMember): Promise<TeamMember>;
-  updateTeamMember(id: number, member: Partial<InsertTeamMember>): Promise<TeamMember>;
-  removeTeamMember(id: number): Promise<void>;
+  updateTeamMember(id: number, member: Partial<InsertTeamMember>, teamId?: number): Promise<TeamMember>;
+  removeTeamMember(id: number, teamId?: number): Promise<void>;
   getUserTeams(userId: number): Promise<Team[]>;
   getTeamMemberByToken(token: string): Promise<(TeamMember & { team: Team }) | undefined>;
   acceptTeamInvitation(token: string, userId: number): Promise<TeamMember>;
@@ -185,7 +185,7 @@ export class DatabaseStorage implements IStorage {
 
       // Second try: Email lookup with auto-repair
       const user = await this.getUser(userId);
-      if (!user) return null;
+      if (!user || !user.emailVerified) return null;
 
       // Try both exact email match and lowercase
       const emails = [user.email, user.email.toLowerCase()];
@@ -196,7 +196,8 @@ export class DatabaseStorage implements IStorage {
           .innerJoin(teams, eq(teamMembers.teamId, teams.id))
           .where(and(
             eq(teamMembers.email, email),
-            eq(teamMembers.status, 'active')
+            eq(teamMembers.status, 'active'),
+            sql`(${teamMembers.userId} IS NULL OR ${teamMembers.userId} = ${userId})`
           ))
           .limit(1);
         
@@ -1701,19 +1702,20 @@ export class DatabaseStorage implements IStorage {
     return member;
   }
 
-  async updateTeamMember(id: number, insertMember: Partial<InsertTeamMember>): Promise<TeamMember> {
+  async updateTeamMember(id: number, insertMember: Partial<InsertTeamMember>, teamId?: number): Promise<TeamMember> {
     const [member] = await this.db
       .update(teamMembers)
       .set(insertMember)
-      .where(eq(teamMembers.id, id))
+      .where(and(eq(teamMembers.id, id), teamId === undefined ? undefined : eq(teamMembers.teamId, teamId)))
       .returning();
+    if (!member) throw new Error("Team member not found");
     return member;
   }
 
-  async removeTeamMember(id: number): Promise<void> {
+  async removeTeamMember(id: number, teamId?: number): Promise<void> {
     await this.db
       .delete(teamMembers)
-      .where(eq(teamMembers.id, id));
+      .where(and(eq(teamMembers.id, id), teamId === undefined ? undefined : eq(teamMembers.teamId, teamId)));
   }
 
   async getUserTeams(userId: number): Promise<Team[]> {
@@ -1771,7 +1773,7 @@ export class DatabaseStorage implements IStorage {
         status: 'active',
         joinedAt: new Date()
       })
-      .where(eq(teamMembers.invitationToken, token))
+      .where(and(eq(teamMembers.invitationToken, token), eq(teamMembers.status, "pending")))
       .returning();
     
     if (!member) {
@@ -1815,7 +1817,7 @@ export class DatabaseStorage implements IStorage {
         status: 'active',
         joinedAt: new Date()
       })
-      .where(eq(teamMembers.joinCode, joinCode))
+      .where(and(eq(teamMembers.joinCode, joinCode), eq(teamMembers.status, "pending")))
       .returning();
     
     if (!member) {

@@ -128,15 +128,15 @@ export default function EmbedCodeGenerator({ tenant, accountUserId }: EmbedCodeG
           parsed.showHeader !== undefined
             ? parsed.showHeader
             : defaults.showHeader,
-        primaryColor: parsed.primaryColor || defaults.primaryColor,
-        secondaryColor: parsed.secondaryColor || defaults.secondaryColor,
+        primaryColor: defaults.primaryColor,
+        secondaryColor: defaults.secondaryColor,
         backgroundScheme: parseEmbedBackgroundScheme(
           parsed.backgroundScheme,
         ),
         backgroundColor: parsed.backgroundColor || defaults.backgroundColor,
-        logoUrl: parsed.logoUrl ?? defaults.logoUrl,
-        companyName: parsed.companyName || defaults.companyName,
-        contactPhone: parsed.contactPhone || defaults.contactPhone,
+        logoUrl: defaults.logoUrl,
+        companyName: defaults.companyName,
+        contactPhone: defaults.contactPhone,
         contactType: parsed.contactType || defaults.contactType,
         contactLink: parsed.contactLink ?? defaults.contactLink,
         visualizerType: enabledServices.some((service) => service.key === parsed.visualizerType)

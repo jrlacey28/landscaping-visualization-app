@@ -309,6 +309,9 @@ export default function Dashboard() {
               <p className="text-gray-600">Welcome back, {user.user.firstName}!</p>
             </div>
             <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={() => setLocation('/setup')}>
+                Business setup
+              </Button>
               <Button variant="outline" onClick={() => setLocation('/')}>
                 Return to site
               </Button>

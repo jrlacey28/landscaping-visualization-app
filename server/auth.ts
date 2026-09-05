@@ -5,7 +5,9 @@ import type { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import type { User, InsertUser } from '@shared/schema';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-production';
+import { securitySecret, hashToken } from "./security";
+import { TERMS_VERSION } from "@shared/legal";
+const JWT_SECRET = securitySecret;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 export interface AuthRequest extends Request {
@@ -24,14 +26,14 @@ export class AuthService {
   }
 
   static generateToken(user: User): string {
-    const payload = { userId: user.id, email: user.email };
+    const payload = { userId: user.id, email: user.email, version: user.authVersion };
     const options = { expiresIn: JWT_EXPIRES_IN };
     return (jwt.sign as any)(payload, JWT_SECRET, options);
   }
 
-  static verifyToken(token: string): { userId: number; email: string } | null {
+  static verifyToken(token: string): { userId: number; email: string; version?: number } | null {
     try {
-      return jwt.verify(token, JWT_SECRET) as { userId: number; email: string };
+      return jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] }) as { userId: number; email: string; version?: number };
     } catch {
       return null;
     }
@@ -48,9 +50,10 @@ export class AuthService {
     lastName: string;
     businessName?: string;
     phone?: string;
+    termsAccepted: true;
   }): Promise<{ user: User; token: string }> {
     // Check if user already exists
-    const existingUser = await storage.getUserByEmail(userData.email);
+    const existingUser = await storage.getUserByEmail(userData.email.trim().toLowerCase());
     if (existingUser) {
       throw new Error('User already exists with this email');
     }
@@ -60,13 +63,16 @@ export class AuthService {
 
     // Create user with manual object to include all needed fields
     const insertUserData = {
-      email: userData.email,
+      email: userData.email.trim().toLowerCase(),
       passwordHash,
       firstName: userData.firstName,
       lastName: userData.lastName,
       businessName: userData.businessName || null,
       phone: userData.phone || null,
-      emailVerified: true, // Set to true since no email verification is configured
+      emailVerified: false,
+      onboarding: { requiresSetup: true },
+      termsVersion: TERMS_VERSION,
+      termsAcceptedAt: new Date(),
     } as any;
 
     const user = await storage.createUser(insertUserData);
@@ -88,7 +94,7 @@ export class AuthService {
 
   static async login(email: string, password: string): Promise<{ user: User; token: string }> {
     // Find user by email
-    const user = await storage.getUserByEmail(email);
+    const user = await storage.getUserByEmail(email.trim().toLowerCase());
     if (!user) {
       throw new Error('Invalid email or password');
     }
@@ -109,22 +115,23 @@ export class AuthService {
   }
 
   static async verifyEmail(token: string): Promise<User> {
-    const user = await storage.getUserByEmailVerificationToken(token);
-    if (!user) {
-      throw new Error('Invalid verification token');
+    const user = await storage.getUserByEmailVerificationToken(hashToken(token));
+    if (!user || !user.emailVerificationExpires || user.emailVerificationExpires < new Date()) {
+      throw new Error('Invalid or expired verification token');
     }
 
     // Mark email as verified
     const updatedUser = await storage.updateUser(user.id, {
       emailVerified: true,
       emailVerificationToken: null,
+      emailVerificationExpires: null,
     } as any);
 
     return updatedUser;
   }
 
   static async requestPasswordReset(email: string): Promise<string> {
-    const user = await storage.getUserByEmail(email);
+    const user = await storage.getUserByEmail(email.trim().toLowerCase());
     if (!user) {
       throw new Error('No user found with this email');
     }
@@ -135,7 +142,7 @@ export class AuthService {
 
     // Update user with reset token
     await storage.updateUser(user.id, {
-      resetPasswordToken: resetToken,
+      resetPasswordToken: hashToken(resetToken),
       resetPasswordExpires: resetExpires,
     } as any);
 
@@ -143,7 +150,7 @@ export class AuthService {
   }
 
   static async resetPassword(token: string, newPassword: string): Promise<User> {
-    const user = await storage.getUserByResetToken(token);
+    const user = await storage.getUserByResetToken(hashToken(token));
     if (!user || !user.resetPasswordExpires || user.resetPasswordExpires < new Date()) {
       throw new Error('Invalid or expired reset token');
     }
@@ -154,6 +161,7 @@ export class AuthService {
     // Update user
     const updatedUser = await storage.updateUser(user.id, {
       passwordHash,
+      authVersion: user.authVersion + 1,
       resetPasswordToken: null,
       resetPasswordExpires: null,
     } as any);
@@ -170,7 +178,7 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
       const sessionUser = (req as any).user;
       // Get full user from database
       const user = await storage.getUser(sessionUser.id);
-      if (user) {
+      if (user && user.authVersion === (sessionUser.authVersion ?? 0)) {
         req.user = user;
         req.userId = user.id;
         return next();
@@ -192,7 +200,7 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
 
     // Get user from database
     const user = await storage.getUser(decoded.userId);
-    if (!user) {
+    if (!user || user.authVersion !== (decoded.version ?? 0)) {
       return res.status(403).json({ error: 'User not found' });
     }
 
@@ -212,7 +220,7 @@ export const optionalAuthenticateToken = async (req: AuthRequest, _res: Response
     if (req.isAuthenticated && req.isAuthenticated() && (req as any).user) {
       const sessionUser = (req as any).user;
       const user = await storage.getUser(sessionUser.id);
-      if (user) {
+      if (user && user.authVersion === (sessionUser.authVersion ?? 0)) {
         req.user = user;
         req.userId = user.id;
         return next();
@@ -226,7 +234,7 @@ export const optionalAuthenticateToken = async (req: AuthRequest, _res: Response
       const decoded = AuthService.verifyToken(token);
       if (decoded) {
         const user = await storage.getUser(decoded.userId);
-        if (user) {
+        if (user && user.authVersion === (decoded.version ?? 0)) {
           req.user = user;
           req.userId = user.id;
         }

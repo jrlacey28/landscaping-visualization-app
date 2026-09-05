@@ -1,3 +1,4 @@
+import RegionSelector from "@/components/region-selector";
 
 import { useState, useEffect } from "react";
 import { useTenant } from "../hooks/use-tenant";
@@ -150,6 +151,7 @@ export default function EmbedRoofingPage() {
   const [showQuoteGate, setShowQuoteGate] = useState(false);
   const [showingOriginal, setShowingOriginal] = useState(false);
   const [customPrompt, setCustomPrompt] = useState("");
+  const [regionMask, setRegionMask] = useState<string | null>(null);
   const [selectedStyles, setSelectedStyles] = useState(createEmptyExteriorSelections);
   const [styleSelectionStatus, setStyleSelectionStatus] = useState(createEmptySelectionStatus);
   const hasCompletedVisualization =
@@ -571,6 +573,7 @@ export default function EmbedRoofingPage() {
                 <p className="text-xs font-semibold text-slate-700">Unlimited team access</p>
               </div>
             )}
+            {uploadedImage && <RegionSelector image={uploadedImage} onChange={setRegionMask} />}
             <StyleSelector
               selectedStyles={{
                 roof: selectedStyles.roof.type,
@@ -654,7 +657,7 @@ export default function EmbedRoofingPage() {
                     originalFile,
                     effectiveTenant.id,
                     selectedStyles,
-                    undefined,
+                    regionMask || undefined,
                     embedVisitor.status?.unlimitedAccountAccess ? customPrompt : undefined,
                     {
                       source: "embed",

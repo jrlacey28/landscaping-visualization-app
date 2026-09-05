@@ -1,3 +1,5 @@
+import Setup from "@/pages/setup";
+import AccountRecovery from "@/pages/account-recovery";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -52,6 +54,8 @@ const LazyRoute = ({ Component }: { Component: React.LazyExoticComponent<() => J
 function Router() {
   return (
     <Switch>
+      <Route path="/setup" component={Setup} />
+      <Route path="/account/:action" component={AccountRecovery} />
       <Route path="/" component={Home} />
       <Route path="/roofing-siding" component={() => <LazyRoute Component={RoofingSiding} />} />
       <Route path="/landscape" component={() => <LazyRoute Component={Landscape} />} />

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 interface User {
   id: number;
@@ -50,7 +50,7 @@ interface AuthContextType {
   user: AuthUser | null;
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
   error: string | null;
   refreshUser: () => Promise<void>;
@@ -63,6 +63,7 @@ interface RegisterData {
   lastName: string;
   businessName?: string;
   phone?: string;
+  termsAccepted: true;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -82,29 +83,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Get token from localStorage
   const getToken = () => localStorage.getItem('auth_token');
-  const setToken = (token: string) => localStorage.setItem('auth_token', token);
   const removeToken = () => localStorage.removeItem('auth_token');
 
   // Check if user is authenticated on mount with retry logic  
   useEffect(() => {
     const checkAuth = async (retries = 2) => {
-      const token = getToken();
-      if (token) {
-        try {
-          await fetchUser();
-        } catch (error) {
-          // If fetch fails and we have retries left, try again
-          if (retries > 0) {
-            console.log(`Auth check failed, retrying... (${retries} attempts left)`);
-            setTimeout(() => checkAuth(retries - 1), 1000);
-          } else {
-            console.error('Auth check failed after all retries');
-            setLoading(false);
-          }
-        }
-      } else {
-        setLoading(false);
-      }
+      try { await fetchUser(); } catch { setLoading(false); }
     };
     
     checkAuth();
@@ -114,14 +98,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const token = getToken();
-      if (!token) {
-        setUser(null);
-        return;
-      }
 
       const response = await apiRequest('GET', '/api/auth/me', undefined, {
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: token ? `Bearer ${token}` : ""
         }
       });
 
@@ -172,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
 
       if (data.success) {
-        setToken(data.data.token);
+        removeToken();
         await fetchUser();
       } else {
         throw new Error(data.error || 'Login failed');
@@ -195,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
 
       if (data.success) {
-        setToken(data.data.token);
+        removeToken();
         await fetchUser();
       } else {
         throw new Error(data.error || 'Registration failed');
@@ -208,8 +188,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await apiRequest("POST", "/api/auth/logout");
     removeToken();
+    queryClient.clear();
     setUser(null);
     setError(null);
   };
